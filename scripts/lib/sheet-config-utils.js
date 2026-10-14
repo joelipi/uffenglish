@@ -166,6 +166,30 @@ export function parseCsv(text) {
 }
 
 /**
+ * Quote one CSV field (RFC-4180): fields containing a comma, quote, or newline
+ * are wrapped in quotes with `"` escaped as `""`. Shared by the bridge and the
+ * file-commit writers so every CSV the repo owns is serialized one way.
+ */
+export function csvField(value) {
+    const s = String(value ?? '');
+    return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+/**
+ * Serialize header-keyed rows to RFC-4180 CSV text in `headers` order. A row
+ * missing a header resolves it to "". The inverse of `parseCsv` for dense rows
+ * (both sides agree on lower-cased header keys).
+ */
+export function serializeCsv(headers, rows) {
+    const cols = [...(headers || [])];
+    const lines = [cols.map(csvField).join(',')];
+    for (const row of rows || []) {
+        lines.push(cols.map((h) => csvField(row?.[h])).join(','));
+    }
+    return `${lines.join('\n')}\n`;
+}
+
+/**
  * Whether a row carries any video-related value. Blank spacer rows (and the
  * like) are skipped.
  */
