@@ -117,11 +117,59 @@ describe('PWAInstallButton', () => {
         expect(log).toHaveBeenCalledWith('[PWA] Install dialog requested:', {
             opened: true,
             hasElement: true,
-            isInstallAvailable: true,
-            isDialogHidden: false,
+            isAndroid: false,
+            hasWebInstall: false,
             hasDeferredPrompt: false,
         });
         unmount();
+    });
+
+    it('goes straight to the system install UI on Android with a live native path', async () => {
+        const userAgent = Object.getOwnPropertyDescriptor(window.navigator, 'userAgent')
+            ?? Object.getOwnPropertyDescriptor(Object.getPrototypeOf(window.navigator), 'userAgent');
+        Object.defineProperty(window.navigator, 'userAgent', {
+            value: 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 Chrome/131.0 Mobile Safari/537.36',
+            configurable: true,
+        });
+        window.defferedPromptEvent = { prompt: () => {} };
+        const install = vi.fn(async () => {});
+        const showDialog = vi.fn();
+        const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+        registerInstallElement({ showDialog, install });
+        try {
+            const { container, unmount } = render(<PWAInstallButton label="Install app" />);
+            await act(async () => { container.querySelector('[data-testid="install-app"]').click(); });
+            expect(install).toHaveBeenCalledTimes(1);
+            expect(showDialog).not.toHaveBeenCalled();
+            expect(log).toHaveBeenCalledWith('[PWA] Install requested (native fast path):', {
+                invoked: true,
+                hasElement: true,
+                isAndroid: true,
+                hasWebInstall: false,
+                hasDeferredPrompt: true,
+            });
+            unmount();
+        } finally {
+            delete window.defferedPromptEvent;
+            if (userAgent) Object.defineProperty(window.navigator, 'userAgent', userAgent);
+            else delete window.navigator.userAgent;
+        }
+    });
+
+    it('falls back to the dialog on Android when no native path is live yet', async () => {
+        Object.defineProperty(window.navigator, 'userAgent', {
+            value: 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/131.0 Mobile Safari/537.36',
+            configurable: true,
+        });
+        const showDialog = vi.fn();
+        registerInstallElement({ showDialog, install: vi.fn(async () => {}) });
+        const { container, unmount } = render(<PWAInstallButton label="Install app" />);
+        try {
+            await act(async () => { container.querySelector('[data-testid="install-app"]').click(); });
+            expect(showDialog).toHaveBeenCalledWith(false);
+        } finally {
+            unmount();
+        }
     });
 
     it('is fail-open when no dialog element is mounted', () => {

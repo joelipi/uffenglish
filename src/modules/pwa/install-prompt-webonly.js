@@ -124,6 +124,51 @@ export function mountInstallElement(host, { lang } = {}) {
     }
 }
 
+/**
+ * Snapshot what native install paths are live right now. `navigator.install`
+ * is the Web Install API (same feature check the library itself uses);
+ * `window[DEFERRED_PROMPT_KEY]` is the captured `beforeinstallprompt`, which
+ * the browser fires once per page load. Any failure reads as "no native path"
+ * so the caller falls back to the dialog.
+ */
+export function readNativeInstallAvailability() {
+    const unavailable = { isAndroid: false, hasWebInstall: false, hasDeferredPrompt: false };
+    if (typeof window === 'undefined' || typeof navigator === 'undefined') return unavailable;
+    try {
+        return {
+            // Same test the library uses for its Android branches.
+            isAndroid: /android/i.test(navigator.userAgent || ''),
+            hasWebInstall: typeof navigator.install === 'function',
+            hasDeferredPrompt: !!window[DEFERRED_PROMPT_KEY],
+        };
+    } catch (err) {
+        console.error('[PWA] Failed to read the native install state:', err);
+        return unavailable;
+    }
+}
+
+/**
+ * Invoke the system install UI directly, skipping the library dialog.
+ *
+ * Returns true when the native flow was invoked — success, user dismissal and
+ * abort are all terminal for this tap, so the caller must NOT fall back to the
+ * dialog (that would nag right after a dismissal). Returns false only when the
+ * flow could not run at all (missing element/method, or a technical throw),
+ * in which case the caller falls back to opening the dialog.
+ */
+export async function installDirectly(element) {
+    if (!element || typeof element.install !== 'function') return false;
+    try {
+        await element.install();
+        return true;
+    } catch (err) {
+        // Dismissing the native sheet aborts the request: respect it silently.
+        if (err && err.name === 'AbortError') return true;
+        console.error('[PWA] Direct install failed:', err);
+        return false;
+    }
+}
+
 /** Remove an element mounted by `mountInstallElement` and unregister it. */
 export function unmountInstallElement(element) {
     if (getRegisteredInstallElement() === element) registerInstallElement(null);

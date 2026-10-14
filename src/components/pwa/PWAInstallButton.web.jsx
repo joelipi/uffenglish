@@ -4,33 +4,39 @@
 // element (mounted in RootLayout) — it deliberately does not import the
 // `pwa-install` package, so the home screen's own tests stay light.
 import React from 'react';
-import { shouldOfferInstall, openInstallDialog } from '../../modules/pwa/install-prompt-logic.js';
-import { getRegisteredInstallElement, readIsStandaloneApp } from '../../modules/pwa/install-prompt-webonly.js';
+import {
+    shouldOfferInstall,
+    shouldUseNativeInstall,
+    openInstallDialog,
+} from '../../modules/pwa/install-prompt-logic.js';
+import {
+    getRegisteredInstallElement,
+    readIsStandaloneApp,
+    readNativeInstallAvailability,
+    installDirectly,
+} from '../../modules/pwa/install-prompt-webonly.js';
 
 export default function PWAInstallButton({ label, style, onBeforeOpen }) {
     if (!shouldOfferInstall({ isStandalone: readIsStandaloneApp() })) return null;
 
-    const handleClick = () => {
+    const handleClick = async () => {
         if (typeof onBeforeOpen === 'function') onBeforeOpen();
         const element = getRegisteredInstallElement();
-        const opened = openInstallDialog(element);
-        // Diagnostic snapshot for install-flow reports (e.g. a platform where
-        // the dialog does not appear): whether the element existed, what the
-        // library thinks is available, and whether a deferred prompt was held.
-        // Read-only and fail-open — a logging failure must never break the tap.
-        try {
-            console.log('[PWA] Install dialog requested:', {
-                opened,
-                hasElement: !!element,
-                isInstallAvailable: element ? !!element.isInstallAvailable : null,
-                isDialogHidden: element ? !!element.isDialogHidden : null,
-                hasDeferredPrompt: typeof window !== 'undefined'
-                    ? !!window.defferedPromptEvent
-                    : null,
-            });
-        } catch (err) {
-            console.error('[PWA] Install diagnostics failed:', err);
+        const availability = readNativeInstallAvailability();
+        const snapshot = {
+            hasElement: !!element,
+            ...availability,
+        };
+        // Android with a live native path skips the library sheet and opens
+        // the system install UI straight away — the user already tapped
+        // Install, and the two sheets look near identical there.
+        if (element && shouldUseNativeInstall(availability)) {
+            const invoked = await installDirectly(element);
+            console.log('[PWA] Install requested (native fast path):', { invoked, ...snapshot });
+            if (invoked) return;
         }
+        const opened = openInstallDialog(element);
+        console.log('[PWA] Install dialog requested:', { opened, ...snapshot });
     };
 
     return (

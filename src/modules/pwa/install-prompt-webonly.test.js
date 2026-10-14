@@ -6,6 +6,8 @@ import {
     getRegisteredInstallElement,
     mountInstallElement,
     unmountInstallElement,
+    readNativeInstallAvailability,
+    installDirectly,
     DEFERRED_PROMPT_KEY,
 } from './install-prompt-webonly.js';
 import { STANDALONE_DISPLAY_MODE_QUERY } from './install-prompt-logic.js';
@@ -240,5 +242,81 @@ describe('unmountInstallElement', () => {
         expect(() => unmountInstallElement(undefined)).not.toThrow();
         expect(getRegisteredInstallElement()).toBe(foreign);
         registerInstallElement(null);
+    });
+});
+
+describe('readNativeInstallAvailability', () => {
+    const userAgent = Object.getOwnPropertyDescriptor(window.navigator, 'userAgent')
+        ?? Object.getOwnPropertyDescriptor(Object.getPrototypeOf(window.navigator), 'userAgent');
+
+    function setUserAgent(value) {
+        Object.defineProperty(window.navigator, 'userAgent', { value, configurable: true });
+    }
+
+    function restoreUserAgent() {
+        if (userAgent) Object.defineProperty(window.navigator, 'userAgent', userAgent);
+        else delete window.navigator.userAgent;
+    }
+
+    afterEach(restoreUserAgent);
+
+    it('reports no native path in jsdom (not Android, no Web Install, no prompt)', () => {
+        expect(readNativeInstallAvailability()).toEqual({
+            isAndroid: false,
+            hasWebInstall: false,
+            hasDeferredPrompt: false,
+        });
+    });
+
+    it('detects an Android device with a captured prompt', () => {
+        setUserAgent('Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 Chrome/131.0 Mobile Safari/537.36');
+        window[DEFERRED_PROMPT_KEY] = { prompt: () => {} };
+        try {
+            expect(readNativeInstallAvailability()).toEqual({
+                isAndroid: true,
+                hasWebInstall: false,
+                hasDeferredPrompt: true,
+            });
+        } finally {
+            delete window[DEFERRED_PROMPT_KEY];
+        }
+    });
+
+    it('detects the Web Install API when present', () => {
+        setUserAgent('Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/132.0 Mobile Safari/537.36');
+        window.navigator.install = () => Promise.resolve({});
+        try {
+            expect(readNativeInstallAvailability().hasWebInstall).toBe(true);
+        } finally {
+            delete window.navigator.install;
+        }
+    });
+});
+
+describe('installDirectly', () => {
+    it('invokes the system install UI and reports it', async () => {
+        const install = vi.fn(async () => {});
+        expect(await installDirectly({ install })).toBe(true);
+        expect(install).toHaveBeenCalledTimes(1);
+    });
+
+    it('refuses without an element or an install method', async () => {
+        expect(await installDirectly(null)).toBe(false);
+        expect(await installDirectly(undefined)).toBe(false);
+        expect(await installDirectly({})).toBe(false);
+    });
+
+    it('treats a user abort as handled (no dialog fallback nag)', async () => {
+        const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+        const aborted = new Error('dismissed');
+        aborted.name = 'AbortError';
+        expect(await installDirectly({ install: async () => { throw aborted; } })).toBe(true);
+        expect(error).not.toHaveBeenCalled();
+    });
+
+    it('reports a technical failure so the caller can fall back to the dialog', async () => {
+        const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+        expect(await installDirectly({ install: async () => { throw new Error('boom'); } })).toBe(false);
+        expect(error).toHaveBeenCalled();
     });
 });

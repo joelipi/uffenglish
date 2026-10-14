@@ -5,6 +5,7 @@ import {
     shouldOfferInstall,
     openInstallDialog,
     toInstallLocale,
+    shouldUseNativeInstall,
 } from './install-prompt-logic.js';
 
 afterEach(() => {
@@ -84,5 +85,24 @@ describe('toInstallLocale', () => {
         expect(toInstallLocale(null)).toBe('en');
         expect(toInstallLocale(undefined)).toBe('en');
         expect(toInstallLocale(42)).toBe('en');
+    });
+});
+
+describe('shouldUseNativeInstall', () => {
+    it('goes direct only on Android with a live native path', () => {
+        expect(shouldUseNativeInstall({ isAndroid: true, hasDeferredPrompt: true })).toBe(true);
+        expect(shouldUseNativeInstall({ isAndroid: true, hasWebInstall: true })).toBe(true);
+        expect(shouldUseNativeInstall({
+            isAndroid: true, hasWebInstall: true, hasDeferredPrompt: true,
+        })).toBe(true);
+    });
+
+    it('falls back to the dialog otherwise', () => {
+        // Android but no live path yet (e.g. tapped before beforeinstallprompt).
+        expect(shouldUseNativeInstall({ isAndroid: true })).toBe(false);
+        // Not Android: iOS has no native prompt API; desktop keeps its dialog.
+        expect(shouldUseNativeInstall({ isAndroid: false, hasDeferredPrompt: true })).toBe(false);
+        expect(shouldUseNativeInstall({ isAndroid: false, hasWebInstall: true })).toBe(false);
+        expect(shouldUseNativeInstall()).toBe(false);
     });
 });

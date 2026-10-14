@@ -45,6 +45,27 @@ export function toInstallLocale(lang) {
 }
 
 /**
+ * Should tapping Install go straight to the system install UI?
+ *
+ * Android-only, and only when a native path is live right now: the Web Install
+ * API (`navigator.install`) or a captured `beforeinstallprompt` (which the
+ * dialog element holds for the sender to read). Otherwise the tap falls
+ * back to opening the dialog (instructions/how-to), exactly as before.
+ *
+ * Rationale: on Android the library sheet and the system sheet look near
+ * identical (icon, name, origin, Install) and lead to the same place, so the
+ * intermediate sheet is a pure extra step once the user has already tapped
+ * Install. iOS has no native prompt API at all (instructions only) and desktop
+ * keeps the existing dialog flow — both deliberately out of scope.
+ *
+ * @param {{ isAndroid?: boolean, hasWebInstall?: boolean, hasDeferredPrompt?: boolean }} [context]
+ * @returns {boolean}
+ */
+export function shouldUseNativeInstall({ isAndroid = false, hasWebInstall = false, hasDeferredPrompt = false } = {}) {
+    return !!(isAndroid && (hasWebInstall || hasDeferredPrompt));
+}
+
+/**
  * Open the install dialog owned by a `<pwa-install>` element.
  *
  * Fail-open: returns `false` instead of throwing when the element is missing,
