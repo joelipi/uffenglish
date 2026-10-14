@@ -217,6 +217,24 @@ records takes and presses **render**:
   render's sheet input and **manual** reads (the recorder, and the local
   `npm run configs:generate` default), but the post-render chain is lag-free.
 
+## Editing the script on the GitHub web UI (push-the-button authoring)
+
+The friend-course script lives at `wouldyourather.source.txt` (repo root, on
+`main`). Edit it directly on the GitHub website — no local checkout, no
+commands. Saving the edit pushes to `main`, and
+`.github/workflows/source-to-sheet.yml` validates the source (JSON + structure)
+and syncs the derived rows into the operator sheet tab. A bad edit fails the
+run red with the reason; nothing is written. Then record takes and press
+render as usual — the one-click chain (SRT → translate → configs) is unchanged.
+The push trigger is `main`-only (an unreviewed branch never writes the shared
+tab); `--dry-run` still reads the tab list, so it needs the secret too.
+
+Setup (once): share the sheet with the writer service account as Editor, store
+its JSON key as the Actions secret `GOOGLE_SOURCE_SHEET_JSON` (or reuse the
+translator's existing service-account secret), and optionally pin
+`SOURCE_SHEET_ID` / `SOURCE_SHEET_TAB` repo variables (defaults: the
+`wouldyourather` tab).
+
 ## Not using Google Sheets
 
 The generator only needs a **URL that returns CSV**. Anything that serves a
