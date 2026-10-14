@@ -1,34 +1,29 @@
 // components/pwa/PWAInstallDialog.web.jsx
-// Mounts the `@khmyznikov/pwa-install` dialog exactly once, in the app layout.
-// It renders nothing else and stays inert until the home menu's Install entry
-// (`PWAInstallButton`) asks the registered element to open.
+// Mounts the `@khmyznikov/pwa-install` dialog exactly once per app language, in
+// the app layout. It renders nothing else and stays inert until the home menu's
+// Install entry (`PWAInstallButton`) asks the registered element to open.
 //
-// `manual-apple` + `manual-chrome` keep the component from opening on its own:
-// this app already throws the guest language/login modal at first-time
-// visitors, and a second unsolicited overlay is both a UX regression and a
-// source of click interception for automated tests. `use-local-storage` makes a
-// dismissal stick. `manifest-url` points at the build-generated manifest so the
-// component can use the Web Install API with a manifest `id`.
+// The element is created imperatively (not as JSX) so its `connectedCallback` —
+// where the component reads `navigator.language` once, synchronously — runs
+// inside `mountInstallElement`'s spoof window, and the dialog speaks the app's
+// UI language instead of the browser's. Re-created when the app language
+// changes (`lang` dep), so switching language re-localizes the dialog.
 import React, { useEffect, useRef } from 'react';
+import { useStore } from 'zustand';
 import '@khmyznikov/pwa-install';
-import { registerInstallElement } from '../../modules/pwa/install-prompt-webonly.js';
+import { appStore } from '../../modules/store/store.js';
+import { mountInstallElement, unmountInstallElement } from '../../modules/pwa/install-prompt-webonly.js';
 
 export default function PWAInstallDialog() {
-    const installRef = useRef(null);
+    const hostRef = useRef(null);
+    const guestLang = useStore(appStore, (state) => state.guestNativeLanguage);
+    const userDataLang = useStore(appStore, (state) => state.userData?.native_language);
+    const lang = guestLang || userDataLang || 'en';
 
     useEffect(() => {
-        registerInstallElement(installRef.current);
-        console.log('[PWA] Install dialog registered');
-        return () => registerInstallElement(null);
-    }, []);
+        const element = mountInstallElement(hostRef.current, { lang });
+        return () => unmountInstallElement(element);
+    }, [lang]);
 
-    return (
-        <pwa-install
-            ref={installRef}
-            manual-apple="true"
-            manual-chrome="true"
-            use-local-storage="true"
-            manifest-url="/manifest.webmanifest"
-        />
-    );
+    return <span ref={hostRef} data-testid="pwa-install-host" style={{ display: 'contents' }} />;
 }

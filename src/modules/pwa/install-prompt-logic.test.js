@@ -4,6 +4,7 @@ import {
     STANDALONE_DISPLAY_MODE_QUERY,
     shouldOfferInstall,
     openInstallDialog,
+    toInstallLocale,
 } from './install-prompt-logic.js';
 
 afterEach(() => {
@@ -51,5 +52,36 @@ describe('openInstallDialog', () => {
 describe('STANDALONE_DISPLAY_MODE_QUERY', () => {
     it('is the standard installed-PWA media query', () => {
         expect(STANDALONE_DISPLAY_MODE_QUERY).toBe('(display-mode: standalone)');
+    });
+});
+
+describe('toInstallLocale', () => {
+    it('maps the supported app languages to the dialog locales', () => {
+        expect(toInstallLocale('en')).toBe('en');
+        expect(toInstallLocale('es')).toBe('es');
+        expect(toInstallLocale('pt')).toBe('pt');
+        expect(toInstallLocale('fr')).toBe('fr');
+    });
+
+    it('normalizes the app\'s uppercase codes and full locales', () => {
+        expect(toInstallLocale('EN')).toBe('en');
+        expect(toInstallLocale('ES')).toBe('es');
+        expect(toInstallLocale('PT')).toBe('pt');
+        expect(toInstallLocale('FR')).toBe('fr');
+        expect(toInstallLocale('es-ES')).toBe('es');
+    });
+
+    it('falls back to English for languages the dialog does not ship', () => {
+        // The component has no hi/bn translations, so they resolve the same way
+        // its own lookup does when a locale is missing.
+        expect(toInstallLocale('hi')).toBe('en');
+        expect(toInstallLocale('bn')).toBe('en');
+        expect(toInstallLocale('HI')).toBe('en');
+        expect(toInstallLocale('de')).toBe('en');
+        expect(toInstallLocale('OTHER')).toBe('en');
+        expect(toInstallLocale('')).toBe('en');
+        expect(toInstallLocale(null)).toBe('en');
+        expect(toInstallLocale(undefined)).toBe('en');
+        expect(toInstallLocale(42)).toBe('en');
     });
 });

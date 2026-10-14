@@ -26,6 +26,25 @@ export function shouldOfferInstall({ isStandalone = false } = {}) {
 }
 
 /**
+ * Map the app's UI language to a locale the `<pwa-install>` dialog understands.
+ *
+ * The component localizes itself from `navigator.language` and ships es/pt/fr
+ * (plus en) — but NOT hi/bn, which fall back to English inside the component.
+ * The app's language codes are uppercase (`EN`/`ES`/…) with an `OTHER` sentinel
+ * for "continue without translations"; both are normalized here. Anything the
+ * dialog does not translate resolves to `'en'`, matching the component's own
+ * fallback, so the result is deterministic rather than browser-dependent.
+ *
+ * @param {unknown} lang the app UI language (HomeScreen's `lang`)
+ * @returns {'en'|'es'|'pt'|'fr'}
+ */
+export function toInstallLocale(lang) {
+    const code = (typeof lang === 'string' ? lang : '').split('-')[0].trim().toLowerCase();
+    if (code === 'es' || code === 'pt' || code === 'fr') return code;
+    return 'en';
+}
+
+/**
  * Open the install dialog owned by a `<pwa-install>` element.
  *
  * Fail-open: returns `false` instead of throwing when the element is missing,

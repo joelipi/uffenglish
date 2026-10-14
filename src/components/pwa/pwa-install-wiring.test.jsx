@@ -15,6 +15,7 @@ vi.mock('@khmyznikov/pwa-install', () => ({}));
 
 import PWAInstallDialog from './PWAInstallDialog.web.jsx';
 import PWAInstallButton from './PWAInstallButton.web.jsx';
+import { appStore } from '../../modules/store/store.js';
 import { registerInstallElement, getRegisteredInstallElement } from '../../modules/pwa/install-prompt-webonly.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -37,6 +38,7 @@ function render(element) {
 afterEach(() => {
     registerInstallElement(null);
     delete window.matchMedia;
+    appStore.getState().setGuestNativeLanguage(null);
     vi.restoreAllMocks();
 });
 
@@ -59,6 +61,23 @@ describe('PWAInstallDialog', () => {
     it('registers the mounted element for the menu entry, and clears it on unmount', () => {
         const { container, unmount } = render(<PWAInstallDialog />);
         expect(getRegisteredInstallElement()).toBe(container.querySelector('pwa-install'));
+        unmount();
+        expect(getRegisteredInstallElement()).toBeNull();
+    });
+
+    it('re-mounts the dialog when the app language changes, so it re-localizes', () => {
+        const { container, unmount } = render(<PWAInstallDialog />);
+        const first = container.querySelector('pwa-install');
+        expect(first).toBeTruthy();
+
+        act(() => {
+            appStore.getState().setGuestNativeLanguage('ES');
+        });
+        const remounted = container.querySelectorAll('pwa-install');
+        expect(remounted).toHaveLength(1);
+        expect(remounted[0]).not.toBe(first);
+        // The registry tracks the live element, never the removed one.
+        expect(getRegisteredInstallElement()).toBe(remounted[0]);
         unmount();
         expect(getRegisteredInstallElement()).toBeNull();
     });
@@ -121,6 +140,18 @@ describe('install wiring source guards', () => {
         // package there would drag the Lit bundle into jsdom.
         expect(read('PWAInstallButton.web.jsx')).not.toContain('@khmyznikov/pwa-install');
         expect(read('PWAInstallDialog.web.jsx')).toContain("import '@khmyznikov/pwa-install'");
+    });
+
+    it('mounts the dialog imperatively in the app language (no pwa-install JSX)', () => {
+        // The component must be created imperatively so its connectedCallback —
+        // where it reads navigator.language once — runs inside the spoof window.
+        // A `<pwa-install>` JSX tag would mount at RootLayout's pace, in whatever
+        // language the browser happens to have.
+        const dialog = read('PWAInstallDialog.web.jsx');
+        expect(dialog).not.toContain('<pwa-install');
+        expect(dialog).toContain('mountInstallElement(');
+        expect(dialog).toContain('guestNativeLanguage');
+        expect(dialog).toContain('native_language');
     });
 
     it('keeps the install rules pure (no React/DOM in the logic module)', () => {
