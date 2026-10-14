@@ -1,6 +1,7 @@
 import { getCurrentUser, logout, supabase } from './supabase.js';
 import { getGeoInfo } from '../media/geo-service.js';
 import { upsertFriendLinkMap } from '../user/friend-lesson-link-logic.js';
+import { normalizeFriendIds } from '../user/friends-logic.js';
 
 export { getCurrentUser };
 import defaultProfilePic from '../../assets/img/userprofile.png';
@@ -326,6 +327,35 @@ export function useUserByShareCode(shareCode) {
     queryKey: ['user', 'profile', 'shareCode', shareCode],
     queryFn: () => fetchUserByShareCode(shareCode),
     enabled: !!shareCode,
+  });
+}
+
+// Batch-resolves friend user-ids to their public rows for the Friends
+// directory page. The `friends`/`friend_owners` credit arrays store user ids,
+// not share codes, so the directory queries the safe public view by id.
+// Fail-open: an empty input resolves to [] without a query, and a query
+// failure resolves to [] so one outage hides the list instead of crashing it.
+export async function fetchUsersByIds(ids) {
+  const wanted = normalizeFriendIds(ids);
+  if (wanted.length === 0) return [];
+  try {
+    const { data, error } = await supabase.from('public_profiles').select('*').in('id', wanted);
+    if (error) throw error;
+    console.log('[friends] fetched', data?.length ?? 0);
+    return (data || []).map(fromDbRow);
+  } catch (error) {
+    console.error('[friends] fetchUsersByIds error:', error);
+    return [];
+  }
+}
+
+export function useFriendProfiles(ids) {
+  const wanted = normalizeFriendIds(ids).sort();
+  return useQuery({
+    queryKey: ['user', 'profiles', 'byIds', wanted.join('|')],
+    queryFn: () => fetchUsersByIds(wanted),
+    enabled: wanted.length > 0,
+    staleTime: Infinity,
   });
 }
 

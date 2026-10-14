@@ -12,6 +12,7 @@ import ResetPasswordRoute from './ResetPasswordRoute.jsx';
 import ConfirmEmailRoute from './ConfirmEmailRoute.jsx';
 import LessonContainer from '../components/LessonContainer.jsx';
 import PublicProfileRoute from './PublicProfileRoute.jsx';
+import FriendsRoute from './FriendsRoute.jsx';
 import PrivacyRoute from './PrivacyRoute.jsx';
 import TermsRoute from './TermsRoute.jsx';
 import CoursesRoute from './CoursesRoute.jsx';
@@ -46,6 +47,10 @@ export const routes = [
       // Public course listings must precede the single-segment /:shareCode
       // catch-all like the legal pages, or `courses` is read as a share code.
       { path: '/courses', element: <CoursesRoute /> },
+      // Friends directory (logged-in). Must precede the single-segment
+      // /:shareCode catch-all like the other static pages, or `friends` is
+      // read as a share code.
+      { path: '/friends', element: <FriendsRoute /> },
       { path: '/course/:courseId/lesson/:lessonId', element: <AppLayout />, errorElement: <LessonError />, children: [{ index: true, element: <LessonContainer /> }] },
       { path: '/:shareCode', element: <PublicProfileRoute /> },
       { path: '*', element: <Navigate to="/" replace /> },

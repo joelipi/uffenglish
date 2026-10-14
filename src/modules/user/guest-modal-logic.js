@@ -53,7 +53,7 @@ export function resolveHomepageLanguageAdoption({ isLoggedIn, guestLang, detecte
 // against routes.jsx so a new static route cannot be silently misclassified.
 export const STATIC_SINGLE_SEGMENT_ROUTES = [
     ...PUBLIC_ROUTES,
-    '/home', '/profile', '/login', '/signup', '/recover-password', '/reset-password',
+    '/home', '/profile', '/friends', '/login', '/signup', '/recover-password', '/reset-password',
 ];
 
 // User profile pages: the logged-in profile (/profile) and the public

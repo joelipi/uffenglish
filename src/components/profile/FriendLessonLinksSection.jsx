@@ -5,7 +5,7 @@ import {
     toFriendLessonHref,
     getFriendLinkRemainingMs,
     formatFriendLinkRemaining,
-    buildFriendPracticeView,
+    buildVisitorPracticeView,
 } from '../../modules/user/friend-lesson-link-logic.js';
 import { COURSE_LISTINGS_PATH } from '../../modules/courses/friend-courses-logic.js';
 
@@ -49,7 +49,37 @@ function FriendLessonLink({ entry, lang, now }) {
             <p data-testid="friend-lesson-link-countdown" style={{ color: '#adb5bd', fontSize: '14px', margin: '4px 0 0' }}>
                 {Strings.get('profile_friend_link_available', lang, { time: formatFriendLinkRemaining(remainingMs) })}
             </p>
+            {entry.completedTogether === true && (
+                <p data-testid="friend-lesson-link-completed" style={{ color: '#8ce99a', fontSize: '14px', fontWeight: 600, margin: '4px 0 0' }}>
+                    {Strings.get('profile_completed_together', lang)}
+                </p>
+            )}
         </li>
+    );
+}
+
+// Logged-out visitor invite. The first line links to login (returning to this
+// profile via the existing `?redirect=` contract); the second anchors down to
+// the lesson list, which login could reorder but never hides. Only rendered in
+// active mode: there must be something to anchor to.
+function VisitorLoginBanner({ shareCode, lang }) {
+    return (
+        <div data-testid="visitor-login-banner" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <a
+                data-testid="visitor-login-link"
+                href={`/login?redirect=${encodeURIComponent('/' + shareCode)}`}
+                style={{ color: '#ffffff', fontSize: '15px', fontWeight: 600, textDecoration: 'underline' }}
+            >
+                {Strings.get('profile_login_to_see_together', lang)}
+            </a>
+            <a
+                data-testid="visitor-guest-link"
+                href="#friend-lesson-links"
+                style={{ color: '#adb5bd', fontSize: '15px', textDecoration: 'underline' }}
+            >
+                {Strings.get('profile_guest_start_free', lang)}
+            </a>
+        </div>
     );
 }
 
@@ -58,9 +88,14 @@ function FriendLessonLink({ entry, lang, now }) {
 // "Practice English with Me Free" invitation. When nothing is active (nothing
 // recorded, or every entry aged past 48h) the course area is replaced by an
 // explanation and a link into the public course listings.
-export default function FriendLessonLinksSection({ friendLinks, lang = 'en' }) {
+//
+// Visitor awareness (all read-time): a logged-out visitor sees only the
+// chain-head lessons plus the login/guest banner; a logged-in visitor sees the
+// lessons they feature in first, then the chain-head lessons, with joint
+// completions badged. `viewer` is null for logged-out visitors.
+export default function FriendLessonLinksSection({ friendLinks, lang = 'en', shareCode, viewer = null, chainHeads = null }) {
     const [now, setNow] = useState(() => Date.now());
-    const { mode, groups, isTicking } = buildFriendPracticeView(friendLinks, now);
+    const { mode, groups, isTicking } = buildVisitorPracticeView({ friendLinks, nowMs: now, viewer, chainHeads });
 
     // Tick only while at least one link is still live; once the last one
     // expires the effect stops and the expired state renders.
@@ -73,6 +108,7 @@ export default function FriendLessonLinksSection({ friendLinks, lang = 'en' }) {
     if (mode === 'expired') {
         return (
             <div
+                id="friend-lesson-links"
                 data-testid="friend-lessons-expired"
                 style={{ ...cardStyle, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', marginBottom: '24px' }}
             >
@@ -92,9 +128,12 @@ export default function FriendLessonLinksSection({ friendLinks, lang = 'en' }) {
 
     return (
         <div
+            id="friend-lesson-links"
             data-testid="friend-lesson-links"
             style={{ display: 'flex', flexDirection: 'column', gap: '24px', marginBottom: '24px' }}
         >
+            {viewer === null && <VisitorLoginBanner shareCode={shareCode} lang={lang} />}
+
             <div>
                 <h2 data-testid="friend-lesson-links-heading" style={{ color: '#ffffff', fontSize: '28px', fontWeight: 700, margin: 0 }}>
                     {Strings.get('profile_friend_practice_heading', lang)}
