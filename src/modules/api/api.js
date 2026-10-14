@@ -329,6 +329,36 @@ export function useUserByShareCode(shareCode) {
   });
 }
 
+// Batch-resolves friend user-ids to their public rows for the Friends
+// directory page. The `friends`/`friend_owners` credit arrays store user ids,
+// not share codes, so the directory queries the safe public view by id.
+// Fail-open: an empty input resolves to [] without a query, and a query
+// failure resolves to [] so one outage hides the list instead of crashing it.
+export async function fetchUsersByIds(ids) {
+  if (!Array.isArray(ids) || ids.length === 0) return [];
+  const wanted = [...new Set(ids.filter((id) => typeof id === 'string' && id !== ''))];
+  if (wanted.length === 0) return [];
+  try {
+    const { data, error } = await supabase.from('public_profiles').select('*').in('id', wanted);
+    if (error) throw error;
+    console.log('[friends] fetched', data?.length ?? 0);
+    return (data || []).map(fromDbRow);
+  } catch (error) {
+    console.error('[friends] fetchUsersByIds error:', error);
+    return [];
+  }
+}
+
+export function useFriendProfiles(ids) {
+  const wanted = Array.isArray(ids) ? [...new Set(ids.filter((id) => typeof id === 'string' && id !== ''))].sort() : [];
+  return useQuery({
+    queryKey: ['user', 'profiles', 'byIds', wanted.join('|')],
+    queryFn: () => fetchUsersByIds(wanted),
+    enabled: wanted.length > 0,
+    staleTime: Infinity,
+  });
+}
+
 // Records a friend-challenge follow-up link in the owner's profile. Reads the
 // current friend_links map, merges the new entry (keyed per recorded lesson,
 // `courseId:recordedLessonId`, see upsertFriendLinkMap), and persists the whole

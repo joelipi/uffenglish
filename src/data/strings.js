@@ -1322,6 +1322,50 @@ const strings = {
         hi: "आपने यह साथ में पूरा किया",
         bn: "আপনারা এটি একসাথে সম্পন্ন করেছেন"
     },
+    // Friends directory page (`/friends`): everyone the viewer has completed
+    // at least one lesson with, keyed off the friend-credit arrays.
+    'home_friends': {
+        en: "Friends",
+        es: "Amigos",
+        hi: "दोस्त",
+        bn: "বন্ধুরা"
+    },
+    'friends_heading': {
+        en: "Friends",
+        es: "Amigos",
+        hi: "दोस्त",
+        bn: "বন্ধুরা"
+    },
+    'friends_subheading': {
+        en: "This is everyone you've completed at least one lesson with. You both need to complete the same lesson. To add someone as a friend, send them your profile link so they can finish a lesson with you.",
+        es: "Estas son todas las personas con las que has completado al menos una lección. Ambos deben completar la misma lección. Para agregar a alguien como amigo, envíale el enlace de tu perfil para que pueda terminar una lección contigo.",
+        hi: "ये वे सभी लोग हैं जिनके साथ आपने कम से कम एक पाठ पूरा किया है। आप दोनों को एक ही पाठ पूरा करना होगा। किसी को मित्र के रूप में जोड़ने के लिए, उन्हें अपनी प्रोफ़ाइल का लिंक भेजें ताकि वे आपके साथ पाठ पूरा कर सकें।",
+        bn: "এরা সবাই যাদের সাথে আপনি অন্তত একটি পাঠ সম্পন্ন করেছেন। আপনাদের দুজনকেই একই পাঠ সম্পন্ন করতে হবে। কাউকে বন্ধু হিসেবে যোগ করতে, তাকে আপনার প্রোফাইল লিঙ্ক পাঠান যাতে সে আপনার সাথে একটি পাঠ শেষ করতে পারে।"
+    },
+    'friends_callout': {
+        en: "UFF does not have messaging functionality or search directory, by design, to prevent misuse. Contact your friends directly however you normally do (messaging apps, phone, email).",
+        es: "UFF no tiene mensajería ni directorio de búsqueda, por diseño, para evitar el mal uso. Contacta a tus amigos directamente como lo haces normalmente (apps de mensajes, teléfono, correo).",
+        hi: "दुरुपयोग रोकने के लिए UFF में जानबूझकर संदेश सुविधा या खोज निर्देशिका नहीं है। अपने दोस्तों से सीधे उसी तरह संपर्क करें जैसे आप सामान्यतः करते हैं (संदेश ऐप, फ़ोन, ईमेल)।",
+        bn: "অপব্যবহার রোধে UFF-এ ইচ্ছাকৃতভাবে বার্তা বা খোঁজ ডিরেক্টরি নেই। আপনার বন্ধুদের সাথে সরাসরি সেভাবেই যোগাযোগ করুন যেভাবে আপনি সাধারণত করেন (মেসেজিং অ্যাপ, ফোন, ইমেইল)।"
+    },
+    'friends_joint_badge': {
+        en: "Has lessons to do together",
+        es: "Tiene lecciones para hacer juntos",
+        hi: "साथ में करने के लिए पाठ हैं",
+        bn: "একসাথে করার পাঠ আছে"
+    },
+    'friends_empty': {
+        en: "You haven't completed a lesson with anyone yet. Share your profile link so a friend can finish a lesson with you.",
+        es: "Aún no has completado una lección con nadie. Comparte el enlace de tu perfil para que un amigo pueda terminar una lección contigo.",
+        hi: "आपने अभी तक किसी के साथ कोई पाठ पूरा नहीं किया है। अपनी प्रोफ़ाइल का लिंक साझा करें ताकि कोई मित्र आपके साथ पाठ पूरा कर सके।",
+        bn: "আপনি এখনও কারো সাথে কোনো পাঠ সম্পন্ন করেননি। আপনার প্রোফাইল লিঙ্ক শেয়ার করুন যাতে একজন বন্ধু আপনার সাথে একটি পাঠ শেষ করতে পারে।"
+    },
+    'friends_login_required': {
+        en: "Log in to see your friends.",
+        es: "Inicia sesión para ver a tus amigos.",
+        hi: "अपने दोस्तों को देखने के लिए लॉग इन करें।",
+        bn: "আপনার বন্ধুদের দেখতে লগ ইন করুন।"
+    },
     // Public course-listings page (`/courses`): the heading + onboarding steps
     // shown above the list of available friend courses.
     'friend_courses_heading': {

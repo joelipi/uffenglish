@@ -266,6 +266,11 @@ export default function HomeScreen() {
                                   onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.borderLeftColor = 'transparent'; }}>
                                 <i className="bi bi-person-fill"></i> {Strings.get('home_profile', lang)}
                             </Link>
+                            <Link to="/friends" onClick={closeMenu} style={{ ...linkStyle, borderLeft: '3px solid transparent' }}
+                                  onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#1a3a5a'; e.currentTarget.style.borderLeftColor = '#00c0d8'; }}
+                                  onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.borderLeftColor = 'transparent'; }}>
+                                <i className="bi bi-people-fill"></i> {Strings.get('home_friends', lang)}
+                            </Link>
                             <Link to="/privacy" onClick={closeMenu} style={{ ...linkStyle, borderLeft: '3px solid transparent' }}
                                   onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#1a3a5a'; e.currentTarget.style.borderLeftColor = '#00c0d8'; }}
                                   onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.borderLeftColor = 'transparent'; }}>
