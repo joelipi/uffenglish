@@ -200,3 +200,21 @@
 `read_at` is the only other writable column (005 grants `update (read_at)` only), so `created_at` is the reliable "this is a new/refreshed notification" signal. Any future consumer of this table needs the same guard.
 
 ---
+
+## The app's legal links live in exactly four surfaces — and `public/landing.html` is not one of them
+
+**Date**: 2026-10-14
+**Area**: architecture | workflow
+**What happened**: Tasked with "remove the privacy/terms links from the footer of the app", a survey found exactly one footer in the React app: the shared `LegalFooter` component, whose entire content was the two links, rendered by both `HomeLanding.jsx` (public homepage) and `HomeScreen.jsx` (dashboard) — the codebase itself calls it "the homepage/dashboard legal footer". Separately, `public/landing.html` (a legacy static WordPress-derived page, served at `/landing`) has its own footer links opening self-contained inline legal modals; it is not part of the React app and was left untouched.
+**Takeaway**: The React app's Privacy/Terms links exist in exactly four surfaces: the (now removed) `LegalFooter`, the `HomeScreen` user-menu drawer, the sign-up surfaces via `LegalLinks` (opens in a new tab — the modals are store-driven `<dialog>`s), and the public `/privacy` + `/terms` routes (`routes.jsx` + `PUBLIC_ROUTES`). When touching any of them, `grep -rn "/privacy\|/terms" src/` finds all four in one shot. `public/landing.html` is a separate legacy page with its own inline-modals legal content — scope it explicitly, don't assume "the footer of the app" includes it.
+
+---
+
+## This workspace's `vitest run` has 4 pre-existing failures from missing node_modules packages
+
+**Date**: 2026-10-14
+**Area**: build | testing
+**What happened**: A full `npx vitest run` in this worktree fails 4 test files (201 files: 4 failed / 197 passed) with 2793 tests passing: `scripts/lib/pwa-build-output.test.js` (its `npm run build` child fails loading `vite.config.js`), `functions/api/push/send.test.js`, `src/components/pwa/pwa-install-contract.test.jsx` and `src/components/pwa/pwa-install-wiring.test.jsx`. All four are module-resolution errors — `vite-plugin-pwa`, `@block65/webcrypto-web-push` and `@khmyznikov/pwa-install` are absent from the shared `node_modules` (`ls node_modules/<pkg>` confirms). Nothing in `package.json` or the repo source changed.
+**Takeaway**: These 4 failures are the sandbox baseline, not a regression — compare against this count before investigating a "new" failure, and when a verify gate fails on these files, prove the cause is a missing package rather than debugging the source. The failures are collection-time (no tests run), so the "Test Files X failed / Tests Y passed" summary is the quickest signal.
+
+---
