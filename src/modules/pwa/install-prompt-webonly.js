@@ -27,10 +27,35 @@ export function getRegisteredInstallElement() {
 // The library stashes the one-shot `beforeinstallprompt` on window under this
 // (misspelled) key, and every element's connect() clears it. A language-change
 // remount would therefore destroy the captured install prompt with no recovery —
-// the browser fires it once per page load. Verified against the 0.7.0 bundle;
-// if a future version renames it, the worst case is today's behaviour (prompt
-// lost on remount), never a crash.
-const DEFERRED_PROMPT_KEY = 'defferedPromptEvent';
+// the browser fires it once per page load. Verified against the 0.7.0 bundle
+// (connect() assigns null; disconnectedCallback does not touch it); if a future
+// version renames the key or wipes on disconnect, the worst case is today's
+// behaviour (prompt lost), never a crash.
+export const DEFERRED_PROMPT_KEY = 'defferedPromptEvent';
+
+/**
+ * Run `fn` with the stashed install prompt preserved: whatever `fn` (or the
+ * library code it triggers) writes to the key is undone afterwards, so a dialog
+ * lifecycle operation can neither destroy a captured prompt nor leave an empty
+ * key behind.
+ */
+function preservingDeferredPrompt(fn) {
+    const hadPrompt = Object.prototype.hasOwnProperty.call(window, DEFERRED_PROMPT_KEY);
+    const prompt = window[DEFERRED_PROMPT_KEY];
+    try {
+        return fn();
+    } finally {
+        try {
+            if (hadPrompt) {
+                window[DEFERRED_PROMPT_KEY] = prompt;
+            } else {
+                delete window[DEFERRED_PROMPT_KEY];
+            }
+        } catch (err) {
+            console.error('[PWA] Failed to restore the deferred install prompt:', err);
+        }
+    }
+}
 
 /**
  * Mount a `<pwa-install>` element that speaks the app's UI language.
@@ -67,20 +92,20 @@ export function mountInstallElement(host, { lang } = {}) {
     } catch (err) {
         console.error('[PWA] Could not set the install dialog language:', err);
     }
-    const hadDeferredPrompt = Object.prototype.hasOwnProperty.call(window, DEFERRED_PROMPT_KEY);
-    const deferredPrompt = window[DEFERRED_PROMPT_KEY];
     try {
-        const element = document.createElement('pwa-install');
-        // Manual mode: the dialog never opens by itself (the app already shows
-        // the guest modal, and an auto-opening overlay would intercept clicks in
-        // tests). `use-local-storage` makes a dismissal stick.
-        element.setAttribute('manual-apple', 'true');
-        element.setAttribute('manual-chrome', 'true');
-        element.setAttribute('use-local-storage', 'true');
-        element.setAttribute('manifest-url', '/manifest.webmanifest');
-        host.appendChild(element);
-        registerInstallElement(element);
-        return element;
+        return preservingDeferredPrompt(() => {
+            const element = document.createElement('pwa-install');
+            // Manual mode: the dialog never opens by itself (the app already shows
+            // the guest modal, and an auto-opening overlay would intercept clicks in
+            // tests). `use-local-storage` makes a dismissal stick.
+            element.setAttribute('manual-apple', 'true');
+            element.setAttribute('manual-chrome', 'true');
+            element.setAttribute('use-local-storage', 'true');
+            element.setAttribute('manifest-url', '/manifest.webmanifest');
+            host.appendChild(element);
+            registerInstallElement(element);
+            return element;
+        });
     } catch (err) {
         console.error('[PWA] Failed to mount the install dialog:', err);
         return null;
@@ -96,25 +121,18 @@ export function mountInstallElement(host, { lang } = {}) {
                 console.error('[PWA] Failed to restore navigator.language:', err);
             }
         }
-        // Restore the install prompt the new element's connect() just cleared.
-        // Untouched when there was nothing to preserve.
-        try {
-            if (hadDeferredPrompt) {
-                window[DEFERRED_PROMPT_KEY] = deferredPrompt;
-            } else {
-                delete window[DEFERRED_PROMPT_KEY];
-            }
-        } catch (err) {
-            console.error('[PWA] Failed to restore the deferred install prompt:', err);
-        }
     }
 }
 
 /** Remove an element mounted by `mountInstallElement` and unregister it. */
 export function unmountInstallElement(element) {
     if (getRegisteredInstallElement() === element) registerInstallElement(null);
+    // Guard the removal the same way: a future bundle version that wipes the
+    // prompt on disconnect must not destroy it here either.
     try {
-        if (element && typeof element.remove === 'function') element.remove();
+        preservingDeferredPrompt(() => {
+            if (element && typeof element.remove === 'function') element.remove();
+        });
     } catch (err) {
         console.error('[PWA] Failed to remove the install dialog:', err);
     }

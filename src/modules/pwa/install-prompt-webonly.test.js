@@ -6,6 +6,7 @@ import {
     getRegisteredInstallElement,
     mountInstallElement,
     unmountInstallElement,
+    DEFERRED_PROMPT_KEY,
 } from './install-prompt-webonly.js';
 import { STANDALONE_DISPLAY_MODE_QUERY } from './install-prompt-logic.js';
 
@@ -146,34 +147,72 @@ describe('mountInstallElement', () => {
         expect(error).toHaveBeenCalled();
     });
 
+    // A stub that mimics the verified 0.7.0 bundle behaviour: every connect()
+    // clears the stashed prompt. Without this, no connectedCallback ever runs in
+    // these tests and the preservation assertions below cannot fail. (This file
+    // never imports the real package, and jsdom is per-file isolated, so the
+    // stub cannot collide with the real definition.)
+    function defineWipingStub() {
+        if (!customElements.get('pwa-install')) {
+            customElements.define('pwa-install', class extends HTMLElement {
+                connectedCallback() {
+                    window[DEFERRED_PROMPT_KEY] = null;
+                }
+            });
+        }
+    }
+
+    function clearPromptKey() {
+        try {
+            delete window[DEFERRED_PROMPT_KEY];
+        } catch { /* ignore */ }
+    }
+
     it('preserves a captured install prompt across the mount', () => {
-        // The library clears window.defferedPromptEvent (its spelling) in every
-        // connect(); the browser fires beforeinstallprompt once per page load,
-        // so losing it would silently break Install after a language switch.
+        // The library clears the stashed prompt in every connect(); the browser
+        // fires beforeinstallprompt once per page load, so losing it would
+        // silently break Install after a language switch.
+        defineWipingStub();
         const container = host();
         const prompt = { prompt: () => {} };
-        window.defferedPromptEvent = prompt;
+        window[DEFERRED_PROMPT_KEY] = prompt;
         try {
             const element = mountInstallElement(container, { lang: 'ES' });
-            expect(window.defferedPromptEvent).toBe(prompt);
+            expect(window[DEFERRED_PROMPT_KEY]).toBe(prompt);
             if (element) unmountInstallElement(element);
         } finally {
-            delete window.defferedPromptEvent;
+            clearPromptKey();
             container.remove();
         }
     });
 
     it('leaves the deferred-prompt key absent when nothing was captured', () => {
-        expect('defferedPromptEvent' in window).toBe(false);
+        defineWipingStub();
+        expect(DEFERRED_PROMPT_KEY in window).toBe(false);
         const container = host();
         try {
             const element = mountInstallElement(container, { lang: 'ES' });
-            // The new element's connect() assigns null; the mount must clean up
-            // after it so no empty key is left behind.
-            expect('defferedPromptEvent' in window).toBe(false);
+            // The stub's connect() assigns null; the mount must clean up after
+            // it so no empty key is left behind.
+            expect(DEFERRED_PROMPT_KEY in window).toBe(false);
             if (element) unmountInstallElement(element);
         } finally {
-            delete window.defferedPromptEvent;
+            clearPromptKey();
+            container.remove();
+        }
+    });
+
+    it('preserves a captured install prompt across unmount too', () => {
+        defineWipingStub();
+        const container = host();
+        const element = mountInstallElement(container, { lang: 'ES' });
+        const prompt = { prompt: () => {} };
+        window[DEFERRED_PROMPT_KEY] = prompt;
+        try {
+            unmountInstallElement(element);
+            expect(window[DEFERRED_PROMPT_KEY]).toBe(prompt);
+        } finally {
+            clearPromptKey();
             container.remove();
         }
     });
