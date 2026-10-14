@@ -887,7 +887,7 @@ node_video_preview.play(); // Explicitly restart playback
             
             appCoreLog("Requesting remote CSV data...");
             try {
-                var response_handle = await fetch(spreadsheet_url + "&t=" + Date.now());
+                var response_handle = await fetch(spreadsheet_url + "?t=" + Date.now());
                 var csv_string = await response_handle.text();
                 
                 // RFC-4180 parse: quoted fields may contain commas, newlines and

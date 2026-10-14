@@ -80,6 +80,9 @@ export function parseLanguages(value) {
  */
 export function applyTranslationsToRows(rows, plan, translations) {
     (plan || []).forEach((item, i) => {
+        if (!rows[item.row] || typeof rows[item.row] !== 'object') {
+            throw new Error(`translation plan points at missing row ${item.row} (column ${item.column})`);
+        }
         rows[item.row][item.column] = translations[i];
     });
     return (plan || []).length;

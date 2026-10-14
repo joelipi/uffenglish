@@ -211,6 +211,11 @@ describe('runTranslateCsv', () => {
         expect(applyTranslationsToRows(rows, plan, ['x', 'y'])).toBe(2);
         expect(rows).toEqual([{ a: 'x', b: '' }, { a: '', b: 'y' }]);
     });
+
+    it('applyTranslationsToRows names a corrupt plan row instead of TypeErroring', () => {
+        expect(() => applyTranslationsToRows([{ a: '' }], [{ row: 7, column: 'a' }], ['x']))
+            .toThrow(/missing row 7/);
+    });
 });
 
 describe('parseLanguages', () => {
