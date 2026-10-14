@@ -1295,6 +1295,33 @@ const strings = {
         hi: "मुफ़्त अंग्रेज़ी का अभ्यास करें",
         bn: "বিনামূল্যে ইংরেজি চর্চা করুন"
     },
+    // Visitor-aware friend-practice area: the logged-out visitor invite (login
+    // is one link, continuing as a guest is one anchor down to the list) and
+    // the badge on a lesson the visitor and the profile owner both completed.
+    'profile_login_to_see_together': {
+        en: "Log in to see lessons you've done together.",
+        es: "Inicia sesión para ver las lecciones que han hecho juntos.",
+        pt: "Faça login para ver as lições que vocês fizeram juntos.",
+        fr: "Connectez-vous pour voir les leçons que vous avez faites ensemble.",
+        hi: "आपने साथ में जो पाठ किए हैं उन्हें देखने के लिए लॉग इन करें।",
+        bn: "আপনারা একসাথে যে পাঠগুলো করেছেন তা দেখতে লগ ইন করুন।"
+    },
+    'profile_guest_start_free': {
+        en: "No account yet? You can start practicing free.",
+        es: "¿Aún no tienes una cuenta? Puedes empezar a practicar gratis.",
+        pt: "Ainda não tem uma conta? Você pode começar a praticar grátis.",
+        fr: "Pas encore de compte ? Vous pouvez commencer à vous entraîner gratuitement.",
+        hi: "अभी तक खाता नहीं है? आप मुफ़्त में अभ्यास शुरू कर सकते हैं।",
+        bn: "এখনও অ্যাকাউন্ট নেই? আপনি বিনামূল্যে অনুশীলন শুরু করতে পারেন।"
+    },
+    'profile_completed_together': {
+        en: "You did this together",
+        es: "Lo hicieron juntos",
+        pt: "Vocês fizeram juntos",
+        fr: "Vous l'avez fait ensemble",
+        hi: "आपने यह साथ में पूरा किया",
+        bn: "আপনারা এটি একসাথে সম্পন্ন করেছেন"
+    },
     // Public course-listings page (`/courses`): the heading + onboarding steps
     // shown above the list of available friend courses.
     'friend_courses_heading': {

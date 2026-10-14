@@ -1,15 +1,26 @@
 import { useNavigate } from 'react-router-dom';
-import { useUserByShareCode } from '../../modules/api/api.js';
+import { useUserByShareCode, useAuthStatus, useUserProfile, useNotifications } from '../../modules/api/api.js';
 import { appStore } from '../../modules/store/store.js';
 import { calculateCurrentStreak } from '../../modules/user/user-profile.js';
 import Strings from '../../data/strings.js';
 import { LOCALE_MAP } from '../../data/languages.js';
 import defaultProfilePic from '../../assets/img/userprofile.png';
 import FriendLessonLinksSection from './FriendLessonLinksSection.jsx';
+import useFriendChainHeads from '../../hooks/useFriendChainHeads.js';
 
 export default function PublicProfile({ shareCode }) {
     const navigate = useNavigate();
     const { data: profile, isLoading } = useUserByShareCode(shareCode);
+    // Viewer context: who is looking at this profile. Logged-out visitors get
+    // the banner; logged-in ones get lessons they feature in prioritized. The
+    // guest stub (no session) has `$id: 'guest'` and counts as logged out.
+    const { data: isLoggedIn } = useAuthStatus();
+    const { data: viewerProfile } = useUserProfile();
+    const viewerId = viewerProfile && viewerProfile.$id !== 'guest' ? viewerProfile.$id : null;
+    const { data: notifications } = useNotifications(viewerId);
+    // Only the configs this profile's links reference are fetched; a course
+    // whose config cannot be loaded fails open in the read-time filter.
+    const chainHeads = useFriendChainHeads(profile?.friendLinks);
 
     const containerStyle = {
         height: '100dvh',
@@ -77,6 +88,18 @@ export default function PublicProfile({ shareCode }) {
     const referrals = Number(profile.referrals || 0);
     const friendLinks = profile.friendLinks;
 
+    // Logged-in viewer only when a real (non-guest) session is present. The
+    // inbox is already guest-disabled; `notifications` may be undefined while
+    // it loads, so the logic module defaults it to [].
+    const viewer = (isLoggedIn === true && viewerId)
+        ? {
+            shareCode: viewerProfile.shareCode,
+            counted_lessons: viewerProfile.counted_lessons ?? [],
+            notifications: Array.isArray(notifications) ? notifications : [],
+            ownerShareCode: profile.shareCode ?? profile.share_code ?? shareCode,
+        }
+        : null;
+
     return (
         <div style={containerStyle}>
             <div style={headerStyle}>
@@ -99,7 +122,13 @@ export default function PublicProfile({ shareCode }) {
                     {joinDate && <p style={{ color: '#6c757d', fontSize: '13px' }}>{Strings.get('profile_member_since', lang, { date: joinDate })}</p>}
                 </div>
 
-                <FriendLessonLinksSection friendLinks={friendLinks} lang={lang} />
+                <FriendLessonLinksSection
+                    friendLinks={friendLinks}
+                    lang={lang}
+                    shareCode={shareCode}
+                    viewer={viewer}
+                    chainHeads={chainHeads}
+                />
 
                 <div style={cardStyle}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>

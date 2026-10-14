@@ -8,6 +8,8 @@
 // No DOM, no browser globals, no data access — fully unit-testable.
 
 import { SHARE_URL_BASE, SHARE_WINDOW_HOURS } from '../video/video-processor-logic.js';
+import { normalizeShareCode, NOTIFICATION_TYPE_FRIEND_RESPONSE } from '../notifications/notification-logic.js';
+import { firstFriendLessonId } from '../courses/friend-courses-logic.js';
 
 // Reuses the single share window (R2 UGC lifecycle, 48h). Do not add a second.
 export const FRIEND_LINK_WINDOW_MS = SHARE_WINDOW_HOURS * 60 * 60 * 1000;
@@ -111,15 +113,13 @@ export function buildFriendPracticeView(friendLinks, nowMs) {
     return { mode: active ? 'active' : 'expired', groups, isTicking: active };
 }
 
-// Ordered groups of active entries by course. Groups are keyed by courseId
-// (two courses may share a display name) and carry the first entry's courseName
-// as the heading; entries within a group keep listActiveFriendLinks order
-// (newest first). Empty → [].
-export function groupActiveFriendLinks(friendLinks, nowMs) {
-    const active = listActiveFriendLinks(friendLinks, nowMs);
+// Ordered groups of entries by course. Groups are keyed by courseId (two
+// courses may share a display name) and carry the first entry's courseName as
+// the heading; entries within a group keep the input order. Empty → [].
+function groupEntries(entries) {
     const groups = [];
     const byCourse = new Map();
-    for (const entry of active) {
+    for (const entry of entries) {
         if (!byCourse.has(entry.courseId)) {
             const group = { courseId: entry.courseId, courseName: entry.courseName || entry.courseId, entries: [] };
             byCourse.set(entry.courseId, group);
@@ -128,6 +128,106 @@ export function groupActiveFriendLinks(friendLinks, nowMs) {
         byCourse.get(entry.courseId).entries.push(entry);
     }
     return groups;
+}
+
+// Ordered groups of active entries by course, keeping listActiveFriendLinks
+// order (newest first) within a group. Empty → [].
+export function groupActiveFriendLinks(friendLinks, nowMs) {
+    return groupEntries(listActiveFriendLinks(friendLinks, nowMs));
+}
+
+// Unique courseIds present in a friendLinks map, ascending. Used to fetch ONLY
+// the configs the profile actually references (a public page must not pull in
+// every course config). Malformed entries are ignored.
+export function listFriendCourseIds(friendLinks) {
+    if (!friendLinks || typeof friendLinks !== 'object' || Array.isArray(friendLinks)) return [];
+    const seen = new Set();
+    for (const entry of Object.values(friendLinks)) {
+        const courseId = entry?.courseId;
+        if (typeof courseId === 'string' && courseId) seen.add(courseId);
+    }
+    return [...seen].sort();
+}
+
+// `{ courseId, config }` entries → Map<courseId, firstLessonId>. A course whose
+// config is missing/not a friend course contributes no head, so the read-time
+// filter fails open for it (see buildVisitorPracticeView).
+export function buildChainHeads(configEntries) {
+    const heads = new Map();
+    if (!Array.isArray(configEntries)) return heads;
+    for (const entry of configEntries) {
+        if (!entry || typeof entry.courseId !== 'string' || !entry.courseId) continue;
+        const firstLessonId = firstFriendLessonId(entry.config);
+        if (firstLessonId) heads.set(entry.courseId, firstLessonId);
+    }
+    return heads;
+}
+
+// Recorder direction of the "featured for the visitor" match: the visitor's own
+// counted_lessons carries the `<courseId>_<recordedLessonId>` key (existing
+// first-underscore convention). Joined on recordedLessonId, never lessonId.
+function viewerCountedEntry(entry, countedLessons) {
+    if (!Array.isArray(countedLessons)) return false;
+    return countedLessons.includes(`${entry.courseId}_${entry.recordedLessonId}`);
+}
+
+// Inbox direction: the visitor's inbox has a friend_response row whose actor is
+// the profile owner and whose (course_id, lesson_id) is the owner's recorded
+// lesson. `ownerShareCode` is the profile owner's code (already normalized).
+function viewerNotifiedEntry(entry, notifications, ownerShareCode) {
+    if (!ownerShareCode || !Array.isArray(notifications)) return false;
+    return notifications.some((row) =>
+        row && row.type === NOTIFICATION_TYPE_FRIEND_RESPONSE
+        && normalizeShareCode(row.payload?.actorShareCode) === ownerShareCode
+        && row.course_id === entry.courseId
+        && row.lesson_id === entry.recordedLessonId);
+}
+
+/**
+ * Visitor-aware render view for the public-profile friend-practice area.
+ *
+ * - logged out (`viewer` null): only the chain-head (`a`) lessons are listed.
+ * - logged in: lessons the visitor features in come first, then the `a`
+ *   lessons; a featuring entry never repeats in the `a` group.
+ * - `chainHeads` maps courseId → first shareCta lesson; a course absent from
+ *   the map (config fetch failed) fails open and keeps the entry.
+ * - every listed entry carries `completedTogether` (the recorder-direction
+ *   match), so the section can badge joint completions.
+ *
+ * With neither `viewer` nor any `chainHeads` this delegates to
+ * `buildFriendPracticeView`, preserving the pre-visitor output exactly.
+ */
+export function buildVisitorPracticeView({ friendLinks, nowMs, viewer = null, chainHeads = null } = {}) {
+    const heads = chainHeads instanceof Map ? chainHeads : new Map();
+    if (!viewer && heads.size === 0) {
+        return buildFriendPracticeView(friendLinks, nowMs);
+    }
+
+    const ownerShareCode = viewer ? normalizeShareCode(viewer.ownerShareCode) : null;
+    const countedLessons = viewer?.counted_lessons ?? [];
+    const notifications = viewer?.notifications ?? [];
+
+    const isFeaturing = (entry) => !!viewer
+        && (viewerNotifiedEntry(entry, notifications, ownerShareCode)
+            || viewerCountedEntry(entry, countedLessons));
+
+    const isChainHead = (entry) => !heads.has(entry.courseId)
+        || entry.recordedLessonId === heads.get(entry.courseId);
+
+    const active = listActiveFriendLinks(friendLinks, nowMs);
+    const featuring = active.filter(isFeaturing);
+    const featuringSet = new Set(featuring);
+    const listed = [
+        ...featuring,
+        ...active.filter((entry) => !featuringSet.has(entry) && isChainHead(entry)),
+    ].map((entry) => ({
+        ...entry,
+        completedTogether: viewerCountedEntry(entry, countedLessons),
+    }));
+
+    const groups = groupEntries(listed);
+    const activeView = groups.length > 0;
+    return { mode: activeView ? 'active' : 'expired', groups, isTicking: activeView };
 }
 
 /**
