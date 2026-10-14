@@ -69,6 +69,7 @@ describe('toInstallLocale', () => {
         expect(toInstallLocale('PT')).toBe('pt');
         expect(toInstallLocale('FR')).toBe('fr');
         expect(toInstallLocale('es-ES')).toBe('es');
+        expect(toInstallLocale('pt_BR')).toBe('pt');
     });
 
     it('falls back to English for languages the dialog does not ship', () => {

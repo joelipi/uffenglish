@@ -39,7 +39,7 @@ export function shouldOfferInstall({ isStandalone = false } = {}) {
  * @returns {'en'|'es'|'pt'|'fr'}
  */
 export function toInstallLocale(lang) {
-    const code = (typeof lang === 'string' ? lang : '').split('-')[0].trim().toLowerCase();
+    const code = (typeof lang === 'string' ? lang : '').split(/[-_]/)[0].trim().toLowerCase();
     if (code === 'es' || code === 'pt' || code === 'fr') return code;
     return 'en';
 }

@@ -140,8 +140,42 @@ describe('mountInstallElement', () => {
     });
 
     it('returns null and registers nothing when there is no host', () => {
+        const error = vi.spyOn(console, 'error').mockImplementation(() => {});
         expect(mountInstallElement(null, { lang: 'ES' })).toBeNull();
         expect(getRegisteredInstallElement()).toBeNull();
+        expect(error).toHaveBeenCalled();
+    });
+
+    it('preserves a captured install prompt across the mount', () => {
+        // The library clears window.defferedPromptEvent (its spelling) in every
+        // connect(); the browser fires beforeinstallprompt once per page load,
+        // so losing it would silently break Install after a language switch.
+        const container = host();
+        const prompt = { prompt: () => {} };
+        window.defferedPromptEvent = prompt;
+        try {
+            const element = mountInstallElement(container, { lang: 'ES' });
+            expect(window.defferedPromptEvent).toBe(prompt);
+            if (element) unmountInstallElement(element);
+        } finally {
+            delete window.defferedPromptEvent;
+            container.remove();
+        }
+    });
+
+    it('leaves the deferred-prompt key absent when nothing was captured', () => {
+        expect('defferedPromptEvent' in window).toBe(false);
+        const container = host();
+        try {
+            const element = mountInstallElement(container, { lang: 'ES' });
+            // The new element's connect() assigns null; the mount must clean up
+            // after it so no empty key is left behind.
+            expect('defferedPromptEvent' in window).toBe(false);
+            if (element) unmountInstallElement(element);
+        } finally {
+            delete window.defferedPromptEvent;
+            container.remove();
+        }
     });
 });
 
