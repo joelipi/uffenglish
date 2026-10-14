@@ -162,12 +162,19 @@ describe('sourceToRows lesson framing', () => {
 });
 
 describe('MASTER_HEADER parity with the shared column contracts', () => {
-    // The bridge must not be a third, hand-drifted copy of the master column
-    // contract: pin it to the seed's config columns, the shared localization
-    // field map, and the level-pattern columns.
-    it('contains every config column the seed declares', async () => {
-        const { CONFIG_COLUMNS } = await import('../../scripts/seed-master-columns.mjs');
-        for (const col of CONFIG_COLUMNS) expect(MASTER_HEADER).toContain(col);
+    // The bridge must not be a hand-drifted copy of the master column
+    // contract: pin it to the columns the generator's master path consumes,
+    // the shared localization field map, and the level-pattern columns.
+    it('contains every config column the generator master path consumes', async () => {
+        const { REQUIRED_COLUMNS } = await import('./sheet-config-utils.js');
+        const OPTIONAL_MASTER_COLUMNS = [
+            'join', 'recap_sources', 'recap_overlay', 'unit', 'mission',
+            'phrase', 'srt', 'next_step', 'choose_step_next', 'choose_step_text',
+            'publish_lesson_id', 'intro_video',
+        ];
+        for (const col of [...REQUIRED_COLUMNS, ...OPTIONAL_MASTER_COLUMNS]) {
+            expect(MASTER_HEADER).toContain(col);
+        }
     });
 
     it('contains every derived localization column', async () => {
@@ -181,8 +188,8 @@ describe('MASTER_HEADER parity with the shared column contracts', () => {
     });
 
     it('emits the sound-effect columns with the casing the pipeline reads', () => {
-        // video_pipeline.py safe_get_value is case-sensitive; the live sheet's
-        // lower-case spellings are silently ignored there.
+        // video_pipeline.py safe_get_value is case-sensitive; lower-case
+        // spellings of these columns are silently ignored there.
         for (const col of ['bgSound', 'endSoundEffect', 'bgMusic']) {
             expect(MASTER_HEADER).toContain(col);
         }

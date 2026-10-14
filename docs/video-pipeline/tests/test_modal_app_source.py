@@ -324,9 +324,9 @@ class TriggerModuleImportTest(unittest.TestCase):
 
 
 class SheetFetchGuardTest(unittest.TestCase):
-    """Story 052: the render reads the published sheet, not the R2 CSV object.
+    """Story 052: the render reads the master CSV, not the R2 CSV object.
 
-    ``_fetch_assets`` must fetch the sheet URL (``PIPELINE_SHEET_URL``/``SHEET_URL``)
+    ``_fetch_assets`` must fetch the master URL (``PIPELINE_SHEET_URL``/``MASTER_CSV_URL``)
     over HTTP into ``video_data.csv`` and must no longer download
     ``pipeline_asset_key("video_data.csv")``; the post-render upload stays.
     """

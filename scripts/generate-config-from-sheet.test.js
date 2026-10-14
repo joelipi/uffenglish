@@ -2,16 +2,14 @@
 // Story 047 (extends 046/042): multi-course generation, overwrite-on-re-run,
 // best-effort skips, and the no---force overwrite source guard.
 // per-course allow-list, best-effort skips, and the URL source guard.
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { execFile } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync, existsSync, writeFileSync, readdirSync } from 'node:fs';
-import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { loadRowsFromApi, generateConfigsFromRows } from './generate-config-from-sheet.mjs';
+import { generateConfigsFromRows } from './generate-config-from-sheet.mjs';
 import { parseCsv } from './lib/sheet-config-utils.js';
-import { PUBLISHED_GID } from './translate-sheet.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -58,22 +56,13 @@ const MASTER_MISSING_CSV = [
     'Would you rather,01,Q1,,m1,,master-a01,wvr,WVR,a,,friendClosedResponse,none,shareCta,,,',
 ].join('\n');
 
-let server;
-let baseUrl;
-
-beforeAll(async () => {
-    server = http.createServer((req, res) => {
-        if (req.url.includes('master-missing')) { res.writeHead(200); res.end(MASTER_MISSING_CSV); return; }
-        if (req.url.includes('master')) { res.writeHead(200); res.end(MASTER_CSV); return; }
-        if (req.url.includes('mixed')) { res.writeHead(200); res.end(MIXED_CSV); return; }
-        if (req.url.includes('bad')) { res.writeHead(200); res.end(BAD_CSV); return; }
-        res.writeHead(200); res.end(FIXTURE_CSV);
-    });
-    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
-    baseUrl = `http://127.0.0.1:${server.address().port}/sheet`;
-});
-
-afterAll(() => { server?.close(); });
+// Fixture CSVs live in temp files: the CLI reads the master CSV from disk
+// (`--csv`), never over HTTP.
+function csvIn(dir, content, name = 'in.csv') {
+    const file = path.join(dir, name);
+    writeFileSync(file, content);
+    return `--csv=${file}`;
+}
 
 function runCli(args, env = {}) {
     return new Promise((resolve) => {
@@ -91,10 +80,14 @@ describe('generate-config-from-sheet CLI', () => {
     it('--help exits 0 and documents the flags', async () => {
         const { code, stdout } = await runCli(['--help']);
         expect(code).toBe(0);
-        for (const flag of ['--sheet-url', '--course', '--out', '--dry-run', '--check']) {
+        for (const flag of ['--csv', '--course', '--out', '--dry-run', '--check']) {
             expect(stdout).toContain(flag);
         }
         expect(stdout).not.toContain('--force');
+        expect(stdout).not.toContain('--sheet-url');
+        expect(stdout).not.toContain('--from-api');
+        expect(stdout).not.toContain('--sheet-id');
+        expect(stdout).not.toContain('--tab');
     });
 
     it('a bare --course errors', async () => {
@@ -106,7 +99,7 @@ describe('generate-config-from-sheet CLI', () => {
     it('writes one config per course', async () => {
         const dir = tmpDir();
         try {
-            const { code, stdout } = await runCli([`--sheet-url=${baseUrl}`, `--out=${dir}`]);
+            const { code, stdout } = await runCli([`${csvIn(dir, FIXTURE_CSV)}`, `--out=${dir}`]);
             expect(code).toBe(0);
             expect(JSON.parse(readFileSync(path.join(dir, 'alpha.json'), 'utf8')).courseId).toBe('alpha');
             expect(JSON.parse(readFileSync(path.join(dir, 'beta.json'), 'utf8')).courseId).toBe('beta');
@@ -118,11 +111,11 @@ describe('generate-config-from-sheet CLI', () => {
     it('overwrites existing files on a no-flag re-run (content updated)', async () => {
         const dir = tmpDir();
         try {
-            await runCli([`--sheet-url=${baseUrl}`, `--out=${dir}`]);
+            await runCli([`${csvIn(dir, FIXTURE_CSV)}`, `--out=${dir}`]);
             // Corrupt both, then a plain re-run (no --force) must rewrite both.
             writeFileSync(path.join(dir, 'alpha.json'), '{"stale":true}');
             writeFileSync(path.join(dir, 'beta.json'), '{"stale":true}');
-            const { code } = await runCli([`--sheet-url=${baseUrl}`, `--out=${dir}`]);
+            const { code } = await runCli([`${csvIn(dir, FIXTURE_CSV)}`, `--out=${dir}`]);
             expect(code).toBe(0);
             expect(JSON.parse(readFileSync(path.join(dir, 'alpha.json'), 'utf8')).courseId).toBe('alpha');
             expect(JSON.parse(readFileSync(path.join(dir, 'beta.json'), 'utf8')).courseId).toBe('beta');
@@ -134,10 +127,10 @@ describe('generate-config-from-sheet CLI', () => {
     it('CI path: --check over already-present configs exits 0 and rewrites', async () => {
         const dir = tmpDir();
         try {
-            await runCli([`--sheet-url=${baseUrl}`, `--out=${dir}`]);
+            await runCli([`${csvIn(dir, FIXTURE_CSV)}`, `--out=${dir}`]);
             // Corrupt, then the exact configs.yml invocation (--check, no --force).
             writeFileSync(path.join(dir, 'alpha.json'), '{"stale":true}');
-            const { code, stdout } = await runCli([`--sheet-url=${baseUrl}`, `--out=${dir}`, '--check']);
+            const { code, stdout } = await runCli([`${csvIn(dir, FIXTURE_CSV)}`, `--out=${dir}`, '--check']);
             expect(code).toBe(0);
             expect(JSON.parse(readFileSync(path.join(dir, 'alpha.json'), 'utf8')).courseId).toBe('alpha');
             expect(stdout).toContain('SKIPPED 0 course(s), WROTE 2');
@@ -147,7 +140,7 @@ describe('generate-config-from-sheet CLI', () => {
     it('reports skips, writes the rest, and exits non-zero without --check', async () => {
         const dir = tmpDir();
         try {
-            const { code, stderr } = await runCli([`--sheet-url=${baseUrl}/mixed`, `--out=${dir}`]);
+            const { code, stderr } = await runCli([`${csvIn(dir, MIXED_CSV)}`, `--out=${dir}`]);
             expect(code).toBe(1);
             expect(stderr).toContain('SKIP course "alpha": missing required column(s): lesson_title (lesson "a")');
             expect(existsSync(path.join(dir, 'alpha.json'))).toBe(false);
@@ -159,7 +152,7 @@ describe('generate-config-from-sheet CLI', () => {
     it('--check exits 0 on skips and prints a summary', async () => {
         const dir = tmpDir();
         try {
-            const { code, stdout, stderr } = await runCli([`--sheet-url=${baseUrl}/mixed`, `--out=${dir}`, '--check']);
+            const { code, stdout, stderr } = await runCli([`${csvIn(dir, MIXED_CSV)}`, `--out=${dir}`, '--check']);
             expect(code).toBe(0);
             expect(existsSync(path.join(dir, 'beta.json'))).toBe(true);
             expect(existsSync(path.join(dir, 'alpha.json'))).toBe(false);
@@ -171,7 +164,7 @@ describe('generate-config-from-sheet CLI', () => {
     it('--check reports a structural error and still writes the valid course', async () => {
         const dir = tmpDir();
         try {
-            const { code, stderr } = await runCli([`--sheet-url=${baseUrl}/bad`, `--out=${dir}`, '--check']);
+            const { code, stderr } = await runCli([`${csvIn(dir, BAD_CSV)}`, `--out=${dir}`, '--check']);
             expect(code).toBe(0);
             expect(existsSync(path.join(dir, 'beta.json'))).toBe(true);
             expect(stderr).toContain('SKIP course "bad":');
@@ -184,7 +177,7 @@ describe('generate-config-from-sheet CLI', () => {
         const listPath = path.join(dir, 'allow.json');
         try {
             const { code } = await runCli(
-                [`--sheet-url=${baseUrl}`],
+                [`${csvIn(dir, FIXTURE_CSV)}`],
                 { GENERATED_CONFIGS_ALLOWLIST: listPath, CONFIG_OUT_DIR: dir }
             );
             expect(code).toBe(0);
@@ -197,7 +190,7 @@ describe('generate-config-from-sheet CLI', () => {
         const listPath = path.join(ROOT, 'scripts/lib/generated-configs.json');
         const before = readFileSync(listPath, 'utf8');
         try {
-            await runCli([`--sheet-url=${baseUrl}`, `--out=${dir}`]);
+            await runCli([`${csvIn(dir, FIXTURE_CSV)}`, `--out=${dir}`]);
             expect(readFileSync(listPath, 'utf8')).toBe(before);
         } finally { rmSync(dir, { recursive: true, force: true }); }
     });
@@ -205,7 +198,7 @@ describe('generate-config-from-sheet CLI', () => {
     it('--course filters to one course', async () => {
         const dir = tmpDir();
         try {
-            const { code, stdout } = await runCli([`--sheet-url=${baseUrl}`, '--course=beta', `--out=${dir}`]);
+            const { code, stdout } = await runCli([`${csvIn(dir, FIXTURE_CSV)}`, '--course=beta', `--out=${dir}`]);
             expect(code).toBe(0);
             expect(existsSync(path.join(dir, 'beta.json'))).toBe(true);
             expect(existsSync(path.join(dir, 'alpha.json'))).toBe(false);
@@ -216,51 +209,47 @@ describe('generate-config-from-sheet CLI', () => {
     it('--course with an unknown id writes nothing and errors', async () => {
         const dir = tmpDir();
         try {
-            const { code, stderr } = await runCli([`--sheet-url=${baseUrl}`, '--course=missing', `--out=${dir}`]);
+            const { code, stderr } = await runCli([`${csvIn(dir, FIXTURE_CSV)}`, '--course=missing', `--out=${dir}`]);
             expect(code).not.toBe(0);
-            expect(stderr).toContain('no course "missing" in the sheet');
+            expect(stderr).toContain('no course "missing" in the CSV');
             expect(existsSync(path.join(dir, 'missing.json'))).toBe(false);
         } finally { rmSync(dir, { recursive: true, force: true }); }
     });
 
-    it('rejects an unsafe sheet courseId without writing outside the dir', async () => {
+    it('rejects an unsafe CSV courseId without writing outside the dir', async () => {
         const dir = tmpDir();
         try {
             const csv = [HEADER, '../evil,Evil,a,L,viewAndContinue,evil-v1,evil-v101,1,none,X.'].join('\n');
-            const badServer = http.createServer((_, res) => { res.writeHead(200); res.end(csv); });
-            await new Promise((r) => badServer.listen(0, '127.0.0.1', r));
-            const url = `http://127.0.0.1:${badServer.address().port}/s`;
             // Default mode: the invalid courseId is a skip -> non-zero exit.
-            const { code, stderr } = await runCli([`--sheet-url=${url}`, `--out=${dir}`]);
+            const { code, stderr } = await runCli([csvIn(dir, csv, 'evil.csv'), `--out=${dir}`]);
             expect(code).not.toBe(0);
             expect(stderr).toContain('invalid courseId');
             expect(existsSync(path.join(dir, '..', 'evil.json'))).toBe(false);
-            badServer.close();
         } finally { rmSync(dir, { recursive: true, force: true }); }
     });
 
     it('--dry-run prints both would-be paths and writes neither', async () => {
         const dir = tmpDir();
         try {
-            const { code, stdout } = await runCli([`--sheet-url=${baseUrl}`, `--out=${dir}`, '--dry-run']);
+            const { code, stdout } = await runCli([`${csvIn(dir, FIXTURE_CSV)}`, `--out=${dir}`, '--dry-run']);
             expect(code).toBe(0);
             expect(stdout).toContain('alpha.json');
             expect(stdout).toContain('beta.json');
             expect(existsSync(path.join(dir, 'alpha.json'))).toBe(false);
             expect(existsSync(path.join(dir, 'beta.json'))).toBe(false);
-            expect(readdirSync(dir).length).toBe(0);
+            expect(readdirSync(dir).filter((f) => f.endsWith('.json'))).toEqual([]);
         } finally { rmSync(dir, { recursive: true, force: true }); }
     });
 
     it('writes 2-space JSON with exactly one trailing newline, idempotently', async () => {
         const dir = tmpDir();
         try {
-            await runCli([`--sheet-url=${baseUrl}`, `--out=${dir}`]);
+            await runCli([`${csvIn(dir, FIXTURE_CSV)}`, `--out=${dir}`]);
             const first = readFileSync(path.join(dir, 'alpha.json'), 'utf8');
             expect(first.endsWith('}\n')).toBe(true);
             expect(first.endsWith('}\n\n')).toBe(false);
             expect(first).toContain('\n  "courseId"');
-            await runCli([`--sheet-url=${baseUrl}`, `--out=${dir}`]);
+            await runCli([`${csvIn(dir, FIXTURE_CSV)}`, `--out=${dir}`]);
             expect(readFileSync(path.join(dir, 'alpha.json'), 'utf8')).toBe(first);
         } finally { rmSync(dir, { recursive: true, force: true }); }
     });
@@ -271,7 +260,7 @@ describe('generate-config-from-sheet CLI', () => {
             // Make alpha.json a directory so the rename fails.
             const { mkdirSync } = await import('node:fs');
             mkdirSync(path.join(dir, 'alpha.json'));
-            const { code, stderr } = await runCli([`--sheet-url=${baseUrl}`, `--out=${dir}`, '--check']);
+            const { code, stderr } = await runCli([`${csvIn(dir, FIXTURE_CSV)}`, `--out=${dir}`, '--check']);
             expect(code).not.toBe(0);
             expect(stderr).toContain('ERROR:');
             // The failed write's temp file was cleaned up (no stray *.tmp-*).
@@ -279,104 +268,47 @@ describe('generate-config-from-sheet CLI', () => {
         } finally { rmSync(dir, { recursive: true, force: true }); }
     });
 
-    it('default sheet URL matches the recorder page (source guard)', () => {
+    it('default run reads the committed master CSV (source guard)', () => {
+        // The default input is the committed store, not a URL: the CLI must
+        // resolve it from MASTER_CSV_REL, and the file must exist in the repo.
         const cli = readFileSync(SCRIPT, 'utf8');
-        const recorder = readFileSync(path.join(ROOT, 'public/recorder.html'), 'utf8');
-        // Raw source (no comment stripping): the URL contains `//`.
-        const url = /https:\/\/docs\.google\.com\/spreadsheets\/[^'"]+/.exec(cli);
-        expect(url).not.toBeNull();
-        expect(recorder).toContain(url[0]);
+        expect(cli).toContain('path.join(ROOT, MASTER_CSV_REL)');
+        expect(existsSync(path.join(ROOT, 'public/wouldyourather.master.csv'))).toBe(true);
     });
 });
 
-// Story 051, Task 3: `--from-api` reads the sheet via the Sheets API so a
-// chained run sees fresh cells, producing the same rows/config as the CSV path.
-describe('generate-config-from-sheet --from-api', () => {
-    const valuesFromCsv = () => FIXTURE_CSV.split('\n').map((line) => line.split(','));
-
-    it('reads the same header-keyed rows shape as the CSV path (injected seam)', async () => {
-        const calls = [];
-        const rows = await loadRowsFromApi({
-            sheetId: 'S', tab: 'Sheet1',
-            getValues: async (params) => { calls.push(params); return { values: valuesFromCsv() }; },
-            getSpreadsheet: async () => ({ sheets: [{ properties: { sheetId: PUBLISHED_GID, title: 'Sheet1' } }] }),
-        });
-        expect(rows).toEqual(parseCsv(FIXTURE_CSV).rows);
-        expect(calls[0].spreadsheetId).toBe('S');
-        expect(calls[0].range).toContain('A1:ZZ');
-    });
-
-    it('resolves the tab from the published gid when --tab is absent', async () => {
-        const calls = [];
-        await loadRowsFromApi({
-            sheetId: 'S',
-            getValues: async (params) => { calls.push(params); return { values: [['course_id', 'course_name'], ['x', 'X']] }; },
-            getSpreadsheet: async () => ({ sheets: [{ properties: { sheetId: PUBLISHED_GID, title: 'Master' } }] }),
-        });
-        expect(calls[0].range).toContain("'Master'!A1:ZZ");
-    });
-
-    it('does not require getSpreadsheet when a tab is supplied', async () => {
-        const rows = await loadRowsFromApi({
-            sheetId: 'S', tab: 'Sheet1',
-            getValues: async () => ({ values: valuesFromCsv() }),
-        });
-        expect(rows).toEqual(parseCsv(FIXTURE_CSV).rows);
-    });
-
-    it('requires getSpreadsheet to resolve the tab when --tab is absent', async () => {
-        await expect(loadRowsFromApi({
-            sheetId: 'S',
-            getValues: async () => ({ values: valuesFromCsv() }),
-        })).rejects.toThrow(/Google Sheets client/);
-    });
-
-    it('writes the same config the CSV path would for identical cell values', async () => {
-        const apiRows = await loadRowsFromApi({
-            sheetId: 'S', tab: 'Sheet1',
-            getValues: async () => ({ values: valuesFromCsv() }),
-        });
-        const csvRows = parseCsv(FIXTURE_CSV).rows;
-        const apiDir = tmpDir();
-        const csvDir = tmpDir();
-        try {
-            await generateConfigsFromRows({ rows: apiRows, outDir: apiDir, check: true, log: () => {}, errorLog: () => {} });
-            await generateConfigsFromRows({ rows: csvRows, outDir: csvDir, check: true, log: () => {}, errorLog: () => {} });
-            for (const name of ['alpha.json', 'beta.json']) {
-                expect(readFileSync(path.join(apiDir, name), 'utf8'))
-                    .toBe(readFileSync(path.join(csvDir, name), 'utf8'));
-            }
-        } finally {
-            rmSync(apiDir, { recursive: true, force: true });
-            rmSync(csvDir, { recursive: true, force: true });
-        }
-    });
-
-    it('--from-api without GOOGLE_SERVICE_ACCOUNT_JSON exits non-zero naming it', async () => {
+// Story 065, Task 6: the generator reads the committed master CSV from disk.
+// `--csv` overrides the file; there is no Sheets API path anymore.
+describe('generate-config-from-sheet disk input', () => {
+    it('reads the default committed CSV when --csv is absent', async () => {
         const dir = tmpDir();
         try {
-            const { code, stderr } = await runCli(['--from-api', `--out=${dir}`], { GOOGLE_SERVICE_ACCOUNT_JSON: '' });
-            expect(code).not.toBe(0);
-            expect(stderr).toContain('GOOGLE_SERVICE_ACCOUNT_JSON');
+            const { code, stdout } = await runCli([`--out=${dir}`]);
+            expect(code).toBe(0);
+            const config = JSON.parse(readFileSync(path.join(dir, 'wouldyourather.json'), 'utf8'));
+            expect(config.courseId).toBe('wouldyourather');
+            expect(config.lessons.length).toBe(6);
+            expect(stdout).toContain('wouldyourather.json');
         } finally { rmSync(dir, { recursive: true, force: true }); }
     });
 
-    it('--from-api without a sheet id exits non-zero naming it', async () => {
+    it('--csv reads the override file', async () => {
         const dir = tmpDir();
         try {
-            const { code, stderr } = await runCli(
-                ['--from-api', `--out=${dir}`],
-                { GOOGLE_SERVICE_ACCOUNT_JSON: '{}', GOOGLE_SHEET_ID: '' }
-            );
-            expect(code).not.toBe(0);
-            expect(stderr).toMatch(/GOOGLE_SHEET_ID|--sheet-id/);
+            const { code } = await runCli([`${csvIn(dir, FIXTURE_CSV)}`, `--out=${dir}`]);
+            expect(code).toBe(0);
+            expect(JSON.parse(readFileSync(path.join(dir, 'alpha.json'), 'utf8')).courseId).toBe('alpha');
         } finally { rmSync(dir, { recursive: true, force: true }); }
     });
 
-    it('--help documents the API flags', async () => {
-        const { code, stdout } = await runCli(['--help']);
-        expect(code).toBe(0);
-        for (const flag of ['--from-api', '--sheet-id', '--tab']) expect(stdout).toContain(flag);
+    it('a missing --csv file exits non-zero naming the path', async () => {
+        const dir = tmpDir();
+        try {
+            const missing = path.join(dir, 'nope.csv');
+            const { code, stderr } = await runCli([`--csv=${missing}`, `--out=${dir}`]);
+            expect(code).not.toBe(0);
+            expect(stderr).toContain(missing);
+        } finally { rmSync(dir, { recursive: true, force: true }); }
     });
 });
 
@@ -385,7 +317,7 @@ describe('generate-config-from-sheet master format', () => {
     it('writes a valid config whose lessons/steps match a master fixture', async () => {
         const dir = tmpDir();
         try {
-            const { code } = await runCli([`--sheet-url=${baseUrl}/master`, `--out=${dir}`]);
+            const { code } = await runCli([`${csvIn(dir, MASTER_CSV)}`, `--out=${dir}`]);
             expect(code).toBe(0);
             const config = JSON.parse(readFileSync(path.join(dir, 'wvr.json'), 'utf8'));
             expect(config).toEqual({
@@ -416,7 +348,7 @@ describe('generate-config-from-sheet master format', () => {
     it('skips a master course missing a required config column and reports it', async () => {
         const dir = tmpDir();
         try {
-            const { code, stderr } = await runCli([`--sheet-url=${baseUrl}/master-missing`, `--out=${dir}`, '--check']);
+            const { code, stderr } = await runCli([`${csvIn(dir, MASTER_MISSING_CSV)}`, `--out=${dir}`, '--check']);
             expect(code).toBe(0);
             expect(stderr).toContain('SKIP course "wvr": missing required column(s): lesson_title (lesson "a")');
             expect(existsSync(path.join(dir, 'wvr.json'))).toBe(false);
@@ -424,43 +356,38 @@ describe('generate-config-from-sheet master format', () => {
     });
 });
 
-// Story 050, Task 3: all three consumers point at the live master (gid 242913338),
-// and SHEET_URL stays byte-identical to the recorder URL. Guards read raw source
-// (URLs contain `//`, so no comment-stripping) and are proven failable.
-describe('published master URL (story 050, Task 3)', () => {
-    const MASTER_PUBLISHED_ID = '2PACX-1vQZ7jFMJNnmylDoHxaqb1W8VyXi0OV4pSubCbqMGYkRgGimqWx3cs74n43-cFxqfue4KCiqWlhzvPkK';
-    const readRecorder = () => readFileSync(path.join(ROOT, 'public/recorder.html'), 'utf8');
-    const readTranslator = () => readFileSync(path.join(ROOT, 'scripts/translate-sheet.mjs'), 'utf8');
-
-    const assertLiveMaster = ({ recorder, cli, translator }) => {
-        expect(recorder).toContain(MASTER_PUBLISHED_ID);
-        expect(recorder).toContain('gid=242913338');
-        const url = /https:\/\/docs\.google\.com\/spreadsheets\/[^'"]+/.exec(cli);
-        expect(url).not.toBeNull();
-        expect(recorder).toContain(url[0]);
-        expect(url[0]).toContain('gid=242913338');
-        expect(translator).toContain('PUBLISHED_GID = 242913338');
+// Story 065, Task 6: the generator reads the committed master CSV from disk.
+// The default path literal is pinned (the pipeline parity test asserts the
+// three readers agree), and no Sheets/API surface may remain. The raw source
+// is asserted (no comment stripping); each pin is proven failable.
+describe('committed master CSV input (story 065, Task 6)', () => {
+    const assertDiskContract = (cli) => {
+        expect(cli).toContain("MASTER_CSV_REL = 'public/wouldyourather.master.csv'");
+        expect(cli).toContain('path.join(ROOT, MASTER_CSV_REL)');
+        expect(cli).not.toContain('SHEET_URL');
+        expect(cli).not.toContain('docs.google.com');
+        expect(cli).not.toContain('--from-api');
+        expect(cli).not.toContain('GOOGLE_');
+        expect(cli).not.toContain('loadRowsFromApi');
     };
 
-    it('SHEET_URL, the recorder URL, and PUBLISHED_GID all pin the live master', () => {
-        expect(() => assertLiveMaster({
-            recorder: readRecorder(), cli: readFileSync(SCRIPT, 'utf8'), translator: readTranslator(),
-        })).not.toThrow();
+    it('pins the committed path and carries no Sheets surface', () => {
+        expect(() => assertDiskContract(readFileSync(SCRIPT, 'utf8'))).not.toThrow();
     });
 
-    it('the guard can fail on each mutation', () => {
-        const recorder = readRecorder();
-        const cli = readFileSync(SCRIPT, 'utf8');
-        const translator = readTranslator();
-        expect(() => assertLiveMaster({
-            recorder: recorder.replace('gid=242913338', 'gid=289451687'), cli, translator,
-        })).toThrow();
-        expect(() => assertLiveMaster({
-            recorder: recorder.replace(MASTER_PUBLISHED_ID, 'OLD-ID'), cli, translator,
-        })).toThrow();
-        expect(() => assertLiveMaster({
-            recorder, cli, translator: translator.replace('PUBLISHED_GID = 242913338', 'PUBLISHED_GID = 289451687'),
-        })).toThrow();
+    it('the guard can fail on each pinned token', () => {
+        const good = readFileSync(SCRIPT, 'utf8');
+        expect(() => assertDiskContract(
+            good.replace("MASTER_CSV_REL = 'public/wouldyourather.master.csv'", "MASTER_CSV_REL = 'public/other.csv'")
+        )).toThrow();
+        for (const injected of [
+            "\n// export const SHEET_URL = 'x';\n",
+            '\n// see docs.google.com/spreadsheets/d/x\n',
+            '\n// retired: --from-api\n',
+            '\n// GOOGLE_SERVICE_ACCOUNT_JSON\n',
+        ]) {
+            expect(() => assertDiskContract(good + injected), injected).toThrow();
+        }
     });
 });
 

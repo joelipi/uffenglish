@@ -63,8 +63,9 @@ export const LIVE_BASE_COLUMNS = [
     'dutch_tilt',
 ];
 
-// Config columns: the same contract `scripts/seed-master-columns.mjs` declares
-// (a parity test pins the two together, so neither can drift silently).
+// Config columns: the contract the generator's master path consumes (course
+// scalars, lesson framing, step routing, subtitles). Pinned by the parity test
+// below, so neither side can drift silently.
 export const BRIDGE_CONFIG_COLUMNS = [
     'course_id', 'course_name', 'lesson_id', 'lesson_title', 'response_type',
     'unit', 'mission', 'recap_sources', 'recap_overlay', 'intro_video',
