@@ -271,3 +271,26 @@ describe('normalizeConfig localizes subtitles to the resolved language', () => {
         expect(configData.lessons[0].steps[0].subtitles).toBe('বাংলা সাবটাইটেল');
     });
 });
+
+describe('normalizer/builder UGC contract', () => {
+    // The normalized friend slug must equal the key buildUgcSegmentKey writes
+    // for the same logical clip — WHEN the session codes are the recorder and
+    // the inviter. Any other viewer/code combination addresses a different pair
+    // and must not be expected to match (see the addressing decision).
+    it('resolves to the builder key when session codes are recorder+inviter', async () => {
+        const { resolveShareCodes } = await import('./config-normalizer.js');
+        const { buildUgcSegmentKey } = await import('../video/video-processor-logic.js');
+        const ref = '{friendCode}{selfCode}-wouldyourather-a-01';
+        const resolved = resolveShareCodes(ref, { friendCode: 'hu7ni', selfCode: 'mncb1' });
+        const key = buildUgcSegmentKey({ shareCode: 'hu7ni', inviterCode: 'mncb1', courseId: 'wouldyourather', lessonId: 'a', index: 1 });
+        expect(`videos/${resolved}.mp4`).toBe(key);
+    });
+
+    it('resolves {selfCode} from the viewer code', async () => {
+        const { resolveShareCodes } = await import('./config-normalizer.js');
+        expect(resolveShareCodes('{friendCode}{selfCode}-c-l-01', { friendCode: 'aa11', selfCode: 'bb22' }))
+            .toBe('aa11-bb22-c-l-01');
+        expect(resolveShareCodes('{friendCode}{selfCode}-c-l-01', { friendCode: 'aa11', selfCode: null }))
+            .toBe('aa11-c-l-01');
+    });
+});

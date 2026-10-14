@@ -285,9 +285,26 @@ export function assignSegmentTargets(publishable, defaultLessonId) {
     });
 }
 
-// The R2 key for a user-generated segment.
-export function buildUgcSegmentKey({ shareCode, courseId, lessonId, index }) {
-    return `videos/${shareCode}-${courseId}-${lessonId}-response-${String(index).padStart(2, '0')}.mp4`;
+// The R2 key for a user-generated segment. Identity is
+// `{recorder}-{inviter}-{course}-{lesson}-{step}` — the recorder recorded it,
+// the inviter invited them to (the same code twice when self-initiated). The
+// step is unique within the lesson, so no "response" marker is needed.
+export function buildUgcSegmentKey({ shareCode, inviterCode, courseId, lessonId, index }) {
+    const recorder = String(shareCode || '').trim();
+    const inviter = String(inviterCode || '').trim() || recorder;
+    return `videos/${recorder}-${inviter}-${courseId}-${lessonId}-${String(index).padStart(2, '0')}.mp4`;
+}
+
+// The inviter's share code for a UGC key: the friend who invited the recorder,
+// or the recorder themselves when self-initiated.
+//
+// NOTE the asymmetry with resolveCompletePairCode (which gates on
+// recapSources === 'friend'): a solo lesson with a stale persisted friendCode
+// keys its segments `self-friend` while its recap keys `self-self`. Harmless
+// today (solo lessons never fetch each other's clips by slug), but the two
+// must stay in sync if that ever changes.
+export function resolveInviterCode({ friendCode, shareCode } = {}) {
+    return String(friendCode || '').trim() || String(shareCode || '').trim();
 }
 
 // ---------------------------------------------------------------------------

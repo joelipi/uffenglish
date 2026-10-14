@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { appStore } from '../modules/store/store.js';
 import { normalizeConfig, resolveConfigLanguage, isConfigLanguageSettled } from '../modules/bilingual/config-normalizer.js';
 import { applySuccessSteps } from '../modules/lesson/success-step.web.js';
+import { setKnownShareCodes } from '../modules/video/video-source.js';
 import { useAppBootstrap } from '../hooks/use-app-bootstrap-webonly.js';
 
 export default function AppLayout() {
@@ -25,6 +26,15 @@ export default function AppLayout() {
         staleTime: Infinity,
         enabled: !!courseId && !configData,
     });
+    const friendCode = useStore(appStore, state => state.friendCode);
+
+    // Side effect: keep the UGC classifier's code registry current. The
+    // classifier matches the share codes in play (never the slug's shape), so
+    // the registry must track link changes even when the config is already
+    // loaded (a second friend link in one session must not leave stale codes).
+    useEffect(() => {
+        setKnownShareCodes([friendCode, userData?.shareCode]);
+    }, [friendCode, userData?.shareCode]);
 
     // Side effect: normalize and store config once the language is settled.
     // The guest modal opens AFTER the fetch resolves, so normalizing on fetch

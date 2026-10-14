@@ -51,7 +51,8 @@ export function generateVideoFilename(lessonId) {
 /**
  * Filename for the learner-facing recap delivery (native share sheet file
  * and desktop download). Uses the R2 concatenated-video key basename —
- * `<shareCode>[-<askerCode>]-<courseId>-<lessonId>-complete.mp4` — so the
+ * `<recorder>-<inviter>-<courseId>-<lessonId>-complete.mp4` (the recorder's
+ * own code twice when self-initiated) — so the
  * file on the learner's device carries the same identity as the object
  * published to R2, including both contributors on friend-sourced lessons.
  * Falls back to the timestamped local name when any key part is missing

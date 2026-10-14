@@ -27,11 +27,34 @@ import {
     unescapeSrt,
     validateSrtCell,
 } from './sheet-translate-utils.js';
-// A friend/UGC clip (`-response-NN`) has its speaker's caption burned into the
-// video, so it must get no app `subtitles` — the player would draw a second
-// caption over it. The shared pure predicate keeps this rule identical to the
-// runtime classifier (video-source.js).
-import { isFriendVideoSlug } from '../../src/modules/video/video-source.js';
+// A friend/UGC clip has its speaker's caption burned into the video, so it must
+// get no app `subtitles` — the player would draw a second caption over it. In
+// the sheet a friend clip is the step whose key is a `{friendCode}` reference,
+// so it is identified by that placeholder (the runtime UGC classifier in
+// video-source.js matches share codes, which a sheet-level ref does not have).
+function isFriendVideoSlug(key) {
+    return String(key ?? '').includes('{friendCode}');
+}
+
+// A friend clip's sheet key is `{friendCode}<course>-<lesson>-response-NN`; the
+// app's UGC key is `{recorder}-{inviter}-<course>-<lesson>-<step>` (see
+// buildUgcSegmentKey). The emitted slug therefore carries BOTH code placeholders
+// — `{friendCode}` (the friend who recorded it) then `{selfCode}` (the viewer who
+// invited them), resolved at load time by config-normalizer.js. Exported for the
+// normalizer/builder contract test.
+export function appSlug(key) {
+    const s = String(key ?? '');
+    if (!s.startsWith('{friendCode}')) return s;
+    let rest = s.slice('{friendCode}'.length);
+    // Legacy `-response-NN` suffix becomes the bare step number…
+    const match = /^(.*)-response-(\d+)$/.exec(rest);
+    if (match) rest = `${match[1]}-${match[2]}`;
+    // …and a ref authored without the viewer slot gains it, so the emitted slug
+    // always carries both codes and can match a two-code key.
+    if (!rest.startsWith('{selfCode}')) rest = `{selfCode}-${rest}`;
+    return `{friendCode}${rest}`;
+}
+
 
 // English source columns are looked up in the shared field map, so a field
 // removed or renamed in sheet-translate-utils.js fails loudly here instead of
@@ -519,7 +542,7 @@ function buildMasterSteps(lessonRows) {
                 );
             }
         }
-        const step = { responseType, simpleVideoUrl: key };
+        const step = { responseType, simpleVideoUrl: appSlug(key) };
         const cue = masterCueFor(subgroups);
         if (cue !== undefined) step.cue = cue;
         const chooseStep = chooseStepFor(stepRows, key, responseType);
@@ -599,12 +622,12 @@ function buildAuthoringSteps(lessonRows) {
         if (responseType === 'lessonIntro') {
             step.cue = '';
             step.responseType = 'lessonIntro';
-            step.introBackgroundVideoUrl = videoFile;
+            step.introBackgroundVideoUrl = appSlug(videoFile);
         } else {
             const cue = cueFor(groupRows, videoFile);
             if (cue !== undefined) step.cue = cue;
             step.responseType = responseType;
-            step.simpleVideoUrl = videoFile;
+            step.simpleVideoUrl = appSlug(videoFile);
         }
         const chooseStep = chooseStepFor(groupRows, videoFile, responseType);
         if (chooseStep !== undefined) step.chooseStep = chooseStep;
@@ -612,8 +635,8 @@ function buildAuthoringSteps(lessonRows) {
         if (nextStep !== undefined) step.nextStep = nextStep;
         const publishLessonId = singleValue(groupRows, 'publish_lesson_id', `video_file "${videoFile}"`);
         if (publishLessonId) step.publishLessonId = publishLessonId;
-        // A friend/UGC step (`-response-NN`) gets no app `subtitles`: its clip
-        // already carries the speaker's caption burned in. Skipping the call
+        // A friend/UGC step (a `{friendCode}` key) gets no app `subtitles`: its
+        // clip already carries the speaker's caption burned in. Skipping the call
         // also skips the `srt_<lang>` timing check and the `subtitle_text`
         // fallback.
         if (!isFriendVideoSlug(videoFile)) {
@@ -752,7 +775,7 @@ function buildMasterCourseConfig(videoRows) {
 
         const introVideo = firstNonBlank(rowsForLesson, 'intro_video');
         if (introVideo) {
-            lesson.steps.unshift({ cue: '', responseType: 'lessonIntro', introBackgroundVideoUrl: introVideo });
+            lesson.steps.unshift({ cue: '', responseType: 'lessonIntro', introBackgroundVideoUrl: appSlug(introVideo) });
         }
         // No success step is emitted: it is code-owned (see
         // src/modules/lesson/success-step-logic.js) and injected by the app per

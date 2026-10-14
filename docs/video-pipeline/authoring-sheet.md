@@ -44,7 +44,7 @@ columns reported):
 - A lesson's `unit`, `mission`, `recap_sources`, `recap_overlay` must be identical on
   every one of its rows (they are lesson-level).
 - A `video_file`'s rows must share one `response_type` (a `video_file` is one step).
-- Any step whose slug ends in `-response-NN` must live in a lesson with
+- Any step whose key is a `{friendCode}` reference must live in a lesson with
   `recap_sources=friend`.
 - **`choose_step_next` and `choose_step_text` must both be set** (or neither) and carry the
   same number of lines; each `choose_step_next` line must be an integer ≥ 1. Malformed choice
@@ -76,12 +76,13 @@ sharing that key within a lesson is one step; a non-blank `join` is the joined v
 published slug, and its rows' `phrase` values become the ordered `cue` array. A row with
 neither `join` nor `video_file` defines no step and is ignored.
 
-**A friend UGC clip gets no app `subtitles`.** A step whose key ends in `-response-NN` is a
-friend's published clip, which already carries its speaker's caption burned into the video,
-so the generator emits **no** `subtitles` for it — regardless of `srt`/`srt_<lang>`/
-`subtitle_text`. (The runtime classifier is `FRIEND_VIDEO_REGEX`/`isFriendVideoSlug` in
-`src/modules/video/video-source.js`; the generator reuses it, so a system step whose slug
-merely contains `response` — e.g. `my-response-video` — is unaffected.)
+**A friend UGC clip gets no app `subtitles`.** A step whose key is a `{friendCode}`
+reference is a friend's published clip, which already carries its speaker's caption
+burned into the video, so the generator emits **no** `subtitles` for it — regardless
+of `srt`/`srt_<lang>`/`subtitle_text`. (The runtime classifier is `isUgcSlug` in
+`src/modules/video/video-source.js`, which matches the share codes in play; the
+generator identifies the sheet-level `{friendCode}` placeholder, so a system step
+whose slug merely contains `response` — e.g. `my-response-video` — is unaffected.)
 
 **`row_purpose` (informational).** The seeded master appends a `row_purpose` column that
 describes the config output each row produces — `step "<key>"`, then any of

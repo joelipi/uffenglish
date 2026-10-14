@@ -13,6 +13,7 @@ import {
     findMissingColumns,
     isValidCourseId,
     isMasterFormat,
+    appSlug,
     RESPONSE_TYPES,
     RECAP_SOURCES,
     RECAP_OVERLAYS,
@@ -393,7 +394,7 @@ describe('buildCourseConfig', () => {
             'demo,Demo Course,a,Lesson A,none,shareCta,lessonIntro,demo-intro,demo-intro01,1,,,,',
             'demo,Demo Course,a,Lesson A,none,shareCta,viewAndContinue,demo-v1,demo-v101,2,,,,Welcome.',
             'demo,Demo Course,a,Lesson A,none,shareCta,friendClosedResponse,demo-q,demo-q01,3,"Would you rather X?",,,',
-            'demo,Demo Course,b,Lesson B,friend,shareCta,viewAndContinue,ab-model-w-response-01,ab1,1,,,,Hello.',
+            'demo,Demo Course,b,Lesson B,friend,shareCta,viewAndContinue,{friendCode}ab-model-w-01,ab1,1,,,,Hello.',
         ].join('\n');
         const { rows } = parseCsv(csv);
         const config = buildCourseConfig(rows);
@@ -414,9 +415,9 @@ describe('buildCourseConfig', () => {
                     lessonId: 'b', recapSources: 'friend', recapOverlay: 'shareCta',
                     title: { en: 'Lesson B' },
                     steps: [
-                        // Story 057: a friend/UGC slug (`-response-NN`) gets no app
-                        // `subtitles` even when `subtitle_text` is non-blank.
-                        { responseType: 'viewAndContinue', simpleVideoUrl: 'ab-model-w-response-01' },
+                        // Story 057: a friend/UGC step (a `{friendCode}` key) gets
+                        // no app `subtitles` even when `subtitle_text` is non-blank.
+                        { responseType: 'viewAndContinue', simpleVideoUrl: '{friendCode}{selfCode}-ab-model-w-01' },
                     ],
                 },
             ],
@@ -766,13 +767,33 @@ describe('canonical vocabulary parity with the browser modules', () => {
         expect(RECAP_OVERLAYS).toEqual(arr('RECAP_OVERLAYS'));
     });
 
-    it('FRIEND_VIDEO_REGEX matches video-source.js', () => {
+    it('the generator and the runtime classifier agree on what a friend clip is', () => {
+        // A sheet-level friend ref carries no share code yet (it is a
+        // `{friendCode}` placeholder), while the runtime classifier matches the
+        // share codes in play. Both must treat the placeholder as UGC, so a
+        // config-side friend step can never be mistaken for a system clip.
+        const gen = read('./sheet-config-utils.js');
+        expect(gen).toContain("includes('{friendCode}')");
         const src = read('../../src/modules/video/video-source.js');
-        const m = /export const FRIEND_VIDEO_REGEX = \/(.+)\/i;/.exec(src);
-        expect(m).not.toBeNull();
-        const re = new RegExp(m[1], 'i');
-        expect(re.test('ab-model-w-response-01')).toBe(true);
-        expect(re.test('testvideoa01')).toBe(false);
+        expect(src).toContain("slug.includes('{friendCode}')");
+        expect(src).toContain('export function isUgcSlug');
+    });
+
+    it('appSlug rewrites a legacy -response-NN ref to the two-code form', () => {
+        expect(appSlug('{friendCode}wouldyourather-a-response-01'))
+            .toBe('{friendCode}{selfCode}-wouldyourather-a-01');
+    });
+
+    it('appSlug adds a missing viewer slot to an already-new ref', () => {
+        expect(appSlug('{friendCode}ab-model-w-01'))
+            .toBe('{friendCode}{selfCode}-ab-model-w-01');
+        expect(appSlug('{friendCode}{selfCode}-ab-model-w-01'))
+            .toBe('{friendCode}{selfCode}-ab-model-w-01');
+    });
+
+    it('appSlug leaves non-friend slugs untouched', () => {
+        expect(appSlug('wouldyourather-a-01')).toBe('wouldyourather-a-01');
+        expect(appSlug('')).toBe('');
     });
 });
 
@@ -1154,7 +1175,7 @@ describe('master format (overlay master)', () => {
     });
 });
 
-// Story 057: a friend/UGC step (`-response-NN`) already carries its speaker's
+// Story 057: a friend/UGC step (a `{friendCode}` key) already carries its speaker's
 // caption burned into the video, so the generator emits no `subtitles` for it —
 // regardless of `srt`/`srt_<lang>`/`subtitle_text`. Skipping the subtitle call
 // also skips `srt_<lang>` timing validation, so a stray translation on a friend
@@ -1201,7 +1222,7 @@ describe('friend UGC steps never emit app subtitles', () => {
 
     it('omits subtitles on an authoring friend step with an srt', () => {
         const [step] = buildSteps([{
-            ...authoringBase, video_file: 'ab12-x-a-response-01',
+            ...authoringBase, video_file: '{friendCode}ab12-x-a-01',
             filename: 'f', order: '1', srt: SRT,
         }]);
         expect('subtitles' in step).toBe(false);
@@ -1209,7 +1230,7 @@ describe('friend UGC steps never emit app subtitles', () => {
 
     it('omits subtitles on an authoring friend step with only subtitle_text', () => {
         const [step] = buildSteps([{
-            ...authoringBase, video_file: 'ab12-x-a-response-01',
+            ...authoringBase, video_file: '{friendCode}ab12-x-a-01',
             filename: 'f', order: '1', subtitle_text: 'plain',
         }]);
         expect('subtitles' in step).toBe(false);
@@ -1227,7 +1248,7 @@ describe('friend UGC steps never emit app subtitles', () => {
         const csv = [
             'course_id,course_name,lesson_id,lesson_title,recap_sources,response_type,video_file,filename,order,srt',
             'alpha,Alpha,a,Lesson A,none,viewAndContinue,alpha-v1,alpha1,1,Hi',
-            'friend,Friend,b,Lesson B,friend,friendClosedResponse,ab-x-b-response-01,ab1,1,Hello',
+            'friend,Friend,b,Lesson B,friend,friendClosedResponse,{friendCode}ab-x-b-01,ab1,1,Hello',
         ].join('\n');
         const results = buildCourseConfigs(parseCsv(csv).rows);
         const alpha = results.find((r) => r.courseId === 'alpha');
@@ -1239,7 +1260,7 @@ describe('friend UGC steps never emit app subtitles', () => {
     it('never reports srt as missing for a friend step (unchanged)', () => {
         const rows = [{
             ...COURSE, response_type: 'friendClosedResponse',
-            video_file: 'ab-x-b-response-01', filename: 'f', order: '1',
+            video_file: '{friendCode}ab-x-b-01', filename: 'f', order: '1',
         }];
         expect(findMissingColumns(rows).filter((m) => m.column === 'srt')).toEqual([]);
     });

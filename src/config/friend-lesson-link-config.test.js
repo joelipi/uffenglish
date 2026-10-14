@@ -102,7 +102,7 @@ describe('wouldrather.json canonical a-f chain', () => {
     });
 
     it('wires the ping-pong view clips in chain order', () => {
-        const friendSlug = (lessonId, n) => `{friendCode}wouldrather-${lessonId}-response-0${n}`;
+        const friendSlug = (lessonId, n) => `{friendCode}{selfCode}-wouldrather-${lessonId}-0${n}`;
         const viewSlugs = (lesson) => (lesson.steps || [])
             .filter((s) => s.responseType === 'viewAndContinue')
             .map((s) => s.simpleVideoUrl)
@@ -141,10 +141,13 @@ describe('{friendCode} references resolve to a real lesson', () => {
                     for (const field of VIDEO_FIELDS) {
                         const value = step[field];
                         if (typeof value !== 'string' || !value.includes('{friendCode}')) continue;
-                        const match = /-([a-z0-9-]+)-response-\d+$/.exec(value.replace('{friendCode}', ''));
-                        expect(match, `${name} ${lesson.lessonId}: unparseable friend slug ${value}`).not.toBeNull();
-                        expect(ids, `${name} ${lesson.lessonId}: ${value} points at missing lesson ${match[1]}`)
-                            .toContain(match[1]);
+                        // UGC shape: {recorder}-{inviter}-<course>-<lesson>-<NN>
+                        const parts = value.replace('{friendCode}', '').replace('{selfCode}', '')
+                            .split('-').filter(Boolean);
+                        const lessonPart = parts.length >= 3 ? parts[parts.length - 2] : null;
+                        expect(lessonPart, `${name} ${lesson.lessonId}: unparseable friend slug ${value}`).not.toBeNull();
+                        expect(ids, `${name} ${lesson.lessonId}: ${value} points at missing lesson ${lessonPart}`)
+                            .toContain(lessonPart);
                     }
                 }
             }

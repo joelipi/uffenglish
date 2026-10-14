@@ -68,4 +68,13 @@ describe('success-step wiring', () => {
         expect(src.indexOf('normalizeConfig(')).toBeGreaterThan(-1);
         expect(src.indexOf('applySuccessSteps(')).toBeGreaterThan(src.indexOf('normalizeConfig('));
     });
+
+    it('AppLayout keeps the UGC code registry current on every link change', () => {
+        const src = readFileSync(path.join(ROOT, 'src', 'routes', 'AppLayout.jsx'), 'utf8');
+        // The classifier matches the share codes in play (never the slug's
+        // shape), so the registry must track link changes even when the config
+        // is already loaded — a second friend link must not leave stale codes.
+        expect(src).toContain("from '../modules/video/video-source.js'");
+        expect(src).toContain('setKnownShareCodes([friendCode, userData?.shareCode])');
+    });
 });

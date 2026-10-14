@@ -30,7 +30,7 @@ import { uploadCompleteVideoToR2, MAX_R2_UPLOAD_BYTES } from './video-processor.
 
 const BLOB = new Blob(['recap'], { type: 'video/webm' });
 const MP4 = new Blob(['mp4'], { type: 'video/mp4' });
-const UPLOADED_URL = 'https://r2.ultrafastfluency.com/videos/ab12-model-w-complete.mp4';
+const UPLOADED_URL = 'https://r2.ultrafastfluency.com/videos/ab12-ab12-model-w-complete.mp4';
 
 function loggedInState(overrides = {}) {
     return {
@@ -86,7 +86,7 @@ describe('uploadCompleteVideoToR2', () => {
         expect(uploadSegmentToR2).toHaveBeenCalledTimes(1);
         expect(uploadSegmentToR2).toHaveBeenCalledWith({
             blob: MP4,
-            key: 'videos/ab12-model-w-complete.mp4',
+            key: 'videos/ab12-ab12-model-w-complete.mp4',
             jwt: 'jwt-token',
             shareCode: 'ab12',
             contentType: 'video/mp4',
@@ -122,7 +122,7 @@ describe('uploadCompleteVideoToR2', () => {
 
         expect(result).toEqual({ uploaded: true, url: UPLOADED_URL });
         expect(uploadWebmToCloudinary).toHaveBeenCalledWith(BLOB);
-        expect(uploadSegmentToR2).toHaveBeenCalledWith(expect.objectContaining({ key: 'videos/ab12-model-w-complete.mp4' }));
+        expect(uploadSegmentToR2).toHaveBeenCalledWith(expect.objectContaining({ key: 'videos/ab12-ab12-model-w-complete.mp4' }));
     });
 
     it('falls back to Cloudinary when the WebCodecs result fails the mp4 check', async () => {

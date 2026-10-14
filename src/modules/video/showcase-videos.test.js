@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { SHOWCASE_VIDEO_SLUGS, buildShowcaseVideos } from './showcase-videos.js';
-import { getVideoUrl, getPosterUrl } from './video-url.js';
+import { getPermanentVideoUrl, getPermanentPosterUrl } from './video-url.js';
 
 describe('SHOWCASE_VIDEO_SLUGS', () => {
     it('is a non-empty array of non-empty strings', () => {
@@ -28,10 +28,10 @@ describe('SHOWCASE_VIDEO_SLUGS', () => {
 });
 
 describe('buildShowcaseVideos', () => {
-    it('maps each slug to its video + poster URLs', () => {
+    it('maps each slug to its permanent video + poster URLs', () => {
         expect(buildShowcaseVideos(['a', 'b'])).toEqual([
-            { slug: 'a', videoUrl: getVideoUrl('a'), posterUrl: getPosterUrl('a') },
-            { slug: 'b', videoUrl: getVideoUrl('b'), posterUrl: getPosterUrl('b') },
+            { slug: 'a', videoUrl: getPermanentVideoUrl('a'), posterUrl: getPermanentPosterUrl('a') },
+            { slug: 'b', videoUrl: getPermanentVideoUrl('b'), posterUrl: getPermanentPosterUrl('b') },
         ]);
     });
 

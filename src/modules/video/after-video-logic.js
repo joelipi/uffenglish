@@ -43,7 +43,7 @@ export function resolveAfterVideoSlugs(base, guestLang, profileLang) {
  * single-sourced in getVideoUrl (dev proxy vs prod R2 CDN) — never rebuilt here.
  */
 export function buildAfterVideoUrls(base, guestLang, profileLang) {
-    return resolveAfterVideoSlugs(base, guestLang, profileLang).map(getVideoUrl);
+    return resolveAfterVideoSlugs(base, guestLang, profileLang).map((s) => getVideoUrl(s));
 }
 
 /**

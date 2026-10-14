@@ -5,7 +5,7 @@ import { getAllSpeechRecordingsForLesson } from '../storage/storage.js';
 import { shareVideo } from './video-share.js';
 import { appStore } from '../store/store.js';
 import { getVideoUrl, getUgcThumbKey, getCompleteVideoKey } from './video-url.js';
-import { VideoRenderPlanner, TEXT_MODE_DURATION_MS, TAILING_DURATION_MS, resolveOverlayElements, resolveHeaderLayout, isShareCtaEnabled, isDroppedStep, markFirstRenderable, resolveSegmentBounds, STALL_GRACE_MS, assignSegmentTargets, buildUgcSegmentKey, isPublishableClip, calibrateSegmentRanges, resolveCompletePairCode, SHARE_URL_BASE } from './video-processor-logic.js';
+import { VideoRenderPlanner, TEXT_MODE_DURATION_MS, TAILING_DURATION_MS, resolveOverlayElements, resolveHeaderLayout, isShareCtaEnabled, isDroppedStep, markFirstRenderable, resolveSegmentBounds, STALL_GRACE_MS, assignSegmentTargets, buildUgcSegmentKey, resolveInviterCode, isPublishableClip, calibrateSegmentRanges, resolveCompletePairCode, SHARE_URL_BASE } from './video-processor-logic.js';
 import { AFTER_SUCCESS_BASE } from './after-video-logic.js';
 import { startAfterVideoLoop } from './after-video-player.web.js';
 import { remoteSource } from './video-source.js';
@@ -1603,7 +1603,8 @@ export async function exportSegmentsToR2(lessonId, segments = [], stitchedBlob =
         // target, so clips land where a friend's lesson looks for them. Also
         // upload the sibling jpg thumb generated from the raw webcam blob.
         const { lessonId: targetLessonId, index: segmentIndex } = targets[i];
-        const key = buildUgcSegmentKey({ shareCode, courseId, lessonId: targetLessonId, index: segmentIndex });
+        const inviterCode = resolveInviterCode({ friendCode: snapshot.friendCode, shareCode });
+        const key = buildUgcSegmentKey({ shareCode, inviterCode, courseId, lessonId: targetLessonId, index: segmentIndex });
         const thumbKey = getUgcThumbKey(key);
         const thumbBlob = step.thumbBlob || null;
         try {

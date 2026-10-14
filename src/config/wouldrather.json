@@ -106,11 +106,11 @@
         {
           "cue": "",
           "responseType": "lessonIntro",
-          "introBackgroundVideoUrl": "{friendCode}wouldrather-a-response-01"
+          "introBackgroundVideoUrl": "{friendCode}{selfCode}-wouldrather-a-01"
         },
         {
           "responseType": "viewAndContinue",
-          "simpleVideoUrl": "{friendCode}wouldrather-a-response-01"
+          "simpleVideoUrl": "{friendCode}{selfCode}-wouldrather-a-01"
         },
         {
           "cue": [
@@ -132,7 +132,7 @@
         },
         {
           "responseType": "viewAndContinue",
-          "simpleVideoUrl": "{friendCode}wouldrather-a-response-02"
+          "simpleVideoUrl": "{friendCode}{selfCode}-wouldrather-a-02"
         },
         {
           "cue": [
@@ -154,7 +154,7 @@
         },
         {
           "responseType": "viewAndContinue",
-          "simpleVideoUrl": "{friendCode}wouldrather-a-response-03"
+          "simpleVideoUrl": "{friendCode}{selfCode}-wouldrather-a-03"
         },
         {
           "cue": [
@@ -254,11 +254,11 @@
         {
           "cue": "",
           "responseType": "lessonIntro",
-          "introBackgroundVideoUrl": "{friendCode}wouldrather-b-response-04"
+          "introBackgroundVideoUrl": "{friendCode}{selfCode}-wouldrather-b-04"
         },
         {
           "responseType": "viewAndContinue",
-          "simpleVideoUrl": "{friendCode}wouldrather-b-response-04"
+          "simpleVideoUrl": "{friendCode}{selfCode}-wouldrather-b-04"
         },
         {
           "cue": [
@@ -280,7 +280,7 @@
         },
         {
           "responseType": "viewAndContinue",
-          "simpleVideoUrl": "{friendCode}wouldrather-b-response-05"
+          "simpleVideoUrl": "{friendCode}{selfCode}-wouldrather-b-05"
         },
         {
           "cue": [
@@ -302,7 +302,7 @@
         },
         {
           "responseType": "viewAndContinue",
-          "simpleVideoUrl": "{friendCode}wouldrather-b-response-06"
+          "simpleVideoUrl": "{friendCode}{selfCode}-wouldrather-b-06"
         },
         {
           "cue": [
@@ -402,11 +402,11 @@
         {
           "cue": "",
           "responseType": "lessonIntro",
-          "introBackgroundVideoUrl": "{friendCode}wouldrather-c-response-04"
+          "introBackgroundVideoUrl": "{friendCode}{selfCode}-wouldrather-c-04"
         },
         {
           "responseType": "viewAndContinue",
-          "simpleVideoUrl": "{friendCode}wouldrather-c-response-04"
+          "simpleVideoUrl": "{friendCode}{selfCode}-wouldrather-c-04"
         },
         {
           "cue": [
@@ -428,7 +428,7 @@
         },
         {
           "responseType": "viewAndContinue",
-          "simpleVideoUrl": "{friendCode}wouldrather-c-response-05"
+          "simpleVideoUrl": "{friendCode}{selfCode}-wouldrather-c-05"
         },
         {
           "cue": [
@@ -450,7 +450,7 @@
         },
         {
           "responseType": "viewAndContinue",
-          "simpleVideoUrl": "{friendCode}wouldrather-c-response-06"
+          "simpleVideoUrl": "{friendCode}{selfCode}-wouldrather-c-06"
         },
         {
           "cue": [
@@ -550,11 +550,11 @@
         {
           "cue": "",
           "responseType": "lessonIntro",
-          "introBackgroundVideoUrl": "{friendCode}wouldrather-d-response-04"
+          "introBackgroundVideoUrl": "{friendCode}{selfCode}-wouldrather-d-04"
         },
         {
           "responseType": "viewAndContinue",
-          "simpleVideoUrl": "{friendCode}wouldrather-d-response-04"
+          "simpleVideoUrl": "{friendCode}{selfCode}-wouldrather-d-04"
         },
         {
           "cue": [
@@ -576,7 +576,7 @@
         },
         {
           "responseType": "viewAndContinue",
-          "simpleVideoUrl": "{friendCode}wouldrather-d-response-05"
+          "simpleVideoUrl": "{friendCode}{selfCode}-wouldrather-d-05"
         },
         {
           "cue": [
@@ -598,7 +598,7 @@
         },
         {
           "responseType": "viewAndContinue",
-          "simpleVideoUrl": "{friendCode}wouldrather-d-response-06"
+          "simpleVideoUrl": "{friendCode}{selfCode}-wouldrather-d-06"
         },
         {
           "cue": [
@@ -698,11 +698,11 @@
         {
           "cue": "",
           "responseType": "lessonIntro",
-          "introBackgroundVideoUrl": "{friendCode}wouldrather-e-response-04"
+          "introBackgroundVideoUrl": "{friendCode}{selfCode}-wouldrather-e-04"
         },
         {
           "responseType": "viewAndContinue",
-          "simpleVideoUrl": "{friendCode}wouldrather-e-response-04"
+          "simpleVideoUrl": "{friendCode}{selfCode}-wouldrather-e-04"
         },
         {
           "cue": [
@@ -724,7 +724,7 @@
         },
         {
           "responseType": "viewAndContinue",
-          "simpleVideoUrl": "{friendCode}wouldrather-e-response-05"
+          "simpleVideoUrl": "{friendCode}{selfCode}-wouldrather-e-05"
         },
         {
           "cue": [
@@ -746,7 +746,7 @@
         },
         {
           "responseType": "viewAndContinue",
-          "simpleVideoUrl": "{friendCode}wouldrather-e-response-06"
+          "simpleVideoUrl": "{friendCode}{selfCode}-wouldrather-e-06"
         },
         {
           "cue": [

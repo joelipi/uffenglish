@@ -510,9 +510,9 @@ describe('story 057 docs — overlay-master mapping + friend-clip rule', () => {
         expect(authoring).toContain('| `join` else `video_file` |');
         expect(authoring).toContain('`row_purpose`');
         expect(authoring).toContain('ignored by the generator and translator');
-        // the friend-clip rule: a `-response-NN` step gets no app subtitles.
+        // the friend-clip rule: a `{friendCode}` step gets no app subtitles.
         expect(authoring).toContain('A friend UGC clip gets no app `subtitles`');
-        expect(authoring).toContain('whose key ends in `-response-NN`');
+        expect(authoring).toContain('whose key is a `{friendCode}`');
         // product.md: the app-behavior entry and the authoring entry, both linked.
         expect(product).toContain('Friend-recorded clips never show app subtitles');
         expect(product).toContain('Self-documenting overlay master');
@@ -539,7 +539,7 @@ describe('story 057 docs — overlay-master mapping + friend-clip rule', () => {
             '`row_purpose`',
             'ignored by the generator and translator',
             'A friend UGC clip gets no app `subtitles`',
-            'whose key ends in `-response-NN`',
+            'whose key is a `{friendCode}`',
         ];
         for (const token of authoringTokens) {
             expect(() => assertDocs({ authoring: strip(authoring, token), product })).toThrow();

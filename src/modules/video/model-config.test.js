@@ -3,7 +3,6 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { RECAP_SOURCES, RECAP_OVERLAYS } from './video-processor-logic.js';
-import { FRIEND_VIDEO_REGEX } from './video-source.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CONFIG_DIR = path.join(__dirname, '../../config');
@@ -90,7 +89,7 @@ describe('test.json click-through friend prompts', () => {
         const viewSteps = lesson.steps.filter(s => s.responseType === 'viewAndContinue');
         expect(viewSteps.length).toBeGreaterThan(0);
         for (const step of viewSteps) {
-            expect(step.simpleVideoUrl).toMatch(FRIEND_VIDEO_REGEX);
+            expect(step.simpleVideoUrl).toContain('{friendCode}');
             expect(step.cue).toBeUndefined();
             expect(step.subtitles).toBeUndefined();
         }
@@ -117,7 +116,7 @@ describe('wouldyourather lesson b branching step', () => {
 
     it('is the branching friend step with no app subtitles', () => {
         expect(step.responseType).toBe('branching');
-        expect(step.simpleVideoUrl).toBe('{friendCode}wouldyourather-a-response-01');
+        expect(step.simpleVideoUrl).toBe('{friendCode}{selfCode}-wouldyourather-a-01');
         expect('subtitles' in step).toBe(false);
     });
 
@@ -130,13 +129,18 @@ describe('wouldyourather lesson b branching step', () => {
 });
 
 describe('friend-slug invariant', () => {
-    // Any step whose prompt video is a friend/UGC slug (-response-NN) must
+    // Any step whose prompt video is a friend/UGC ref (`{friendCode}`) must
     // belong to a lesson flagged recapSources: 'friend'. Otherwise the planner
     // would silently drop the friend's clips from that lesson's recap.
     // Keep VIDEO_FIELDS in sync with _getRemoteTarget's field precedence
     // (video-processor-logic.js): interactiveVideoUrl > introBackgroundVideoUrl
     // > simpleVideoUrl.
     const VIDEO_FIELDS = ['interactiveVideoUrl', 'introBackgroundVideoUrl', 'simpleVideoUrl'];
+
+    // A friend/UGC step is the one whose prompt is a `{friendCode}` reference.
+    // The runtime classifier (video-source.js) matches the share codes in play,
+    // which a sheet-level ref does not carry until substitution.
+    const isFriendSlug = (slug) => String(slug || '').includes('{friendCode}');
 
     // Story 057: a friend/UGC clip already carries its speaker's caption burned
     // into the video, so the config must not give it app `subtitles` (the player
@@ -145,7 +149,7 @@ describe('friend-slug invariant', () => {
         for (const { name, config } of configs) {
             for (const lesson of config.lessons) {
                 for (const step of lesson.steps || []) {
-                    const isFriend = VIDEO_FIELDS.some(field => FRIEND_VIDEO_REGEX.test(step[field] || ''));
+                    const isFriend = VIDEO_FIELDS.some(field => isFriendSlug(step[field]));
                     if (isFriend) {
                         expect(step.subtitles, `${name} lesson ${lesson.lessonId}`).toBeUndefined();
                     }
@@ -159,7 +163,7 @@ describe('friend-slug invariant', () => {
             const config = loadConfig(name);
             for (const lesson of config.lessons) {
                 const hasFriendSlug = (lesson.steps || []).some(step =>
-                    VIDEO_FIELDS.some(field => FRIEND_VIDEO_REGEX.test(step[field] || ''))
+                    VIDEO_FIELDS.some(field => isFriendSlug(step[field]))
                 );
                 if (hasFriendSlug) {
                     expect(lesson.recapSources, `${name} lesson ${lesson.lessonId}`).toBe('friend');
@@ -175,7 +179,7 @@ describe('friend-slug invariant', () => {
     it('the no-subtitles guard can fail on a mutated friend step', () => {
         const configs = [{
             name: 'synthetic',
-            config: { lessons: [{ lessonId: 'b', steps: [{ simpleVideoUrl: 'ab-x-b-response-01' }] }] },
+            config: { lessons: [{ lessonId: 'b', steps: [{ simpleVideoUrl: '{friendCode}ab-x-b-01' }] }] },
         }];
         expect(() => assertNoFriendSubtitles(configs)).not.toThrow();
         configs[0].config.lessons[0].steps[0].subtitles = { en: 'dup' };

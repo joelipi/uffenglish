@@ -188,7 +188,7 @@
             }
           ],
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "{friendCode}friend-a-response-01"
+          "simpleVideoUrl": "{friendCode}{selfCode}-friend-a-01"
         },
         {
           "cue": [
@@ -224,7 +224,7 @@
             }
           ],
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "{friendCode}friend-a-response-02"
+          "simpleVideoUrl": "{friendCode}{selfCode}-friend-a-02"
         },
         {
           "cue": [
@@ -272,7 +272,7 @@
             }
           ],
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "{friendCode}friend-a-response-03"
+          "simpleVideoUrl": "{friendCode}{selfCode}-friend-a-03"
         },
         {
           "responseType": "viewAndContinue",

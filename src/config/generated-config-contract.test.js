@@ -30,7 +30,6 @@ import * as osMod from 'node:os';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { RECAP_SOURCES, RECAP_OVERLAYS } from '../modules/video/video-processor-logic.js';
-import { FRIEND_VIDEO_REGEX } from '../modules/video/video-source.js';
 import { parseCsv, buildCourseConfig, buildCourseConfigs, LEVEL_PATTERN_COLUMNS, LEVEL_PATTERN_KEYS } from '../../scripts/lib/sheet-config-utils.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -122,7 +121,7 @@ function assertGeneratedConfigContract(config, label) {
             expect(RECAP_OVERLAYS, `${label} lesson ${lesson.lessonId}`).toContain(lesson.recapOverlay);
         }
         const hasFriendSlug = (lesson.steps || []).some((step) =>
-            VIDEO_FIELDS.some((field) => FRIEND_VIDEO_REGEX.test(step[field] || ''))
+            VIDEO_FIELDS.some((field) => String(step[field] || '').includes('{friendCode}'))
         );
         if (hasFriendSlug) {
             expect(lesson.recapSources, `${label} lesson ${lesson.lessonId} friend-slug`).toBe('friend');
@@ -133,7 +132,7 @@ function assertGeneratedConfigContract(config, label) {
 const FIXTURE_CSV = [
     'course_id,course_name,lesson_id,lesson_title,recap_sources,recap_overlay,response_type,video_file,filename,order,subtitle_text',
     'gen,Generated,a,Lesson A,none,shareCta,viewAndContinue,gen-v1,gen-v101,1,Hi.',
-    'gen,Generated,b,Lesson B,friend,shareCta,viewAndContinue,ab-model-w-response-01,ab1,1,Hello.',
+    'gen,Generated,b,Lesson B,friend,shareCta,viewAndContinue,{friendCode}ab-model-w-01,ab1,1,Hello.',
 ].join('\n');
 
 // A sheet with the story-049 language columns, so the generated object carries
@@ -284,7 +283,7 @@ describe('generated config contract (localized allowed)', () => {
     const TWO_COURSE_CSV = [
         'course_id,course_name,lesson_id,lesson_title,recap_sources,recap_overlay,response_type,video_file,filename,order,subtitle_text',
         'alpha,Alpha,a,Lesson A,none,shareCta,viewAndContinue,alpha-v1,alpha1,1,Hi.',
-        'beta,Beta,b,Lesson B,friend,shareCta,viewAndContinue,ab-model-w-response-01,ab1,1,Hey.',
+        'beta,Beta,b,Lesson B,friend,shareCta,viewAndContinue,{friendCode}ab-model-w-01,ab1,1,Hey.',
     ].join('\n');
 
     it('holds for every course in a multi-course fixture (N > 1)', () => {
@@ -316,7 +315,7 @@ describe('contract guard allow-list loop (N > 1, temp seam)', () => {
         const TWO_COURSE_CSV = [
             'course_id,course_name,lesson_id,lesson_title,recap_sources,recap_overlay,response_type,video_file,filename,order',
             'alpha,Alpha,a,Lesson A,none,shareCta,viewAndContinue,alpha-v1,alpha1,1',
-            'beta,Beta,b,Lesson B,friend,shareCta,viewAndContinue,ab-model-w-response-01,ab1,1',
+            'beta,Beta,b,Lesson B,friend,shareCta,viewAndContinue,{friendCode}ab-model-w-01,ab1,1',
         ].join('\n');
         try {
             for (const r of buildCourseConfigs(parseCsv(TWO_COURSE_CSV).rows)) {

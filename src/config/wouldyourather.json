@@ -128,11 +128,11 @@
         {
           "cue": "",
           "responseType": "lessonIntro",
-          "introBackgroundVideoUrl": "{friendCode}wouldyourather-a-response-01"
+          "introBackgroundVideoUrl": "{friendCode}{selfCode}-wouldyourather-a-01"
         },
         {
           "responseType": "branching",
-          "simpleVideoUrl": "{friendCode}wouldyourather-a-response-01",
+          "simpleVideoUrl": "{friendCode}{selfCode}-wouldyourather-a-01",
           "chooseStep": [
             {
               "nextStep": 1,
