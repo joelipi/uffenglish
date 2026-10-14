@@ -123,7 +123,6 @@ describe('PushNotificationsOptIn — menu entry', () => {
         const outcome = container.querySelector('[data-testid="push-outcome"]');
         expect(outcome).toBeTruthy();
         expect(outcome.textContent).toBe(Strings.get('push_optin_denied_hint', 'en'));
-        expect(outcome.textContent).not.toBe(Strings.get('push_optin_dismiss', 'en'));
         unmount();
     });
 
@@ -167,15 +166,29 @@ describe('PushNotificationsOptIn — installed-app prompt', () => {
         await flush();
         expect(container.querySelector('[data-testid="push-prompt"]')).toBeTruthy();
         expect(container.textContent).toContain('Turn on notifications');
+        expect(container.textContent).toContain('No advertising, ever.');
         unmount();
     });
 
-    it('keeps offering on every later launch — a dismissal only hides it now', async () => {
-        const first = render(<PushNotificationsOptIn lang="en" variant="prompt" userId="user-1" />);
+    it('styles the accept control with the app standard button', async () => {
+        const { container, unmount } = render(
+            <PushNotificationsOptIn lang="en" variant="prompt" userId="user-1" />
+        );
         await flush();
-        await act(async () => { first.container.querySelector('[data-testid="push-dismiss"]').click(); });
-        expect(first.container.querySelector('[data-testid="push-prompt"]')).toBeNull();
-        first.unmount();
+        const button = container.querySelector('[data-testid="push-enable"]');
+        expect(button.classList.contains('btn')).toBe(true);
+        expect(button.classList.contains('btn-primary')).toBe(true);
+        unmount();
+    });
+
+    it('has no dismiss control: the card stays until notifications are enabled', async () => {
+        const { container, unmount } = render(
+            <PushNotificationsOptIn lang="en" variant="prompt" userId="user-1" />
+        );
+        await flush();
+        expect(container.querySelector('[data-testid="push-prompt"]')).toBeTruthy();
+        expect(container.querySelector('[data-testid="push-dismiss"]')).toBeNull();
+        unmount();
 
         // A fresh mount (i.e. the next launch) offers it again: "repeatedly,
         // always, until they enable them".
@@ -335,7 +348,7 @@ describe('push opt-in wiring source guards', () => {
 
     it('ships localized copy for the push keys in every UI language', () => {
         const strings = read('../../data/strings.js');
-        for (const key of ['push_friend_response_title', 'push_optin_title', 'push_optin_body', 'push_optin_enable', 'push_optin_dismiss', 'push_optin_denied_hint']) {
+        for (const key of ['push_friend_response_title', 'push_optin_title', 'push_optin_body', 'push_optin_enable', 'push_optin_denied_hint']) {
             const from = strings.indexOf(`'${key}'`);
             expect(from, key).toBeGreaterThan(-1);
             const entry = strings.slice(from, strings.indexOf('},', from));

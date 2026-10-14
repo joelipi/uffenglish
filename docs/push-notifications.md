@@ -133,7 +133,7 @@ count *responses* (`net._http_response`, 6 h TTL), never queue rows.
 - **Non-installed visitors:** never prompted; the `/home` menu has an
   "Enable" entry they can use.
 - **Installed apps:** the card appears on **every launch** until notifications
-  are actually enabled — "Not now" only hides it for that session. A browser-level
+  are actually enabled — there is no dismiss control. A browser-level
   denial shows the same card with the "unblock in browser settings" hint and a
   disabled button rather than hiding the offer.
 - Both paths are gated on being signed in (in-app notifications are a signed-in

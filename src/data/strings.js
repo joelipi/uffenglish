@@ -1401,12 +1401,12 @@ const strings = {
         bn: "বিজ্ঞপ্তি চালু করুন"
     },
     'push_optin_body': {
-        en: "Get notified when a friend answers your questions.",
-        es: "Recibe un aviso cuando un amigo responda tus preguntas.",
-        pt: "Receba um aviso quando um amigo responder às suas perguntas.",
-        fr: "Recevez une notification quand un ami répond à vos questions.",
-        hi: "जब कोई मित्र आपके सवालों का जवाब दे, तो सूचना पाएँ।",
-        bn: "কোনো বন্ধু আপনার প্রশ্নের উত্তর দিলে আপনি বিজ্ঞপ্তি পাবেন।"
+        en: "Be notified when friends complete a lesson or need help, or when new lessons are available. No advertising, ever.",
+        es: "Recibe avisos cuando tus amigos completen una lección o necesiten ayuda, o cuando haya nuevas lecciones disponibles. Sin publicidad, nunca.",
+        pt: "Receba avisos quando seus amigos concluírem uma lição ou precisarem de ajuda, ou quando novas lições estiverem disponíveis. Sem publicidade, nunca.",
+        fr: "Recevez une notification quand vos amis terminent une leçon ou ont besoin d'aide, ou quand de nouvelles leçons sont disponibles. Jamais de publicité.",
+        hi: "जब मित्र कोई पाठ पूरा करें या उन्हें मदद चाहिए हो, या जब नए पाठ उपलब्ध हों, तो सूचना पाएँ। कोई विज्ञापन नहीं, कभी नहीं।",
+        bn: "বন্ধুরা পাঠ শেষ করলে বা সাহায্য চাইলে, অথবা নতুন পাঠ এলে বিজ্ঞপ্তি পান। কোনো বিজ্ঞাপন নয়, কখনোই নয়।"
     },
     'push_optin_enable': {
         en: "Enable",
@@ -1415,14 +1415,6 @@ const strings = {
         fr: "Activer",
         hi: "चालू करें",
         bn: "চালু করুন"
-    },
-    'push_optin_dismiss': {
-        en: "Not now",
-        es: "Ahora no",
-        pt: "Agora não",
-        fr: "Plus tard",
-        hi: "अभी नहीं",
-        bn: "এখন নয়"
     },
     'push_optin_denied_hint': {
         en: "Notifications are blocked. Allow them for this site in your browser settings.",

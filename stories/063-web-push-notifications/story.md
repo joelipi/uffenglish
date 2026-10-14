@@ -119,18 +119,16 @@ suppress a non-gesture prompt, and iOS rejects it outright).
   and `display-mode: standalone` (which is all iOS has, since it never fires
   `appinstalled`). Either one means "this user has the app installed", and an
   installed user who has not enabled notifications sees the card on **every**
-  launch — the requirement is to keep asking until it is enabled. "Not now" is
-  **session-scoped**: it hides the card until the next launch, never longer, so
-  there is no persisted dismissal to disable the offer. The card is hidden only
-  when there is nothing to offer: unsupported browser, signed out, no VAPID key,
-  or already subscribed.
+  launch — the requirement is to keep asking until it is enabled. There is no
+  dismiss control at all: only enabling removes the card. It is hidden only when
+  there is nothing to offer: unsupported browser, signed out, no VAPID key, or
+  already subscribed.
 - **A denied permission is surfaced, not hidden.** `resolvePushPromptState`
   returns `ready` / `blocked` / `hidden`; `blocked` (permission `denied`) still
   shows the card, with the "unblock it in browser settings" hint and a disabled
   button, because a denied user is exactly who "keep asking until it is enabled"
   is for — the button simply cannot re-prompt (browsers refuse). The `/home`
-  menu keeps a "Turn on notifications" entry for people who never install, or who
-  want it after dismissing the card.
+  menu keeps a "Turn on notifications" entry for people who never install.
 - **Push copy comes from the page's own language.** The `push` handler reads
   `data.title`/`data.body` from the payload, which the sender composes from the
   **recipient's stored language** so the notification matches the app language
@@ -227,7 +225,7 @@ friend exports answer
 - the UI
   - → the `/home` menu shows a "Turn on notifications" entry only when there is something to offer (a signed-in user who never installed can still use it)
   - → clicking it requests permission and subscribes, then the entry disappears (and stays gone once this device is subscribed)
-  - → an **installed** app shows the card on every launch while this device is not subscribed — "Not now" hides it for that session only, and a fresh mount offers it again
+  - → an **installed** app shows the card on every launch while this device is not subscribed. There is no dismiss control — the card's accept control uses the app standard button (`btn btn-primary`: white background, black text, standard border)
   - → the card also appears in the *installing* tab as soon as `appinstalled` fires (Chromium; iOS relies on the standalone display mode)
   - → a browser-level denial is surfaced as `blocked` (card + unblock hint + disabled button) rather than hidden
   - → no permission request happens without a user tap (asserted by a source guard that `requestPermission` is only called from a click handler)

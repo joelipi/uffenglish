@@ -105,6 +105,25 @@ describe('PWAInstallButton', () => {
         unmount();
     });
 
+    it('logs a diagnostic snapshot of the dialog state on tap', () => {
+        const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+        registerInstallElement({
+            showDialog: vi.fn(),
+            isInstallAvailable: true,
+            isDialogHidden: false,
+        });
+        const { container, unmount } = render(<PWAInstallButton label="Install app" />);
+        act(() => { container.querySelector('[data-testid="install-app"]').click(); });
+        expect(log).toHaveBeenCalledWith('[PWA] Install dialog requested:', {
+            opened: true,
+            hasElement: true,
+            isInstallAvailable: true,
+            isDialogHidden: false,
+            hasDeferredPrompt: false,
+        });
+        unmount();
+    });
+
     it('is fail-open when no dialog element is mounted', () => {
         const { container, unmount } = render(<PWAInstallButton label="Install app" />);
         expect(() => {

@@ -12,8 +12,25 @@ export default function PWAInstallButton({ label, style, onBeforeOpen }) {
 
     const handleClick = () => {
         if (typeof onBeforeOpen === 'function') onBeforeOpen();
-        const opened = openInstallDialog(getRegisteredInstallElement());
-        console.log('[PWA] Install dialog requested:', opened);
+        const element = getRegisteredInstallElement();
+        const opened = openInstallDialog(element);
+        // Diagnostic snapshot for install-flow reports (e.g. a platform where
+        // the dialog does not appear): whether the element existed, what the
+        // library thinks is available, and whether a deferred prompt was held.
+        // Read-only and fail-open — a logging failure must never break the tap.
+        try {
+            console.log('[PWA] Install dialog requested:', {
+                opened,
+                hasElement: !!element,
+                isInstallAvailable: element ? !!element.isInstallAvailable : null,
+                isDialogHidden: element ? !!element.isDialogHidden : null,
+                hasDeferredPrompt: typeof window !== 'undefined'
+                    ? !!window.defferedPromptEvent
+                    : null,
+            });
+        } catch (err) {
+            console.error('[PWA] Install diagnostics failed:', err);
+        }
     };
 
     return (
