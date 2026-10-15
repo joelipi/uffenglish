@@ -77,7 +77,18 @@ jobs:
             echo "no translation changes"
           else
             git commit -m "chore(translate): fill master CSV translations [skip translate]"
-            git push origin "HEAD:${{ github.ref_name }}"
+            # main moves fast (parallel work lands constantly); a rejected push
+            # retries on a fresh rebase instead of dying red. A rebase conflict
+            # aborts loudly: bot commits touch bot-owned files, so a conflict
+            # means a human edited the same file and needs eyes.
+            pushed=""
+            for attempt in 1 2 3; do
+              if git push origin "HEAD:${{ github.ref_name }}"; then pushed="yes"; break; fi
+              echo "push rejected (attempt $attempt/3); fetching + rebasing..."
+              git fetch origin "${{ github.ref_name }}"
+              git rebase "origin/${{ github.ref_name }}" || { git rebase --abort; exit 1; }
+            done
+            [ -n "$pushed" ] || { echo "push failed after 3 attempts"; exit 1; }
           fi
       - name: Summarize
         if: always()

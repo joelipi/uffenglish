@@ -51,6 +51,10 @@ function assertWorkflowContract(text) {
     expect(text).toContain('git add public/wouldyourather.master.csv');
     expect(text).toContain('git diff --cached --quiet');
     expect(text).toContain('git push origin "HEAD:${{ github.ref_name }}"');
+    // A rejected push retries on a fresh rebase instead of dying red.
+    expect(text).toContain('for attempt in 1 2 3');
+    expect(text).toContain('git rebase');
+
     expect(text).toContain('[skip translate]');
     // The bot's own commit must not re-enter the job (loop guard on if:).
     expect(text).toContain("github.actor != 'github-actions[bot]'");
@@ -95,6 +99,7 @@ describe('translate-master.yml source guard', () => {
             'git diff --cached --quiet',
             'git push origin "HEAD:${{ github.ref_name }}"',
             '[skip translate]', 'group: master-csv', 'queue: max', 'node-version: 20',
+            'for attempt in 1 2 3', 'git rebase',
             "github.actor != 'github-actions[bot]'",
         ];
         for (const token of required) {

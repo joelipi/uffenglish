@@ -37,6 +37,10 @@ function assertConfigsContract(text) {
     expect(text).not.toContain('repository_dispatch');
     expect(text).toContain('token: ${{ secrets.GH_NEW_TOKEN }}');
     expect(text).toContain('git push origin "HEAD:${{ github.ref_name }}"');
+    // A rejected push retries on a fresh rebase instead of dying red.
+    expect(text).toContain('for attempt in 1 2 3');
+    expect(text).toContain('git rebase');
+
     // The loop guard's `if:` line, scoped: `[skip configs]` also appears in the
     // bot's commit message, so a whole-file assertion could stay green while the
     // guard is broken.
@@ -128,6 +132,7 @@ describe('configs.yml source guard', () => {
         const tokens = [
             'workflow_call:', 'secrets.GH_NEW_TOKEN', '[skip configs]',
             RUN_COMMAND, 'group: master-csv',
+            'for attempt in 1 2 3', 'git rebase',
             'git push origin "HEAD:${{ github.ref_name }}"', 'queue: max',
         ];
         for (const token of tokens) {

@@ -39,6 +39,10 @@ function assertSyncWorkflowContract(text) {
     expect(text).toContain('git add public/wouldyourather.master.csv');
     expect(text).toContain('git diff --cached --quiet');
     expect(text).toContain('git push origin "HEAD:${{ github.ref_name }}"');
+    // A rejected push retries on a fresh rebase instead of dying red.
+    expect(text).toContain('for attempt in 1 2 3');
+    expect(text).toContain('git rebase');
+
     const guard = ifLine(text, 'sync-srt.yml');
     expect(guard).toContain("github.actor != 'github-actions[bot]'");
     expect(guard).toContain('[skip srt]');
@@ -70,6 +74,7 @@ describe('sync-srt.yml source guard', () => {
             'git diff --cached --quiet',
             'git push origin "HEAD:${{ github.ref_name }}"',
             '[skip srt]', 'group: master-csv', 'queue: max',
+            'for attempt in 1 2 3', 'git rebase',
         ];
         for (const token of tokens) {
             const mutated = good.split(token).join('SENTINEL_REMOVED');
