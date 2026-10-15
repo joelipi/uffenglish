@@ -120,10 +120,12 @@ describe('InteractiveVideoPlayer is excluded', () => {
 });
 
 describe('app.css carries the toggle overlay stylesheet', () => {
-    it('positions the pill top-right above the video but below decision layers', () => {
+    it('positions the pill below the lesson header so it stays visible and tappable', () => {
         const block = cssBlock('.video-speed-toggle {');
         expect(block).toContain('position: absolute');
-        expect(block).toContain('top:');
+        // 20% clears the stats cluster (~52px, z-35) and the header blur
+        // (up to 18.5% on branching steps, z-34), both painted above z-30.
+        expect(block).toContain('top: calc(20%');
         expect(block).toContain('right: 12px');
         expect(block).toContain('z-index: 30');
         expect(block).toContain('border-radius: 9999px');

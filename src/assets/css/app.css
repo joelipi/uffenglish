@@ -2732,13 +2732,15 @@ ul.incorrectWords li::before {
    Overlay pill on every non-interactive video surface: SimpleVideoPlayer,
    TutorialModal, PlaybackVideo, SuccessVideo. InteractiveVideoPlayer is
    deliberately excluded (its playbackRate is scoring-coupled).
-   Positioned top-right above subtitles/scrubber but below decision
-   click-blocks only when those mount above it — the toggle keeps its own
-   stacking (z-index 30 > .ivp-click-block 25) so it stays tappable.
+   Top-anchored at 20% of the frame: the lesson header paints ABOVE this
+   toggle (top-overlay content z-index 35, header blur z-index 34, toggle
+   z-index 30), so the pill must sit clear below them — the header reaches
+   18.5% on branching steps (VIDEO_HEADER_RATIO) and the stats cluster
+   covers the top ~52px. At 20% the pill clears both and stays tappable.
    ========================================= */
 .video-speed-toggle {
     position: absolute;
-    top: calc(12px + env(safe-area-inset-top, 0px));
+    top: calc(20% + env(safe-area-inset-top, 0px));
     right: 12px;
     z-index: 30;
     display: inline-flex;
