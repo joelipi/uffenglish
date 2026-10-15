@@ -10,6 +10,7 @@ import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
@@ -486,6 +487,467 @@ describe('recorder page — countdown overlay paints', () => {
             const { window: win } = dom;
             if (win.global_countdown_timer) win.clearInterval(win.global_countdown_timer);
             win.close();
+        }
+    });
+});
+
+// Story 066: lesson-level auto-render. The harness below boots the REAL page
+// with a stubbed fetch and drives REAL accept-clicks (fake Blob + operator
+// key), so every assertion below exercises production code paths, not
+// re-implementations.
+describe('recorder page — lesson auto-render', () => {
+    // Closes a booted test page, stopping its 5s render poller first so no
+    // tick fires into a closed window after the test ends.
+    const closeAuto = (win) => {
+        try {
+            if (win.global_render_poll_timer) win.clearInterval(win.global_render_poll_timer);
+        } catch (e) { /* already closed */ }
+        win.close();
+    };
+
+    const AUTO_CSV = [
+        'course_id,lesson_id,filename,phrase,character,order,response_type,video_file',
+        'crs,a,a01,Q-a1?,Teacher,1,friendClosedResponse,crs-a-01',
+        'crs,a,a02,Q-a2?,Teacher,2,friendClosedResponse,crs-a-01',
+        'crs,a,,BRANCH?,Teacher,3,branching,{friendCode}crs-a-01',
+        'crs,,noid01,Q-noid?,Teacher,4,friendClosedResponse,crs-x-01',
+        'crs,b,b01,Q-b1?,Teacher,1,friendClosedResponse,crs-b-01',
+        'crs,b,b02,Q-b2?,Teacher,2,friendClosedResponse,crs-b-01',
+    ].join('\n');
+    // Sorted by (character, filename): a01(0), a02(1), b01(2), b02(3), noid01(4).
+    const IDX = { a01: 0, a02: 1, b01: 2, b02: 3, noid01: 4 };
+
+    const flush = async (n = 10) => {
+        for (let i = 0; i < n; i++) await new Promise((r) => setTimeout(r, 0));
+    };
+
+    // Stub fetch with per-endpoint control. Upload/render resolve immediately
+    // unless told otherwise; status answers from statusFor(jobId, callCount).
+    function makePipelineStub({ failUpload = null, failRender = null, deferRender = false, statusFor = null } = {}) {
+        const calls = { upload: [], render: [], status: [] };
+        const renderResolvers = [];
+        const impl = async (url, opts = {}) => {
+            const u = String(url);
+            if (u.includes('/api/pipeline/upload-raw')) {
+                calls.upload.push(opts.headers && opts.headers['x-filename']);
+                if (failUpload === 'reject') throw new Error('offline');
+                if (failUpload === 'http') return { ok: false, status: 401 };
+                return { ok: true };
+            }
+            if (u.includes('/api/pipeline/render')) {
+                const body = JSON.parse(opts.body);
+                const job = 'job-' + (calls.render.length + 1);
+                calls.render.push({ files: body.files, key: opts.headers && opts.headers['x-operator-key'], job });
+                if (failRender === 'reject') throw new Error('boom');
+                if (failRender === 'http') return { ok: false, status: 500 };
+                if (deferRender) {
+                    return new Promise((resolve) => renderResolvers.push(
+                        () => resolve({ ok: true, json: async () => ({ jobId: job }) })));
+                }
+                return { ok: true, json: async () => ({ jobId: job }) };
+            }
+            if (u.includes('/api/pipeline/status')) {
+                calls.status.push(u);
+                const id = new URL(u, 'http://x').searchParams.get('id');
+                const s = statusFor ? statusFor(id, calls.status.length) : { status: 'running', stage: 'stage1' };
+                return { ok: true, json: async () => s };
+            }
+            return { ok: true, text: async () => AUTO_CSV };
+        };
+        impl.calls = calls;
+        impl.resolveRenders = () => { renderResolvers.splice(0).forEach((r) => r()); };
+        return impl;
+    }
+
+    const bootAuto = async (stub, seedStorage = null) => {
+        const { JSDOM } = await import('jsdom');
+        const html = fs.readFileSync(PAGE_PATH, 'utf8');
+        const dom = new JSDOM(html, {
+            url: 'http://127.0.0.1:9/recorder.html',
+            runScripts: 'dangerously',
+            beforeParse(pageWindow) {
+                pageWindow.fetch = stub;
+                for (const [k, v] of Object.entries(seedStorage || {})) {
+                    pageWindow.sessionStorage.setItem(k, v);
+                }
+            },
+        });
+        const { window: win } = dom;
+        await new Promise((resolve) => {
+            if (win.document.readyState === 'complete') resolve();
+            else win.addEventListener('load', () => resolve(), { once: true });
+        });
+        await waitForTakes(win);
+        return { win, dom };
+    };
+
+    const waitForTakes = async (win) => {
+        const deadline = Date.now() + 5000;
+        while (win.global_script_phrases.length === 0) {
+            if (Date.now() > deadline) throw new Error('timed out waiting for take list');
+            await new Promise((r) => setTimeout(r, 25));
+        }
+    };
+
+    const uploadTake = async (win, index) => {
+        win.global_current_index = index;
+        win.global_last_final_blob = new win.Blob(['bytes'], { type: 'video/mp4' });
+        win.document.getElementById('dom-operator-key').value = 'K';
+        win.document.getElementById('dom-btn-accept').click();
+        await flush();
+    };
+
+    const debugLog = (win) => win.document.getElementById('dom-debug-log').textContent;
+    const storedSet = (win, key) => {
+        const raw = win.sessionStorage.getItem(key);
+        return raw ? JSON.parse(raw) : null;
+    };
+
+    it('uploads without rendering until the lesson completes', async () => {
+        const stub = makePipelineStub();
+        const { win } = await bootAuto(stub);
+        try {
+            await uploadTake(win, IDX.a01);
+            expect(stub.calls.upload).toEqual(['a01']);
+            expect(stub.calls.render).toEqual([]);
+            expect(win.global_current_index).toBe(IDX.a02);
+        } finally { closeAuto(win); }
+    });
+
+    it('auto-POSTs exactly the finished lesson files with the operator key', async () => {
+        const stub = makePipelineStub();
+        const { win } = await bootAuto(stub);
+        try {
+            await uploadTake(win, IDX.a01);
+            await uploadTake(win, IDX.a02);
+            expect(stub.calls.render).toHaveLength(1);
+            expect(stub.calls.render[0].files).toEqual(['a01', 'a02']);
+            expect(stub.calls.render[0].key).toBe('K');
+        } finally { closeAuto(win); }
+    });
+
+    it('a blank-lesson_id take uploads and advances but never triggers', async () => {
+        const stub = makePipelineStub();
+        const { win } = await bootAuto(stub);
+        try {
+            await uploadTake(win, IDX.noid01);
+            expect(stub.calls.upload).toEqual(['noid01']);
+            expect(stub.calls.render).toEqual([]);
+            expect(debugLog(win)).toContain('NO LESSON ID');
+        } finally { closeAuto(win); }
+    });
+
+    it('offline and 401 uploads keep the take and never render', async () => {
+        for (const failUpload of ['reject', 'http']) {
+            const stub = makePipelineStub({ failUpload });
+            const { win } = await bootAuto(stub);
+            try {
+                await uploadTake(win, IDX.a01);
+                // The take was kept for retry: the failure path re-enables
+                // Accept, shows TAKE KEPT, and never advances past the take.
+                expect(win.document.getElementById('dom-btn-accept').disabled).toBe(false);
+                expect(win.document.getElementById('dom-status-bar').textContent).toContain('TAKE KEPT');
+                expect(win.global_current_index).toBe(IDX.a01);
+                await uploadTake(win, IDX.a02);
+                expect(stub.calls.render).toEqual([]);
+            } finally { closeAuto(win); }
+        }
+    });
+
+    it('a failed render POST advances the take but leaves the lesson unrendered', async () => {
+        for (const failRender of ['reject', 'http']) {
+            const stub = makePipelineStub({ failRender });
+            const { win } = await bootAuto(stub);
+            try {
+                await uploadTake(win, IDX.a01);
+                await uploadTake(win, IDX.a02);
+                expect(win.global_current_index).toBe(IDX.b01);
+                expect(storedSet(win, 'uff_rendered_lessons') || []).not.toContain('crs\0a');
+                expect(debugLog(win)).toContain('LESSON RENDER FAILED');
+            } finally { closeAuto(win); }
+        }
+    });
+
+    it('completing the same lesson twice POSTs exactly once', async () => {
+        const stub = makePipelineStub({ deferRender: true });
+        const { win } = await bootAuto(stub);
+        try {
+            await uploadTake(win, IDX.a01);
+            await uploadTake(win, IDX.a02);
+            // The render POST is still pending; re-invoke the completion check
+            // directly (a second upload would be a re-take, which re-renders by
+            // design — see the re-take test). The synchronous test-and-add must
+            // hold exactly one POST.
+            win.maybeAutoRenderLesson('a02');
+            win.maybeAutoRenderLesson('a01');
+            await flush();
+            stub.resolveRenders();
+            await flush();
+            const aRenders = stub.calls.render.filter((c) => c.files.includes('a01'));
+            expect(aRenders).toHaveLength(1);
+        } finally { closeAuto(win); }
+    });
+
+    it('renders each lesson once across lessons (no re-POST of finished lessons)', async () => {
+        const stub = makePipelineStub();
+        const { win } = await bootAuto(stub);
+        try {
+            await uploadTake(win, IDX.a01);
+            await uploadTake(win, IDX.a02);
+            await uploadTake(win, IDX.b01);
+            await uploadTake(win, IDX.b02);
+            expect(stub.calls.render.map((c) => c.files)).toEqual([['a01', 'a02'], ['b01', 'b02']]);
+            expect(debugLog(win)).toContain('LESSON a render job started: job-1');
+            expect(debugLog(win)).toContain('LESSON b render job started: job-2');
+        } finally { closeAuto(win); }
+    });
+
+    it('honors a persisted rendered set across reload (only new lessons render)', async () => {
+        const stub = makePipelineStub();
+        const { win } = await bootAuto(stub, {
+            uff_rendered_lessons: JSON.stringify(['crs\0a']),
+            uff_uploaded_takes: JSON.stringify(['a01', 'a02']),
+        });
+        try {
+            await uploadTake(win, IDX.b01);
+            await uploadTake(win, IDX.b02);
+            expect(stub.calls.render.map((c) => c.files)).toEqual([['b01', 'b02']]);
+        } finally { closeAuto(win); }
+    });
+
+    it('treats corrupt sessionStorage sets as empty without throwing on boot', async () => {
+        const stub = makePipelineStub();
+        const { win } = await bootAuto(stub, {
+            uff_rendered_lessons: '{nope',
+            uff_uploaded_takes: '[broken',
+        });
+        try {
+            expect(win.global_script_phrases.length).toBe(5);
+            await uploadTake(win, IDX.a01);
+            await uploadTake(win, IDX.a02);
+            expect(stub.calls.render.map((c) => c.files)).toEqual([['a01', 'a02']]);
+        } finally { closeAuto(win); }
+    });
+
+    it('a re-take into a finished lesson re-renders exactly that lesson', async () => {
+        const stub = makePipelineStub();
+        const { win } = await bootAuto(stub);
+        try {
+            await uploadTake(win, IDX.a01);
+            await uploadTake(win, IDX.a02);
+            expect(stub.calls.render).toHaveLength(1);
+            await uploadTake(win, IDX.a01);
+            expect(stub.calls.render.map((c) => c.files)).toEqual([['a01', 'a02'], ['a01', 'a02']]);
+        } finally { closeAuto(win); }
+    });
+
+    it('unchecked auto-render uploads and advances with zero POSTs and untouched sets', async () => {
+        const stub = makePipelineStub();
+        const { win } = await bootAuto(stub);
+        try {
+            win.document.getElementById('dom-check-auto-render').checked = false;
+            await uploadTake(win, IDX.a01);
+            await uploadTake(win, IDX.a02);
+            expect(stub.calls.render).toEqual([]);
+            expect(win.global_current_index).toBe(IDX.b01);
+            expect(win.sessionStorage.getItem('uff_uploaded_takes')).toBeNull();
+            expect(win.sessionStorage.getItem('uff_rendered_lessons')).toBeNull();
+        } finally { closeAuto(win); }
+    });
+
+    it('checkbox exists beside auto-advance, checked by default with its label', async () => {
+        const stub = makePipelineStub();
+        const { win } = await bootAuto(stub);
+        try {
+            const box = win.document.getElementById('dom-check-auto-render');
+            expect(box).not.toBeNull();
+            expect(box.checked).toBe(true);
+            expect(box.type).toBe('checkbox');
+            const label = win.document.querySelector('label[for="dom-check-auto-render"]');
+            expect(label.textContent).toBe('auto-render finished lessons');
+            expect(win.document.getElementById('dom-check-auto')).not.toBeNull();
+        } finally { closeAuto(win); }
+    });
+
+    it('polls every unfinished job each tick and drops finished ones', async () => {
+        const seen = {};
+        const stub = makePipelineStub({
+            statusFor: (id) => {
+                seen[id] = (seen[id] || 0) + 1;
+                if (id === 'job-1' && seen[id] >= 3) return { status: 'done', stage: '-' };
+                return { status: 'running', stage: 's1' };
+            },
+        });
+        const { win } = await bootAuto(stub);
+        try {
+            await uploadTake(win, IDX.a01);
+            await uploadTake(win, IDX.a02);
+            await uploadTake(win, IDX.b01);
+            await uploadTake(win, IDX.b02);
+            await flush();
+            stub.calls.status.length = 0;
+            win.pollUnfinishedRenderJobs();
+            await flush();
+            const tick1 = stub.calls.status.map((u) => new URL(u, 'http://x').searchParams.get('id')).sort();
+            expect(tick1).toEqual(['job-1', 'job-2']);
+            const line = win.document.getElementById('dom-render-status').textContent;
+            expect(line).toContain('LESSON a');
+            expect(line).toContain('LESSON b');
+            stub.calls.status.length = 0;
+            win.pollUnfinishedRenderJobs();
+            await flush();
+            const tick2 = stub.calls.status.map((u) => new URL(u, 'http://x').searchParams.get('id'));
+            expect(tick2).toEqual(['job-2']);
+        } finally { closeAuto(win); }
+    });
+
+    it('manual START RENDER still POSTs the full list as one job', async () => {
+        const stub = makePipelineStub({
+            statusFor: () => ({ status: 'done', stage: '-' }),
+        });
+        const { win } = await bootAuto(stub);
+        try {
+            win.document.getElementById('dom-operator-key').value = 'K';
+            win.document.getElementById('dom-btn-render').click();
+            await flush();
+            expect(stub.calls.render).toHaveLength(1);
+            expect(stub.calls.render[0].files).toEqual(['a01', 'a02', 'b01', 'b02', 'noid01']);
+            win.pollUnfinishedRenderJobs();
+            await flush();
+            expect(win.document.getElementById('dom-render-status').textContent).toContain('LESSON full: done');
+            stub.calls.status.length = 0;
+            win.pollUnfinishedRenderJobs();
+            await flush();
+            expect(stub.calls.status).toEqual([]);
+        } finally { closeAuto(win); }
+    });
+});
+
+// Story 066, Task 4: the auto-render relies on server contracts that must stay
+// exactly as they are — no server change in this story. Each guard slices the
+// owning function (raw text, never comment-stripped) and is proven failable
+// by mutation. A failing guard means stop and report, never expand scope.
+describe('recorder auto-render — zero server changes', () => {
+    const read = (rel) => fs.readFileSync(path.join(REPO_ROOT, rel), 'utf8');
+    const sliceBetween = (text, startMarker, endMarker) => {
+        const start = text.indexOf(startMarker);
+        if (start === -1) throw new Error('slice start not found: ' + startMarker);
+        const end = text.indexOf(endMarker, start + startMarker.length);
+        if (end === -1) throw new Error('slice end not found: ' + endMarker);
+        return text.slice(start, end);
+    };
+
+    it('render.js accepts any non-empty valid-slug array (no course-size check)', () => {
+        const text = read('functions/api/pipeline/render.js');
+        const slice = sliceBetween(text, 'onRequestPost', 'crypto.randomUUID()');
+        expect(slice).toContain('Array.isArray(files)');
+        expect(slice).toContain('files.length === 0');
+        expect(slice).toContain('files.every(isValidPipelineSlug)');
+        expect(slice).not.toMatch(/files\.length\s*!==/);
+        expect(slice).not.toMatch(/files\.length\s*===\s*[1-9]/);
+        expect(slice).not.toContain('new Set(files)');
+    });
+
+    it('orchestrator scopes every stage and the publish plan via only=files', () => {
+        const text = read('docs/video-pipeline/modal_app.py');
+        const slice = sliceBetween(text, 'def orchestrator(spec', '\ndef _publish(');
+        for (const callee of ['run_silence_removal', 'run_background_removal', 'process_video_batch', 'plan_publish']) {
+            expect(slice, callee).toContain(callee);
+        }
+        expect((slice.match(/only=files/g) || []).length).toBe(4);
+    });
+
+    it('select_rows filters by membership and plan_publish dedups first-wins', () => {
+        const text = read('docs/video-pipeline/pipeline_lib.py');
+        const select = sliceBetween(text, 'def select_rows', 'def plan_publish');
+        expect(select).toContain('allowed = set(only)');
+        expect(select).toContain('in allowed');
+        const plan = sliceBetween(text, 'def plan_publish', 'def intro_poster_slugs');
+        expect(plan).toContain('seen = set()');
+        expect(plan).toContain('slug in seen');
+    });
+
+    it('SRT merge never clears a blank cell', () => {
+        const text = read('scripts/write-srt-to-csv.mjs');
+        const slice = sliceBetween(text, '#!/usr/bin/env node', 'Usage:');
+        expect(slice).toContain('a group whose `srt` is blank is not cleared');
+    });
+
+    it('translation fills blanks only', () => {
+        const text = read('scripts/lib/sheet-translate-utils.js');
+        const slice = sliceBetween(text, '// scripts/lib/sheet-translate-utils.js', "import { parseSrt");
+        expect(slice).toContain('Translation ONLY fills blanks');
+    });
+
+    it('config generation skips incomplete courses whole and non-fatally', () => {
+        const text = read('scripts/generate-config-from-sheet.mjs');
+        expect(text).toContain('SKIPPED WHOLE');
+        expect(text).toContain('missing required column(s)');
+        expect(text).toContain('non-fatal');
+    });
+
+    it('each server guard fails when its pinned token is mutated', () => {
+        const render = read('functions/api/pipeline/render.js');
+        expect(() => {
+            const slice = sliceBetween(render, 'onRequestPost', 'crypto.randomUUID()') + '\nif (files.length !== 108) return bad;';
+            expect(slice).not.toMatch(/files\.length\s*!==/);
+        }).toThrow();
+        const modal = read('docs/video-pipeline/modal_app.py');
+        expect(() => {
+            const slice = sliceBetween(modal, 'def orchestrator(spec', '\ndef _publish(').replace('only=files', 'only=all');
+            expect((slice.match(/only=files/g) || []).length).toBe(4);
+        }).toThrow();
+        const lib = read('docs/video-pipeline/pipeline_lib.py');
+        expect(() => {
+            const slice = sliceBetween(lib, 'def select_rows', 'def plan_publish').replace('allowed = set(only)', 'allowed = everything()');
+            expect(slice).toContain('allowed = set(only)');
+        }).toThrow();
+        const srt = read('scripts/write-srt-to-csv.mjs');
+        expect(() => {
+            const slice = sliceBetween(srt, '#!/usr/bin/env node', 'Usage:').replace('is not cleared', 'is cleared');
+            expect(slice).toContain('a group whose `srt` is blank is not cleared');
+        }).toThrow();
+        const tr = read('scripts/lib/sheet-translate-utils.js');
+        expect(() => {
+            const slice = sliceBetween(tr, '// scripts/lib/sheet-translate-utils.js', "import { parseSrt").replace('Translation ONLY fills blanks', 'Translation fills everything');
+            expect(slice).toContain('Translation ONLY fills blanks');
+        }).toThrow();
+        const gen = read('scripts/generate-config-from-sheet.mjs');
+        expect(() => {
+            expect(gen.replace('SKIPPED WHOLE', 'SKIPPED')).toContain('SKIPPED WHOLE');
+        }).toThrow();
+    });
+
+    it('implementation diff touches only the allowlist (tracked) and adds no stray files (untracked)', () => {
+        const tracked = execFileSync('git', ['diff', '--name-only', 'HEAD'], { cwd: REPO_ROOT, encoding: 'utf8' })
+            .split('\n').map((l) => l.trim()).filter(Boolean);
+        const allowlist = [
+            'public/recorder.html',
+            'src/modules/video/recorder-page.test.js',
+            'docs/product.md',
+            'stories/066-recorder-auto-render-lessons/story.md',
+        ];
+        for (const file of tracked) {
+            expect(allowlist, file).toContain(file);
+        }
+        const porcelain = execFileSync('git', ['status', '--porcelain'], { cwd: REPO_ROOT, encoding: 'utf8' });
+        const untracked = porcelain.split('\n').filter((l) => l.startsWith('??')).map((l) => l.slice(3).trim());
+        expect(untracked).toEqual([]);
+    });
+
+    it('flags a stray untracked file instead of passing vacuously', () => {
+        // git diff misses untracked files by design; the status assertion
+        // above must catch them. Prove it with a real probe file (removed
+        // afterwards so no other guard ever sees it).
+        const probe = path.join(REPO_ROOT, '.probe-untracked-tmp');
+        fs.writeFileSync(probe, 'x');
+        try {
+            const porcelain = execFileSync('git', ['status', '--porcelain'], { cwd: REPO_ROOT, encoding: 'utf8' });
+            const untracked = porcelain.split('\n').filter((l) => l.startsWith('??')).map((l) => l.slice(3).trim());
+            expect(untracked).toContain('.probe-untracked-tmp');
+            expect(() => expect(untracked).toEqual([])).toThrow();
+        } finally {
+            fs.rmSync(probe, { force: true });
         }
     });
 });
