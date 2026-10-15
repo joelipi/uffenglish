@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store/store.js';
+import { applyVideoSpeed } from '../../modules/video/video-speed-logic.js';
+import VideoSpeedToggle from '../VideoSpeedToggle.jsx';
 
 export default function SuccessVideo() {
     const videoRef = useRef(null);
@@ -10,6 +12,12 @@ export default function SuccessVideo() {
     // would stack two surfaces (stories/060-autoplay-share-video).
     const afterVideoActive = useStore(appStore, (state) => state.afterVideoActive);
     const [playing, setPlaying] = useState(false);
+    // Snail speed toggle (1x -> 0.8x -> 0.6x -> 1x), reset per result clip.
+    const [playbackRate, setPlaybackRate] = useState(1);
+    useEffect(() => { setPlaybackRate(1); }, [blob]);
+    useEffect(() => {
+        if (videoRef.current && blob) applyVideoSpeed(videoRef.current, playbackRate);
+    }, [playbackRate, blob]);
 
     useEffect(() => {
         const video = videoRef.current;
@@ -50,6 +58,7 @@ export default function SuccessVideo() {
                     backgroundColor: 'black',
                     cursor: 'pointer'
                 }} />
+            <VideoSpeedToggle rate={playbackRate} onCycle={setPlaybackRate} />
             {!playing && (
                 <div onClick={handleToggle} style={{
                     position: 'absolute',

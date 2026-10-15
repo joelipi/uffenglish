@@ -2726,3 +2726,47 @@ ul.incorrectWords li::before {
     color: var(--uff-btn-fg);
     background-color: var(--uff-btn-bg);
 }
+
+/* =========================================
+   VIDEO SPEED TOGGLE (snail overlay)
+   Overlay pill on every non-interactive video surface: SimpleVideoPlayer,
+   TutorialModal, PlaybackVideo, SuccessVideo. InteractiveVideoPlayer is
+   deliberately excluded (its playbackRate is scoring-coupled).
+   Positioned top-right above subtitles/scrubber but below decision
+   click-blocks only when those mount above it — the toggle keeps its own
+   stacking (z-index 30 > .ivp-click-block 25) so it stays tappable.
+   ========================================= */
+.video-speed-toggle {
+    position: absolute;
+    top: calc(12px + env(safe-area-inset-top, 0px));
+    right: 12px;
+    z-index: 30;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 9999px;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    pointer-events: auto;
+}
+
+.video-speed-toggle-active {
+    background: rgba(58, 143, 213, 0.85);
+    border-color: rgba(255, 255, 255, 0.7);
+}
+
+.video-speed-toggle-snail {
+    font-size: 16px;
+}
+
+.video-speed-toggle-label {
+    font-variant-numeric: tabular-nums;
+    min-width: 2.2em;
+    text-align: center;
+}
