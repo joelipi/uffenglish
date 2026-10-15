@@ -1063,6 +1063,44 @@ const strings = {
         hi: "ऐप इंस्टॉल करें",
         bn: "অ্যাপ ইনস্টল করুন"
     },
+    // Apple-platform variant of the install entry label ("Add to Home Screen":
+    // iOS has no install prompt — the app is added from the Share sheet).
+    // Draft translations; native-speaker review is a follow-up, as above.
+    'pwa_install_cta_apple': {
+        en: "Add to Home Screen",
+        es: "Añadir a la pantalla de inicio",
+        pt: "Adicionar à tela inicial",
+        fr: "Ajouter à l'écran d'accueil",
+        hi: "होम स्क्रीन पर जोड़ें",
+        bn: "হোম স্ক্রিনে যোগ করুন"
+    },
+    // Non-dismissible install banner (src/components/pwa/PWAInstallBanner.web.jsx)
+    // pinned to the top of /home, /profile and /courses. Draft translations;
+    // native-speaker review is a follow-up, as above.
+    'pwa_banner_title': {
+        en: "IMPORTANT!",
+        es: "¡IMPORTANTE!",
+        pt: "IMPORTANTE!",
+        fr: "IMPORTANT !",
+        hi: "महत्वपूर्ण!",
+        bn: "গুরুত্বপূর্ণ!"
+    },
+    'pwa_banner_body_install': {
+        en: "Install this app NOW. FREE. No credit card or payment authorization required.",
+        es: "Instala esta aplicación AHORA. GRATIS. No se requiere tarjeta de crédito ni autorización de pago.",
+        pt: "Instale este aplicativo AGORA. GRÁTIS. Não é necessário cartão de crédito nem autorização de pagamento.",
+        fr: "Installez cette application MAINTENANT. GRATUIT. Aucune carte de crédit ni autorisation de paiement requise.",
+        hi: "इस ऐप को अभी इंस्टॉल करें। मुफ़्त। किसी क्रेडिट कार्ड या भुगतान प्राधिकरण की आवश्यकता नहीं है।",
+        bn: "এই অ্যাপটি এখনই ইনস্টল করুন। বিনামূল্যে। কোনো ক্রেডিট কার্ড বা পেমেন্ট অনুমোদনের প্রয়োজন নেই।"
+    },
+    'pwa_banner_body_apple': {
+        en: "Add this app to your Home Screen NOW. FREE. No credit card or payment authorization required.",
+        es: "Añade esta aplicación a tu pantalla de inicio AHORA. GRATIS. No se requiere tarjeta de crédito ni autorización de pago.",
+        pt: "Adicione este aplicativo à sua tela inicial AGORA. GRÁTIS. Não é necessário cartão de crédito nem autorização de pagamento.",
+        fr: "Ajoutez cette application à votre écran d'accueil MAINTENANT. GRATUIT. Aucune carte de crédit ni autorisation de paiement requise.",
+        hi: "इस ऐप को अभी अपनी होम स्क्रीन पर जोड़ें। मुफ़्त। किसी क्रेडिट कार्ड या भुगतान प्राधिकरण की आवश्यकता नहीं है।",
+        bn: "এই অ্যাপটি এখনই আপনার হোম স্ক্রিনে যোগ করুন। বিনামূল্যে। কোনো ক্রেডিট কার্ড বা পেমেন্ট অনুমোদনের প্রয়োজন নেই।"
+    },
     'home_courses_load_error': {
         en: "Failed to load courses. Please try again later.",
         es: "Error al cargar los cursos. Inténtalo de nuevo más tarde.",

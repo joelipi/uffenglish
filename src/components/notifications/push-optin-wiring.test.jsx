@@ -315,6 +315,15 @@ describe('push opt-in wiring source guards', () => {
         expect(homeScreen).toContain("viewerId && viewerId !== 'guest'");
     });
 
+    it('mounts the notification prompt on /profile and /courses for signed-in users', () => {
+        const profile = read('../profile/UserProfile.jsx');
+        expect(profile).toContain("import PushNotificationsOptIn from '../notifications/PushNotificationsOptIn.web.jsx'");
+        expect(profile).toContain('<PushNotificationsOptIn lang={lang} variant="prompt" userId={profile?.$id} />');
+        const courses = read('../courses/CourseListings.jsx');
+        expect(courses).toContain("import PushNotificationsOptIn from '../notifications/PushNotificationsOptIn.web.jsx'");
+        expect(courses).toContain('<PushNotificationsOptIn lang={lang} variant="prompt" userId={userId} />');
+    });
+
     it('requests permission only from inside the click path (iOS needs a gesture)', () => {
         const webOnlySource = read('../../modules/notifications/push-subscription-webonly.js');
         const requestAt = webOnlySource.indexOf('Notification.requestPermission()');

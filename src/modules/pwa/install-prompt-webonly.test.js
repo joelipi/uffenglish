@@ -2,6 +2,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
     readIsStandaloneApp,
+    readIsApplePlatform,
     registerInstallElement,
     getRegisteredInstallElement,
 } from './install-prompt-webonly.js';
@@ -38,8 +39,31 @@ describe('readIsStandaloneApp', () => {
     });
 });
 
-describe('install element registry', () => {
-    it('bridges the mounted dialog element to its trigger button', () => {
+describe('readIsApplePlatform', () => {
+    const setNavigator = ({ userAgent = '', platform = '', maxTouchPoints = 0 } = {}) => {
+        Object.defineProperty(window.navigator, 'userAgent', { value: userAgent, configurable: true });
+        Object.defineProperty(window.navigator, 'platform', { value: platform, configurable: true });
+        Object.defineProperty(window.navigator, 'maxTouchPoints', { value: maxTouchPoints, configurable: true });
+    };
+
+    it('reads true on iPhone and desktop Mac', () => {
+        setNavigator({ userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)', platform: 'iPhone', maxTouchPoints: 5 });
+        expect(readIsApplePlatform()).toBe(true);
+        setNavigator({ userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)', platform: 'MacIntel', maxTouchPoints: 0 });
+        expect(readIsApplePlatform()).toBe(true);
+    });
+
+    it('reads false on Android/Windows and fails closed on error', () => {
+        setNavigator({ userAgent: 'Mozilla/5.0 (Linux; Android 14; Pixel 8)', platform: 'Linux armv8l', maxTouchPoints: 5 });
+        expect(readIsApplePlatform()).toBe(false);
+        const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+        Object.defineProperty(window.navigator, 'platform', { get() { throw new Error('nav exploded'); }, configurable: true });
+        expect(readIsApplePlatform()).toBe(false);
+        expect(error).toHaveBeenCalled();
+    });
+});
+
+describe('install element registry', () => {    it('bridges the mounted dialog element to its trigger button', () => {
         expect(getRegisteredInstallElement()).toBeNull();
         const element = { showDialog: vi.fn() };
         registerInstallElement(element);

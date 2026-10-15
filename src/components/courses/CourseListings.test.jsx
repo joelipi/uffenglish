@@ -71,6 +71,26 @@ describe('CourseListings', () => {
         expect(cards[1].textContent).toContain('2 lessons');
     });
 
+    it('shows the install banner for signed-in users, never for guests', () => {
+        // jsdom has no matchMedia: never standalone, so a userId shows it.
+        root = render(container, { courses: COURSES, userId: 'user-1' });
+        expect(container.querySelector('[data-testid="pwa-install-banner"]')).not.toBeNull();
+        act(() => root.unmount());
+        container.remove();
+        container = document.createElement('div');
+        document.body.appendChild(container);
+
+        root = render(container, { courses: COURSES, userId: 'guest' });
+        expect(container.querySelector('[data-testid="pwa-install-banner"]')).toBeNull();
+        act(() => root.unmount());
+        container.remove();
+        container = document.createElement('div');
+        document.body.appendChild(container);
+
+        root = render(container, { courses: COURSES });
+        expect(container.querySelector('[data-testid="pwa-install-banner"]')).toBeNull();
+    });
+
     it('shows a spinner (and still the heading/steps) while loading', () => {
         root = render(container, { courses: undefined, isLoading: true });
 

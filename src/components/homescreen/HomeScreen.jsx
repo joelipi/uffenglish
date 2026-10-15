@@ -16,6 +16,9 @@ import {
 import FriendCoursesView from '../courses/FriendCoursesView.jsx';
 import NotificationsBell from './NotificationsBell.web.jsx';
 import PWAInstallButton from '../pwa/PWAInstallButton.web.jsx';
+import PWAInstallBanner from '../pwa/PWAInstallBanner.web.jsx';
+import { selectInstallCtaKey } from '../../modules/pwa/install-prompt-logic.js';
+import { readIsApplePlatform } from '../../modules/pwa/install-prompt-webonly.js';
 import PushNotificationsOptIn from '../notifications/PushNotificationsOptIn.web.jsx';
 import headerLogo from '../../assets/img/uff-logo.png';
 
@@ -280,11 +283,13 @@ export default function HomeScreen() {
                                   onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.borderLeftColor = 'transparent'; }}>
                                 <i className="bi bi-file-earmark-text"></i> {Strings.get('legal_terms', lang)}
                             </Link>
-                            <PWAInstallButton
-                                label={Strings.get('pwa_install_cta', lang)}
-                                style={installBtnStyle}
-                                onBeforeOpen={closeMenu}
-                            />
+                            {viewerId && viewerId !== 'guest' && (
+                                <PWAInstallButton
+                                    label={Strings.get(selectInstallCtaKey({ isApple: readIsApplePlatform() }), lang)}
+                                    style={installBtnStyle}
+                                    onBeforeOpen={closeMenu}
+                                />
+                            )}
                             {viewerId && viewerId !== 'guest' && (
                                 <PushNotificationsOptIn
                                     lang={lang}
@@ -310,6 +315,7 @@ export default function HomeScreen() {
             )}
 
             <div style={{ flex: 1, overflowY: 'auto' }}>
+                <PWAInstallBanner lang={lang} userId={viewerId} />
                 {viewerId && viewerId !== 'guest' && (
                     <PushNotificationsOptIn lang={lang} variant="prompt" userId={viewerId} />
                 )}

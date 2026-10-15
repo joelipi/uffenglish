@@ -127,6 +127,12 @@ describe('HomeScreen', () => {
         expect(container.textContent).not.toContain('Ultra Fast Fluency');
     });
 
+    it('renders no install banner without a signed-in user', async () => {
+        // The mocks return no profile (anonymous): no banner, no prompt.
+        await renderHome();
+        expect(container.querySelector('[data-testid="pwa-install-banner"]')).toBeNull();
+    });
+
     it('renders no Privacy/Terms footer on the app dashboard', async () => {
         // The dashboard (/home) keeps the links in the hamburger menu only;
         // the public homepage (/) keeps its footer — see legal-wiring.test.js.
