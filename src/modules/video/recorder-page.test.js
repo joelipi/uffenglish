@@ -947,11 +947,27 @@ describe('recorder auto-render — zero server changes', () => {
     it('implementation diff touches only the allowlist (tracked) and adds no stray files (untracked)', () => {
         const tracked = execFileSync('git', ['diff', '--name-only', 'HEAD'], { cwd: REPO_ROOT, encoding: 'utf8' })
             .split('\n').map((l) => l.trim()).filter(Boolean);
+        // Each story's set of authorized paths. 066 scoped the recorder
+        // feature; 068 works on the render's overlay + social publish.
         const allowlist = [
+            // Story 066 (recorder auto-render).
             'public/recorder.html',
             'src/modules/video/recorder-page.test.js',
             'docs/product.md',
             'stories/066-recorder-auto-render-lessons/story.md',
+            // Story 068 (title pill + social publish).
+            'stories/068-title-pill-social-publish/story.md',
+            'docs/video-pipeline/video_pipeline.py',
+            'docs/video-pipeline/pipeline_lib.py',
+            'docs/video-pipeline/modal_app.py',
+            'docs/video-pipeline/authoring-sheet.md',
+            'docs/video-pipeline/tests/test_pipeline_lib.py',
+            'docs/video-pipeline/tests/test_pipeline_parity.py',
+            'docs/video-pipeline/tests/test_pipeline_source.py',
+            'docs/video-pipeline/tests/test_modal_app_source.py',
+            'src/modules/video/pipeline-keys.js',
+            'src/modules/video/pipeline-keys.test.js',
+            'src/modules/video/video-header-logic.test.js',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);

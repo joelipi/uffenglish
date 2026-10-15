@@ -66,6 +66,14 @@ def published_poster_key(slug):
     return f"{PUBLISHED_VIDEO_PREFIX}{slug}.jpg" if is_valid_slug(slug) else None
 
 
+def social_video_key(slug):
+    return f"{PIPELINE_ASSET_PREFIX}social/{slug}.mp4" if is_valid_slug(slug) else None
+
+
+def social_poster_key(slug):
+    return f"{PIPELINE_ASSET_PREFIX}social/{slug}.jpg" if is_valid_slug(slug) else None
+
+
 def pipeline_asset_key(rel_path) -> str:
     normalized = str(rel_path or "").replace("\\", "/").lstrip("/")
     return f"{PIPELINE_ASSET_PREFIX}{normalized}"
@@ -301,7 +309,7 @@ def select_rows(rows, only=None):
 
 
 def plan_publish(rows, web_listing, only=None):
-    """Ordered publish plan for the rendered ``output/web`` contents.
+    """Ordered publish plan for the rendered ``output/social`` + ``output/web``.
 
     One entry per CSV row in scope, pointing at that step's **concatenated**
     video — never the per-take ``processed_*`` intermediates, which the app does
@@ -314,11 +322,17 @@ def plan_publish(rows, web_listing, only=None):
       ``<video_file>_full{VIDEO_EXTENSION}``);
     - a row with neither is skipped.
 
-    An entry is kept only when its ``web_name`` is actually present in
-    ``web_listing`` (the caller passes ``os.listdir(WEB_DIR)``); entries are
-    deduped by slug (first wins) in first-seen order. Slugs that fail validation
-    are never emitted. The published R2 key stays ``assets/videos/<slug>.mp4`` —
-    the ``_full`` suffix is only the internal output name.
+    Each entry carries the app-facing public web keys **and** the private
+    social twin keys (the CRF-18 master the operator posts). An entry is kept
+    only when its ``web_name`` is actually present in ``web_listing`` (the
+    caller passes ``os.listdir(WEB_DIR)``); the social keys ride along
+    unconditionally, because the social master and the web output are written
+    from one compositing pass (``write_web_from_master``) and therefore exist
+    or fail together — the social upload itself re-checks the file on disk.
+    Entries are deduped by slug (first wins) in first-seen order. Slugs that
+    fail validation are never emitted. The published R2 keys stay
+    ``assets/videos/<slug>.mp4`` and ``pipeline-assets/social/<slug>.mp4`` — the
+    ``_full`` suffix is only the internal output name.
     """
     listing = set(web_listing or [])
     seen = set()
@@ -329,7 +343,9 @@ def plan_publish(rows, web_listing, only=None):
             return
         video_key = published_video_key(slug)
         poster_key = published_poster_key(slug)
-        if not video_key or not poster_key:
+        social_key = social_video_key(slug)
+        social_still_key = social_poster_key(slug)
+        if not video_key or not poster_key or not social_key or not social_still_key:
             return
         seen.add(slug)
         plan.append({
@@ -337,6 +353,8 @@ def plan_publish(rows, web_listing, only=None):
             "web_name": web_name,
             "video_key": video_key,
             "poster_key": poster_key,
+            "social_video_key": social_key,
+            "social_poster_key": social_still_key,
         })
 
     for row in select_rows(rows, only):

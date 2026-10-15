@@ -29,6 +29,19 @@ def slice_between(text: str, start: str, end: str) -> str:
     return text[i:j]
 
 
+def assert_title_band_pins(overlay: str) -> None:
+    """Story 068 title-pill pins, asserted over raw overlay source.
+
+    Exists as a module function so the mutation proof can check a mutated copy
+    instead of re-reading the file (which would always pass).
+    """
+    assert "BODY_TOP = COMPACT_BLUR_RATIO" in overlay, "title band must derive from the blur ratio"
+    assert "TITLE_TOP = 0.07" in overlay, "title must keep the chrome margin"
+    assert "body_min = max(10, int(video_height * 0.018))" in overlay, "body floor pin"
+    assert "title_base = max(12, int(body_min * 1.5))" in overlay, "title must be 1.5x the body floor"
+    assert "title_base = max(10, int(video_height * 0.05))" not in overlay, "old oversized base"
+
+
 def module_defined_names(tree: ast.AST) -> set:
     """Every top-level name the module binds: imports, defs, assignments."""
     names = set()
@@ -276,6 +289,58 @@ class OverlayBandGuardTest(unittest.TestCase):
         # The footer's cap is exactly the gap up to the caption floor.
         footer = slice_between(overlay, ".footer {{", "}}")
         self.assertIn("(APP_CAPTION_TOP - FOOTER_TOP) * video_height", footer)
+
+
+class OverlayTitleBandGuardTest(unittest.TestCase):
+    """The title pill fits inside the band the app blurs over a normal step.
+
+    The app draws only a compact blur (`VIDEO_HEADER_COMPACT_RATIO` in
+    src/modules/video/video-header-logic.js) above an ordinary video, so a
+    burned title poking past that line renders unblurred under the progress /
+    mission overlay. Story 068 restyles the pill to 1.5x the body legibility
+    floor and derives the whole band from the blur ratio.
+    """
+
+    def test_band_bottom_is_the_compact_blur_ratio(self):
+        overlay = slice_between(read(), "def create_overlay_html", "def add_background_sound")
+        # One variable ties the pipeline's band to the app's blur layer.
+        assert "BODY_TOP = COMPACT_BLUR_RATIO" in overlay
+        assert "COMPACT_BLUR_RATIO = 0.12" in read()
+
+    def test_title_top_keeps_the_chrome_margin(self):
+        assert "TITLE_TOP = 0.07" in slice_between(
+            read(), "def create_overlay_html", "def add_background_sound")
+
+    def test_title_base_is_one_and_a_half_times_the_body_floor(self):
+        overlay = slice_between(read(), "def create_overlay_html", "def add_background_sound")
+        # body_min is defined by the overlay (1.8% of height); the pill's base
+        # size derives from it instead of a raw frame fraction.
+        assert "body_min = max(10, int(video_height * 0.018))" in overlay
+        assert "title_base = max(12, int(body_min * 1.5))" in overlay
+        assert "title_base = max(10, int(video_height * 0.05))" not in overlay
+
+    def test_title_height_budget_accounts_for_the_pill_padding(self):
+        # The cap subtracts both padding margins so the rendered block (text +
+        # 2 * padding) cannot cross the band bottom.
+        overlay = slice_between(read(), "def create_overlay_html", "def add_background_sound")
+        self.assertRegex(overlay, r"title_max_height = max\(12, int\(\(BODY_TOP - TITLE_TOP\) \* video_height")
+
+    def test_guard_can_fail_on_each_pin(self):
+        good = slice_between(read(), "def create_overlay_html", "def add_background_sound")
+        mutations = [
+            good.replace("BODY_TOP = COMPACT_BLUR_RATIO", "BODY_TOP = 0.17"),
+            good.replace("TITLE_TOP = 0.07", "TITLE_TOP = 0.02"),
+            good.replace("title_base = max(12, int(body_min * 1.5))",
+                         "title_base = max(12, int(video_height * 0.05))"),
+        ]
+        for mutated in mutations:
+            self.assertNotEqual(mutated, good)
+            with self.assertRaises(AssertionError):
+                assert_title_band_pins(mutated)
+
+    def test_pins_hold_for_the_real_source(self):
+        assert_title_band_pins(
+            slice_between(read(), "def create_overlay_html", "def add_background_sound"))
 
 
 class OverlayTitleAndAsideGuardTest(unittest.TestCase):

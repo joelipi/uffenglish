@@ -204,5 +204,61 @@ class PrivateKeyParityTest(unittest.TestCase):
         self.assertEqual(_normalize_pairs(source), list(lib.PRIVATE_KEY_PREFIXES))
 
 
+class SocialKeyParityTest(unittest.TestCase):
+    """Story 068: the private social twin keys must match between runtimes.
+
+    The Python orchestrator writes ``pipeline-assets/social/<slug>.<ext>`` and
+    the JS trigger layer mirrors the rule; a drift would post to a key the
+    renderer never fills (or vice versa). Private routing comes from the
+    shared ``pipeline-assets/`` prefix, so no prefix-list change is needed
+    (and asserted)."""
+
+    def _js_social_key(self, name: str) -> str:
+        text = PIPELINE_KEYS.read_text(encoding="utf-8")
+        match = re.search(
+            rf"export function {name}\(slug\)\s*\{{\s*"
+            r"return isValidPipelineSlug\(slug\) \? `([^`]+)` : null;",
+            text)
+        self.assertIsNotNone(match, f"{name} body not found in pipeline-keys.js")
+        return match.group(1)
+
+    def test_social_video_keys_match(self):
+        self.assertEqual(
+            self._js_social_key("socialVideoKey"),
+            "pipeline-assets/social/${slug}.mp4",
+        )
+        self.assertEqual(
+            lib.social_video_key("wouldyourather_a01"),
+            "pipeline-assets/social/wouldyourather_a01.mp4",
+        )
+
+    def test_social_poster_keys_match(self):
+        self.assertEqual(
+            self._js_social_key("socialPosterKey"),
+            "pipeline-assets/social/${slug}.jpg",
+        )
+        self.assertEqual(
+            lib.social_poster_key("wouldyourather_a01"),
+            "pipeline-assets/social/wouldyourather_a01.jpg",
+        )
+
+    def test_invalid_slugs_return_none(self):
+        for bad in ("../x", "a/b", "x.mp4", "", "a" * 101):
+            self.assertIsNone(lib.social_video_key(bad), bad)
+            self.assertIsNone(lib.social_poster_key(bad), bad)
+
+    def test_social_keys_route_to_the_private_bucket(self):
+        key = lib.social_video_key("step_a")
+        self.assertTrue(lib.is_private_key(key))
+        self.assertEqual(lib.bucket_for_key(key), "private")
+
+    def test_guard_can_fail(self):
+        source = PIPELINE_KEYS.read_text(encoding="utf-8")
+        mutated = "SENTINEL".join(source.split("pipeline-assets/social/${slug}.mp4"))
+        self.assertNotEqual(mutated, source)
+        # The JS mirror no longer names the social prefix.
+        self.assertNotIn("pipeline-assets/social/${slug}.mp4", mutated)
+
+
 if __name__ == "__main__":
     unittest.main()

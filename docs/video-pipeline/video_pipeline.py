@@ -110,6 +110,13 @@ FONT_FILE_ITALIC = 'AtkinsonHyperlegibleNext-Italic-VariableFont_wght.ttf'
 MARKER_FONT_NAME = 'MarkerFont'
 FONT_FILE_MARKER = 'Kalam-Bold.ttf'
 
+# Compact blur ratio: the fraction of the frame height the app blurs over a
+# non-branching video's top (VIDEO_HEADER_COMPACT_RATIO in
+# src/modules/video/video-header-logic.js:28). The burned-in title pill must
+# fit entirely inside this band so the blur covers it; the parity test in
+# tests/test_pipeline_parity.py asserts the two literals stay equal.
+COMPACT_BLUR_RATIO = 0.12
+
 # ---- Intermediates (Stage 1/2): high quality so the social master stays clean
 MASTER_CRF = "16"
 MASTER_PRESET = "fast"
@@ -1008,7 +1015,11 @@ def create_overlay_html(row, video_width, video_height):
     # --- Vertical bands (fractions of the video height) ---
     APP_CAPTION_TOP = 0.80   # the app's timed SRT captions own the bottom 20%
     TITLE_TOP = 0.07         # healthy margin for browser/device chrome
-    BODY_TOP = 0.17          # the title owns every line above this one
+    # The title pill must fit INSIDE the band the app blurs over a normal
+    # step (VIDEO_HEADER_COMPACT_RATIO in src/modules/video/video-header-logic.js).
+    # Parity tests pin the two constants together in both directions, so the
+    # layers cannot drift. `BODY_TOP` also anchors the body band below.
+    BODY_TOP = COMPACT_BLUR_RATIO  # the title owns every line above this one
     FOOTER_TOP = APP_CAPTION_TOP - 0.05   # 0.75; one footer line above the captions
     BODY_BOTTOM = FOOTER_TOP - 0.01       # 0.74; the body clears the footer line
     horizontal_margin = video_width * 0.025
@@ -1019,14 +1030,16 @@ def create_overlay_html(row, video_width, video_height):
     body_band = (BODY_BOTTOM - BODY_TOP) * video_height
 
     # --- Font sizes (px) ---
-    # Title: a wrapping white pill (see .title span). Base size, plus a
-    # shrink-to-fit cap. The inline span's vertical padding does not contribute
-    # to the line box, so subtract it to keep the whole pill above BODY_TOP.
-    TITLE_PADDING_Y = 18
-    title_base = max(10, int(video_height * 0.05))
-    title_max_height = max(10, int((BODY_TOP - TITLE_TOP) * video_height) - 2 * TITLE_PADDING_Y)
+    # Title: a compact white pill (see .title span). `title_base` is 1.5x the
+    # body legibility floor, and the shrink-to-fit cap plus the padding math
+    # keep the whole pill at or below the compact-blur line
+    # `BODY_TOP * video_height` — the app's blur must cover it entirely.
+    TITLE_PADDING_Y = max(4, int(video_height * 0.004))
     body_min = max(10, int(video_height * 0.018))
     body_max = max(body_min, int(video_height * 0.055))
+    title_base = max(12, int(body_min * 1.5))
+    title_max_height = max(12, int((BODY_TOP - TITLE_TOP) * video_height
+                                   - 2 * TITLE_PADDING_Y - 2))
     footer_size = max(9, int(video_height * 0.018))
     aside_size = max(9, int(video_height * 0.02))
     mark_size = max(10, int(video_height * 0.03))
@@ -1041,7 +1054,8 @@ def create_overlay_html(row, video_width, video_height):
 *{{margin:0;padding:0;box-sizing:border-box}}
 html, body{{background:transparent!important; width:{video_width}px; height:{video_height}px; overflow:hidden;}}
 
-/* Title pill: top {TITLE_TOP * 100:.0f}%, wraps, never past BODY_TOP. */
+/* Title pill: top {TITLE_TOP * 100:.0f}%, whole pill at/below the compact
+   blur line {BODY_TOP * 100:.0f}% (COMPACT_BLUR_RATIO). */
 .title {{
     position: absolute;
     top: {TITLE_TOP * video_height}px;
@@ -1200,7 +1214,7 @@ strong {{
             }}
         }}
     }}
-    // The title pill wraps; shrink it until it fits above the body band.
+    // The title pill wraps; shrink it until it fits above the compact-blur line.
     var titleEl = document.querySelector('.title');
     if (titleEl) {{
         var maxTitleHeight = {title_max_height};

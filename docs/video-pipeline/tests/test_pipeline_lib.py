@@ -170,6 +170,29 @@ class PlanPublishTest(unittest.TestCase):
             self.assertEqual(entry["video_key"], f"assets/videos/{entry['slug']}.mp4")
             self.assertEqual(entry["poster_key"], f"assets/videos/{entry['slug']}.jpg")
 
+    # Story 068: the plan also carries the private social twin keys.
+    def test_entries_carry_social_twin_keys(self):
+        plan = lib.plan_publish(self.rows, [self.step_01, self.step_02])
+        for entry in plan:
+            self.assertEqual(entry["social_video_key"],
+                             f"pipeline-assets/social/{entry['slug']}.mp4")
+            self.assertEqual(entry["social_poster_key"],
+                             f"pipeline-assets/social/{entry['slug']}.jpg")
+            # The twins live in the private bucket by the shared prefix rule.
+            self.assertTrue(lib.is_private_key(entry["social_video_key"]))
+            self.assertTrue(lib.is_private_key(entry["social_poster_key"]))
+            self.assertEqual(lib.bucket_for_key(entry["social_video_key"]), "private")
+
+    def test_joined_step_carries_one_social_entry(self):
+        rows = [
+            {"filename": "lesson_01", "video_file": "step_a", "join": "lessonFinal"},
+            {"filename": "lesson_02", "video_file": "step_b", "join": "lessonFinal"},
+        ]
+        plan = lib.plan_publish(rows, ["lessonFinal.mp4"])
+        self.assertEqual(len(plan), 1)
+        self.assertEqual(plan[0]["social_video_key"],
+                         "pipeline-assets/social/lessonFinal.mp4")
+
 
 class PlanPublishSourceGuardTest(unittest.TestCase):
     """Guard: ``plan_publish`` targets the concatenated ``_full`` step/join videos

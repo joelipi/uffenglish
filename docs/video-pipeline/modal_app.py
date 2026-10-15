@@ -156,6 +156,7 @@ def _publish_intro_posters(rows):
         poster_args,
         published_poster_key,
         published_video_key,
+        social_poster_key,
     )
 
     # Planning reads R2 metadata (`storage.head` re-raises anything that is not a
@@ -190,6 +191,10 @@ def _publish_intro_posters(rows):
                 storage.download_to(source_key, source)
                 subprocess.run(["ffmpeg", *poster_args(source, poster)], check=True)
                 storage.upload_file(poster, poster_key, content_type="image/jpeg")
+                # Private social-still twin (still best-effort: a failure here
+                # prints and continues, never fails the render).
+                storage.upload_file(poster, social_poster_key(slug),
+                                    content_type="image/jpeg")
             published.append(slug)
         except Exception as exc:  # noqa: BLE001 - best-effort, never fail the render
             print(f"⚠️ intro poster failed for {slug}: {exc}")
@@ -269,9 +274,12 @@ def orchestrator(spec: dict):
         _write_status(job_id, "running", "publish")
         rows = pipeline.load_csv_rows(csv_file)
         # The plan derives the step/join slugs from the rows themselves (the
-        # join column), so it needs only the rendered `output/web` listing.
+        # join column), so it needs the rendered `output/web` listing; the
+        # social twins share one compositing pass with it.
         plan = plan_publish(rows, os.listdir(pipeline.WEB_DIR), only=files)
-        published = _publish(plan)
+        publish_result = _publish(plan)
+        published = publish_result["published"]
+        social_published = publish_result["social_published"]
 
         # Lesson intros are synthesized from the master CSV's `intro_video` column,
         # so they never enter the plan above; the render still owes them their
@@ -304,13 +312,15 @@ def orchestrator(spec: dict):
         })
         _write_status(job_id, "done", "publish", {
             "published": published,
+            "social_published": social_published,
             "intro_posters": intro_posters,
             "wall_seconds": wall,
             "gpu_seconds": gpu_seconds,
             "estimated_cost_usd": cost,
             "dispatch": dispatch_note,
         })
-        return {"jobId": job_id, "published": published, "intro_posters": intro_posters,
+        return {"jobId": job_id, "published": published, "social_published": social_published,
+                "intro_posters": intro_posters,
                 "wall_seconds": wall, "gpu_seconds": gpu_seconds}
     except Exception as exc:  # noqa: BLE001 - surface any failure as a status marker
         _write_status(job_id, "error", "error", {"error": str(exc)})
@@ -318,17 +328,32 @@ def orchestrator(spec: dict):
 
 
 def _publish(plan):
-    """Publish each planned web file plus a 0.2s poster; enforce the web budget."""
-    from pipeline_lib import is_within_web_budget, poster_args, reencode_web_args
+    """Publish each planned web file plus a 0.2s poster; enforce the web budget.
+
+    Every entry also publishes its private **social twin** — the CRF-18
+    full-resolution master the operator uploads to TikTok/IG — plus a
+    ``poster_args`` still cut from that master. Social files upload as-is (no
+    budget check, no re-encode: the master is the high-quality source) and are
+    required, so a social upload error propagates exactly like a web one.
+    """
+    from pipeline_lib import (
+        is_within_web_budget,
+        poster_args,
+        reencode_web_args,
+        social_poster_key,
+        social_video_key,
+    )
     import json
     import subprocess
     import tempfile
     import video_pipeline as pipeline
 
     published = []
+    social_published = []
     for entry in plan:
         slug = entry["slug"]
         source = os.path.join(pipeline.WEB_DIR, entry["web_name"])
+        social_source = os.path.join(pipeline.SOCIAL_DIR, entry["web_name"])
         if not os.path.exists(source):
             continue
         with tempfile.TemporaryDirectory() as tmp:
@@ -343,8 +368,18 @@ def _publish(plan):
             poster = os.path.join(tmp, "poster.jpg")
             subprocess.run(["ffmpeg", *poster_args(web, poster)], check=True)
             storage.upload_file(poster, entry["poster_key"], content_type="image/jpeg")
+            # The social twin: same missing-file skip as web, no budget path.
+            if os.path.exists(social_source):
+                storage.upload_file(social_source, social_video_key(slug),
+                                    content_type="video/mp4")
+                social_poster = os.path.join(tmp, "social-poster.jpg")
+                subprocess.run(["ffmpeg", *poster_args(social_source, social_poster)],
+                               check=True)
+                storage.upload_file(social_poster, social_poster_key(slug),
+                                    content_type="image/jpeg")
+                social_published.append(slug)
         published.append(slug)
-    return published
+    return {"published": published, "social_published": social_published}
 
 
 def _probe(path):

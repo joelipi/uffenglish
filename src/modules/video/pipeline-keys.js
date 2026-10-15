@@ -46,6 +46,17 @@ export function publishedPosterKey(slug) {
     return isValidPipelineSlug(slug) ? `assets/videos/${slug}.jpg` : null;
 }
 
+// Social-media twins of the published web outputs: the CRF-18 full-res master
+// the operator uploads to TikTok/IG. Private (under `pipeline-assets/`, which
+// is already a private prefix) and never read by the app.
+export function socialVideoKey(slug) {
+    return isValidPipelineSlug(slug) ? `pipeline-assets/social/${slug}.mp4` : null;
+}
+
+export function socialPosterKey(slug) {
+    return isValidPipelineSlug(slug) ? `pipeline-assets/social/${slug}.jpg` : null;
+}
+
 // Operator-uploaded pipeline inputs (fonts/backgrounds/audio/overlays/CSV).
 // Windows separators are normalized so the same helper works on the operator PC
 // and in the container.

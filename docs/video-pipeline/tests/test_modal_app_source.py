@@ -32,6 +32,29 @@ def slice_between(text: str, start: str, end: str) -> str:
     return text[i:j]
 
 
+def assert_social_twin_uploads(text: str, tc=None) -> None:
+    """Story 068: `_publish` uploads each entry's private social twin + still.
+
+    Extracted so the mutation proofs run it against mutated text (an instance
+    method would only ever see the real source). `tc` is an optional
+    TestCase so assertion messages get the class's context.
+    """
+    body = slice_between(text, "def _publish(plan):", "def _probe(")
+    checks = (
+        ("social_video_key", body),
+        ("social_poster_key", body),
+        ("storage.upload_file(social_source, social_video_key(slug),", body),
+        ("storage.upload_file(social_poster, social_poster_key(slug),", body),
+        # The still is cut from the social master, not re-encoded from web.
+        ('["ffmpeg", *poster_args(social_source, social_poster)]', body),
+    )
+    for token, haystack in checks:
+        if tc is None:
+            assert token in haystack, token
+        else:
+            tc.assertIn(token, haystack)
+
+
 def check_intro_posters_wired(text: str) -> None:
     """Story 055: a lesson intro comes from the sheet's `intro_video` column, so
     it is never a row slug in `plan_publish`; the orchestrator must still publish
@@ -222,6 +245,67 @@ class TriggerGuardTest(unittest.TestCase):
         self.assertIn("startswith(os.path.realpath(workdir)", fetch)
 
 
+class SocialPublishGuardTest(unittest.TestCase):
+    """Story 068: every step also publishes its private social twin.
+
+    The social file is the CRF-18 master the operator uploads to TikTok/IG;
+    the app never reads it. Guards here pin: the twin upload exists and is
+    required (no swallow, unlike the best-effort intro posters), it reuses the
+    same missing-file skip as web, the still is cut from the social file, and
+    the `done` marker reports it."""
+
+    def test_publish_uploads_the_social_twin_and_its_still(self):
+        assert_social_twin_uploads(read(APP), self)
+
+    def test_social_upload_shares_the_missing_file_skip(self):
+        text = read(APP)
+        body = slice_between(text, "def _publish(plan):", "def _probe(")
+        # ONE web existence check gates the entry (the social twin is written
+        # by the same compositing pass), so a missing file cannot publish half
+        # an entry.
+        self.assertEqual(body.count("if not os.path.exists("), 1)
+        self.assertIn("if not os.path.exists(source):\n            continue", body)
+
+    def test_social_publish_is_required_not_swallowed(self):
+        text = read(APP)
+        body = slice_between(text, "def _publish(plan):", "def _probe(")
+        # No exception guard inside _publish: an upload error propagates and
+        # fails the render (web has always been required; social matches).
+        self.assertNotIn("except Exception", body)
+        self.assertNotIn("try:", body)
+
+    def test_done_marker_reports_the_social_slugs(self):
+        text = read(APP)
+        orchestrator = slice_between(text, "def orchestrator(spec: dict):", "def _publish(")
+        # The status field and the result dict carry the same key+value.
+        self.assertIn('"social_published": social_published', orchestrator)
+        self.assertIn('"published": published, "social_published": social_published',
+                      orchestrator)
+
+    def test_publish_guard_fails_when_the_twin_is_removed(self):
+        source = read(APP)
+        mutated = "SENTINEL".join(
+            source.split("storage.upload_file(social_source, social_video_key(slug),"))
+        self.assertNotEqual(mutated, source)
+        with self.assertRaises(AssertionError):
+            assert_social_twin_uploads(mutated)
+
+    def test_publish_guard_fails_when_the_still_is_cut_from_web(self):
+        source = read(APP)
+        mutated = "SENTINEL".join(
+            source.split('["ffmpeg", *poster_args(social_source, social_poster)]'))
+        self.assertNotEqual(mutated, source)
+        with self.assertRaises(AssertionError):
+            assert_social_twin_uploads(mutated)
+
+    def test_intro_posters_get_best_effort_social_still_twins(self):
+        text = read(APP)
+        body = slice_between(text, "def _publish_intro_posters(", "def _write_status(")
+        self.assertIn("social_poster_key", body)
+        # Still best-effort: the existing swallow stays around the loop.
+        self.assertIn("except Exception", body)
+
+
 class DeployGraphImportGuardTest(unittest.TestCase):
     """Story 054: the trigger container installs only ``fastapi[standard]``.
 
@@ -380,7 +464,7 @@ class DispatchGuardTest(unittest.TestCase):
         self.assertIn('modal.Secret.from_name("uff-github")', text)
         # Called once, after publish, and recorded in the `done` extra.
         self.assertEqual(body.count("dispatch_render_complete("), 1)
-        self.assertLess(body.index("published = _publish(plan)"),
+        self.assertLess(body.index("publish_result = _publish(plan)"),
                         body.index("dispatch_render_complete("))
         self.assertLess(body.index("dispatch_render_complete("),
                         body.index('"dispatch": dispatch_note'))
