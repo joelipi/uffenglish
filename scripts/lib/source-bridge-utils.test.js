@@ -109,6 +109,23 @@ describe('sourceToRows slugs', () => {
     });
 });
 
+describe('sourceToRows course hero', () => {
+    // The source `hero` banner rides the bridge like `course_name` (plain
+    // scalar, never translated) so the generator can emit `courseHeroImage`;
+    // without it every regeneration wipes the listings-page banner.
+    it('carries the source hero onto every row', () => {
+        const rows = sourceToRows({ ...SOURCE, hero: 'src/assets/img/demo.jpg' });
+        expect(rows.length).toBeGreaterThan(0);
+        for (const row of rows) expect(row.hero).toBe('src/assets/img/demo.jpg');
+    });
+
+    it('blanks hero when the source names none', () => {
+        const rows = sourceToRows(SOURCE);
+        expect(rows.length).toBeGreaterThan(0);
+        for (const row of rows) expect(row.hero).toBe('');
+    });
+});
+
 describe('sourceToRows routing', () => {
     it('emits positional choice targets and advance-past-group next_steps', () => {
         const rows = sourceToRows(SOURCE);

@@ -245,7 +245,7 @@ describe('courseMissionFor', () => {
 
     it('reads the wouldyourather top-level mission with its CEFR levels', () => {
         expect(courseMissionFor(wouldyourather)).toEqual({
-            mission: { en: 'talk about preferences between 2-3 options' },
+            mission: { en: 'talk about preferences' },
             A1: { en: 'X or Y' },
             A2: { en: 'which is better, noun X or noun Y' },
             B1: { en: 'would rather + [verb stem X] or [verb stem Y]' },

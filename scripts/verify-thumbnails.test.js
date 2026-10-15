@@ -11,6 +11,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
 const SCRIPT = path.join(ROOT, 'scripts/verify-thumbnails.mjs');
 const SOURCE = readFileSync(SCRIPT, 'utf8');
+const { introTargets } = await import('./lib/poster-utils.js');
 
 function runCli(args = [], env = {}) {
     return new Promise((resolve) => {
@@ -39,6 +40,16 @@ function withFakeR2(status, fn) {
             }
         });
     });
+}
+
+// Every committed src/config/<course>.json, as `loadAllConfigs` reads them.
+async function loadRealConfigs() {
+    const { readdirSync, readFileSync } = await import('node:fs');
+    const dir = path.join(ROOT, 'src', 'config');
+    const configs = readdirSync(dir)
+        .filter((f) => f.endsWith('.json') && !f.includes('.test.'))
+        .map((f) => JSON.parse(readFileSync(path.join(dir, f), 'utf8')));
+    return introTargets(configs);
 }
 
 describe('verify-thumbnails.mjs source', () => {
@@ -76,7 +87,11 @@ describe('verify-thumbnails.mjs run', () => {
         const { code, stdout } = await withFakeR2(200, (base) =>
             runCli([], { POSTER_CDN_BASE: base }));
         expect(code).toBe(0);
-        expect(stdout).toContain('7 intro slugs');
+        // Derived from the live configs (same loader as poster-utils tests), so
+        // adding a course/slug cannot leave this count stale.
+        const live = await loadRealConfigs();
+        expect(live.length).toBeGreaterThan(0);
+        expect(stdout).toContain(`${live.length} intro slugs`);
     }, 120000);
 
     it('exits non-zero when an R2 poster is missing', async () => {

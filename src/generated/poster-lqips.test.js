@@ -3,6 +3,9 @@
 import { describe, it, expect } from 'vitest';
 import { POSTER_LQIPS, getPosterLqip } from './poster-lqips.js';
 
+// Mirrors introTargets(loadAllConfigs()): `intro` retired with the Oct-14
+// source rewrite (no config references it); the three wouldyourather step
+// intros are its replacements.
 const INTRO_SLUGS = [
     'testvideo01',
     'do_you_have_rolls_too',
@@ -10,7 +13,9 @@ const INTRO_SLUGS = [
     'gtests-1-0',
     'gtests-0-1-1',
     'testvideointro',
-    'intro',
+    'wouldyourather-a-01',
+    'wouldyourather-c-01',
+    'wouldyourather-e-01',
 ];
 
 describe('poster-lqips module', () => {

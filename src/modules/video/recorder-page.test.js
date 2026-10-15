@@ -968,6 +968,20 @@ describe('recorder auto-render — zero server changes', () => {
             'src/modules/video/pipeline-keys.js',
             'src/modules/video/pipeline-keys.test.js',
             'src/modules/video/video-header-logic.test.js',
+            // wouldyourather config regeneration (bridge hero + config bump).
+            'public/wouldyourather.master.csv',
+            'src/config/wouldyourather.json',
+            'src/generated/poster-lqips.js',
+            'src/generated/poster-lqips.test.js',
+            'scripts/lib/sheet-config-utils.js',
+            'scripts/lib/sheet-config-utils.test.js',
+            'scripts/lib/source-bridge-utils.js',
+            'scripts/lib/source-bridge-utils.test.js',
+            'scripts/lib/poster-utils.test.js',
+            'scripts/verify-thumbnails.test.js',
+            'src/modules/video/model-config.test.js',
+            'src/modules/courses/friend-courses-logic.test.js',
+            'src/modules/courses/friend-course-configs.test.js',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);

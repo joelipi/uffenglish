@@ -112,7 +112,9 @@ describe('test.json click-through friend prompts', () => {
 describe('wouldyourather lesson b branching step', () => {
     const config = loadConfig('wouldyourather.json');
     const lesson = config.lessons.find(l => l.lessonId === 'b');
-    const step = lesson.steps[1];
+    // Located by type, not by index: the Oct-14 source rewrite added a
+    // recordable take step before the branch in every answer lesson.
+    const step = lesson.steps.find(s => s.responseType === 'branching');
 
     it('is the branching friend step with no app subtitles', () => {
         expect(step.responseType).toBe('branching');
@@ -121,9 +123,11 @@ describe('wouldyourather lesson b branching step', () => {
     });
 
     it('keeps its chooseStep choices', () => {
+        // English is the source; the translator fills `_es`/`_pt`/`_bn` on the
+        // next translate-master run (the rewrite's new choices start unlocalized).
         expect(step.chooseStep).toEqual([
-            { nextStep: 1, text: { en: '$1,000,000 today', es: '$1,000,000 hoy', pt: '$1.000.000 hoje', bn: '$1,000,000 আজ' } },
-            { nextStep: 2, text: { en: '$5,000,000 in 5 years', es: '$5,000,000 en 5 años', pt: '$5.000.000 em 5 anos', bn: '$5,000,000 ৫ বছরে' } },
+            { nextStep: 1, text: { en: '$1,000,000 today' } },
+            { nextStep: 2, text: { en: '$5,000,000 in 5 years' } },
         ]);
     });
 });

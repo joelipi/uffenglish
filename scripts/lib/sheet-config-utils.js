@@ -721,6 +721,9 @@ export function buildCourseConfig(rows) {
     // non-empty wins, disagreement errors").
     const courseId = singleValue(videoRows, 'course_id', 'course');
     const courseName = singleValue(videoRows, 'course_name', 'course');
+    // Course banner (source `hero` via the bridge `hero` column): same
+    // first-wins/conflict rule as the other course scalars; blank omits it.
+    const hero = singleValue(videoRows, 'hero', 'course');
     if (!courseId) throw new Error('missing course_id column value');
     if (!courseName) throw new Error('missing course_name column value');
 
@@ -767,9 +770,7 @@ export function buildCourseConfig(rows) {
     });
 
     const courseMission = courseMissionFromLessons(lessons);
-    return courseMission
-        ? { courseId, courseName, courseMission, lessons }
-        : { courseId, courseName, lessons };
+    return withHero({ courseId, courseName }, hero, courseMission, lessons);
 }
 
 /**
@@ -783,9 +784,25 @@ export function buildCourseConfig(rows) {
  * with its own bundled captions. The sheet's `success_video`/`success_srt`
  * columns are therefore unused by the generator.
  */
+/**
+ * Insert the optional `courseHeroImage` between the course scalars and the
+ * mission/lessons: the listings page resolves it against bundled assets
+ * (friend-course-configs.js). Both builder paths share it so the key order
+ * stays stable whichever shape the CSV carries.
+ */
+export function withHero(head, hero, courseMission, lessons) {
+    const out = { ...head };
+    if (hero) out.courseHeroImage = hero;
+    if (courseMission) out.courseMission = courseMission;
+    out.lessons = lessons;
+    return out;
+}
+
 function buildMasterCourseConfig(videoRows) {
     const courseId = firstNonBlank(videoRows, 'course_id');
     const courseName = firstNonBlank(videoRows, 'course_name');
+    // Course banner: first non-blank wins, like every master-path scalar.
+    const hero = firstNonBlank(videoRows, 'hero');
     if (!courseId) throw new Error('missing course_id column value');
     if (!courseName) throw new Error('missing course_name column value');
 
@@ -839,9 +856,7 @@ function buildMasterCourseConfig(videoRows) {
     });
 
     const courseMission = courseMissionFromLessons(lessons);
-    return courseMission
-        ? { courseId, courseName, courseMission, lessons }
-        : { courseId, courseName, lessons };
+    return withHero({ courseId, courseName }, hero, courseMission, lessons);
 }
 
 /** Deterministically order + dedupe a missing-columns list, as `findMissingColumns` reports it. */

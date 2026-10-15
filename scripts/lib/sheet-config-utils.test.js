@@ -653,18 +653,15 @@ describe('lesson level patterns (a1..c1) and courseMission', () => {
         });
     });
 
-    // The checked-in wouldyourather courseMission carries the specified
-    // course-level copy ("...between 2-3 options"), which intentionally
-    // differs from lesson a's own mission ("talk about preferences"). The
-    // generator mapping above is identity, so this file is reproducible once
-    // the sheet's lesson-a mission/a1..c1 cells carry this text (pre-translate,
-    // English-only); until that sheet update lands, regenerating from the
-    // current sheet would revert courseMission.mission to the lesson text.
+    // The checked-in wouldyourather courseMission carries the source's
+    // course-level copy. The Oct-14 source edit set the course mission to
+    // lesson a's own text ("talk about preferences"), so regeneration now
+    // reproduces this file exactly (pre-translate, English-only).
     it('checked-in wouldyourather courseMission carries the specified course copy', () => {
         const real = JSON.parse(readFileSync(
             path.join(__dirname, '../../src/config/wouldyourather.json'), 'utf8'));
         expect(real.courseMission).toEqual({
-            mission: { en: 'talk about preferences between 2-3 options' },
+            mission: { en: 'talk about preferences' },
             A1: { en: 'X or Y' },
             A2: { en: 'which is better, noun X or noun Y' },
             B1: { en: 'would rather + [verb stem X] or [verb stem Y]' },
@@ -675,6 +672,45 @@ describe('lesson level patterns (a1..c1) and courseMission', () => {
         expect(real.lessons[0].c1).toEqual({
             en: 'if I had to choose between [gerund verb X] and [gerund verb Y], my preference would be to [infinitive verb]',
         });
+    });
+});
+
+describe('courseHeroImage from the bridge hero column', () => {
+    const heroBase = {
+        course_id: 'h', course_name: 'Hero', lesson_id: 'a', lesson_title: 'Ask',
+        mission: 'Talk', video_file: 'v', filename: 'f1', order: '1', response_type: 'viewAndContinue',
+    };
+
+    it('emits courseHeroImage between the scalars and the mission (authoring)', () => {
+        const config = buildCourseConfig([{ ...heroBase, hero: 'src/assets/img/h.jpg' }]);
+        expect(Object.keys(config).slice(0, 4)).toEqual(
+            ['courseId', 'courseName', 'courseHeroImage', 'courseMission']);
+        expect(config.courseHeroImage).toBe('src/assets/img/h.jpg');
+    });
+
+    it('emits courseHeroImage on the master path', () => {
+        const config = buildCourseConfig([{
+            course_id: 'h', course_name: 'Hero', lesson_id: 'a', lesson_title: 'Ask',
+            response_type: 'friendClosedResponse', video_file: 'v', filename: 'f',
+            order: '1', phrase: 'Q', hero: 'src/assets/img/h.jpg',
+        }]);
+        expect(config.courseHeroImage).toBe('src/assets/img/h.jpg');
+    });
+
+    it('omits courseHeroImage when the column is blank on both paths', () => {
+        expect('courseHeroImage' in buildCourseConfig([{ ...heroBase }])).toBe(false);
+        expect('courseHeroImage' in buildCourseConfig([{
+            course_id: 'h', course_name: 'Hero', lesson_id: 'a', lesson_title: 'Ask',
+            response_type: 'friendClosedResponse', video_file: 'v', filename: 'f',
+            order: '1', phrase: 'Q',
+        }])).toBe(false);
+    });
+
+    it('throws on conflicting hero values (authoring course-scalar rule)', () => {
+        expect(() => buildCourseConfig([
+            { ...heroBase, hero: 'one.jpg' },
+            { ...heroBase, video_file: 'w', filename: 'f2', order: '2', hero: 'two.jpg' },
+        ])).toThrow(/conflicting "hero"/);
     });
 });
 
