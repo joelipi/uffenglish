@@ -19,6 +19,8 @@ import {
     readIsStandaloneApp,
     readIsApplePlatform,
     getRegisteredInstallElement,
+    hasNativeInstallPrompt,
+    triggerNativeInstallPrompt,
 } from '../../modules/pwa/install-prompt-webonly.js';
 
 const BANNER_STYLE = {
@@ -45,6 +47,13 @@ export default function PWAInstallBanner({ lang = 'en', userId = null }) {
     const isApple = readIsApplePlatform();
 
     const handleTap = () => {
+        const nativeAvailable = hasNativeInstallPrompt && hasNativeInstallPrompt();
+        if (nativeAvailable) {
+            triggerNativeInstallPrompt?.().then((choice) => {
+                console.log('[PWA] Native install prompt outcome:', choice && choice.outcome);
+            }).catch((err) => console.error('[PWA] native install failed:', err));
+            return;
+        }
         const opened = openInstallDialog(getRegisteredInstallElement());
         console.log('[PWA] Install dialog requested from banner:', opened);
     };

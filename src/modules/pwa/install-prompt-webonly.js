@@ -13,6 +13,7 @@
 import { STANDALONE_DISPLAY_MODE_QUERY, isApplePlatform } from './install-prompt-logic.js';
 
 let installElement = null;
+let deferredInstallPrompt = null;
 
 /** Register the mounted `<pwa-install>` element (called by PWAInstallDialog). */
 export function registerInstallElement(element) {
@@ -22,6 +23,49 @@ export function registerInstallElement(element) {
 /** The mounted `<pwa-install>` element, or null before the layout mounts it. */
 export function getRegisteredInstallElement() {
     return installElement;
+}
+
+/**
+ * Remember the browser's deferred `beforeinstallprompt` event so the app can
+ * surface the OS-level install dialog (Android/Chromium) instead of the
+ * small in-page drawer. Called from the `beforeinstallprompt` listener.
+ */
+export function registerBeforeInstallPromptEvent(event) {
+    if (!event || typeof event.prompt !== 'function') return false;
+    try { event.preventDefault(); } catch (e) { /* ignore */ }
+    deferredInstallPrompt = event;
+    return true;
+}
+
+/** True when a native OS install prompt is available. */
+export function hasNativeInstallPrompt() {
+    return !!deferredInstallPrompt;
+}
+
+/**
+ * Trigger the native OS install prompt (Android/Chromium only). Resolves to
+ * the userChoice outcome, or null if no native prompt was staged. The stored
+ * event can only be used once, so it is cleared after use.
+ */
+export async function triggerNativeInstallPrompt() {
+    const e = deferredInstallPrompt;
+    deferredInstallPrompt = null;
+    if (!e || typeof e.prompt !== 'function') return null;
+    try {
+        e.prompt();
+        const choice = await e.userChoice;
+        return choice || null;
+    } catch (err) {
+        console.error('[PWA] Native install prompt failed:', err);
+        return null;
+    }
+}
+
+/**
+ * Clear any staged native prompt (e.g., when the app becomes standalone).
+ */
+export function clearNativeInstallPrompt() {
+    deferredInstallPrompt = null;
 }
 
 /**

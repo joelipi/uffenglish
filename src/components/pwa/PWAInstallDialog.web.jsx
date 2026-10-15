@@ -19,8 +19,17 @@ export default function PWAInstallDialog() {
     useEffect(() => {
         registerInstallElement(installRef.current);
         console.log('[PWA] Install dialog registered');
-        return () => registerInstallElement(null);
+        const handler = (e) => {
+            registerBeforeInstallPromptEvent(e);
+            console.log('[PWA] beforeinstallprompt staged');
+        };
+        window.addEventListener('beforeinstallprompt', handler);
+        return () => {
+            window.removeEventListener('beforeinstallprompt', handler);
+            registerInstallElement(null);
+        };
     }, []);
+
 
     return (
         <pwa-install
