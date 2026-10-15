@@ -1034,12 +1034,20 @@ def create_overlay_html(row, video_width, video_height):
     # body legibility floor, and the shrink-to-fit cap plus the padding math
     # keep the whole pill at or below the compact-blur line
     # `BODY_TOP * video_height` — the app's blur must cover it entirely.
+    # The pill's block box (max-height) holds one line box of `title_base`
+    # at `line-height: 1.6`; cap the base to that height so the shrink loop
+    # converges on the AUTHORED size instead of trimming it every render.
+    # `TITLE_TOP` cancels out of the band math (top + height == BODY_TOP), so
+    # only a base/cap change can push the pill past the blur — hence the cap
+    # here and the arithmetic guards in tests/test_pipeline_source.py.
     TITLE_PADDING_Y = max(4, int(video_height * 0.004))
     body_min = max(10, int(video_height * 0.018))
     body_max = max(body_min, int(video_height * 0.055))
     title_base = max(12, int(body_min * 1.5))
-    title_max_height = max(12, int((BODY_TOP - TITLE_TOP) * video_height
-                                   - 2 * TITLE_PADDING_Y - 2))
+    _title_height_cap = int((BODY_TOP - TITLE_TOP) * video_height
+                            - 2 * TITLE_PADDING_Y - 2)
+    title_base = min(title_base, max(12, int(_title_height_cap / 1.6)))
+    title_max_height = max(12, _title_height_cap)
     footer_size = max(9, int(video_height * 0.018))
     aside_size = max(9, int(video_height * 0.02))
     mark_size = max(10, int(video_height * 0.03))

@@ -378,6 +378,13 @@ def _publish(plan):
                 storage.upload_file(social_poster, social_poster_key(slug),
                                     content_type="image/jpeg")
                 social_published.append(slug)
+            else:
+                # Loud, never silent: the web twin exists (just published), so
+                # a missing social master means the compositing pass died
+                # halfway or `output/` was edited. The operator must see it
+                # here rather than when uploading to TikTok/IG.
+                print(f"\u26a0\ufe0f social twin missing for {slug}: "
+                      f"{entry['web_name']} (web published, social not)")
         published.append(slug)
     return {"published": published, "social_published": social_published}
 
