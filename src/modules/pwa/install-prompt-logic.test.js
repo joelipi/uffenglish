@@ -4,6 +4,10 @@ import {
     STANDALONE_DISPLAY_MODE_QUERY,
     shouldOfferInstall,
     openInstallDialog,
+    isApplePlatform,
+    selectInstallCtaKey,
+    selectInstallBannerBodyKey,
+    shouldShowInstallBanner,
 } from './install-prompt-logic.js';
 
 afterEach(() => {
@@ -51,5 +55,55 @@ describe('openInstallDialog', () => {
 describe('STANDALONE_DISPLAY_MODE_QUERY', () => {
     it('is the standard installed-PWA media query', () => {
         expect(STANDALONE_DISPLAY_MODE_QUERY).toBe('(display-mode: standalone)');
+    });
+});
+
+describe('isApplePlatform', () => {
+    const IPHONE_UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15';
+    const IPAD_UA = 'Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X) AppleWebKit/605.1.15';
+    const IPADOS_DESKTOP_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15';
+    const DESKTOP_MAC_UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko)';
+    const ANDROID_UA = 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0';
+    const WINDOWS_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0';
+
+    it('detects iPhone and iPad user agents', () => {
+        expect(isApplePlatform({ userAgent: IPHONE_UA, platform: 'iPhone' })).toBe(true);
+        expect(isApplePlatform({ userAgent: IPAD_UA, platform: 'iPad' })).toBe(true);
+    });
+
+    it('detects desktop Mac and iPadOS reporting a desktop Mac UA', () => {
+        expect(isApplePlatform({ userAgent: IPADOS_DESKTOP_UA, platform: 'MacIntel' })).toBe(true);
+        expect(isApplePlatform({ userAgent: DESKTOP_MAC_UA, platform: 'MacIntel' })).toBe(true);
+    });
+
+    it('rejects Android, Windows and unknown platforms', () => {
+        expect(isApplePlatform({ userAgent: ANDROID_UA, platform: 'Linux armv8l' })).toBe(false);
+        expect(isApplePlatform({ userAgent: WINDOWS_UA, platform: 'Win32' })).toBe(false);
+        expect(isApplePlatform({})).toBe(false);
+        expect(isApplePlatform()).toBe(false);
+    });
+});
+
+describe('selectInstallCtaKey / selectInstallBannerBodyKey', () => {
+    it('uses the Apple wording only on Apple platforms', () => {
+        expect(selectInstallCtaKey({ isApple: true })).toBe('pwa_install_cta_apple');
+        expect(selectInstallCtaKey({ isApple: false })).toBe('pwa_install_cta');
+        expect(selectInstallCtaKey({})).toBe('pwa_install_cta');
+        expect(selectInstallBannerBodyKey({ isApple: true })).toBe('pwa_banner_body_apple');
+        expect(selectInstallBannerBodyKey({ isApple: false })).toBe('pwa_banner_body_install');
+        expect(selectInstallBannerBodyKey()).toBe('pwa_banner_body_install');
+    });
+});
+
+describe('shouldShowInstallBanner', () => {
+    it('shows for signed-in users outside the installed PWA', () => {
+        expect(shouldShowInstallBanner({ isStandalone: false, userId: 'user-1' })).toBe(true);
+    });
+
+    it('hides for guests, anonymous users and inside the installed PWA', () => {
+        expect(shouldShowInstallBanner({ isStandalone: false, userId: 'guest' })).toBe(false);
+        expect(shouldShowInstallBanner({ isStandalone: false, userId: null })).toBe(false);
+        expect(shouldShowInstallBanner({ isStandalone: false })).toBe(false);
+        expect(shouldShowInstallBanner({ isStandalone: true, userId: 'user-1' })).toBe(false);
     });
 });

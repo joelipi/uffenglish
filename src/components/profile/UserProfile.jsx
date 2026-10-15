@@ -8,6 +8,8 @@ import defaultProfilePic from '../../assets/img/userprofile.png';
 import { trackEvent } from '../../modules/utils/posthog.js';
 import { useAvatarUpload } from '../../modules/avatar/use-avatar-upload.js';
 import AvatarCropper from '../widgets/AvatarCropper.jsx';
+import PWAInstallBanner from '../pwa/PWAInstallBanner.web.jsx';
+import PushNotificationsOptIn from '../notifications/PushNotificationsOptIn.web.jsx';
 import { PROFILE_LANGUAGES, LOCALE_MAP } from '../../data/languages.js';
 import { calculateCurrentStreak } from '../../modules/user/user-profile.js';
 
@@ -387,6 +389,9 @@ export default function UserProfile() {
                 </button>
                 <span style={{ fontSize: '18px', fontWeight: 600 }}>{Strings.get('profile_title', lang)}</span>
             </div>
+
+            <PWAInstallBanner lang={lang} userId={profile?.$id} />
+            <PushNotificationsOptIn lang={lang} variant="prompt" userId={profile?.$id} />
 
             <div style={{ padding: '24px 16px', maxWidth: '640px', margin: '0 auto' }}>
 

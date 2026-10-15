@@ -183,6 +183,7 @@ const MARKED = [
     ['src/components/widgets/IntroChoices.jsx', 'id="continueButton"'],
     ['src/components/widgets/SuccessButtons.jsx', 'id="processBtn"'],
     ['src/components/widgets/SuccessButtons.jsx', 'id="createVideoButton"'],
+    ['src/components/widgets/SuccessButtons.jsx', 'id="continueButtonSuccess"'],
     ['src/components/widgets/ResponseDecisionButtons.jsx', 'id="responseAnswerBtn"'],
     ['src/components/widgets/ResponseDecisionButtons.jsx', 'id="responseTxtBtn"'],
     ['src/components/widgets/MicrophoneToggle.web.jsx', 'id="micBtn"'],
@@ -204,7 +205,6 @@ const UNMARKED = [
     ['src/components/widgets/IntroChoices.jsx', 'id="textOnlyButton"'],
     ['src/components/widgets/DecisionButtons.jsx', 'id="earBtn"'],
     ['src/components/widgets/SuccessButtons.jsx', 'id="repeatButtonSuccess"'],
-    ['src/components/widgets/SuccessButtons.jsx', 'id="continueButtonSuccess"'],
     ['src/components/LessonContainer.jsx', 'phaseData?.onReject'],
 ];
 

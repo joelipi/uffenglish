@@ -1,7 +1,8 @@
 // Source guard for the legal-page wiring: routes exist, they precede the
-// single-segment /:shareCode catch-all, the homepage renders the footer, and
-// the user-menu drawer links to both pages. The components pull in Supabase /
-// react-query graphs, so this locks each call site by raw source (AGENTS.md).
+// single-segment /:shareCode catch-all, the public homepage keeps its legal
+// footer, the app dashboard renders none, and the user-menu drawer links to
+// both pages. The components pull in Supabase / react-query graphs, so this
+// locks each call site by raw source (AGENTS.md).
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -42,14 +43,18 @@ describe('legal routes', () => {
 });
 
 describe('homepage footer', () => {
+    // The public homepage (/) keeps its Privacy/Terms footer; the dashboard
+    // (/home) renders none — the links there live only in the user-menu
+    // drawer (below). The dashboard absence assertions fail if the footer is
+    // re-added to HomeScreen.
     it('renders LegalFooter on the public homepage', () => {
         expect(homeLanding).toContain("import LegalFooter from '../legal/LegalFooter.jsx'");
         expect(homeLanding).toContain('<LegalFooter');
     });
 
-    it('renders LegalFooter on the app dashboard', () => {
-        expect(homeScreen).toContain("import LegalFooter from '../legal/LegalFooter.jsx'");
-        expect(homeScreen).toContain('<LegalFooter');
+    it('does not render LegalFooter on the app dashboard', () => {
+        expect(homeScreen).not.toContain("import LegalFooter");
+        expect(homeScreen).not.toContain('<LegalFooter');
     });
 });
 

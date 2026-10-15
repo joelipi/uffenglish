@@ -46,6 +46,17 @@ describe('HomeLanding', () => {
         expect(q('landing-account-link').textContent).toBe('Sign In');
     });
 
+    it('renders the Privacy/Terms footer on the public homepage', () => {
+        // The public homepage (/) keeps its legal footer; the dashboard
+        // (/home) renders none — see legal-wiring.test.js.
+        render();
+        const footer = container.querySelector('[data-testid="legal-footer"]');
+        expect(footer).not.toBeNull();
+        expect(footer.tagName).toBe('FOOTER');
+        const hrefs = [...footer.querySelectorAll('a')].map((a) => a.getAttribute('href'));
+        expect(hrefs).toEqual(['/privacy', '/terms']);
+    });
+
     it('links a logged-in visitor to /home with the Home label', () => {
         render({ isLoggedIn: true });
         expect(q('landing-account-link').getAttribute('href')).toBe('/home');

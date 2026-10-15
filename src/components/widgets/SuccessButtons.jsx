@@ -38,12 +38,12 @@ export function ContinueButton({ onLoadNextLesson }) {
   };
 
   return (
-    <div className="ivp-choice-col" style={{ flex: '1 1 0', minWidth: 0 }}>
+    <div className="ivp-choice-col call-btn-primary" style={{ flex: '1 1 0', minWidth: 0 }}>
       <ChoiceLabel text={getBilingual('continue', lang)} />
       <button
         type="button"
         id="continueButtonSuccess"
-        className="btn call-btn"
+        className="btn call-btn btn-row-primary"
         onClick={handleClick}
         disabled={button.loading}
         aria-label="Continue"

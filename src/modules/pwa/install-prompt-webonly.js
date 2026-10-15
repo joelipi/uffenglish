@@ -10,7 +10,7 @@
 //    DOM.
 //
 // Intentional window/navigator access, guarded by `typeof window`.
-import { STANDALONE_DISPLAY_MODE_QUERY } from './install-prompt-logic.js';
+import { STANDALONE_DISPLAY_MODE_QUERY, isApplePlatform } from './install-prompt-logic.js';
 
 let installElement = null;
 
@@ -40,6 +40,22 @@ export function readIsStandaloneApp() {
         return window.navigator?.standalone === true;
     } catch (err) {
         console.error('[PWA] Failed to read the standalone display mode:', err);
+        return false;
+    }
+}
+
+/**
+ * True on Apple platforms (iPhone/iPad/Mac), where the install entry points
+ * use the "Add to Home Screen" wording. Any failure reads as non-Apple so
+ * the generic "Install app" wording shows rather than disappearing.
+ */
+export function readIsApplePlatform() {
+    if (typeof window === 'undefined') return false;
+    try {
+        const nav = window.navigator || {};
+        return isApplePlatform({ userAgent: nav.userAgent, platform: nav.platform });
+    } catch (err) {
+        console.error('[PWA] Failed to read the platform:', err);
         return false;
     }
 }

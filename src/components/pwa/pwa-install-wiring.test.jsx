@@ -109,11 +109,18 @@ describe('install wiring source guards', () => {
         expect(rootLayout).toContain('<PWAInstallDialog />');
     });
 
-    it('renders the entry point in the home menu with localized copy', () => {
+    it('renders the entry point in the home menu with platform-aware localized copy', () => {
         const homeScreen = read('../homescreen/HomeScreen.jsx');
         expect(homeScreen).toContain("import PWAInstallButton from '../pwa/PWAInstallButton.web.jsx'");
         expect(homeScreen).toContain('<PWAInstallButton');
-        expect(homeScreen).toContain("Strings.get('pwa_install_cta', lang)");
+        // Apple platforms see "Add to Home Screen", everyone else "Install app".
+        expect(homeScreen).toContain('selectInstallCtaKey');
+        expect(homeScreen).toContain('readIsApplePlatform');
+        // Guests never see install affordances: the menu entry is gated on a
+        // real signed-in user, like the notification opt-in below it.
+        const buttonAt = homeScreen.indexOf('<PWAInstallButton');
+        const gateAt = homeScreen.lastIndexOf("viewerId !== 'guest'", buttonAt);
+        expect(gateAt).toBeGreaterThan(-1);
     });
 
     it('keeps the heavy web component out of the home screen subtree', () => {

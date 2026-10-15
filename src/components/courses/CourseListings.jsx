@@ -1,12 +1,14 @@
 import React from 'react';
 import Strings from '../../data/strings.js';
 import FriendCoursesView from './FriendCoursesView.jsx';
+import PWAInstallBanner from '../pwa/PWAInstallBanner.web.jsx';
+import PushNotificationsOptIn from '../notifications/PushNotificationsOptIn.web.jsx';
 
 // Public course-listings page (`/courses`). Purely presentational; the
 // container loads the friend courses. Uses plain `<a href>` (not `<Link>`) for
 // the course cards so full-page navigation needs no Router context, matching
 // the profile page's anchors.
-export default function CourseListings({ lang = 'en', courses, isLoading = false, isError = false, onBack }) {
+export default function CourseListings({ lang = 'en', courses, isLoading = false, isError = false, userId = null, onBack }) {
     const containerStyle = {
         height: '100dvh',
         display: 'flex',
@@ -52,6 +54,12 @@ export default function CourseListings({ lang = 'en', courses, isLoading = false
             </div>
 
             <div data-testid="friend-courses-scroll" style={scrollStyle}>
+                {userId && userId !== 'guest' && (
+                    <>
+                        <PWAInstallBanner lang={lang} userId={userId} />
+                        <PushNotificationsOptIn lang={lang} variant="prompt" userId={userId} />
+                    </>
+                )}
                 <FriendCoursesView lang={lang} courses={courses} isLoading={isLoading} isError={isError} />
             </div>
         </div>

@@ -2,6 +2,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
     readIsStandaloneApp,
+    readIsApplePlatform,
     registerInstallElement,
     getRegisteredInstallElement,
 } from './install-prompt-webonly.js';
@@ -34,6 +35,29 @@ describe('readIsStandaloneApp', () => {
         const error = vi.spyOn(console, 'error').mockImplementation(() => {});
         window.matchMedia = () => { throw new Error('media query exploded'); };
         expect(readIsStandaloneApp()).toBe(false);
+        expect(error).toHaveBeenCalled();
+    });
+});
+
+describe('readIsApplePlatform', () => {
+    const setNavigator = ({ userAgent = '', platform = '' } = {}) => {
+        Object.defineProperty(window.navigator, 'userAgent', { value: userAgent, configurable: true });
+        Object.defineProperty(window.navigator, 'platform', { value: platform, configurable: true });
+    };
+
+    it('reads true on iPhone and desktop Mac', () => {
+        setNavigator({ userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)', platform: 'iPhone' });
+        expect(readIsApplePlatform()).toBe(true);
+        setNavigator({ userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)', platform: 'MacIntel' });
+        expect(readIsApplePlatform()).toBe(true);
+    });
+
+    it('reads false on Android/Windows and fails closed on error', () => {
+        setNavigator({ userAgent: 'Mozilla/5.0 (Linux; Android 14; Pixel 8)', platform: 'Linux armv8l' });
+        expect(readIsApplePlatform()).toBe(false);
+        const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+        Object.defineProperty(window.navigator, 'platform', { get() { throw new Error('nav exploded'); }, configurable: true });
+        expect(readIsApplePlatform()).toBe(false);
         expect(error).toHaveBeenCalled();
     });
 });

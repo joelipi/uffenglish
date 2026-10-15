@@ -1324,20 +1324,17 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
     text-shadow: 0 1px 3px rgba(0, 0, 0, 0.65);
 }
 
-/* Only Share glows — Replay and Continue stay flat so the primary action stands
-   out (same idea as the disabled glow on #replayBtn / #tutorialBtn). */
+/* Only Replay stays flat so the Share and Continue actions stand out
+   (same idea as the disabled glow on #replayBtn / #tutorialBtn). */
 #state-lesson-success #repeatButtonSuccess,
-#state-lesson-success #repeatButtonSuccess::before,
-#state-lesson-success #continueButtonSuccess,
-#state-lesson-success #continueButtonSuccess::before {
+#state-lesson-success #repeatButtonSuccess::before {
     animation: none !important;
 }
-#state-lesson-success #repeatButtonSuccess::before,
-#state-lesson-success #continueButtonSuccess::before {
+#state-lesson-success #repeatButtonSuccess::before {
     box-shadow: none !important;
 }
 
-/* Share is the primary action — bigger than Replay and Continue. */
+/* Share and Continue are the primary actions — bigger than Replay. */
 #state-lesson-success .call-btn-primary .call-btn {
     width: 76px;
     height: 76px;
@@ -2728,4 +2725,68 @@ ul.incorrectWords li::before {
     transform: scale(0.99);
     color: var(--uff-btn-fg);
     background-color: var(--uff-btn-bg);
+}
+
+/* =========================================
+   VIDEO SPEED TOGGLE (speedometer pill)
+   Overlay pill on the non-interactive video surfaces that lack a scrubber
+   row (TutorialModal, PlaybackVideo, SuccessVideo, and SimpleVideoPlayer
+   before metadata loads): SimpleVideoPlayer seats it inline in the
+   scrubber row instead (see .video-speed-toggle-inline below).
+   InteractiveVideoPlayer is deliberately excluded (its playbackRate is
+   scoring-coupled).
+   Top-anchored at 20% of the frame: the lesson header paints ABOVE this
+   toggle (top-overlay content z-index 35, header blur z-index 34, toggle
+   z-index 30), so the pill must sit clear below them — the header reaches
+   18.5% on branching steps (VIDEO_HEADER_RATIO) and the stats cluster
+   covers the top ~52px. At 20% the pill clears both and stays tappable.
+   ========================================= */
+.video-speed-toggle {
+    position: absolute;
+    top: calc(20% + env(safe-area-inset-top, 0px));
+    right: 12px;
+    z-index: 30;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 9999px;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    pointer-events: auto;
+}
+
+.video-speed-toggle-active {
+    background: rgba(58, 143, 213, 0.85);
+    border-color: rgba(255, 255, 255, 0.7);
+}
+
+/* White speedometer glyph — inherits the pill's white color like every
+   other app icon (bootstrap-icons ships no snail). */
+.video-speed-toggle-icon {
+    font-size: 16px;
+    line-height: 1;
+    display: inline-flex;
+}
+
+/* Inline variant: a flex child of the SimpleVideoPlayer scrubber row
+   (same line as the scrubber, to its right) instead of an overlay. It
+   inherits the scrubber's stacking, so under a decision-phase click-block
+   it is covered like the scrubber itself — intended, the clip is gated
+   there anyway. */
+.video-speed-toggle-inline {
+    position: static;
+    padding: 4px 10px;
+    flex-shrink: 0;
+}
+
+.video-speed-toggle-label {
+    font-variant-numeric: tabular-nums;
+    min-width: 2.2em;
+    text-align: center;
 }
