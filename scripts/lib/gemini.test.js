@@ -117,6 +117,43 @@ describe('geminiJson retry (free-tier throttling)', () => {
         expect(fetchImpl).toHaveBeenCalledTimes(2);
     });
 
+    it('retries a dropped connection, then succeeds', async () => {
+        const waits = [];
+        const sleepImpl = vi.fn(async (ms) => { waits.push(ms); });
+        let calls = 0;
+        const fetchImpl = vi.fn(async () => {
+            calls++;
+            if (calls === 1) throw new Error('socket hang up');
+            return okBlob({ ok: true });
+        });
+        const seen = [];
+        const out = await geminiJson({
+            apiKey: 'k', system: 's', user: 'u', fetchImpl, sleepImpl,
+            onRetry: (info) => seen.push(info),
+        });
+        expect(out).toEqual({ ok: true });
+        expect(fetchImpl).toHaveBeenCalledTimes(2);
+        expect(waits).toEqual([5000]);
+        expect(seen).toEqual([{ attempt: 1, status: 0, waitMs: 5000 }]);
+    });
+
+    it('gives up on repeated transport failures with an attempt count', async () => {
+        const fetchImpl = vi.fn(async () => { throw new Error('DNS reset'); });
+        await expect(geminiJson({ apiKey: 'k', system: 's', user: 'u', fetchImpl, sleepImpl: noSleep, maxAttempts: 2 }))
+            .rejects.toThrow(/after 2 attempt\(s\): DNS reset/);
+        expect(fetchImpl).toHaveBeenCalledTimes(2);
+    });
+
+    it('caps exponential backoff at 60s', async () => {
+        const waits = [];
+        const sleepImpl = vi.fn(async (ms) => { waits.push(ms); });
+        const fetchImpl = vi.fn(async () => ({ ok: false, status: 503, text: async () => 'busy' }));
+        await expect(geminiJson({ apiKey: 'k', system: 's', user: 'u', fetchImpl, sleepImpl, maxAttempts: 7 }))
+            .rejects.toThrow(/Gemini HTTP 503/);
+        expect(fetchImpl).toHaveBeenCalledTimes(7);
+        expect(waits).toEqual([5000, 10000, 20000, 40000, 60000, 60000]);
+    });
+
     it('reports each retry through onRetry', async () => {
         const seen = [];
         let calls = 0;
@@ -130,6 +167,19 @@ describe('geminiJson retry (free-tier throttling)', () => {
             onRetry: (info) => seen.push(info),
         });
         expect(seen).toEqual([{ attempt: 1, status: 429, waitMs: 5000 }]);
+    });
+
+    it('reads a Title-cased plain-object Retry-After', async () => {
+        const waits = [];
+        const sleepImpl = vi.fn(async (ms) => { waits.push(ms); });
+        let calls = 0;
+        const fetchImpl = vi.fn(async () => {
+            calls++;
+            if (calls === 1) return { ok: false, status: 429, headers: { 'Retry-After': '4' }, text: async () => 'slow' };
+            return okBlob({ ok: true });
+        });
+        await geminiJson({ apiKey: 'k', system: 's', user: 'u', fetchImpl, sleepImpl });
+        expect(waits).toEqual([4000]);
     });
 
     it('retryAfterMs parses delta-seconds, caps, and rejects garbage', () => {

@@ -31,6 +31,10 @@ const FORBIDDEN = [
     'gid=242913338',
 ];
 
+// Any other GOOGLE_* name is forbidden — except the live translation secret,
+// which is pinned positively by its own test below.
+const FORBIDDEN_PATTERNS = [/GOOGLE_(?!API_KEY)\w*/];
+
 function listFiles(dir, exts) {
     const out = [];
     const walk = (d) => {
@@ -66,7 +70,12 @@ function scannedFiles() {
 
 /** `file -> forbidden tokens present`, over raw text. */
 function scanFile(file, text = readFileSync(file, 'utf8')) {
-    return FORBIDDEN.filter((token) => text.includes(token));
+    const hits = FORBIDDEN.filter((token) => text.includes(token));
+    for (const pattern of FORBIDDEN_PATTERNS) {
+        const match = text.match(pattern);
+        if (match) hits.push(match[0]);
+    }
+    return hits;
 }
 
 describe('no Google Sheets references on the shipped surface', () => {
@@ -97,6 +106,10 @@ describe('no Google Sheets references on the shipped surface', () => {
             const hits = scanFile(victim, `${clean}\n// ${token}\n`);
             expect(hits, token).toContain(token);
         }
+        // A future GOOGLE_FOO secret trips the pattern; the live translation
+        // secret does not (it is pinned positively below).
+        expect(scanFile(victim, `${clean}\n// GOOGLE_FOO\n`)).toContain('GOOGLE_FOO');
+        expect(scanFile(victim, `${clean}\n// GOOGLE_API_KEY\n`)).toEqual([]);
     });
 });
 

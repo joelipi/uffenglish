@@ -58,7 +58,7 @@ export function retryAfterMs(value) {
  * @param {typeof fetch} [opts.fetchImpl]
  * @param {number} [opts.maxAttempts] total tries including the first (default 5)
  * @param {(ms: number) => Promise<void>} [opts.sleepImpl] injectable clock
- * @param {(info: {attempt: number, status: number, waitMs: number}) => void} [opts.onRetry]
+ * @param {(info: {attempt: number, status: number, waitMs: number}) => void} [opts.onRetry] (`status` 0 = transport failure)
  * @returns {Promise<object>} the parsed JSON content
  */
 export async function geminiJson({
@@ -67,30 +67,45 @@ export async function geminiJson({
 } = {}) {
     if (!apiKey) throw new Error('GOOGLE_API_KEY is not set');
     let attempt = 0;
-    // Header switch for tests: response may carry headers as a plain object
-    // (`{ 'retry-after': '3' }`) or a Headers-like with `.get`.
+    // Header lookup tolerating both shapes: a Headers-like with `.get`
+    // (case-insensitive per spec) or a plain object with any casing.
     const headerOf = (response, name) => {
         const headers = response?.headers;
         if (!headers) return undefined;
         if (typeof headers.get === 'function') {
             try { return headers.get(name); } catch { return undefined; }
         }
-        return headers[name] ?? headers[name.toLowerCase()];
+        const lower = {};
+        for (const key of Object.keys(headers)) lower[String(key).toLowerCase()] = headers[key];
+        return lower[String(name).toLowerCase()];
     };
     for (;;) {
         attempt++;
-        const res = await fetchImpl(GEMINI_URL, {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                model: GEMINI_MODEL,
-                response_format: { type: 'json_object' },
-                messages: [
-                    { role: 'system', content: system },
-                    { role: 'user', content: user },
-                ],
-            }),
-        });
+        let res;
+        try {
+            res = await fetchImpl(GEMINI_URL, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model: GEMINI_MODEL,
+                    response_format: { type: 'json_object' },
+                    messages: [
+                        { role: 'system', content: system },
+                        { role: 'user', content: user },
+                    ],
+                }),
+            });
+        } catch (err) {
+            // Transport failure (DNS reset, dropped connection): same backoff
+            // as a throttled response — a bulk job must not die on one blip.
+            if (attempt >= maxAttempts) {
+                throw new Error(`Gemini fetch failed after ${attempt} attempt(s): ${err.message}`);
+            }
+            const waitMs = Math.min(RETRY_BASE_MS * 2 ** (attempt - 1), RETRY_CAP_MS);
+            onRetry({ attempt, status: 0, waitMs });
+            await sleepImpl(waitMs);
+            continue;
+        }
         const text = await res.text();
         if (res.ok) {
             let data;
@@ -108,7 +123,8 @@ export async function geminiJson({
             }
         }
         if (!isRetryableStatus(res.status) || attempt >= maxAttempts) {
-            throw new Error(`Gemini HTTP ${res.status}: ${text.slice(0, 300)}`);
+            const tries = `after ${attempt} attempt(s)`;
+            throw new Error(`Gemini HTTP ${res.status} ${tries}: ${text.slice(0, 300)}`);
         }
         const waitMs = retryAfterMs(headerOf(res, 'retry-after'))
             ?? Math.min(RETRY_BASE_MS * 2 ** (attempt - 1), RETRY_CAP_MS);
@@ -161,6 +177,6 @@ export async function translateSrt(englishSrt, lang, { fetchImpl, apiKey, sleepI
         'Preserve cue numbers and timestamps exactly; translate only the subtitle text. ' +
         TAUGHT_PHRASE_INSTRUCTION;
     const parsed = await geminiJson({ apiKey: resolveApiKey(apiKey), system, user: englishSrt, fetchImpl, sleepImpl, onRetry });
-    if (!parsed.srt) throw new Error('Gemini response missing "srt" key');
+    if (typeof parsed.srt !== 'string') throw new Error('Gemini response missing "srt" key');
     return parsed.srt;
 }
