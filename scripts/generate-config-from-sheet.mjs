@@ -43,7 +43,9 @@ Options:
   --csv=<path>          Master CSV file (default: the committed public/wouldyourather.master.csv)
   --require-videos      Skip a course whole until every one of its steps
                         carries an srt (i.e. every step rendered+published);
-                        friend clips and authoring-shape courses never block
+                        friend clips, authoring-shape courses, and intro_video
+                        slugs (which reuse an already-gated step video) never
+                        block
   --dry-run             Print the plan; write nothing
   --check               CI mode: skips are non-fatal (exit 0); still writes the rest
   --help, -h            Show this help
@@ -90,6 +92,9 @@ export async function generateConfigsFromRows({
 
     let wrote = 0;
     let skipped = 0;
+    // Recomputed here (buildCourseConfigs partitions internally too): the
+    // builder stays pure and untouched, and the lookup below stays consistent
+    // under --course filtering because the map covers the full row set.
     const partitionsByCourse = new Map(partitionRowsByCourse(rows).map((p) => [p.courseId, p.rows]));
 
     for (const result of results) {
@@ -115,13 +120,15 @@ export async function generateConfigsFromRows({
         // With --require-videos a course waits until every step rendered: a
         // step without an `srt` has no published video yet, so no config is
         // created or pushed for it. Friend clips and authoring-shape courses
-        // never block (their subtitles need no render).
+        // never block (their subtitles need no render), and neither do
+        // `intro_video` slugs (the lessonIntro step reuses an already-gated
+        // step video).
         if (requireVideos) {
-            const partition = partitionsByCourse.get(courseId) || [];
+            const partition = partitionsByCourse.get(courseId) ?? [];
             const pending = incompleteVideoSteps(partition);
             if (pending.length > 0) {
                 skipped++;
-                errorLog(`SKIP course "${courseId}": videos pending for ${pending.length} step(s): ${pendingReport(pending)}`);
+                errorLog(`SKIP course "${courseId}": videos pending for ${new Set(pending.map((p) => p.key)).size} step(s): ${pendingReport(pending)}`);
                 continue;
             }
         }

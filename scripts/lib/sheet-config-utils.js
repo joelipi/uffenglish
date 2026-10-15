@@ -996,7 +996,10 @@ export function findMissingColumns(rows) {
  * - friend/UGC steps (`{friendCode}` keys carry burned-in captions, never `srt`),
  * - rows with a blank `lesson_id` (unattributable to any lesson),
  * - authoring-shape courses entirely (their subtitles come from
- *   `subtitle_text`, which needs no render).
+ *   `subtitle_text`, which needs no render),
+ * - `intro_video` slugs (the synthesized lessonIntro step reuses an
+ *   already-gated step video — `sourceToRows` points it at the lesson's first
+ *   video — so no independent render ever owes it an `srt`).
  * Pure; returns `[{ lesson, key }]` in first-seen order.
  */
 export function incompleteVideoSteps(rows) {

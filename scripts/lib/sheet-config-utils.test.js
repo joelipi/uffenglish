@@ -1393,3 +1393,45 @@ describe('serializeWithHeaderLine (header-casing-preserving rewrites)', () => { 
         expect(serializeWithHeaderLine(rawHeaderLine(text), headers, rows)).toBe(text);
     });
 });
+
+describe('incompleteVideoSteps (render completeness gate)', () => {
+    const ROW = (over = {}) => ({
+        course_id: 'c', course_name: 'C', lesson_id: 'a', lesson_title: 'A',
+        response_type: 'friendClosedResponse', order: '1', phrase: 'Q',
+        video_file: 'v', filename: 'f', ...over,
+    });
+
+    it('returns [] when every step carries an srt', () => {
+        const rows = [ROW({ video_file: 'v1', filename: 'f1', srt: 'S1' }), ROW({ video_file: 'v2', filename: 'f2', srt: 'S2' })];
+        expect(incompleteVideoSteps(rows)).toEqual([]);
+    });
+
+    it('reports steps lacking srt with lesson and key', () => {
+        const rows = [ROW({ video_file: 'v1', filename: 'f1', srt: 'S1' }), ROW({ video_file: 'v2', filename: 'f2', srt: '' })];
+        expect(incompleteVideoSteps(rows)).toEqual([{ lesson: 'a', key: 'v2' }]);
+    });
+
+    it('groups by join like the builder (one srt covers the joined step)', () => {
+        const rows = [
+            ROW({ join: 'j', video_file: 'v1', filename: 'f1', srt: '' }),
+            ROW({ join: 'j', video_file: 'v2', filename: 'f2', srt: 'S' }),
+        ];
+        expect(incompleteVideoSteps(rows)).toEqual([]);
+    });
+
+    it('ignores success rows, friend clips, and blank-lesson rows', () => {
+        const rows = [
+            ROW({ video_file: 'ok', filename: 'ok1', srt: 'S' }),
+            ROW({ video_file: 'sv', filename: 'sv1', response_type: 'success', srt: '' }),
+            ROW({ video_file: '{friendCode}x', filename: '', srt: '' }),
+            ROW({ video_file: 'loose', filename: 'loose1', lesson_id: '', srt: '' }),
+        ];
+        expect(incompleteVideoSteps(rows)).toEqual([]);
+    });
+
+    it('returns [] for authoring shape and for empty input', () => {
+        const authoring = [{ course_id: 'c', lesson_id: 'a', video_file: 'v', filename: 'f', cue: 'Q', response_type: 'viewAndContinue', order: '1' }];
+        expect(incompleteVideoSteps(authoring)).toEqual([]);
+        expect(incompleteVideoSteps([])).toEqual([]);
+    });
+});
