@@ -4,7 +4,9 @@
 // never see install affordances; installed users get the notification prompt
 // instead). Render-only: every gate lives in install-prompt-logic.js, the
 // browser is read through install-prompt-webonly.js, and tapping the banner
-// opens the same <pwa-install> dialog as the menu entry point.
+// opens the same <pwa-install> dialog as the menu entry point. It renders the
+// standard primary CTA (btn-primary + glow/pulse) inlined in the banner, not a
+// hand-rolled style.
 import React from 'react';
 import Strings from '../../data/strings.js';
 import {
@@ -25,17 +27,15 @@ const BANNER_STYLE = {
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: '8px',
+    gap: '12px',
     width: '100%',
     minHeight: '25dvh',
     padding: '20px 16px',
-    border: 'none',
     borderBottom: '2px solid #00c0d8',
     background: 'linear-gradient(135deg, #7a1f1f 0%, #3a0f2a 100%)',
     color: 'white',
     fontFamily: "'Inter', 'Plus Jakarta Sans', sans-serif",
     textAlign: 'center',
-    cursor: 'pointer',
 };
 
 export default function PWAInstallBanner({ lang = 'en', userId = null }) {
@@ -50,31 +50,25 @@ export default function PWAInstallBanner({ lang = 'en', userId = null }) {
     };
 
     return (
-        <button type="button" data-testid="pwa-install-banner" onClick={handleTap} style={BANNER_STYLE}>
-            <span style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '0.5px' }}>
-                {Strings.get('pwa_banner_title', lang)}
-            </span>
-            <span style={{ fontSize: '16px', fontWeight: 600, lineHeight: 1.5 }}>
-                {Strings.get(selectInstallBannerBodyKey({ isApple }), lang)}
-            </span>
-            <span
-                role="button"
+        <div data-testid="pwa-install-banner" style={BANNER_STYLE}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <div style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '0.5px' }}>
+                    {Strings.get('pwa_banner_title', lang)}
+                </div>
+                <div style={{ fontSize: '16px', fontWeight: 600, lineHeight: 1.5, whiteSpace: 'pre-line' }}>
+                    {Strings.get(selectInstallBannerBodyKey({ isApple }), lang)}
+                </div>
+            </div>
+            <button
+                type="button"
                 data-testid="pwa-install-banner-button"
-                style={{
-                    marginTop: '12px',
-                    padding: '10px 22px',
-                    borderRadius: '10px',
-                    background: 'rgba(255,255,255,0.18)',
-                    border: '1px solid rgba(255,255,255,0.6)',
-                    color: 'white',
-                    fontWeight: 700,
-                    fontSize: '15px',
-                    letterSpacing: '0.3px',
-                }}
+                className="btn btn-primary btn-lg"
+                style={{ marginTop: '12px' }}
+                onClick={handleTap}
             >
                 <i className="bi bi-download" aria-hidden="true" style={{ marginRight: '8px' }}></i>
                 {Strings.get(selectInstallCtaKey({ isApple }), lang)}
-            </span>
-        </button>
+            </button>
+        </div>
     );
 }
