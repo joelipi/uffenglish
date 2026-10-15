@@ -162,13 +162,17 @@ export function rowsToCsv(rows) {
 
 /**
  * The carry-over key for a master row: takes are keyed by `filename`, every
- * other row (reuse rows, branching rows) by step + phrase. Takes and non-takes
- * live in separate key spaces so a take can never inherit a reuse row's cells.
+ * other row (reuse rows, branching rows) by lesson + step + phrase. Takes and
+ * non-takes live in separate key spaces so a take can never inherit a reuse
+ * row's cells, and the lesson qualifier keeps identical video+phrase reuse
+ * rows in different lessons from colliding.
  */
 export function translationCarryKey(row) {
     const filename = String(row?.filename ?? '').trim();
     if (filename) return `file:${filename}`;
-    return `step:${String(row?.video_file ?? '').trim()}\0${String(row?.phrase ?? '').trim()}`;
+    const lesson = String(row?.lesson_id ?? '').trim();
+    const videoFile = String(row?.video_file ?? '').trim();
+    return `step:${lesson}\0${videoFile}\0${String(row?.phrase ?? '').trim()}`;
 }
 
 // Every localizable cell and the English source column it follows: the generic
@@ -199,44 +203,101 @@ function groupRowsBySrtStep(rows) {
 }
 
 /**
+ * The cue phrases the render actually consumes for one step's rows: trimmed,
+ * non-blank phrases in `Order` order within each `video_file` sub-group,
+ * sub-groups concatenated in first-seen order. Mirrors `masterCueFor` /
+ * `sortByOrder` (`scripts/lib/sheet-config-utils.js`) — the SRT is timed
+ * against exactly this sequence, so the carry comparison must use it too (a
+ * bare array-order compare would miss an `Order`-column retiming).
+ */
+function stepCueProjection(stepRows) {
+    const subOrder = [];
+    const subs = new Map();
+    for (const row of stepRows) {
+        const vf = String(row?.video_file ?? '').trim();
+        if (!subs.has(vf)) { subs.set(vf, []); subOrder.push(vf); }
+        subs.get(vf).push(row);
+    }
+    const out = [];
+    for (const vf of subOrder) {
+        const sorted = subs.get(vf)
+            .map((row, index) => ({ row, index, order: Number(String(row?.order ?? '').trim()) }))
+            .sort((a, b) => (a.order - b.order) || (a.index - b.index));
+        for (const { row } of sorted) {
+            const phrase = String(row?.phrase ?? '').trim();
+            if (phrase) out.push(phrase);
+        }
+    }
+    return out;
+}
+
+/**
  * Step-level English `srt` carry (runs before the per-row translation pass).
- * The render computes one SRT per step from that step's ordered phrases, so a
- * stored `srt` stays valid **iff** the step's ordered phrase list is
- * byte-identical between the committed and regenerated rows — a reworded,
- * added, removed, or reordered phrase retimes the concatenation and must blank
- * the cell for the next render (the `--require-videos` gate then holds the
- * course until it re-renders). Steps absent from either side, and steps whose
- * stored `srt` is blank, carry nothing. Pure; returns new row objects.
+ * The render computes one SRT per step from that step's cue projection (see
+ * `stepCueProjection`), so a stored `srt` stays valid **iff** the projection
+ * is byte-identical between the committed and regenerated rows — a reworded,
+ * added, removed, reordered, or `Order`-retimed step blanks the cell for the
+ * next render (the `--require-videos` gate then holds the course until it
+ * re-renders). Steps absent from either side carry nothing. A committed step
+ * holding divergent `srt` values across its rows (manual edit, partial
+ * re-render) is treated as corrupt and blanks rather than picking one
+ * silently. Returns the rows, the filled-cell count, and the set of step keys
+ * whose `srt` was kept (so the translation pass can gate `srt_<lang>` on the
+ * same step verdict instead of per-row `srt` equality, keeping English and
+ * translation an atomic pair). Pure; inputs untouched.
  */
 function carryStepSrt(prevRows, nextRows) {
     const prevGrouped = groupRowsBySrtStep(prevRows);
     const nextGrouped = groupRowsBySrtStep(nextRows);
     const prevSrt = new Map();
-    const prevPhrases = new Map();
+    const prevCues = new Map();
     for (const [key, rows] of prevGrouped.groups) {
-        prevPhrases.set(key, rows.map((r) => String(r?.phrase ?? '')));
+        prevCues.set(key, stepCueProjection(rows));
+        const values = new Set();
         for (const r of rows) {
-            if (String(r?.srt ?? '').trim()) { prevSrt.set(key, String(r.srt)); break; }
+            const v = String(r?.srt ?? '');
+            if (v.trim()) values.add(v);
         }
+        // Exactly one distinct SRT: keep it. Zero, or divergent manual edits:
+        // carry nothing (fail-closed).
+        if (values.size === 1) prevSrt.set(key, [...values][0]);
     }
     const groupOf = new Map();
     for (const [key, rows] of nextGrouped.groups) {
         for (const r of rows) groupOf.set(r, key);
     }
+    const nextCues = new Map();
+    for (const [key, rows] of nextGrouped.groups) {
+        nextCues.set(key, stepCueProjection(rows));
+    }
     let carried = 0;
+    const keptKeys = new Set();
+    const fillSrt = new Map();
+    for (const [key, rows] of nextGrouped.groups) {
+        const srt = prevSrt.get(key);
+        if (!srt) continue;
+        const prevCue = prevCues.get(key) || [];
+        const nextCue = nextCues.get(key) || [];
+        if (prevCue.length !== nextCue.length) continue;
+        if (!prevCue.every((p, i) => p === nextCue[i])) continue;
+        // The kept step must already be uniform: every non-blank English cell
+        // agrees with the carried value. A divergent cell stays untouched and
+        // the step is not kept (its translations drop below).
+        if (!rows.every((r) => {
+            const v = String(r?.srt ?? '').trim();
+            return !v || v === srt;
+        })) continue;
+        fillSrt.set(key, srt);
+        keptKeys.add(key);
+    }
     const out = (nextRows || []).map((row) => {
         const key = groupOf.get(row);
-        if (!key || String(row?.srt ?? '').trim()) return { ...row };
-        const srt = prevSrt.get(key);
-        if (!srt) return { ...row };
-        const nextPhrases = nextGrouped.groups.get(key).map((r) => String(r?.phrase ?? ''));
-        const prevPh = prevPhrases.get(key);
-        if (!prevPh || prevPh.length !== nextPhrases.length) return { ...row };
-        if (!prevPh.every((p, i) => p === nextPhrases[i])) return { ...row };
+        const srt = key ? fillSrt.get(key) : undefined;
+        if (!srt || String(row?.srt ?? '').trim()) return { ...row };
         carried++;
         return { ...row, srt };
     });
-    return { rows: out, carried };
+    return { rows: out, carried, keptKeys };
 }
 
 /**
@@ -262,15 +323,31 @@ export function carryOverTranslations(prevRows, nextRows) {
         const key = translationCarryKey(row);
         if (!prevByKey.has(key)) prevByKey.set(key, row);
     }
+    const stepOf = new Map();
+    {
+        const grouped = groupRowsBySrtStep(stepped.rows);
+        for (const [key, rows] of grouped.groups) {
+            for (const r of rows) stepOf.set(r, key);
+        }
+    }
     let carried = stepped.carried;
     const rows = stepped.rows.map((row) => {
         const prev = prevByKey.get(translationCarryKey(row));
         if (!prev) return { ...row };
         const next = { ...row };
+        const stepKey = stepOf.get(row);
         for (const { field, source } of CARRY_SOURCES) {
-            // The English source must be byte-identical — a reworded source
-            // invalidates the stored translation by design.
-            if (String(prev[source] ?? '') !== String(next[source] ?? '')) continue;
+            if (field === 'srt') {
+                // Step verdict, not per-row English equality: the whole step
+                // kept or lost its English together, so the translation
+                // follows atomically (never a carried English with a dropped
+                // translation, or vice versa, within one step).
+                if (!stepped.keptKeys.has(stepKey)) continue;
+            } else if (String(prev[source] ?? '') !== String(next[source] ?? '')) {
+                // The English source must be byte-identical — a reworded
+                // source invalidates the stored translation by design.
+                continue;
+            }
             for (const lang of SHEET_LANGUAGES) {
                 const target = localizedColumn(field, lang);
                 const prevValue = String(prev[target] ?? '');

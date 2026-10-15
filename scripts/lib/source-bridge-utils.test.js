@@ -261,6 +261,71 @@ describe('carryOverTranslations', () => {
         expect(carried).toBe(0);
     });
 
+    it('blanks a step srt when only the Order column changes', () => {
+        const prev = [
+            { course_id: 'c', lesson_id: 'a', video_file: 'v', filename: 'f1', order: '1', phrase: 'one', srt: 'S' },
+            { course_id: 'c', lesson_id: 'a', video_file: 'v', filename: 'f2', order: '2', phrase: 'two', srt: 'S' },
+        ];
+        const next = prev.map((r) => ({ ...r, srt: '' }));
+        next[0].order = '2';
+        next[1].order = '1';
+        const { rows } = carryOverTranslations(prev, next);
+        expect(rows.every((r) => r.srt === '')).toBe(true);
+    });
+
+    it('keeps step srt across whitespace-only phrase edits', () => {
+        const prev = [
+            { course_id: 'c', lesson_id: 'a', video_file: 'v', filename: 'f1', order: '1', phrase: 'Q? ', srt: 'S' },
+        ];
+        const next = [{ ...prev[0], phrase: 'Q?', srt: '' }];
+        const { rows } = carryOverTranslations(prev, next);
+        expect(rows[0].srt).toBe('S');
+    });
+
+    it('keeps per-row translations lesson-scoped for identical reuse rows', () => {
+        const prev = [
+            { course_id: 'c', lesson_id: 'a', video_file: 'v', filename: '', phrase: 'Q', srt: 'S', srt_es: 'ES-A' },
+            { course_id: 'c', lesson_id: 'b', video_file: 'v', filename: '', phrase: 'Q', srt: 'S', srt_es: 'ES-B' },
+        ];
+        const next = prev.map((r) => ({ ...r, srt: '', srt_es: '' }));
+        const { rows } = carryOverTranslations(prev, next);
+        expect(rows[0].srt_es).toBe('ES-A');
+        expect(rows[1].srt_es).toBe('ES-B');
+    });
+
+    it('blanks a step whose committed srt diverges across rows', () => {        const prev = [
+            { course_id: 'c', lesson_id: 'a', video_file: 'v', filename: 'f1', order: '1', phrase: 'Q1', srt: 'S1' },
+            { course_id: 'c', lesson_id: 'a', video_file: 'v', filename: 'f2', order: '2', phrase: 'Q2', srt: 'S2' },
+        ];
+        const next = prev.map((r) => ({ ...r, srt: '' }));
+        const { rows } = carryOverTranslations(prev, next);
+        expect(rows.every((r) => r.srt === '')).toBe(true);
+    });
+
+    it('keeps translations when the English srt was already present and uniform', () => {
+        // Idempotent regeneration: nothing to fill, nothing dropped.
+        const base = [
+            { course_id: 'c', lesson_id: 'a', video_file: 'v', filename: 'f1', order: '1', phrase: 'Q1', srt: 'S', srt_es: 'ES' },
+            { course_id: 'c', lesson_id: 'a', video_file: 'v', filename: 'f2', order: '2', phrase: 'Q2', srt: 'S', srt_es: 'ES2' },
+        ];
+        const { rows, carried } = carryOverTranslations(base, base.map((r) => ({ ...r })));
+        expect(rows[0].srt_es).toBe('ES');
+        expect(rows[1].srt_es).toBe('ES2');
+        expect(carried).toBe(0);
+    });
+
+    it('drops translations when the next English srt diverges mid-step (cells left untouched)', () => {
+        const prev = [
+            { course_id: 'c', lesson_id: 'a', video_file: 'v', filename: 'f1', order: '1', phrase: 'Q1', srt: 'S', srt_es: 'ES' },
+            { course_id: 'c', lesson_id: 'a', video_file: 'v', filename: 'f2', order: '2', phrase: 'Q2', srt: 'S', srt_es: 'ES' },
+        ];
+        const next = prev.map((r) => ({ ...r, srt: '', srt_es: '' }));
+        next[1].srt = 'OTHER';
+        const { rows } = carryOverTranslations(prev, next);
+        expect(rows.every((r) => (r.srt_es || '') === '')).toBe(true);
+        expect(rows[1].srt).toBe('OTHER');
+    });
+
     it('carries step srt onto blank-phrase rows of an unchanged step', () => {
         const prev = [
             { course_id: 'c', lesson_id: 'a', video_file: 'v', filename: 'f1', phrase: 'Q', srt: 'S' },
