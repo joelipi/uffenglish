@@ -221,10 +221,10 @@ describe('carryOverTranslations', () => {
         const take = rows.find((r) => r.filename === 'demo-a-01-01');
         expect(take.phrase_es).toBe('ES:Q1?');
         expect(take.lesson_title_es).toBe('ES:Ask things');
-        // The bridge never emits `srt`, so the committed English cell always
-        // differs from the regenerated one — srt_es never carries (the
-        // translator refills it after the render writes the fresh SRT).
-        expect(take.srt_es).toBe('');
+        // The step is unchanged, so the step-level pass restores its English
+        // srt first — and the per-row pass then carries the matching srt_es.
+        expect(take.srt).toBe('1\\n00:00 --> 00:01\\nHi');
+        expect(take.srt_es).toBe('1\n00:00 --> 00:01\nHola');
         expect(carried).toBeGreaterThan(0);
     });
 
@@ -237,6 +237,46 @@ describe('carryOverTranslations', () => {
         const { rows } = carryOverTranslations(prev, sameSrt);
         expect(rows.find((r) => r.filename === 'demo-a-01-01').srt_es)
             .toBe('1\n00:00 --> 00:01\nHola');
+    });
+
+    it('blanks a step srt when one phrase is reworded (retimes the step)', () => {
+        const prev = translated(sourceToRows(SOURCE)).map((r) => ({ ...r }));
+        const changed = structuredClone(SOURCE);
+        changed.pairs[0].topics[0].question[1] = 'Reworded second line?';
+        const { rows } = carryOverTranslations(prev, sourceToRows(changed));
+        const step = rows.filter((r) => r.video_file === 'demo-a-01');
+        expect(step.every((r) => r.srt === '')).toBe(true);
+        expect(step.every((r) => (r.srt_es || '') === '')).toBe(true);
+    });
+
+    it('blanks a step srt when take order changes (retimes the step)', () => {
+        const mk = (phrases, srt) => phrases.map((phrase, i) => ({
+            course_id: 'c', lesson_id: 'a', video_file: 'v',
+            filename: `f${i}`, order: String(i + 1), phrase, srt,
+        }));
+        const prev = mk(['one', 'two'], 'S');
+        const next = mk(['two', 'one'], '');
+        const { rows, carried } = carryOverTranslations(prev, next);
+        expect(rows.every((r) => r.srt === '')).toBe(true);
+        expect(carried).toBe(0);
+    });
+
+    it('carries step srt onto blank-phrase rows of an unchanged step', () => {
+        const prev = [
+            { course_id: 'c', lesson_id: 'a', video_file: 'v', filename: 'f1', phrase: 'Q', srt: 'S' },
+            { course_id: 'c', lesson_id: 'a', video_file: 'v', filename: '', phrase: '', srt: 'S' },
+        ];
+        const next = [
+            { course_id: 'c', lesson_id: 'a', video_file: 'v', filename: 'f1', phrase: 'Q', srt: '' },
+            { course_id: 'c', lesson_id: 'a', video_file: 'v', filename: '', phrase: '', srt: '' },
+        ];
+        const { rows } = carryOverTranslations(prev, next);
+        expect(rows.map((r) => r.srt)).toEqual(['S', 'S']);
+    });
+
+    it('leaves srt blank for steps with no previous match', () => {
+        const { rows } = carryOverTranslations([], sourceToRows(SOURCE));
+        expect(rows.every((r) => (r.srt || '') === '')).toBe(true);
     });
 
     it('does not carry when the English source changed (translator refills the blank)', () => {

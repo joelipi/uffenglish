@@ -179,11 +179,76 @@ const CARRY_SOURCES = [
 ];
 
 /**
+ * Group rows into render steps: `join` else `video_file`, qualified by lesson
+ * (the same grouping the generator builds config steps from). Rows with
+ * neither key define no step and are skipped.
+ */
+function groupRowsBySrtStep(rows) {
+    const order = [];
+    const groups = new Map();
+    for (const row of rows || []) {
+        const join = String(row?.join ?? '').trim();
+        const videoFile = String(row?.video_file ?? '').trim();
+        const key = join || videoFile;
+        if (!key) continue;
+        const stepKey = `${String(row?.lesson_id ?? '').trim()}\0${key}`;
+        if (!groups.has(stepKey)) { groups.set(stepKey, []); order.push(stepKey); }
+        groups.get(stepKey).push(row);
+    }
+    return { order, groups };
+}
+
+/**
+ * Step-level English `srt` carry (runs before the per-row translation pass).
+ * The render computes one SRT per step from that step's ordered phrases, so a
+ * stored `srt` stays valid **iff** the step's ordered phrase list is
+ * byte-identical between the committed and regenerated rows — a reworded,
+ * added, removed, or reordered phrase retimes the concatenation and must blank
+ * the cell for the next render (the `--require-videos` gate then holds the
+ * course until it re-renders). Steps absent from either side, and steps whose
+ * stored `srt` is blank, carry nothing. Pure; returns new row objects.
+ */
+function carryStepSrt(prevRows, nextRows) {
+    const prevGrouped = groupRowsBySrtStep(prevRows);
+    const nextGrouped = groupRowsBySrtStep(nextRows);
+    const prevSrt = new Map();
+    const prevPhrases = new Map();
+    for (const [key, rows] of prevGrouped.groups) {
+        prevPhrases.set(key, rows.map((r) => String(r?.phrase ?? '')));
+        for (const r of rows) {
+            if (String(r?.srt ?? '').trim()) { prevSrt.set(key, String(r.srt)); break; }
+        }
+    }
+    const groupOf = new Map();
+    for (const [key, rows] of nextGrouped.groups) {
+        for (const r of rows) groupOf.set(r, key);
+    }
+    let carried = 0;
+    const out = (nextRows || []).map((row) => {
+        const key = groupOf.get(row);
+        if (!key || String(row?.srt ?? '').trim()) return { ...row };
+        const srt = prevSrt.get(key);
+        if (!srt) return { ...row };
+        const nextPhrases = nextGrouped.groups.get(key).map((r) => String(r?.phrase ?? ''));
+        const prevPh = prevPhrases.get(key);
+        if (!prevPh || prevPh.length !== nextPhrases.length) return { ...row };
+        if (!prevPh.every((p, i) => p === nextPhrases[i])) return { ...row };
+        carried++;
+        return { ...row, srt };
+    });
+    return { rows: out, carried };
+}
+
+/**
  * Carry translations forward across a regeneration: for each regenerated row,
  * a `*_<lang>` cell keeps the previously committed value **iff** its English
  * source cell is byte-identical; otherwise it stays blank for the translator
  * to refill (blanks-only does the rest, so a missed carry-over self-heals
  * through the translate job). Rows with no previous match keep blank cells.
+ * The English `srt` itself is carried at STEP granularity first (see
+ * `carryStepSrt`): the render derives one SRT per step from that step's
+ * ordered phrases, so a reworded step blanks its `srt` (and the gate holds the
+ * course until it re-renders) while an untouched step keeps its captions.
  * Pure; returns new row objects (inputs untouched) plus the carried count.
  *
  * @param {Array<Record<string,string>>} prevRows previously committed rows
@@ -191,13 +256,14 @@ const CARRY_SOURCES = [
  * @returns {{ rows: Array<Record<string,string>>, carried: number }}
  */
 export function carryOverTranslations(prevRows, nextRows) {
+    const stepped = carryStepSrt(prevRows, nextRows);
     const prevByKey = new Map();
     for (const row of prevRows || []) {
         const key = translationCarryKey(row);
         if (!prevByKey.has(key)) prevByKey.set(key, row);
     }
-    let carried = 0;
-    const rows = (nextRows || []).map((row) => {
+    let carried = stepped.carried;
+    const rows = stepped.rows.map((row) => {
         const prev = prevByKey.get(translationCarryKey(row));
         if (!prev) return { ...row };
         const next = { ...row };
