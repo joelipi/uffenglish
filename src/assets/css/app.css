@@ -2763,8 +2763,20 @@ ul.incorrectWords li::before {
     border-color: rgba(255, 255, 255, 0.7);
 }
 
-.video-speed-toggle-snail {
+/* White speedometer glyph — inherits the pill's white color like every
+   other app icon (bootstrap-icons ships no snail). */
+.video-speed-toggle-icon {
     font-size: 16px;
+    line-height: 1;
+    display: inline-flex;
+}
+
+/* Inline variant: a flex child of the SimpleVideoPlayer scrubber row
+   (same line as the scrubber, to its right) instead of an overlay. */
+.video-speed-toggle-inline {
+    position: static;
+    padding: 4px 10px;
+    flex-shrink: 0;
 }
 
 .video-speed-toggle-label {

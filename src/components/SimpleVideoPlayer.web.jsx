@@ -405,7 +405,10 @@ export default function SimpleVideoPlayer() {
                 />
                 <canvas ref={posterCanvasRef} style={{ display: 'none' }} />
                 <div className="ivp-blur-overlay" />
-                <VideoSpeedToggle rate={playbackRate} onCycle={handleSpeedCycle} />
+                {/* Before metadata loads there is no scrubber row, so the
+                    toggle floats as an overlay; once duration is known it
+                    lives inline in the scrubber, to the right of the times. */}
+                {duration === 0 && <VideoSpeedToggle rate={playbackRate} onCycle={handleSpeedCycle} />}
                 {(appPhase === 'simpleVideo-decisionTime-viewAndContinue' || appPhase === 'lessonSuccess-decisionTime' || appPhase === 'simpleVideo-decisionTime-response' || appPhase === BRANCH_OVERLAY_PHASE) && (
                     <>
                         <div className="ivp-click-block" onClick={(e) => e.stopPropagation()} />
@@ -448,6 +451,7 @@ export default function SimpleVideoPlayer() {
                             aria-label="Scrub video"
                         />
                         <span className="ivp-scrubber-time">{formatTime(duration)}</span>
+                        <VideoSpeedToggle rate={playbackRate} onCycle={handleSpeedCycle} inline />
                     </div>
                 )}
                 {!playing && !autoplayPending && mediaState === 'simpleVideo' && (

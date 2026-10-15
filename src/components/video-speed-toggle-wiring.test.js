@@ -42,13 +42,21 @@ describe('speed logic module owns the cycle', () => {
 });
 
 describe('VideoSpeedToggle is render-only with a snail icon', () => {
-    it('derives everything from the logic module and renders snail + label', () => {
+    it('derives everything from the logic module and renders the white speedometer + label', () => {
         expect(toggle).toContain("from '../modules/video/video-speed-logic.js'");
         expect(toggle).toContain('buildVideoSpeedToggleView(');
         expect(toggle).toContain('data-testid={view.testId}');
-        expect(toggle).toContain('video-speed-toggle-snail');
-        expect(toggle).toContain('🐌');
+        // bootstrap-icons ships no snail — the pill uses the app's standard
+        // white speedometer glyph (white via the pill's own color).
+        expect(toggle).toContain('video-speed-toggle-icon');
+        expect(toggle).toContain('bi bi-speedometer');
+        expect(toggle).not.toContain('🐌');
         expect(toggle).toContain('{view.label}');
+    });
+
+    it('supports the inline scrubber variant as a pure presentational flag', () => {
+        expect(toggle).toContain('inline = false');
+        expect(toggle).toContain('video-speed-toggle-inline');
     });
 
     it('holds no rate math or step literals itself', () => {
@@ -79,10 +87,14 @@ describe('useVideoSpeed owns the shared speed contract', () => {
 });
 
 describe('non-interactive video surfaces render the toggle', () => {
-    it('SimpleVideoPlayer shares the hook and renders the toggle', () => {
+    it('SimpleVideoPlayer shares the hook and seats the toggle in the scrubber row', () => {
         expect(simple).toContain("from '../hooks/useVideoSpeed.js'");
         expect(simple).toContain('useVideoSpeed(videoRef, config?.videoUrl)');
-        expect(simple).toContain('<VideoSpeedToggle rate={playbackRate} onCycle={handleSpeedCycle} />');
+        // Same line as the scrubber, to the right of the times — plus an
+        // overlay fallback while metadata (and the scrubber) is missing.
+        const scrubber = simple.slice(simple.indexOf('className="ivp-scrubber"'), simple.indexOf('ivp-play-overlay'));
+        expect(scrubber).toContain('<VideoSpeedToggle rate={playbackRate} onCycle={handleSpeedCycle} inline />');
+        expect(simple).toContain('{duration === 0 && <VideoSpeedToggle rate={playbackRate} onCycle={handleSpeedCycle} />}');
     });
 
     it('SimpleVideoPlayer holds no speed state, reset or sync of its own', () => {
@@ -131,8 +143,16 @@ describe('app.css carries the toggle overlay stylesheet', () => {
         expect(block).toContain('border-radius: 9999px');
     });
 
-    it('highlights the slowed state', () => {
+    it('highlights the slowed state and styles the white glyph', () => {
         const block = cssBlock('.video-speed-toggle-active {');
         expect(block).toContain('background:');
+        const icon = cssBlock('.video-speed-toggle-icon {');
+        expect(icon).toContain('font-size: 16px');
+    });
+
+    it('offers the static inline variant for the scrubber row', () => {
+        const block = cssBlock('.video-speed-toggle-inline {');
+        expect(block).toContain('position: static');
+        expect(block).toContain('flex-shrink: 0');
     });
 });
