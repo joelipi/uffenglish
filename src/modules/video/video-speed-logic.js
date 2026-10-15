@@ -1,5 +1,5 @@
 // src/modules/video/video-speed-logic.js
-// Pure rules for the snail video-speed toggle. No React, no DOM, no store:
+// Pure rules for the video-speed toggle. No React, no DOM, no store:
 // the cycle steps, label formatting, toggle view model and the element
 // write all live here so every video surface shares one speed contract.
 //

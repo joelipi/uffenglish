@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { nextVideoSpeed, applyVideoSpeed } from '../modules/video/video-speed-logic.js';
 
-// Shared snail-toggle state (1x -> 0.8x -> 0.6x -> 1x) for every
+// Shared speed-toggle state (1x -> 0.8x -> 0.6x -> 1x) for every
 // non-interactive video surface. Owns the rate state, the per-clip reset
 // and the element sync so the four surfaces share one contract instead of
 // copy-pasting three effects each. InteractiveVideoPlayer is excluded: its

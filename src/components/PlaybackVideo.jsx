@@ -15,7 +15,7 @@ export default function PlaybackVideo() {
     const observerRef = useRef(null);
     const prevClearTrigger = useRef(videoClearTrigger);
     const prevPlayTrigger = useRef(videoPlayTrigger);
-    // Snail speed toggle (1x -> 0.8x -> 0.6x -> 1x), reset per recording.
+    // Speed toggle (1x -> 0.8x -> 0.6x -> 1x), reset per recording.
     const [playbackRate, handleSpeedCycle] = useVideoSpeed(videoRef, blob);
 
     const handleVideoEnded = () => {

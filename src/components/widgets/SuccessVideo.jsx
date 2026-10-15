@@ -12,7 +12,7 @@ export default function SuccessVideo() {
     // would stack two surfaces (stories/060-autoplay-share-video).
     const afterVideoActive = useStore(appStore, (state) => state.afterVideoActive);
     const [playing, setPlaying] = useState(false);
-    // Snail speed toggle (1x -> 0.8x -> 0.6x -> 1x), reset per result clip.
+    // Speed toggle (1x -> 0.8x -> 0.6x -> 1x), reset per result clip.
     const [playbackRate, handleSpeedCycle] = useVideoSpeed(videoRef, blob);
 
     useEffect(() => {

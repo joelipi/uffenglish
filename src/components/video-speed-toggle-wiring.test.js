@@ -1,6 +1,7 @@
-// Static guards for the snail video-speed toggle wiring.
-// Every non-interactive lesson video surface renders VideoSpeedToggle as an
-// overlay (snail icon + rate label, cycling 1x -> 0.8x -> 0.6x -> 1x) while
+// Static guards for the video-speed toggle wiring.
+// Every non-interactive lesson video surface renders VideoSpeedToggle (white
+// speedometer + rate label, cycling 1x -> 0.8x -> 0.6x -> 1x) — inline in
+// the SimpleVideoPlayer scrubber row, overlaid elsewhere — while
 // InteractiveVideoPlayer keeps its scoring-coupled playbackRate untouched.
 // All assertions read RAW source (never comment-stripped).
 import { describe, it, expect } from 'vitest';
@@ -41,7 +42,7 @@ describe('speed logic module owns the cycle', () => {
     });
 });
 
-describe('VideoSpeedToggle is render-only with a snail icon', () => {
+describe('VideoSpeedToggle is render-only with a speedometer icon', () => {
     it('derives everything from the logic module and renders the white speedometer + label', () => {
         expect(toggle).toContain("from '../modules/video/video-speed-logic.js'");
         expect(toggle).toContain('buildVideoSpeedToggleView(');
@@ -123,7 +124,7 @@ describe('non-interactive video surfaces render the toggle', () => {
 });
 
 describe('InteractiveVideoPlayer is excluded', () => {
-    it('never imports or renders the snail toggle or the shared hook', () => {
+    it('never imports or renders the speed toggle or the shared hook', () => {
         expect(interactive).not.toContain('VideoSpeedToggle');
         expect(interactive).not.toContain('video-speed-toggle');
         expect(interactive).not.toContain('nextVideoSpeed');

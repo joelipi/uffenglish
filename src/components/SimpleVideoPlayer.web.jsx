@@ -40,7 +40,7 @@ export default function SimpleVideoPlayer() {
     const [scrollOffset, setScrollOffset] = useState(0);
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
-    // Snail speed toggle (1x -> 0.8x -> 0.6x -> 1x), shared via useVideoSpeed.
+    // Speed toggle (1x -> 0.8x -> 0.6x -> 1x), shared via useVideoSpeed.
     // Local to this player so the interactive player's scoring-coupled
     // playbackRate is untouched.
     const [playbackRate, handleSpeedCycle] = useVideoSpeed(videoRef, config?.videoUrl);

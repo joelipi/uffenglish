@@ -16,7 +16,7 @@ export default function TutorialModal({ stepType, onClose }) {
     const view = useMemo(() => buildTutorialModalView({ stepType, lang }), [stepType, lang]);
     const continueLabel = getBilingual('continue', lang);
     const videoRef = useRef(null);
-    // Snail speed toggle (1x -> 0.8x -> 0.6x -> 1x), reset per tutorial clip.
+    // Speed toggle (1x -> 0.8x -> 0.6x -> 1x), reset per tutorial clip.
     const [playbackRate, handleSpeedCycle] = useVideoSpeed(videoRef, view.videoUrl);
 
     // Callers pass an inline arrow, so hold it in a ref and expose a stable

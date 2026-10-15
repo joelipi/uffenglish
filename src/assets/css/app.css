@@ -2728,10 +2728,13 @@ ul.incorrectWords li::before {
 }
 
 /* =========================================
-   VIDEO SPEED TOGGLE (snail overlay)
-   Overlay pill on every non-interactive video surface: SimpleVideoPlayer,
-   TutorialModal, PlaybackVideo, SuccessVideo. InteractiveVideoPlayer is
-   deliberately excluded (its playbackRate is scoring-coupled).
+   VIDEO SPEED TOGGLE (speedometer pill)
+   Overlay pill on the non-interactive video surfaces that lack a scrubber
+   row (TutorialModal, PlaybackVideo, SuccessVideo, and SimpleVideoPlayer
+   before metadata loads): SimpleVideoPlayer seats it inline in the
+   scrubber row instead (see .video-speed-toggle-inline below).
+   InteractiveVideoPlayer is deliberately excluded (its playbackRate is
+   scoring-coupled).
    Top-anchored at 20% of the frame: the lesson header paints ABOVE this
    toggle (top-overlay content z-index 35, header blur z-index 34, toggle
    z-index 30), so the pill must sit clear below them — the header reaches
@@ -2772,7 +2775,10 @@ ul.incorrectWords li::before {
 }
 
 /* Inline variant: a flex child of the SimpleVideoPlayer scrubber row
-   (same line as the scrubber, to its right) instead of an overlay. */
+   (same line as the scrubber, to its right) instead of an overlay. It
+   inherits the scrubber's stacking, so under a decision-phase click-block
+   it is covered like the scrubber itself — intended, the clip is gated
+   there anyway. */
 .video-speed-toggle-inline {
     position: static;
     padding: 4px 10px;
