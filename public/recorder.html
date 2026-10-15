@@ -567,6 +567,7 @@
         var global_uploaded_takes = [];
         var global_rendered_lessons = [];
         var global_render_jobs = {};
+        var global_pending_uploads = {};
 
         /**
          * ==========================================
@@ -1093,6 +1094,11 @@ node_video_preview.play(); // Explicitly restart playback
             return (entry_object.course_id || "") + "\0" + (entry_object.lesson_id || "");
         }
 
+        function isAutoRenderEnabled() {
+            var auto_box = document.getElementById('dom-check-auto-render');
+            return !!auto_box && auto_box.checked === true;
+        }
+
         function findTakeByFilename(wanted_filename) {
             for (var i = 0; i < global_script_phrases.length; i++) {
                 if (global_script_phrases[i].filename === wanted_filename) {
@@ -1103,8 +1109,7 @@ node_video_preview.play(); // Explicitly restart playback
         }
 
         function maybeAutoRenderLesson(uploaded_filename) {
-            var auto_box = document.getElementById('dom-check-auto-render');
-            if (!auto_box || auto_box.checked !== true) { return; }
+            if (!isAutoRenderEnabled()) { return; }
             var entry_object = findTakeByFilename(uploaded_filename);
             if (!entry_object) { return; }
             var lesson_id = entry_object.lesson_id || "";
@@ -1179,18 +1184,12 @@ node_video_preview.play(); // Explicitly restart playback
             }
             saveOperatorKey();
             node_btn_accept.disabled = true;
-            // A re-take re-arms its lesson here (click time = re-record
-            // intent): drop the lesson from the rendered set so this upload's
-            // success check can re-render exactly it. First-time uploads are
-            // unaffected (their lesson is not in the set).
-            var rearm_box = document.getElementById('dom-check-auto-render');
-            if (rearm_box && rearm_box.checked === true) {
-                var rearm_entry = findTakeByFilename(bare_filename);
-                if (rearm_entry) {
-                    var rearm_key = lessonKeyForTake(rearm_entry);
-                    global_rendered_lessons = global_rendered_lessons.filter(function(k) { return k !== rearm_key; });
-                    savePersistedSet('uff_rendered_lessons', global_rendered_lessons);
-                }
+            // Mark this upload as fresh (click time = upload intent): the
+            // success path re-arms the lesson only for a fresh upload, so a
+            // duplicate success callback can never re-render. Gated like the
+            // rest of the tracking.
+            if (isAutoRenderEnabled()) {
+                global_pending_uploads[bare_filename] = true;
             }
             appCoreLog("Uploading take to R2: " + bare_filename + ".mp4");
             fetch('/api/pipeline/upload-raw', {
@@ -1207,14 +1206,33 @@ node_video_preview.play(); // Explicitly restart playback
                 }
                 appCoreLog("Upload complete: " + bare_filename + ".mp4");
                 node_btn_accept.disabled = false;
-                var auto_render_box = document.getElementById('dom-check-auto-render');
-                if (auto_render_box && auto_render_box.checked === true) {
-                    global_uploaded_takes.push(bare_filename);
-                    savePersistedSet('uff_uploaded_takes', global_uploaded_takes);
+                if (isAutoRenderEnabled()) {
+                    var already_known = false;
+                    for (var ui = 0; ui < global_uploaded_takes.length; ui++) {
+                        if (global_uploaded_takes[ui] === bare_filename) { already_known = true; break; }
+                    }
+                    if (!already_known) {
+                        global_uploaded_takes.push(bare_filename);
+                        savePersistedSet('uff_uploaded_takes', global_uploaded_takes);
+                    }
+                    if (global_pending_uploads[bare_filename]) {
+                        // Fresh upload (not a duplicate callback): a re-upload
+                        // re-arms its lesson so the check below re-renders it.
+                        delete global_pending_uploads[bare_filename];
+                        var rearm_entry = findTakeByFilename(bare_filename);
+                        if (rearm_entry) {
+                            var rearm_key = lessonKeyForTake(rearm_entry);
+                            global_rendered_lessons = global_rendered_lessons.filter(function(k) { return k !== rearm_key; });
+                            savePersistedSet('uff_rendered_lessons', global_rendered_lessons);
+                        }
+                    }
                     maybeAutoRenderLesson(bare_filename);
+                } else {
+                    delete global_pending_uploads[bare_filename];
                 }
                 advanceAfterAccept();
             }).catch(function(err) {
+                delete global_pending_uploads[bare_filename];
                 appCoreLog("UPLOAD FAILED: " + err.message + " (take kept for retry)");
                 node_status_bar.textContent = "UPLOAD FAILED • TAKE KEPT";
                 node_status_bar.className = "status-indicator-bar status-error";

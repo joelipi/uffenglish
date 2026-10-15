@@ -523,15 +523,20 @@ describe('recorder page — lesson auto-render', () => {
 
     // Stub fetch with per-endpoint control. Upload/render resolve immediately
     // unless told otherwise; status answers from statusFor(jobId, callCount).
+    // failUpload also accepts an array of 1-based upload call numbers to fail.
     function makePipelineStub({ failUpload = null, failRender = null, deferRender = false, statusFor = null } = {}) {
         const calls = { upload: [], render: [], status: [] };
         const renderResolvers = [];
+        const uploadMode = () => Array.isArray(failUpload)
+            ? (failUpload.includes(calls.upload.length) ? 'reject' : null)
+            : failUpload;
         const impl = async (url, opts = {}) => {
             const u = String(url);
             if (u.includes('/api/pipeline/upload-raw')) {
                 calls.upload.push(opts.headers && opts.headers['x-filename']);
-                if (failUpload === 'reject') throw new Error('offline');
-                if (failUpload === 'http') return { ok: false, status: 401 };
+                const mode = uploadMode();
+                if (mode === 'reject') throw new Error('offline');
+                if (mode === 'http') return { ok: false, status: 401 };
                 return { ok: true };
             }
             if (u.includes('/api/pipeline/render')) {
@@ -669,6 +674,11 @@ describe('recorder page — lesson auto-render', () => {
     });
 
     it('completing the same lesson twice POSTs exactly once', async () => {
+        // Direct re-invocation is the faithful double-fire simulation: the
+        // Accept button is disabled during upload, so the real double-fire
+        // path is re-entrant completion checks, not double-clicks. A genuine
+        // re-upload (new upload POST) re-renders by design — see the re-take
+        // test — so this drives the check without a new upload.
         const stub = makePipelineStub({ deferRender: true });
         const { win } = await bootAuto(stub);
         try {
@@ -738,6 +748,22 @@ describe('recorder page — lesson auto-render', () => {
             expect(stub.calls.render).toHaveLength(1);
             await uploadTake(win, IDX.a01);
             expect(stub.calls.render.map((c) => c.files)).toEqual([['a01', 'a02'], ['a01', 'a02']]);
+            // The uploaded set stays a set: re-uploads never duplicate entries.
+            expect(JSON.parse(win.sessionStorage.getItem('uff_uploaded_takes'))).toEqual(['a01', 'a02']);
+        } finally { closeAuto(win); }
+    });
+
+    it('a failed re-upload does not de-render the finished lesson', async () => {
+        const stub = makePipelineStub({ failUpload: [3] });
+        const { win } = await bootAuto(stub);
+        try {
+            await uploadTake(win, IDX.a01);
+            await uploadTake(win, IDX.a02);
+            expect(stub.calls.render).toHaveLength(1);
+            await uploadTake(win, IDX.a01);
+            expect(stub.calls.upload).toEqual(['a01', 'a02', 'a01']);
+            expect(stub.calls.render).toHaveLength(1);
+            expect(JSON.parse(win.sessionStorage.getItem('uff_rendered_lessons'))).toEqual(['crs\0a']);
         } finally { closeAuto(win); }
     });
 
@@ -949,5 +975,82 @@ describe('recorder auto-render — zero server changes', () => {
         } finally {
             fs.rmSync(probe, { force: true });
         }
+    });
+});
+
+// Story 066, Task 3 AC5: the new page code stays vendored-style (var/function,
+// existing seams, no modules) — pinned over raw-text slices, each proven
+// failable by injection.
+describe('recorder auto-render — vendored-style source guard', () => {
+    const page = () => fs.readFileSync(PAGE_PATH, 'utf8');
+    const sliceBetween = (text, startMarker, endMarker) => {
+        const start = text.indexOf(startMarker);
+        if (start === -1) throw new Error('slice start not found: ' + startMarker);
+        const end = text.indexOf(endMarker, start + startMarker.length);
+        if (end === -1) throw new Error('slice end not found: ' + endMarker);
+        return text.slice(start, end);
+    };
+
+    it('checkbox markup carries the default-on box and its label', () => {
+        const slice = sliceBetween(page(), 'id="dom-check-auto-render"', '</div>');
+        expect(slice).toContain('checked');
+        expect(slice).toContain('auto-render finished lessons');
+    });
+
+    it('maybeAutoRenderLesson uses the existing seams and no modules', () => {
+        const slice = sliceBetween(page(), 'function maybeAutoRenderLesson', 'node_btn_accept.onclick = function()');
+        expect(slice).toContain('appCoreLog');
+        expect(slice).toContain('getOperatorKey');
+        expect(slice).not.toContain('import');
+        expect(slice).not.toContain('require(');
+    });
+
+    it('poller uses the status contract with no modules', () => {
+        const slice = sliceBetween(page(), 'function pollOneRenderJob', 'function pollRenderStatus');
+        expect(slice).toContain('/api/pipeline/status');
+        expect(slice).toContain('getOperatorKey');
+        expect(slice).toContain('pollUnfinishedRenderJobs');
+        expect(slice).not.toContain('import');
+        expect(slice).not.toContain('require(');
+    });
+
+    it('each style pin fails when mutated', () => {
+        const html = page();
+        const box = sliceBetween(html, 'id="dom-check-auto-render"', '</div>');
+        expect(() => {
+            // Delete the attribute (replacing with a same-length word keeps a
+            // substring trap: 'unchecked' still contains 'checked').
+            expect(box.split('checked').join('')).toContain('checked');
+        }).toThrow();
+        const fn = sliceBetween(html, 'function maybeAutoRenderLesson', 'node_btn_accept.onclick = function()');
+        for (const injected of ['\nimport evil from "x";\n', '\nconst x = require("y");\n']) {
+            expect(() => {
+                expect(fn + injected).not.toContain('import');
+                expect(fn + injected).not.toContain('require(');
+            }, injected).toThrow();
+        }
+    });
+});
+
+// Story 066, Task 5 AC1: the product entry exists in the shipped format.
+describe('story 066 product entry', () => {
+    const PRODUCT = path.join(REPO_ROOT, 'docs/product.md');
+    it('documents lesson-level auto-render with the story link', () => {
+        const product = fs.readFileSync(PRODUCT, 'utf8');
+        expect(product).toContain('Lesson-level auto-render in the recorder');
+        expect(product).toContain('stories/066-recorder-auto-render-lessons/story.md');
+    });
+
+    it('the guard fails when the entry is removed', () => {
+        const product = fs.readFileSync(PRODUCT, 'utf8');
+        const mutated = product
+            .split('Lesson-level auto-render in the recorder').join('REMOVED')
+            .split('stories/066-recorder-auto-render-lessons/story.md').join('REMOVED');
+        expect(mutated).not.toContain('Lesson-level auto-render in the recorder');
+        expect(mutated).not.toContain('stories/066-recorder-auto-render-lessons/story.md');
+        expect(() => {
+            expect(mutated).toContain('Lesson-level auto-render in the recorder');
+            expect(mutated).toContain('stories/066-recorder-auto-render-lessons/story.md');
+        }).toThrow();
     });
 });
