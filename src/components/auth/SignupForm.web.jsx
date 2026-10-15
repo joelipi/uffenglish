@@ -5,6 +5,7 @@ import { useSignupForm } from './SignupForm.jsx';
 import Strings from '../../data/strings.js';
 import { SIGNUP_LANGUAGES } from '../../data/languages.js';
 import LegalLinks from '../legal/LegalLinks.jsx';
+import SignupConsent from '../legal/SignupConsent.jsx';
 
 const ENGLISH_LEVELS = [
     { value: '', label: 'Select...', disabled: true },
@@ -143,6 +144,8 @@ export default function SignupForm({ onSignupSuccess, onLoginLink }) {
                     {loading ? Strings.get('auth_creating_account', lang) : Strings.get('auth_signup_title', lang)}
                 </button>
             </form>
+
+            <SignupConsent lang={lang} />
 
             <div className="text-center mt-3">
                 <p>{Strings.get('auth_already_account', lang)} <a className="auth-link" href="#" onClick={(e) => { e.preventDefault(); onLoginLink?.(); }}>{Strings.get('auth_log_in_link', lang)}</a></p>

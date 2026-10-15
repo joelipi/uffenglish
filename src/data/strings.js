@@ -909,6 +909,32 @@ const strings = {
         hi: "सेवा की शर्तें",
         bn: "সেবার শর্তাবলী"
     },
+    'signup_consent_prefix': {
+        en: "By signing up, I accept the",
+        es: "Al registrarme, acepto los",
+        pt: "Ao me cadastrar, aceito os",
+        fr: "En m'inscrivant, j'accepte les",
+        hi: "साइन अप करके, मैं",
+        bn: "সাইন আপ করে, আমি"
+    },
+    'signup_consent_middle': {
+        en: "and acknowledge the",
+        es: "y reconozco la",
+        pt: "e reconheço a",
+        fr: "et je reconnais la",
+        hi: "और",
+        bn: "এবং"
+    },
+    'signup_consent_suffix': {
+        en: ".",
+        es: ".",
+        pt: ".",
+        fr: ".",
+        // Leading space: these suffixes are words that follow the privacy
+        // link directly, while the Latin suffixes are bare periods.
+        hi: " से सहमत हूँ।",
+        bn: " মেনে চলতে সম্মত আছি।"
+    },
     'legal_back': {
         en: "Back",
         es: "Volver",
