@@ -10,6 +10,7 @@ import Strings from '../../data/strings.js';
 import {
     shouldShowInstallBanner,
     selectInstallBannerBodyKey,
+    selectInstallCtaKey,
     openInstallDialog,
 } from '../../modules/pwa/install-prompt-logic.js';
 import {
@@ -51,11 +52,28 @@ export default function PWAInstallBanner({ lang = 'en', userId = null }) {
     return (
         <button type="button" data-testid="pwa-install-banner" onClick={handleTap} style={BANNER_STYLE}>
             <span style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '0.5px' }}>
-                <i className="bi bi-exclamation-triangle-fill" aria-hidden="true" style={{ marginRight: '8px' }}></i>
                 {Strings.get('pwa_banner_title', lang)}
             </span>
             <span style={{ fontSize: '16px', fontWeight: 600, lineHeight: 1.5 }}>
                 {Strings.get(selectInstallBannerBodyKey({ isApple }), lang)}
+            </span>
+            <span
+                role="button"
+                data-testid="pwa-install-banner-button"
+                style={{
+                    marginTop: '12px',
+                    padding: '10px 22px',
+                    borderRadius: '10px',
+                    background: 'rgba(255,255,255,0.18)',
+                    border: '1px solid rgba(255,255,255,0.6)',
+                    color: 'white',
+                    fontWeight: 700,
+                    fontSize: '15px',
+                    letterSpacing: '0.3px',
+                }}
+            >
+                <i className="bi bi-download" aria-hidden="true" style={{ marginRight: '8px' }}></i>
+                {Strings.get(selectInstallCtaKey({ isApple }), lang)}
             </span>
         </button>
     );

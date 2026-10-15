@@ -56,24 +56,30 @@ afterEach(() => {
 });
 
 describe('PWAInstallBanner', () => {
-    it('renders the generic install copy with IMPORTANT! for signed-in users', () => {
+    it('renders the generic install copy with NEXT STEP for signed-in users', () => {
         setNavigator(WINDOWS);
         const { container, unmount } = render(<PWAInstallBanner lang="en" userId="user-1" />);
         const banner = container.querySelector('[data-testid="pwa-install-banner"]');
         expect(banner).not.toBeNull();
-        expect(banner.textContent).toContain('IMPORTANT!');
+        expect(banner.textContent).toContain('NEXT STEP');
         expect(banner.textContent).toContain('Install this app NOW');
         expect(banner.textContent).toContain('No credit card');
+        const button = container.querySelector('[data-testid="pwa-install-banner-button"]');
+        expect(button).not.toBeNull();
+        expect(button.textContent).toContain('Install app');
         unmount();
     });
 
-    it('renders the Home Screen copy on Apple platforms', () => {
+    it('renders the Home Screen copy and Add to Home Screen button on Apple platforms', () => {
         setNavigator(IPHONE);
         const { container, unmount } = render(<PWAInstallBanner lang="en" userId="user-1" />);
         const banner = container.querySelector('[data-testid="pwa-install-banner"]');
         expect(banner).not.toBeNull();
         expect(banner.textContent).toContain('Home Screen NOW');
         expect(banner.textContent).not.toContain('Install this app NOW');
+        const button = container.querySelector('[data-testid="pwa-install-banner-button"]');
+        expect(button).not.toBeNull();
+        expect(button.textContent).toContain('Add to Home Screen');
         unmount();
     });
 
@@ -81,7 +87,7 @@ describe('PWAInstallBanner', () => {
         setNavigator(WINDOWS);
         const { container, unmount } = render(<PWAInstallBanner lang="es" userId="user-1" />);
         const banner = container.querySelector('[data-testid="pwa-install-banner"]');
-        expect(banner.textContent).toContain('¡IMPORTANTE!');
+        expect(banner.textContent).toContain('SIGUIENTE PASO');
         expect(banner.textContent).toContain('Instala esta aplicación AHORA');
         unmount();
     });

@@ -1078,12 +1078,12 @@ const strings = {
     // pinned to the top of /home, /profile and /courses. Draft translations;
     // native-speaker review is a follow-up, as above.
     'pwa_banner_title': {
-        en: "IMPORTANT!",
-        es: "¡IMPORTANTE!",
-        pt: "IMPORTANTE!",
-        fr: "IMPORTANT !",
-        hi: "महत्वपूर्ण!",
-        bn: "গুরুত্বপূর্ণ!"
+        en: "NEXT STEP",
+        es: "SIGUIENTE PASO",
+        pt: "PRÓXIMO PASSO",
+        fr: "PROCHAINE ÉTAPE",
+        hi: "अगला कदम",
+        bn: "পরবর্তী পদক্ষেপ"
     },
     'pwa_banner_body_install': {
         en: "Install this app NOW. FREE. No credit card or payment authorization required.",
