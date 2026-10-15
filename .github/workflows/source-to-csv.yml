@@ -1,0 +1,81 @@
+name: Sync Source to Master CSV
+
+# Push-the-button authoring: the operator edits `wouldyourather.source.txt`
+# (e.g. directly in the GitHub web UI) and this Action validates it and
+# regenerates the committed `public/wouldyourather.master.csv` every consumer
+# reads (recorder same-origin, generator from disk, Modal render over HTTP).
+# Translations survive regeneration: a `*_<lang>` cell is carried over iff its
+# English source is byte-identical, else blanked for the translator to refill.
+#
+# Validation (JSON + structure) runs BEFORE any write: a bad edit fails the run
+# red with the reason and leaves the committed file untouched.
+on:
+  push:
+    # main only: this commits to the shared store, so an unreviewed branch
+    # must never write — it can only dry-run manually.
+    branches: [main]
+    paths:
+      - wouldyourather.source.txt
+      - scripts/generate-master-csv.mjs
+      - scripts/generate-sheet-from-source.mjs
+      - scripts/lib/source-bridge-utils.js
+      - scripts/lib/sheet-config-utils.js
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Validate and print the plan without writing the file
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+# Shared with every workflow that mutates the committed CSV, so two writers
+# can never interleave a read-modify-write on the same file.
+# cancel-in-progress: false so an in-flight run finishes; `queue: max` keeps
+# every queued run (up to 100) instead of cancelling the older pending one.
+concurrency:
+  group: master-csv
+  cancel-in-progress: false
+  queue: max
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    # Null-safe across all events: only `push` has head_commit, and the guard
+    # must also skip the bot's own commit (loop guard).
+    if: github.actor != 'github-actions[bot]' && !contains(github.event.head_commit.message || '', '[skip authoring]')
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GH_NEW_TOKEN }}
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: npm }
+      - run: npm ci
+      - name: Regenerate master CSV
+        run: |
+          set -euo pipefail
+          # DRY_RUN is empty-string on push events (no inputs context); the
+          # = "true" comparison handles that — do not simplify under set -u.
+          DRY_RUN_FLAG=""
+          if [ "${{ inputs.dry_run }}" = "true" ]; then DRY_RUN_FLAG="--dry-run"; fi
+          node scripts/generate-master-csv.mjs $DRY_RUN_FLAG 2>&1 | tee /tmp/source-sync.log
+      - name: Commit master CSV
+        run: |
+          git config user.name "uff-authoring-bot"
+          git config user.email "11131426+joelipi@users.noreply.github.com"
+          git add public/wouldyourather.master.csv
+          if git diff --cached --quiet; then
+            echo "no master CSV changes"
+          else
+            git commit -m "chore(authoring): regenerate master CSV from the source [skip authoring]"
+            git push origin "HEAD:${{ github.ref_name }}"
+          fi
+      - name: Summarize
+        if: always()
+        run: |
+          {
+            echo "## Source → master CSV sync"
+            grep -E '^(MASTER|WROTE|\[dry-run\])' /tmp/source-sync.log || echo "No sync lines (check the run output)."
+          } >> "$GITHUB_STEP_SUMMARY"

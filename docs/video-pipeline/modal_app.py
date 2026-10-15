@@ -108,7 +108,7 @@ def _fetch_takes(workdir, files):
 
 
 def _sheet_fetch(url):
-    """urllib fetch for the published sheet (urlopen follows the 307 by default)."""
+    """urllib fetch for the committed master CSV (urlopen follows redirects by default)."""
     import urllib.request
 
     return urllib.request.urlopen(url, timeout=30)
@@ -116,10 +116,10 @@ def _sheet_fetch(url):
 
 def _fetch_assets(workdir):
     os.makedirs(workdir, exist_ok=True)
-    # Story 052: the published sheet is the render's input, not the R2 object.
-    # Fetch its CSV over HTTP (Google answers with a 307 redirect) into the work
-    # dir as `video_data.csv`; `pipeline-assets/video_data.csv` is now only the
-    # post-render output the orchestrator uploads after computing the `srt` column.
+    # Story 065: the committed master CSV is the render's input, not the R2
+    # object. Fetch it over HTTP into the work dir as `video_data.csv`;
+    # `pipeline-assets/video_data.csv` is now only the post-render output the
+    # orchestrator uploads after computing the `srt` column.
     csv_text = fetch_sheet_csv(resolve_sheet_url(), _sheet_fetch)
     with open(os.path.join(workdir, "video_data.csv"), "w", encoding="utf-8") as fh:
         fh.write(csv_text)
@@ -138,7 +138,7 @@ def _fetch_assets(workdir):
 def _publish_intro_posters(rows):
     """Publish the lesson-intro posters the step publish plan cannot cover.
 
-    A lesson intro comes from the sheet's ``intro_video`` column, so it is never
+    A lesson intro comes from the master CSV's ``intro_video`` column, so it is never
     a row slug in ``plan_publish`` and ``_publish`` never sees it — yet the app
     still resolves its poster as ``assets/videos/<slug>.jpg``. This mirrors
     ``scripts/generate-thumbnails.mjs``: for each intro slug whose poster is
@@ -253,14 +253,14 @@ def orchestrator(spec: dict):
         join_plan, joined_prefixes = pipeline.load_join_plan(csv_file)
         phrase_map = pipeline.load_phrase_map(csv_file)
         # `video_file` is the step key for the rendered video, the join and the
-        # SRT (falling back to the filename prefix on legacy sheets without it).
+        # SRT (falling back to the filename prefix on legacy rows without it).
         video_file_map = pipeline.load_video_file_map(csv_file)
         _, srt_by_prefix = pipeline.concatenate_all_processed_videos(
             joined_prefixes, phrase_map, video_file_map, join_plan)
         # Persist the computed SRT into the CSV (before the join, so the CSV
         # carries the per-step srt values), then after the join upload the updated
         # CSV back to R2 so the sync-srt action can write the `srt` column into
-        # the sheet (story 050, Option B), mirroring video_pipeline.main.
+        # the master CSV (story 050, Option B), mirroring video_pipeline.main.
         pipeline.write_srt_column(csv_file, srt_by_prefix, video_file_map)
         pipeline.concatenate_joined_videos(join_plan)
         storage.upload_file(csv_file, pipeline_asset_key("video_data.csv"),
@@ -273,7 +273,7 @@ def orchestrator(spec: dict):
         plan = plan_publish(rows, os.listdir(pipeline.WEB_DIR), only=files)
         published = _publish(plan)
 
-        # Lesson intros are synthesized from the sheet's `intro_video` column,
+        # Lesson intros are synthesized from the master CSV's `intro_video` column,
         # so they never enter the plan above; the render still owes them their
         # posters (the deploy no longer generates any).
         _write_status(job_id, "running", "posters")

@@ -38,8 +38,12 @@ export const BLANK_RUNG = '___________';
 /** Recorder teleprompter default (the pipeline never reads this column). */
 export const DEFAULT_CHARACTER = 'CasualTeacher';
 
-import { LOCALIZATION_FIELDS, SHEET_LANGUAGES, localizedColumn } from './sheet-translate-utils.js';
-import { LEVEL_PATTERN_COLUMNS } from './sheet-config-utils.js';
+import { LOCALIZATION_FIELDS, SHEET_LANGUAGES, TRANSLATABLE_FIELDS, localizedColumn } from './sheet-translate-utils.js';
+import { LEVEL_PATTERN_COLUMNS, csvField as sharedCsvField, serializeCsv } from './sheet-config-utils.js';
+
+// Re-exported (single implementation lives in sheet-config-utils.js) so the
+// bridge CLI and existing importers keep working unchanged.
+export { sharedCsvField as csvField };
 
 // The master sheet's BASE columns: the recorder's teleprompter fields and the
 // render pipeline's media/overlay inputs, in the live sheet's order. Two
@@ -59,8 +63,9 @@ export const LIVE_BASE_COLUMNS = [
     'dutch_tilt',
 ];
 
-// Config columns: the same contract `scripts/seed-master-columns.mjs` declares
-// (a parity test pins the two together, so neither can drift silently).
+// Config columns: the contract the generator's master path consumes (course
+// scalars, lesson framing, step routing, subtitles). Pinned by the parity test
+// below, so neither side can drift silently.
 export const BRIDGE_CONFIG_COLUMNS = [
     'course_id', 'course_name', 'lesson_id', 'lesson_title', 'response_type',
     'unit', 'mission', 'recap_sources', 'recap_overlay', 'intro_video',
@@ -145,10 +150,73 @@ function levelPattern(value, key, context) {
     throw new Error(`${context}: level "${key}" must be a string or {en} object`);
 }
 
-/** RFC-4180 field escaping (commas, quotes, newlines). Pure. */
-export function csvField(value) {
-    const s = String(value ?? '');
-    return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+/**
+ * Serialize rows to an RFC-4180 CSV string with the master header. Pure.
+ *
+ * @param {Array<Record<string,string>>} rows
+ * @returns {string}
+ */
+export function rowsToCsv(rows) {
+    return serializeCsv(MASTER_HEADER, rows);
+}
+
+/**
+ * The carry-over key for a master row: takes are keyed by `filename`, every
+ * other row (reuse rows, branching rows) by step + phrase. Takes and non-takes
+ * live in separate key spaces so a take can never inherit a reuse row's cells.
+ */
+export function translationCarryKey(row) {
+    const filename = String(row?.filename ?? '').trim();
+    if (filename) return `file:${filename}`;
+    return `step:${String(row?.video_file ?? '').trim()}\0${String(row?.phrase ?? '').trim()}`;
+}
+
+// Every localizable cell and the English source column it follows: the generic
+// fields plus `srt` (planned by its own pass but carried by the same rule).
+const CARRY_SOURCES = [
+    ...TRANSLATABLE_FIELDS.map((f) => ({ field: f.field, source: f.source })),
+    { field: 'srt', source: 'srt' },
+];
+
+/**
+ * Carry translations forward across a regeneration: for each regenerated row,
+ * a `*_<lang>` cell keeps the previously committed value **iff** its English
+ * source cell is byte-identical; otherwise it stays blank for the translator
+ * to refill (blanks-only does the rest, so a missed carry-over self-heals
+ * through the translate job). Rows with no previous match keep blank cells.
+ * Pure; returns new row objects (inputs untouched) plus the carried count.
+ *
+ * @param {Array<Record<string,string>>} prevRows previously committed rows
+ * @param {Array<Record<string,string>>} nextRows regenerated rows
+ * @returns {{ rows: Array<Record<string,string>>, carried: number }}
+ */
+export function carryOverTranslations(prevRows, nextRows) {
+    const prevByKey = new Map();
+    for (const row of prevRows || []) {
+        const key = translationCarryKey(row);
+        if (!prevByKey.has(key)) prevByKey.set(key, row);
+    }
+    let carried = 0;
+    const rows = (nextRows || []).map((row) => {
+        const prev = prevByKey.get(translationCarryKey(row));
+        if (!prev) return { ...row };
+        const next = { ...row };
+        for (const { field, source } of CARRY_SOURCES) {
+            // The English source must be byte-identical — a reworded source
+            // invalidates the stored translation by design.
+            if (String(prev[source] ?? '') !== String(next[source] ?? '')) continue;
+            for (const lang of SHEET_LANGUAGES) {
+                const target = localizedColumn(field, lang);
+                const prevValue = String(prev[target] ?? '');
+                if (!prevValue.trim()) continue;
+                if (String(next[target] ?? '').trim()) continue;
+                next[target] = prevValue;
+                carried++;
+            }
+        }
+        return next;
+    });
+    return { rows, carried };
 }
 
 /**
@@ -314,18 +382,4 @@ function phrasesOf(topic, pair, topicNo, field) {
         throw new Error(`pair ${pair?.ask?.id}-${pair?.answer?.id} topic ${topicNo}: missing "${field}" phrases`);
     }
     return list;
-}
-
-/**
- * Serialize rows to an RFC-4180 CSV string with the master header. Pure.
- *
- * @param {Array<Record<string,string>>} rows
- * @returns {string}
- */
-export function rowsToCsv(rows) {
-    const lines = [MASTER_HEADER.join(',')];
-    for (const row of rows || []) {
-        lines.push(MASTER_HEADER.map((h) => csvField(row[h])).join(','));
-    }
-    return lines.join('\n') + '\n';
 }

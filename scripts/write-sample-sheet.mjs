@@ -16,7 +16,7 @@ const HEADER = [
     'subtitle_text', 'srt', 'recap_sources', 'recap_overlay',
     // Story 049 localization targets (one column per language per field). Blank
     // in the sample: a fresh import shows the operator where translations land,
-    // and `translate-sheet.mjs` fills them.
+    // and `translate-master-csv.mjs` fills them.
     'lesson_title_es', 'lesson_title_pt', 'lesson_title_bn',
     'mission_es', 'mission_pt', 'mission_bn',
     'cue_es', 'cue_pt', 'cue_bn',

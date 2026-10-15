@@ -225,10 +225,14 @@
     position: absolute;
     top: 50%;
     left: 50%;
-    transform: translateZ(0);
+    /* Centered on the frame: translate(-50%,-50%) centers the box,
+       translateZ(0) keeps the GPU layer (the Android anti-flash fix).
+       NOTE: never use strict/paint/size containment here — size
+       containment collapses this auto-sized box to 0x0 and paint
+       containment clips the digits, rendering the countdown invisible. */
+    transform: translate(-50%, -50%) translateZ(0);
     backface-visibility: hidden;
-    /* THIS IS THE KEY: */
-    contain: strict;
+    contain: layout style;
     z-index: 100;
     background-color: transparent; 
     color: #ffffff;
@@ -883,11 +887,11 @@ node_video_preview.play(); // Explicitly restart playback
         }
 
         async function loadScriptDataFromSheets() {
-            var spreadsheet_url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQZ7jFMJNnmylDoHxaqb1W8VyXi0OV4pSubCbqMGYkRgGimqWx3cs74n43-cFxqfue4KCiqWlhzvPkK/pub?gid=242913338&single=true&output=csv';
+            var spreadsheet_url = 'wouldyourather.master.csv';
             
             appCoreLog("Requesting remote CSV data...");
             try {
-                var response_handle = await fetch(spreadsheet_url + "&t=" + Date.now());
+                var response_handle = await fetch(spreadsheet_url + "?t=" + Date.now());
                 var csv_string = await response_handle.text();
                 
                 // RFC-4180 parse: quoted fields may contain commas, newlines and

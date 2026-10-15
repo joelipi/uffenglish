@@ -5,6 +5,10 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
     parseCsv,
+    serializeCsv,
+    csvField,
+    serializeWithHeaderLine,
+    rawHeaderLine,
     isVideoRow,
     buildSteps,
     buildCourseConfig,
@@ -1340,5 +1344,52 @@ describe('publishLessonId (responders become challengers)', () => {
             video_file: 'q', filename: 'q1', order: '1', response_type: 'friendClosedResponse', cue: 'Q',
         }])[0];
         expect(step).not.toHaveProperty('publishLessonId');
+    });
+});
+
+describe('serializeCsv (the file-commit writers)', () => {
+    it('quotes commas, quotes, and newlines like the parser reads them', () => {
+        expect(csvField('plain')).toBe('plain');
+        expect(csvField('a,b')).toBe('"a,b"');
+        expect(csvField('say "hi"')).toBe('"say ""hi"""');
+        expect(csvField('l1\nl2')).toBe('"l1\nl2"');
+        expect(csvField(undefined)).toBe('');
+    });
+
+    it('round-trips through parseCsv with header order preserved', () => {
+        const headers = ['b', 'a'];
+        const rows = [
+            { a: '1', b: 'x,y' },
+            { a: 'multi\nline', b: '' },
+            { a: 'q"q', b: 'plain' },
+        ];
+        const { headers: backHeaders, rows: backRows } = parseCsv(serializeCsv(headers, rows));
+        expect(backHeaders).toEqual(headers);
+        expect(backRows).toEqual(rows);
+    });
+
+    it('resolves a row missing a header to "" (never "undefined")', () => {
+        const { rows } = parseCsv(serializeCsv(['a', 'b'], [{ a: 'x' }]));
+        expect(rows).toEqual([{ a: 'x', b: '' }]);
+    });
+});
+
+describe('serializeWithHeaderLine (header-casing-preserving rewrites)', () => {
+    it('keeps the exact header bytes while quoting body cells', () => {
+        const out = serializeWithHeaderLine('a,BgSound,c', ['a', 'bgsound', 'c'], [
+            { a: 'x,y', bgsound: 'S', c: '' },
+        ]);
+        expect(out).toBe('a,BgSound,c\n"x,y",S,\n');
+    });
+
+    it('reads the first physical line even with quoted commas and CRLF', () => {
+        expect(rawHeaderLine('"a,b",c\r\n1,2\r\n')).toBe('"a,b",c');
+        expect(rawHeaderLine('a,b\n1,2\n')).toBe('a,b');
+    });
+
+    it('round-trips a rewrite with zero diff when no cell changes', () => {
+        const text = 'a,BgSound\n"x,y",S\nplain,T\n';
+        const { headers, rows } = parseCsv(text);
+        expect(serializeWithHeaderLine(rawHeaderLine(text), headers, rows)).toBe(text);
     });
 });

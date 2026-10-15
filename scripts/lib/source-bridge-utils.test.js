@@ -10,6 +10,8 @@ import {
     csvField,
     sourceToRows,
     rowsToCsv,
+    carryOverTranslations,
+    translationCarryKey,
 } from './source-bridge-utils.js';
 import { parseCsv, buildCourseConfig } from './sheet-config-utils.js';
 
@@ -160,12 +162,19 @@ describe('sourceToRows lesson framing', () => {
 });
 
 describe('MASTER_HEADER parity with the shared column contracts', () => {
-    // The bridge must not be a third, hand-drifted copy of the master column
-    // contract: pin it to the seed's config columns, the shared localization
-    // field map, and the level-pattern columns.
-    it('contains every config column the seed declares', async () => {
-        const { CONFIG_COLUMNS } = await import('../../scripts/seed-master-columns.mjs');
-        for (const col of CONFIG_COLUMNS) expect(MASTER_HEADER).toContain(col);
+    // The bridge must not be a hand-drifted copy of the master column
+    // contract: pin it to the columns the generator's master path consumes,
+    // the shared localization field map, and the level-pattern columns.
+    it('contains every config column the generator master path consumes', async () => {
+        const { REQUIRED_COLUMNS } = await import('./sheet-config-utils.js');
+        const OPTIONAL_MASTER_COLUMNS = [
+            'join', 'recap_sources', 'recap_overlay', 'unit', 'mission',
+            'phrase', 'srt', 'next_step', 'choose_step_next', 'choose_step_text',
+            'publish_lesson_id', 'intro_video',
+        ];
+        for (const col of [...REQUIRED_COLUMNS, ...OPTIONAL_MASTER_COLUMNS]) {
+            expect(MASTER_HEADER).toContain(col);
+        }
     });
 
     it('contains every derived localization column', async () => {
@@ -179,8 +188,8 @@ describe('MASTER_HEADER parity with the shared column contracts', () => {
     });
 
     it('emits the sound-effect columns with the casing the pipeline reads', () => {
-        // video_pipeline.py safe_get_value is case-sensitive; the live sheet's
-        // lower-case spellings are silently ignored there.
+        // video_pipeline.py safe_get_value is case-sensitive; lower-case
+        // spellings of these columns are silently ignored there.
         for (const col of ['bgSound', 'endSoundEffect', 'bgMusic']) {
             expect(MASTER_HEADER).toContain(col);
         }
@@ -197,8 +206,76 @@ describe('MASTER_HEADER parity with the shared column contracts', () => {
     });
 });
 
-describe('bridge round-trip through the real generator', () => {
-    it('leaves no required column missing (the recorder/generator gate)', async () => {
+describe('carryOverTranslations', () => {
+    const translated = (rows) => rows.map((r) => ({
+        ...r,
+        phrase_es: r.phrase ? `ES:${r.phrase}` : '',
+        lesson_title_es: r.lesson_title ? `ES:${r.lesson_title}` : '',
+        srt: r.video_file === 'demo-a-01' ? '1\\n00:00 --> 00:01\\nHi' : '',
+        srt_es: r.video_file === 'demo-a-01' ? '1\n00:00 --> 00:01\nHola' : '',
+    }));
+
+    it('carries lang cells whose English source is byte-identical', () => {
+        const next = sourceToRows(SOURCE);
+        const { rows, carried } = carryOverTranslations(translated(next), next);
+        const take = rows.find((r) => r.filename === 'demo-a-01-01');
+        expect(take.phrase_es).toBe('ES:Q1?');
+        expect(take.lesson_title_es).toBe('ES:Ask things');
+        // The bridge never emits `srt`, so the committed English cell always
+        // differs from the regenerated one — srt_es never carries (the
+        // translator refills it after the render writes the fresh SRT).
+        expect(take.srt_es).toBe('');
+        expect(carried).toBeGreaterThan(0);
+    });
+
+    it('carries srt_es only when the English srt cell is identical', () => {
+        const base = sourceToRows(SOURCE);
+        const prev = translated(base);
+        const sameSrt = base.map((r) => ({
+            ...r, srt: r.video_file === 'demo-a-01' ? '1\\n00:00 --> 00:01\\nHi' : '',
+        }));
+        const { rows } = carryOverTranslations(prev, sameSrt);
+        expect(rows.find((r) => r.filename === 'demo-a-01-01').srt_es)
+            .toBe('1\n00:00 --> 00:01\nHola');
+    });
+
+    it('does not carry when the English source changed (translator refills the blank)', () => {
+        const prev = translated(sourceToRows(SOURCE));
+        const changed = structuredClone(SOURCE);
+        changed.pairs[0].topics[0].question[0] = 'Q1 reworded?';
+        const next = sourceToRows(changed);
+        const { rows } = carryOverTranslations(prev, next);
+        const take = rows.find((r) => r.filename === 'demo-a-01-01');
+        expect(take.phrase).toBe('Q1 reworded?');
+        expect(take.phrase_es).toBe('');
+        // The untouched second take still carries.
+        expect(rows.find((r) => r.filename === 'demo-a-01-02').phrase_es)
+            .toBe('ES:Which is better, Q1?');
+    });
+
+    it('leaves rows with no previous match blank and never mutates its inputs', () => {
+        const next = sourceToRows(SOURCE);
+        const before = JSON.stringify(next);
+        const { rows, carried } = carryOverTranslations([], next);
+        expect(carried).toBe(0);
+        expect(rows.every((r) => !r.phrase_es && !r.lesson_title_es)).toBe(true);
+        expect(JSON.stringify(next)).toBe(before);
+    });
+
+    it('keys takes by filename and reuse rows by step+phrase (no cross-talk)', () => {
+        const prev = sourceToRows(SOURCE).filter((r) => r.filename);
+        const next = sourceToRows(SOURCE).filter((r) => !r.filename);
+        expect(prev.length).toBeGreaterThan(0);
+        expect(next.length).toBeGreaterThan(0);
+        // Same phrases, disjoint key spaces: nothing carries.
+        const { carried } = carryOverTranslations(translated(prev), next);
+        expect(carried).toBe(0);
+        expect(translationCarryKey({ filename: 'x' })).not.toBe(
+            translationCarryKey({ filename: '', video_file: 'x', phrase: '' }));
+    });
+});
+
+describe('bridge round-trip through the real generator', () => {    it('leaves no required column missing (the recorder/generator gate)', async () => {
         const { findMissingColumns } = await import('./sheet-config-utils.js');
         const { rows } = parseCsv(rowsToCsv(sourceToRows(SOURCE)));
         expect(findMissingColumns(rows)).toEqual([]);

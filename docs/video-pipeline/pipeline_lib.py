@@ -166,18 +166,20 @@ def build_srt_from_segments(segments, start_cursor=0.0, start_index=0):
 
 
 # --------------------------------------------------------------------------- #
-# Published authoring sheet (story 052)
+# Committed master CSV (story 065)
 # --------------------------------------------------------------------------- #
 
-# The published master CSV the recorder reads (``public/recorder.html``
-# ``spreadsheet_url``) and the config generator defaults to
-# (``scripts/generate-config-from-sheet.mjs`` ``SHEET_URL``). Byte-identical to
-# both; ``tests/test_pipeline_parity.py`` asserts it so the render cannot read a
-# different sheet than the rest of the stack.
-SHEET_URL = (
-    "https://docs.google.com/spreadsheets/d/e/"
-    "2PACX-1vQZ7jFMJNnmylDoHxaqb1W8VyXi0OV4pSubCbqMGYkRgGimqWx3cs74n43-cFxqfue4KCiqWlhzvPkK"
-    "/pub?gid=242913338&single=true&output=csv"
+# The committed master CSV the recorder reads same-origin
+# (``public/recorder.html`` ``spreadsheet_url``) and the config generator reads
+# from disk (``scripts/generate-config-from-sheet.mjs`` ``MASTER_CSV_REL``).
+# The render fetches it over HTTP from ``raw.githubusercontent.com`` (fresh on
+# ``main`` the moment the bot commit lands — never waits on a Pages deploy).
+# ``tests/test_pipeline_parity.py`` asserts the three readers agree on the same
+# committed path, so the render cannot read different content than the rest of
+# the stack.
+MASTER_CSV_URL = (
+    "https://raw.githubusercontent.com/joelipi/uffenglish/main"
+    "/public/wouldyourather.master.csv"
 )
 
 # The published-CSV URL answers with one of these (Google sends a 307 to a
@@ -191,13 +193,14 @@ MAX_SHEET_REDIRECTS = 5
 # --------------------------------------------------------------------------- #
 
 def resolve_sheet_url(environ=None) -> str:
-    """The published sheet CSV URL: ``PIPELINE_SHEET_URL`` when set, else ``SHEET_URL``.
+    """The master CSV URL: ``PIPELINE_SHEET_URL`` when set, else ``MASTER_CSV_URL``.
 
     The override keeps story 040's "change content without a ``modal deploy``"
-    property: an operator can point the render at another published CSV.
+    property: an operator can point the render at another CSV (e.g. a branch
+    copy on ``raw.githubusercontent.com`` for testing).
     """
     env = os.environ if environ is None else environ
-    return env.get("PIPELINE_SHEET_URL") or SHEET_URL
+    return env.get("PIPELINE_SHEET_URL") or MASTER_CSV_URL
 
 
 def resolve_work_dir(environ=None) -> Path:
@@ -535,20 +538,20 @@ def _response_header(response, name):
 
 
 def fetch_sheet_csv(url, fetch_impl) -> str:
-    """Fetch a published-sheet CSV over HTTP, following redirects.
+    """Fetch the master CSV over HTTP, following redirects.
 
     ``fetch_impl(url)`` returns an HTTP response object with ``.status``,
     ``.headers`` and ``.read()``. Production passes ``urllib.request.urlopen``,
     which already follows redirects itself; the explicit loop below exists for
     injected/opaque fetchers and to surface a redirect loop deterministically
-    rather than relying on the caller's redirect handler. Google's published-CSV
-    URL answers with a 307 to a ``googleusercontent.com`` host, so a fetch that
-    stops at the first response would read an empty redirect body.
+    rather than relying on the caller's redirect handler. A fetch that stops
+    at the first response would read an empty redirect body, so redirects are
+    followed explicitly.
 
     Raises ``RuntimeError`` on a non-2xx final response, a redirect without a
-    ``Location`` header, too many redirects, an empty body (the published sheet
-    always has a header row), or an HTML body (a sign-in / publish-error page) so
-    a broken publish fails loudly instead of feeding HTML/empty text into pandas.
+    ``Location`` header, too many redirects, an empty body (the committed CSV
+    always has a header row), or an HTML body (a 404 page) so a broken URL
+    fails loudly instead of feeding HTML/empty text into pandas.
     """
     current = url
     response = None
@@ -578,12 +581,12 @@ def fetch_sheet_csv(url, fetch_impl) -> str:
     content_type = str(_response_header(response, "Content-Type") or "").lower()
     if "text/html" in content_type or text.lstrip().startswith("<"):
         raise RuntimeError(
-            "sheet fetch: got HTML, not CSV — is the sheet published to the web as CSV? "
+            "sheet fetch: got HTML, not CSV — is the master CSV URL correct? "
             f"(Content-Type: {content_type or 'unknown'})"
         )
     if not text.strip():
         raise RuntimeError(
-            "sheet fetch: empty sheet response — the published sheet must have a header row"
+            "sheet fetch: empty CSV response — the committed master CSV must have a header row"
         )
     return text
 

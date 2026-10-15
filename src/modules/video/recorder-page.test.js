@@ -229,3 +229,263 @@ describe('recorder page — recording duration cap', () => {
         expect(fn).toContain('global_recorder_obj.stop()');
     });
 });
+
+// Story 065, Task 2: the recorder loads the committed master CSV same-origin —
+// no Google Sheets fetch, no publish lag. The loader slice runs from
+// `loadScriptDataFromSheets` to the next top-level handler
+// (`node_btn_record.onclick`); slicing to EOF would let a block appended later
+// silently join this guard.
+describe('recorder page — same-origin master CSV', () => {
+    const page = () => fs.readFileSync(PAGE_PATH, 'utf8');
+
+    const loaderSlice = () => {
+        const html = page();
+        const start = html.indexOf('async function loadScriptDataFromSheets()');
+        const end = html.indexOf('node_btn_record.onclick');
+        expect(start, 'loadScriptDataFromSheets function').toBeGreaterThan(-1);
+        expect(end, 'next top-level handler').toBeGreaterThan(start);
+        return html.slice(start, end);
+    };
+
+    const assertLoaderContract = (slice) => {
+        expect(slice).toContain("var spreadsheet_url = 'wouldyourather.master.csv'");
+        expect(slice).not.toContain('docs.google.com');
+        expect(slice).not.toContain('2PACX');
+        expect(slice).not.toContain('gid=');
+        expect(slice).not.toMatch(/spreadsheet_url = 'https?:/);
+        // The cache-buster rides a `?t=` query: the committed path has no query
+        // string of its own, so the old `&t=` form would 404 as part of the path.
+        expect(slice).toContain('"?t=" + Date.now()');
+        // The offline path survives the URL swap: a failed fetch logs and
+        // returns instead of throwing.
+        expect(slice).toContain('CSV FETCH FAILED');
+    };
+
+    it('fetches a relative committed path with no Google reference', () => {
+        expect(() => assertLoaderContract(loaderSlice())).not.toThrow();
+    });
+
+    it('the guard can fail on each pinned token', () => {
+        const good = loaderSlice();
+        // Presence tokens: removing the relative URL trips the guard.
+        const noUrl = good.replace(
+            "var spreadsheet_url = 'wouldyourather.master.csv'",
+            "var spreadsheet_url = 'other.csv'"
+        );
+        expect(noUrl).not.toBe(good);
+        expect(() => assertLoaderContract(noUrl)).toThrow();
+        // Absence tokens: re-adding a Google reference trips the guard.
+        for (const injected of [
+            "var spreadsheet_url = 'https://docs.google.com/spreadsheets/d/e/2PACX/pub?gid=1&output=csv';",
+            '// fallback: docs.google.com',
+        ]) {
+            expect(() => assertLoaderContract(good + injected), injected).toThrow();
+        }
+    });
+
+    it('the relative URL resolves to the committed CSV from both served paths', async () => {
+        const html = page();
+        const match = /var spreadsheet_url = '([^']+)'/.exec(
+            html.slice(html.indexOf('async function loadScriptDataFromSheets()'))
+        );
+        expect(match, 'spreadsheet_url literal').not.toBeNull();
+        const literal = match[1];
+        expect(literal.startsWith('http')).toBe(false);
+        // Pages serves the page at both /recorder.html and /recorder; the
+        // relative fetch must land on /wouldyourather.master.csv either way.
+        for (const base of ['http://x/recorder.html', 'http://x/recorder']) {
+            expect(new URL(literal, base).pathname).toBe('/wouldyourather.master.csv');
+        }
+    });
+
+    it('the served CSV parses to the bridge take count through the blank-filename filter', async () => {
+        // Serves public/ over HTTP and runs the page's own loading contract:
+        // same-origin fetch + cache-buster, RFC-4180 parse, skip rows with a
+        // blank filename. Proves the wiring end to end without a browser.
+        const { createServer } = await import('node:http');
+        const server = createServer((req, res) => {
+            const urlPath = new URL(req.url, 'http://x').pathname;
+            const file = path.join(REPO_ROOT, 'public', decodeURIComponent(urlPath));
+            fs.readFile(file, (err, data) => {
+                if (err) { res.statusCode = 404; res.end('nope'); return; }
+                res.statusCode = 200;
+                res.end(data);
+            });
+        });
+        await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+        try {
+            const port = server.address().port;
+            const csv = await fetch(`http://127.0.0.1:${port}/wouldyourather.master.csv?t=${Date.now()}`)
+                .then((r) => {
+                    expect(r.status).toBe(200);
+                    return r.text();
+                });
+            const { parseCsv } = await import('../../../scripts/lib/sheet-config-utils.js');
+            const { rows } = parseCsv(csv);
+            const takes = rows.filter((r) => String(r.filename || '').trim() !== '');
+            // The committed store matches the bridge expansion exactly (pinned
+            // by generate-master-csv.test.js); the recorder sees every take.
+            const { parseSourceConfig, sourceToRows } = await import('../../../scripts/lib/source-bridge-utils.js');
+            const sourceText = fs.readFileSync(path.join(REPO_ROOT, 'wouldyourather.source.txt'), 'utf8');
+            const expected = sourceToRows(parseSourceConfig(sourceText))
+                .filter((r) => String(r.filename || '').trim() !== '').length;
+            expect(expected).toBeGreaterThan(0);
+            expect(takes.length).toBe(expected);
+        } finally {
+            server.close();
+        }
+    });
+
+    // Boots the REAL page script in an isolated DOM (scripts run inside the
+    // window via `runScripts: 'dangerously'`, with fetch stubbed in
+    // `beforeParse`): `window.onload` runs the actual `loadScriptDataFromSheets`
+    // (parse + filter + sort + display sync), and the camera init degrades
+    // inside its own try/catch (no media devices here) without touching the
+    // take list. NOTE: `window.eval(script)` does NOT work here — it is an
+    // indirect eval and runs in the test's own global, where the page's
+    // elements don't exist.
+    const bootPage = async (fetchImpl) => {
+        const { JSDOM } = await import('jsdom');
+        const html = page();
+        const fetchedUrls = [];
+        const dom = new JSDOM(html, {
+            url: 'http://127.0.0.1:9/recorder.html',
+            runScripts: 'dangerously',
+            beforeParse(pageWindow) {
+                pageWindow.fetch = async (url) => {
+                    fetchedUrls.push(String(url));
+                    return fetchImpl(String(url));
+                };
+            },
+        });
+        const { window: win } = dom;
+        expect(typeof win.onload, 'boot handler').toBe('function');
+        expect(win.global_script_phrases, 'take list starts empty').toEqual([]);
+        // The window `load` event (fired by the DOM itself after parse) boots
+        // the page exactly once — do NOT call win.onload() manually here,
+        // or the CSV is fetched twice.
+        await new Promise((resolve) => {
+            if (win.document.readyState === 'complete') resolve();
+            else win.addEventListener('load', () => resolve(), { once: true });
+        });
+        return { win, dom, fetchedUrls };
+    };
+
+    const waitFor = async (cond, what) => {
+        const deadline = Date.now() + 5000;
+        while (!cond()) {
+            if (Date.now() > deadline) throw new Error(`timed out waiting for ${what}`);
+            await new Promise((r) => setTimeout(r, 25));
+        }
+    };
+
+    it('loads 108 takes through the real page script with no Google fetch', async () => {
+        const csv = fs.readFileSync(path.join(REPO_ROOT, 'public/wouldyourather.master.csv'), 'utf8');
+        const { win, dom, fetchedUrls } = await bootPage(async () => ({ ok: true, text: async () => csv }));
+        try {
+            await waitFor(() => win.global_script_phrases.length > 0, 'take list');
+            // The acceptance count: every filename-bearing row becomes a take.
+            expect(win.global_script_phrases.length).toBe(108);
+            expect(win.global_script_phrases.every((e) => String(e.filename || '').trim() !== '')).toBe(true);
+            // One same-origin fetch for the committed CSV — never Google.
+            expect(fetchedUrls).toHaveLength(1);
+            expect(fetchedUrls[0]).toContain('wouldyourather.master.csv');
+            expect(fetchedUrls[0]).toContain('?t=');
+            expect(fetchedUrls[0]).not.toContain('docs.google');
+            // The display synced to the first take (loader ran to completion).
+            expect(win.document.getElementById('dom-progress-count').textContent).toContain('/ 108');
+        } finally {
+            win.close();
+        }
+    });
+
+    it('logs CSV FETCH FAILED without throwing when the fetch fails', async () => {
+        const { win, dom } = await bootPage(async () => { throw new Error('offline'); });
+        try {
+            await waitFor(
+                () => win.document.getElementById('dom-debug-log').textContent.includes('CSV FETCH FAILED'),
+                'fetch-failure log'
+            );
+            // No partial state: the take list stays empty.
+            expect(win.global_script_phrases.length).toBe(0);
+        } finally {
+            win.close();
+        }
+    });
+});
+
+// The countdown overlay must actually paint: `contain: strict` (shipped in the
+// original vendored copy) collapses the auto-sized box to 0x0 and clips the
+// digits, so the timer runs invisibly. Guard the rule block (from the selector
+// to its closing brace) and drive one real pre-roll second.
+describe('recorder page — countdown overlay paints', () => {
+    const page = () => fs.readFileSync(PAGE_PATH, 'utf8');
+
+    const overlayRule = () => {
+        const html = page();
+        const start = html.indexOf('.huge-countdown-overlay {');
+        expect(start, 'overlay rule').toBeGreaterThan(-1);
+        const end = html.indexOf('}', start);
+        expect(end, 'rule closing brace').toBeGreaterThan(start);
+        return html.slice(start, end);
+    };
+
+    const assertOverlayContract = (rule) => {
+        expect(rule).toContain('translate(-50%, -50%)');
+        expect(rule).toContain('display: none');
+        expect(rule).not.toContain('contain: strict');
+        expect(rule).not.toContain('contain: paint');
+        expect(rule).not.toContain('contain: size');
+    };
+
+    it('centers without clipping containment', () => {
+        expect(() => assertOverlayContract(overlayRule())).not.toThrow();
+    });
+
+    it('the guard can fail on each pinned token', () => {
+        const good = overlayRule();
+        expect(() => assertOverlayContract(
+            good.replace('translate(-50%, -50%)', 'translateZ(0)')
+        )).toThrow();
+        for (const injected of [
+            'contain: strict;',
+            'contain: paint;',
+            'contain: size;',
+        ]) {
+            expect(() => assertOverlayContract(`${good}\n${injected}`), injected).toThrow();
+        }
+    });
+
+    it('pre-roll shows the countdown digit on the overlay', async () => {
+        const { JSDOM } = await import('jsdom');
+        const html = page();
+        const csv = fs.readFileSync(path.join(REPO_ROOT, 'public/wouldyourather.master.csv'), 'utf8');
+        const dom = new JSDOM(html, {
+            url: 'http://127.0.0.1:9/recorder.html',
+            runScripts: 'dangerously',
+            beforeParse(pageWindow) {
+                pageWindow.fetch = async () => ({ ok: true, text: async () => csv });
+            },
+        });
+        try {
+            const { window: win } = dom;
+            await new Promise((resolve) => {
+                if (win.document.readyState === 'complete') resolve();
+                else win.addEventListener('load', () => resolve(), { once: true });
+            });
+            expect(typeof win.startPreRollSequence, 'pre-roll entry').toBe('function');
+            win.startPreRollSequence();
+            // One real timer tick (1s countdown): the overlay must be up with
+            // a digit, not display:none with a stale "4".
+            await new Promise((r) => setTimeout(r, 1200));
+            const overlay = win.document.getElementById('dom-huge-countdown');
+            expect(overlay.style.display).toBe('block');
+            expect(overlay.textContent).toMatch(/^[1-3]$/);
+            expect(win.document.getElementById('dom-btn-record').textContent).toContain('WAIT');
+        } finally {
+            const { window: win } = dom;
+            if (win.global_countdown_timer) win.clearInterval(win.global_countdown_timer);
+            win.close();
+        }
+    });
+});

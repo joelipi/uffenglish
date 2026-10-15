@@ -1,0 +1,88 @@
+name: Translate Master CSV
+
+# Manual, or called by the one-click pipeline.yml chain (`workflow_call`).
+# Reads the committed master CSV, fills blank per-language cells with DeepSeek
+# (`deepseek-v4-flash`), and commits the file back. Translation only fills
+# blanks (idempotent), so a human edit to a translation cell is honored; the
+# English source is never overwritten.
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Print the plan without writing the file
+        type: boolean
+        default: false
+      languages:
+        description: Comma-separated target languages
+        type: string
+        default: es,pt,bn
+  workflow_call:
+    inputs:
+      dry_run:
+        description: Print the plan without writing the file
+        type: boolean
+        default: false
+      languages:
+        description: Comma-separated target languages
+        type: string
+        default: es,pt,bn
+
+permissions:
+  contents: read
+
+# Shared with every workflow that mutates the committed CSV, so two writers
+# can never interleave a read-modify-write on the same file.
+# cancel-in-progress: false so an in-flight run finishes; `queue: max` keeps
+# every queued run (up to 100) instead of cancelling the older pending one.
+concurrency:
+  group: master-csv
+  cancel-in-progress: false
+  queue: max
+
+jobs:
+  translate:
+    runs-on: ubuntu-latest
+    # Null-safe across all events — and intentionally inert here: this workflow
+    # has no `push` trigger (only `workflow_dispatch`/`workflow_call`, where
+    # `head_commit` is always null), so the actor check does the work and the
+    # `head_commit` clause only guards a future push trigger. The guard must
+    # also skip the bot's own commit (loop guard).
+    if: github.actor != 'github-actions[bot]' && !contains(github.event.head_commit.message || '', '[skip translate]')
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GH_NEW_TOKEN }}
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: npm }
+      - run: npm ci
+      - name: Translate master CSV
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          LANGUAGES: ${{ inputs.languages }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          set -euo pipefail
+          # DRY_RUN is empty-string on workflow_call without the input; the
+          # = "true" comparison handles that — do not simplify under set -u.
+          DRY_RUN_FLAG=""
+          if [ "$DRY_RUN" = "true" ]; then DRY_RUN_FLAG="--dry-run"; fi
+          node scripts/translate-master-csv.mjs --languages="$LANGUAGES" $DRY_RUN_FLAG 2>&1 | tee /tmp/translate.log
+      - name: Commit translations
+        run: |
+          git config user.name "uff-translate-bot"
+          git config user.email "11131426+joelipi@users.noreply.github.com"
+          git add public/wouldyourather.master.csv
+          if git diff --cached --quiet; then
+            echo "no translation changes"
+          else
+            git commit -m "chore(translate): fill master CSV translations [skip translate]"
+            git push origin "HEAD:${{ github.ref_name }}"
+          fi
+      - name: Summarize
+        if: always()
+        run: |
+          {
+            echo "## Master CSV translation"
+            grep -E '^(FILLED|STALE|\[dry-run\])' /tmp/translate.log || echo "No translation lines (check the run output)."
+          } >> "$GITHUB_STEP_SUMMARY"

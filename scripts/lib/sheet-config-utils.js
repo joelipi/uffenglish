@@ -10,10 +10,10 @@
 // `video_file` (the step's simpleVideoUrl). Grouping is by COLUMN VALUE, never
 // by row position, so rows may be sorted freely.
 //
-// English is always emitted. When the sheet also carries the per-language
+// English is always emitted. When the CSV also carries the per-language
 // columns (`lesson_title_es`, `mission_pt`, `cue_es`, `cue_alt_es`,
 // `choose_step_text_es`, `subtitle_text_bn`, `srt_es`, … — the columns the
-// translate-sheet Action fills), they are consumed into the existing
+// translate-master-csv Action fills), they are consumed into the existing
 // `{en,es,pt,bn}` objects. The language columns are optional: a sheet with none
 // of them still generates English-only output. Subtitles come from `srt`
 // (localized by `srt_<lang>`, timings preserved) or, when `srt` is blank,
@@ -163,6 +163,61 @@ export function parseCsv(text) {
         rows.push(row);
     }
     return { headers, rows };
+}
+
+/**
+ * Quote one CSV field (RFC-4180): fields containing a comma, quote, or newline
+ * are wrapped in quotes with `"` escaped as `""`. Shared by the bridge and the
+ * file-commit writers so every CSV the repo owns is serialized one way.
+ */
+export function csvField(value) {
+    const s = String(value ?? '');
+    return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+/**
+ * Serialize header-keyed rows to RFC-4180 CSV text in `headers` order. A row
+ * missing a header resolves it to "". The inverse of `parseCsv` for dense rows
+ * (both sides agree on lower-cased header keys).
+ */
+export function serializeCsv(headers, rows) {
+    const cols = [...(headers || [])];
+    const lines = [cols.map(csvField).join(',')];
+    for (const row of rows || []) {
+        lines.push(cols.map((h) => csvField(row?.[h])).join(','));
+    }
+    return `${lines.join('\n')}\n`;
+}
+
+/**
+ * The exact first physical line of CSV text, without splitting a quoted
+ * header cell on an embedded newline. Pure.
+ */
+export function rawHeaderLine(text) {
+    const source = String(text ?? '');
+    let inQuotes = false;
+    for (let i = 0; i < source.length; i++) {
+        const ch = source[i];
+        if (ch === '"') {
+            if (source[i + 1] === '"') i++;
+            else inQuotes = !inQuotes;
+        } else if ((ch === '\n' || ch === '\r') && !inQuotes) {
+            return source.slice(0, i);
+        }
+    }
+    return source;
+}
+
+/**
+ * Serialize rows under an existing header line, preserving its exact bytes.
+ * `parseCsv` normalizes header keys (trim + lower-case), but the committed
+ * file's casing is load-bearing — the pipeline reads `bgSound` case-
+ * sensitively — so a file-commit writer must never rewrite the header row.
+ * Body cells are RFC-4180-quoted in `headers` (normalized) order. Pure.
+ */
+export function serializeWithHeaderLine(headerLine, headers, rows) {
+    const body = serializeCsv(headers, rows).split('\n').slice(1).join('\n');
+    return `${headerLine}\n${body}`;
 }
 
 /**
