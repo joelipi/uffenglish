@@ -42,12 +42,14 @@ function withFakeR2(status, fn) {
     });
 }
 
-// Every committed src/config/<course>.json, as `loadAllConfigs` reads them.
+// Every committed src/config/<course>.json, as the app's `import.meta.glob`
+// and `loadAllConfigs` (scripts/lib/poster-utils.test.js) both read them: ALL
+// .json files, no name filter, so this count cannot diverge from theirs.
 async function loadRealConfigs() {
     const { readdirSync, readFileSync } = await import('node:fs');
     const dir = path.join(ROOT, 'src', 'config');
     const configs = readdirSync(dir)
-        .filter((f) => f.endsWith('.json') && !f.includes('.test.'))
+        .filter((f) => f.endsWith('.json'))
         .map((f) => JSON.parse(readFileSync(path.join(dir, f), 'utf8')));
     return introTargets(configs);
 }
