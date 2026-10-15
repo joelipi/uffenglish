@@ -1086,20 +1086,20 @@ const strings = {
         bn: "পরবর্তী পদক্ষেপ"
     },
     'pwa_banner_body_install': {
-        en: "NEXT STEP\n\nInstall this app, the UFF app, NOW.\nFREE.\nNo credit card or payment authorization required.",
-        es: "SIGUIENTE PASO\n\nInstala esta aplicación, la aplicación UFF, AHORA.\nGRATIS.\nNo se requiere tarjeta de crédito ni autorización de pago.",
-        pt: "PRÓXIMO PASSO\n\nInstale este aplicativo, o aplicativo UFF, AGORA.\nGRÁTIS.\nNão é necessário cartão de crédito nem autorização de pagamento.",
-        fr: "PROCHAINE ÉTAPE\n\nInstallez cette application, l'application UFF, MAINTENANT.\nGRATUIT.\nAucune carte de crédit ni autorisation de paiement requise.",
-        hi: "अगला कदम\n\nइस ऐप को, UFF ऐप, अभी इंस्टॉल करें।\nमुफ़्त।\nकिसी क्रेडिट कार्ड या भुगतान प्राधिकरण की आवश्यकता नहीं है।",
-        bn: "পরবর্তী পদক্ষেপ\n\nএই অ্যাপটি, UFF অ্যাপ, এখনই ইনস্টল করুন।\nবিনামূল্যে।\nকোনো ক্রেডিট কার্ড বা পেমেন্ট অনুমোদনের প্রয়োজন নেই।"
+        en: "Install this app, the UFF app, NOW.\nFREE.\nNo credit card or payment authorization required.",
+        es: "Instala esta aplicación, la aplicación UFF, AHORA.\nGRATIS.\nNo se requiere tarjeta de crédito ni autorización de pago.",
+        pt: "Instale este aplicativo, o aplicativo UFF, AGORA.\nGRÁTIS.\nNão é necessário cartão de crédito nem autorização de pagamento.",
+        fr: "Installez cette application, l'application UFF, MAINTENANT.\nGRATUIT.\nAucune carte de crédit ni autorisation de paiement requise.",
+        hi: "इस ऐप को, UFF ऐप, अभी इंस्टॉल करें।\nमुफ़्त।\nकिसी क्रेडिट कार्ड या भुगतान प्राधिकरण की आवश्यकता नहीं है।",
+        bn: "এই অ্যাপটি, UFF অ্যাপ, এখনই ইনস্টল করুন।\nবিনামূল্যে।\nকোনো ক্রেডিট কার্ড বা পেমেন্ট অনুমোদনের প্রয়োজন নেই।"
     },
     'pwa_banner_body_apple': {
-        en: "NEXT STEP\n\nAdd this app, the UFF app, to your Home Screen NOW.\nFREE.\nNo credit card or payment authorization required.",
-        es: "SIGUIENTE PASO\n\nAñade esta aplicación, la aplicación UFF, a tu pantalla de inicio AHORA.\nGRATIS.\nNo se requiere tarjeta de crédito ni autorización de pago.",
-        pt: "PRÓXIMO PASSO\n\nAdicione este aplicativo, o aplicativo UFF, à sua tela inicial AGORA.\nGRÁTIS.\nNão é necessário cartão de crédito nem autorização de pagamento.",
-        fr: "PROCHAINE ÉTAPE\n\nAjoutez cette application, l'application UFF, à votre écran d'accueil MAINTENANT.\nGRATUIT.\nAucune carte de crédit ni autorisation de paiement requise.",
-        hi: "अगला कदम\n\nइस ऐप को, UFF ऐप, अपनी होम स्क्रीन पर जोड़ें।\nमुफ़्त।\nकिसी क्रेडिट कार्ड या भुगतान प्राधिकरण की आवश्यकता नहीं है।",
-        bn: "পরবর্তী পদক্ষেপ\n\nএই অ্যাপটি, UFF অ্যাপ, আপনার হোম স্ক্রিনে যোগ করুন।\nবিনামূল্যে।\nকোনো ক্রেডিট কার্ড বা পেমেন্ট অনুমোদনের প্রয়োজন নেই।"
+        en: "Add this app, the UFF app, to your Home Screen NOW.\nFREE.\nNo credit card or payment authorization required.",
+        es: "Añade esta aplicación, la aplicación UFF, a tu pantalla de inicio AHORA.\nGRATIS.\nNo se requiere tarjeta de crédito ni autorización de pago.",
+        pt: "Adicione este aplicativo, o aplicativo UFF, à sua tela inicial AGORA.\nGRÁTIS.\nNão é necessário cartão de crédito nem autorização de pagamento.",
+        fr: "Ajoutez cette application, l'application UFF, à votre écran d'accueil MAINTENANT.\nGRATUIT.\nAucune carte de crédit ni autorisation de paiement requise.",
+        hi: "इस ऐप को, UFF ऐप, अपनी होम स्क्रीन पर जोड़ें।\nमुफ़्त।\nकिसी क्रेडिट कार्ड या भुगतान प्राधिकरण की आवश्यकता नहीं है।",
+        bn: "এই অ্যাপটি, UFF অ্যাপ, আপনার হোম স্ক্রিনে যোগ করুন।\nবিনামূল্যে।\nকোনো ক্রেডিট কার্ড বা পেমেন্ট অনুমোদনের প্রয়োজন নেই।"
     },
     'home_courses_load_error': {
         en: "Failed to load courses. Please try again later.",
