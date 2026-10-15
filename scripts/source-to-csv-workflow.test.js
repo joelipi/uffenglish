@@ -11,7 +11,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { concurrencyBlock, ifLine } from './lib/workflow-guard-utils.js';
+import { concurrencyBlock, ifLine, stepBlock } from './lib/workflow-guard-utils.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -30,15 +30,15 @@ function assertSourceToCsvContract(text) {
     expect(conc).toContain('group: master-csv');
     expect(conc).toContain('cancel-in-progress: false');
     expect(conc).toContain('queue: max');
-    // PAT checkout + bot-commit with the loop guard, only on a diff.
+    // PAT checkout; the bot commit itself lives in the shared action.
     expect(text).toContain('token: ${{ secrets.GH_NEW_TOKEN }}');
     expect(text).toContain('node scripts/generate-master-csv.mjs');
-    expect(text).toContain('git add public/wouldyourather.master.csv');
-    expect(text).toContain('git diff --cached --quiet');
-    expect(text).toContain('git push origin "HEAD:${{ github.ref_name }}"');
-    // A rejected push retries on a fresh rebase instead of dying red.
-    expect(text).toContain('for attempt in 1 2 3');
-    expect(text).toContain('git rebase');
+    const commit = stepBlock(text, 'Commit master CSV', 'source-to-csv.yml');
+    expect(commit).toContain('uses: ./.github/actions/bot-commit/');
+    expect(commit).toContain('bot-name: uff-authoring-bot');
+    expect(commit).toContain('[skip authoring]');
+    expect(commit).toContain('add-paths: public/wouldyourather.master.csv');
+    expect(commit).toContain('node scripts/generate-master-csv.mjs');
 
     const guard = ifLine(text, 'source-to-csv.yml');
     expect(guard).toContain("github.actor != 'github-actions[bot]'");
@@ -62,11 +62,9 @@ describe('source-to-csv.yml source guard', () => {
             'group: master-csv', 'queue: max',
             'token: ${{ secrets.GH_NEW_TOKEN }}',
             'node scripts/generate-master-csv.mjs',
-            'git add public/wouldyourather.master.csv',
-            'git diff --cached --quiet',
-            'git push origin "HEAD:${{ github.ref_name }}"',
+            'uses: ./.github/actions/bot-commit/',
+            'bot-name: uff-authoring-bot',
             '[skip authoring]',
-            'for attempt in 1 2 3', 'git rebase',
         ];
         for (const token of tokens) {
             const mutated = good.split(token).join('SENTINEL_REMOVED');

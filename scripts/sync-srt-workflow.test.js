@@ -13,7 +13,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { concurrencyBlock, ifLine } from './lib/workflow-guard-utils.js';
+import { concurrencyBlock, ifLine, stepBlock } from './lib/workflow-guard-utils.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -34,14 +34,17 @@ function assertSyncWorkflowContract(text) {
     expect(text).toContain('secrets.CLOUDFLARE_API_TOKEN');
     expect(text).toContain('secrets.CLOUDFLARE_ACCOUNT_ID');
     expect(text).toContain('node scripts/write-srt-to-csv.mjs');
-    // PAT checkout + bot-commit with the loop guard, only on a diff.
+    // PAT checkout; the bot commit itself lives in the shared action.
     expect(text).toContain('token: ${{ secrets.GH_NEW_TOKEN }}');
-    expect(text).toContain('git add public/wouldyourather.master.csv');
-    expect(text).toContain('git diff --cached --quiet');
-    expect(text).toContain('git push origin "HEAD:${{ github.ref_name }}"');
-    // A rejected push retries on a fresh rebase instead of dying red.
-    expect(text).toContain('for attempt in 1 2 3');
-    expect(text).toContain('git rebase');
+    expect(text).toContain('node scripts/write-srt-to-csv.mjs');
+    const commit = stepBlock(text, 'Commit master CSV', 'sync-srt.yml');
+    expect(commit).toContain('uses: ./.github/actions/bot-commit/');
+    expect(commit).toContain('bot-name: uff-srt-bot');
+    expect(commit).toContain('[skip srt]');
+    expect(commit).toContain('add-paths: public/wouldyourather.master.csv');
+    expect(commit).toContain('node scripts/write-srt-to-csv.mjs --csv=/tmp/video_data.csv');
+    expect(commit).toContain('r2-api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}');
+    expect(commit).toContain('r2-account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}');
 
     const guard = ifLine(text, 'sync-srt.yml');
     expect(guard).toContain("github.actor != 'github-actions[bot]'");
@@ -70,11 +73,9 @@ describe('sync-srt.yml source guard', () => {
             'secrets.CLOUDFLARE_API_TOKEN', 'secrets.CLOUDFLARE_ACCOUNT_ID',
             'node scripts/write-srt-to-csv.mjs',
             'token: ${{ secrets.GH_NEW_TOKEN }}',
-            'git add public/wouldyourather.master.csv',
-            'git diff --cached --quiet',
-            'git push origin "HEAD:${{ github.ref_name }}"',
+            'uses: ./.github/actions/bot-commit/',
+            'bot-name: uff-srt-bot',
             '[skip srt]', 'group: master-csv', 'queue: max',
-            'for attempt in 1 2 3', 'git rebase',
         ];
         for (const token of tokens) {
             const mutated = good.split(token).join('SENTINEL_REMOVED');

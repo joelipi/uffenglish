@@ -10,7 +10,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { concurrencyBlock, ifLine } from './lib/workflow-guard-utils.js';
+import { concurrencyBlock, ifLine, stepBlock } from './lib/workflow-guard-utils.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -36,10 +36,12 @@ function assertConfigsContract(text) {
     // pipeline.yml owns `render-complete`; configs no longer accepts it.
     expect(text).not.toContain('repository_dispatch');
     expect(text).toContain('token: ${{ secrets.GH_NEW_TOKEN }}');
-    expect(text).toContain('git push origin "HEAD:${{ github.ref_name }}"');
-    // A rejected push retries on a fresh rebase instead of dying red.
-    expect(text).toContain('for attempt in 1 2 3');
-    expect(text).toContain('git rebase');
+    const commit = stepBlock(text, 'Commit configs', 'configs.yml');
+    expect(commit).toContain('uses: ./.github/actions/bot-commit/');
+    expect(commit).toContain('bot-name: uff-configs-bot');
+    expect(commit).toContain('[skip configs]');
+    expect(commit).toContain('add-paths: src/config scripts/lib/generated-configs.json');
+    expect(commit).toContain('node scripts/generate-config-from-sheet.mjs --check --require-videos');
 
     // The loop guard's `if:` line, scoped: `[skip configs]` also appears in the
     // bot's commit message, so a whole-file assertion could stay green while the
@@ -83,9 +85,9 @@ describe('configs.yml source guard', () => {
         expect(read()).toContain('token: ${{ secrets.GH_NEW_TOKEN }}');
     });
 
-    it('uses the configs bot identity', () => {
-        expect(read()).toContain('11131426+joelipi@users.noreply.github.com');
-        expect(read()).toContain('uff-configs-bot');
+    it('uses the configs bot identity via the shared action', () => {
+        const commit = stepBlock(read(), 'Commit configs', 'configs.yml');
+        expect(commit).toContain('bot-name: uff-configs-bot');
     });
 
     it('has the null-safe actor + [skip configs] loop guard', () => {
@@ -115,11 +117,11 @@ describe('configs.yml source guard', () => {
         expect(text).toContain("grep 'missing required column'");
     });
 
-    it('commits configs + the allow-list only on a diff', () => {
-        const text = read();
-        expect(text).toContain('git add src/config scripts/lib/generated-configs.json');
-        expect(text).toContain('git diff --cached --quiet');
-        expect(text).toContain('git push origin "HEAD:${{ github.ref_name }}"');
+    it('commits configs + the allow-list through the shared action', () => {
+        const commit = stepBlock(read(), 'Commit configs', 'configs.yml');
+        expect(commit).toContain('uses: ./.github/actions/bot-commit/');
+        expect(commit).toContain('add-paths: src/config scripts/lib/generated-configs.json');
+        expect(commit).toContain('chore(configs): regenerate course configs from the master CSV [skip configs]');
     });
 
     it('never passes --force (the Action never overwrites)', () => {
@@ -132,8 +134,8 @@ describe('configs.yml source guard', () => {
         const tokens = [
             'workflow_call:', 'secrets.GH_NEW_TOKEN', '[skip configs]',
             RUN_COMMAND, 'group: master-csv',
-            'for attempt in 1 2 3', 'git rebase',
-            'git push origin "HEAD:${{ github.ref_name }}"', 'queue: max',
+            'uses: ./.github/actions/bot-commit/',
+            'bot-name: uff-configs-bot', 'queue: max',
         ];
         for (const token of tokens) {
             const mutated = good.split(token).join('SENTINEL_REMOVED');

@@ -12,7 +12,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { concurrencyBlock } from './lib/workflow-guard-utils.js';
+import { concurrencyBlock, stepBlock } from './lib/workflow-guard-utils.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -48,12 +48,13 @@ function assertWorkflowContract(text) {
     expect(text).toContain('node scripts/translate-master-csv.mjs');
     expect(text).toContain('inputs.dry_run');
     expect(text).toContain('inputs.languages');
-    expect(text).toContain('git add public/wouldyourather.master.csv');
-    expect(text).toContain('git diff --cached --quiet');
-    expect(text).toContain('git push origin "HEAD:${{ github.ref_name }}"');
-    // A rejected push retries on a fresh rebase instead of dying red.
-    expect(text).toContain('for attempt in 1 2 3');
-    expect(text).toContain('git rebase');
+    const commit = stepBlock(text, 'Commit translations', 'translate-master.yml');
+    expect(commit).toContain('uses: ./.github/actions/bot-commit/');
+    expect(commit).toContain('bot-name: uff-translate-bot');
+    expect(commit).toContain('[skip translate]');
+    expect(commit).toContain('add-paths: public/wouldyourather.master.csv');
+    expect(commit).toContain('node scripts/translate-master-csv.mjs');
+    expect(commit).toContain('deepseek-key: ${{ secrets.DEEPSEEK_API_KEY }}');
 
     expect(text).toContain('[skip translate]');
     // The bot's own commit must not re-enter the job (loop guard on if:).
@@ -95,11 +96,9 @@ describe('translate-master.yml source guard', () => {
             'workflow_dispatch:', 'workflow_call:', 'secrets.DEEPSEEK_API_KEY',
             'token: ${{ secrets.GH_NEW_TOKEN }}',
             'node scripts/translate-master-csv.mjs',
-            'git add public/wouldyourather.master.csv',
-            'git diff --cached --quiet',
-            'git push origin "HEAD:${{ github.ref_name }}"',
+            'uses: ./.github/actions/bot-commit/',
+            'bot-name: uff-translate-bot',
             '[skip translate]', 'group: master-csv', 'queue: max', 'node-version: 20',
-            'for attempt in 1 2 3', 'git rebase',
             "github.actor != 'github-actions[bot]'",
         ];
         for (const token of required) {

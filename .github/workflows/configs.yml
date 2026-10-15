@@ -60,24 +60,12 @@ jobs:
             echo "::error::$line"
           done
       - name: Commit configs
-        run: |
-          git config user.name "uff-configs-bot"
-          git config user.email "11131426+joelipi@users.noreply.github.com"
-          git add src/config scripts/lib/generated-configs.json
-          if git diff --cached --quiet; then
-            echo "no config changes"
-          else
-            git commit -m "chore(configs): regenerate course configs from the master CSV [skip configs]"
-            # main moves fast (parallel work lands constantly); a rejected push
-            # retries on a fresh rebase instead of dying red. A rebase conflict
-            # aborts loudly: bot commits touch bot-owned files, so a conflict
-            # means a human edited the same file and needs eyes.
-            pushed=""
-            for attempt in 1 2 3; do
-              if git push origin "HEAD:${{ github.ref_name }}"; then pushed="yes"; break; fi
-              echo "push rejected (attempt $attempt/3); fetching + rebasing..."
-              git fetch origin "${{ github.ref_name }}"
-              git rebase "origin/${{ github.ref_name }}" || { git rebase --abort; exit 1; }
-            done
-            [ -n "$pushed" ] || { echo "push failed after 3 attempts"; exit 1; }
-          fi
+        uses: ./.github/actions/bot-commit/
+        with:
+          bot-name: uff-configs-bot
+          commit-message: "chore(configs): regenerate course configs from the master CSV [skip configs]"
+          add-paths: src/config scripts/lib/generated-configs.json
+          no-change-echo: no config changes
+          regenerate: |
+            set -o pipefail
+            node scripts/generate-config-from-sheet.mjs --check --require-videos 2>&1 | tee -a /tmp/configs.log

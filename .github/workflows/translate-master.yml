@@ -69,27 +69,17 @@ jobs:
           if [ "$DRY_RUN" = "true" ]; then DRY_RUN_FLAG="--dry-run"; fi
           node scripts/translate-master-csv.mjs --languages="$LANGUAGES" $DRY_RUN_FLAG 2>&1 | tee /tmp/translate.log
       - name: Commit translations
-        run: |
-          git config user.name "uff-translate-bot"
-          git config user.email "11131426+joelipi@users.noreply.github.com"
-          git add public/wouldyourather.master.csv
-          if git diff --cached --quiet; then
-            echo "no translation changes"
-          else
-            git commit -m "chore(translate): fill master CSV translations [skip translate]"
-            # main moves fast (parallel work lands constantly); a rejected push
-            # retries on a fresh rebase instead of dying red. A rebase conflict
-            # aborts loudly: bot commits touch bot-owned files, so a conflict
-            # means a human edited the same file and needs eyes.
-            pushed=""
-            for attempt in 1 2 3; do
-              if git push origin "HEAD:${{ github.ref_name }}"; then pushed="yes"; break; fi
-              echo "push rejected (attempt $attempt/3); fetching + rebasing..."
-              git fetch origin "${{ github.ref_name }}"
-              git rebase "origin/${{ github.ref_name }}" || { git rebase --abort; exit 1; }
-            done
-            [ -n "$pushed" ] || { echo "push failed after 3 attempts"; exit 1; }
-          fi
+        uses: ./.github/actions/bot-commit/
+        with:
+          bot-name: uff-translate-bot
+          commit-message: "chore(translate): fill master CSV translations [skip translate]"
+          add-paths: public/wouldyourather.master.csv
+          no-change-echo: no translation changes
+          regenerate: |
+            set -o pipefail
+            node scripts/translate-master-csv.mjs --languages="$LANGUAGES" 2>&1 | tee -a /tmp/translate.log
+          deepseek-key: ${{ secrets.DEEPSEEK_API_KEY }}
+          languages: ${{ inputs.languages }}
       - name: Summarize
         if: always()
         run: |

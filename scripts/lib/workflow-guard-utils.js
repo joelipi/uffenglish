@@ -28,6 +28,23 @@ export function jobBlock(text, name, label = 'workflow') {
     return lines.slice(start, end).join('\n');
 }
 
+/** The lines of one `- name:` step block (from `- name: <name>` to the next
+ * sibling step or the end of the steps list), so a `with:` assertion cannot
+ * be satisfied by a different step's lines. */
+export function stepBlock(text, name, label = 'workflow') {
+    const start = text.indexOf(`- name: ${name}`);
+    if (start === -1) throw new Error(`${label}: step "${name}" not found`);
+    const rest = text.slice(start);
+    const lines = rest.split('\n');
+    // A sibling step starts a `- name:` line at the same indent; anything
+    // else (including the next job key) ends the block.
+    let end = lines.length;
+    for (let i = 1; i < lines.length; i++) {
+        if (/^      - (name|uses|run):/.test(lines[i]) || /^  [A-Za-z0-9_-]+:/.test(lines[i])) { end = i; break; }
+    }
+    return lines.slice(0, end).join('\n');
+}
+
 /** The first job-level `if:` line, so a token that also appears in a commit
  * message (e.g. `[skip configs]`) is asserted only where the guard lives. */
 export function ifLine(text, label = 'workflow') {
