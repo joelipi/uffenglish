@@ -9,6 +9,7 @@ import { appStore } from '../../modules/store/store.js';
 import { useSignupForm } from '../auth/SignupForm.jsx';
 import Strings from '../../data/strings.js';
 import LegalLinks from '../legal/LegalLinks.jsx';
+import SignupConsent from '../legal/SignupConsent.jsx';
 
 export default function SaveClipsSignupForm({ onSignupSuccess, onLoginLink }) {
     const userData = useStore(appStore, (state) => state.userData);
@@ -101,6 +102,8 @@ export default function SaveClipsSignupForm({ onSignupSuccess, onLoginLink }) {
                         : Strings.get('save_clips_signup_cta', lang)}
                 </button>
             </form>
+
+            <SignupConsent lang={lang} />
 
             <div className="text-center mt-3">
                 <p className="mb-0">
