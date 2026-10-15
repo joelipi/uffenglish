@@ -127,6 +127,15 @@ describe('HomeScreen', () => {
         expect(container.textContent).not.toContain('Ultra Fast Fluency');
     });
 
+    it('renders no Privacy/Terms footer on the app dashboard', async () => {
+        // The dashboard (/home) keeps the links in the hamburger menu only;
+        // the public homepage (/) keeps its footer — see legal-wiring.test.js.
+        await renderHome();
+        expect(container.querySelector('[data-testid="legal-footer"]')).toBeNull();
+        expect(container.querySelector('a[href="/privacy"]')).toBeNull();
+        expect(container.querySelector('a[href="/terms"]')).toBeNull();
+    });
+
     it('renders the merged course-listings headline and onboarding steps', async () => {
         await renderHome();
         expect(container.querySelector('[data-testid="friend-courses-heading"]').textContent)
