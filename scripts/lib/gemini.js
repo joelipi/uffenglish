@@ -46,6 +46,11 @@ export function retryAfterMs(value) {
     return Math.min(seconds * 1000, RETRY_CAP_MS);
 }
 
+/** Backoff before attempt `n` failed (1-based): exponential from 5s, 60s cap. */
+export function backoffMs(attempt) {
+    return Math.min(RETRY_BASE_MS * 2 ** (attempt - 1), RETRY_CAP_MS);
+}
+
 /**
  * POST one chat completion with `response_format: json_object` and return the
  * parsed JSON content, retrying quota/transient failures. Shared transport
@@ -82,6 +87,7 @@ export async function geminiJson({
     for (;;) {
         attempt++;
         let res;
+        let text;
         try {
             res = await fetchImpl(GEMINI_URL, {
                 method: 'POST',
@@ -95,18 +101,21 @@ export async function geminiJson({
                     ],
                 }),
             });
+            // Inside the try: a connection that drops after headers
+            // (truncated chunked body) retries like any transport blip.
+            text = await res.text();
         } catch (err) {
-            // Transport failure (DNS reset, dropped connection): same backoff
-            // as a throttled response — a bulk job must not die on one blip.
+            // Transport failure (DNS reset, dropped connection, truncated
+            // body): same backoff as a throttled response — a bulk job must
+            // not die on one blip.
             if (attempt >= maxAttempts) {
-                throw new Error(`Gemini fetch failed after ${attempt} attempt(s): ${err.message}`);
+                throw new Error(`Gemini fetch failed after ${attempt} attempt(s): ${String(err?.message ?? err)}`);
             }
-            const waitMs = Math.min(RETRY_BASE_MS * 2 ** (attempt - 1), RETRY_CAP_MS);
+            const waitMs = backoffMs(attempt);
             onRetry({ attempt, status: 0, waitMs });
             await sleepImpl(waitMs);
             continue;
         }
-        const text = await res.text();
         if (res.ok) {
             let data;
             try {
@@ -127,7 +136,7 @@ export async function geminiJson({
             throw new Error(`Gemini HTTP ${res.status} ${tries}: ${text.slice(0, 300)}`);
         }
         const waitMs = retryAfterMs(headerOf(res, 'retry-after'))
-            ?? Math.min(RETRY_BASE_MS * 2 ** (attempt - 1), RETRY_CAP_MS);
+            ?? backoffMs(attempt);
         onRetry({ attempt, status: res.status, waitMs });
         await sleepImpl(waitMs);
     }
@@ -177,6 +186,10 @@ export async function translateSrt(englishSrt, lang, { fetchImpl, apiKey, sleepI
         'Preserve cue numbers and timestamps exactly; translate only the subtitle text. ' +
         TAUGHT_PHRASE_INSTRUCTION;
     const parsed = await geminiJson({ apiKey: resolveApiKey(apiKey), system, user: englishSrt, fetchImpl, sleepImpl, onRetry });
-    if (typeof parsed.srt !== 'string') throw new Error('Gemini response missing "srt" key');
+    // An empty SRT document is meaningless downstream (and the old client
+    // rejected it), so fail loudly like translateText does for blank text.
+    if (typeof parsed.srt !== 'string' || parsed.srt.trim() === '') {
+        throw new Error('Gemini response missing "srt" key');
+    }
     return parsed.srt;
 }

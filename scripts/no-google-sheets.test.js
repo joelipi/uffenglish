@@ -32,8 +32,10 @@ const FORBIDDEN = [
 ];
 
 // Any other GOOGLE_* name is forbidden — except the live translation secret,
-// which is pinned positively by its own test below.
-const FORBIDDEN_PATTERNS = [/GOOGLE_(?!API_KEY)\w*/];
+// which is pinned positively by its own test below. The pattern is
+// case-insensitive and the allowlist is exact: suffixed derivatives
+// (GOOGLE_API_KEY_EXTRA) and lowercase variants still trip it.
+const FORBIDDEN_PATTERNS = [/GOOGLE_(?!API_KEY\b)\w*/gi];
 
 function listFiles(dir, exts) {
     const out = [];
@@ -72,8 +74,8 @@ function scannedFiles() {
 function scanFile(file, text = readFileSync(file, 'utf8')) {
     const hits = FORBIDDEN.filter((token) => text.includes(token));
     for (const pattern of FORBIDDEN_PATTERNS) {
-        const match = text.match(pattern);
-        if (match) hits.push(match[0]);
+        pattern.lastIndex = 0;
+        for (const match of text.matchAll(pattern)) hits.push(match[0]);
     }
     return hits;
 }
@@ -106,9 +108,12 @@ describe('no Google Sheets references on the shipped surface', () => {
             const hits = scanFile(victim, `${clean}\n// ${token}\n`);
             expect(hits, token).toContain(token);
         }
-        // A future GOOGLE_FOO secret trips the pattern; the live translation
-        // secret does not (it is pinned positively below).
+        // A future GOOGLE_FOO secret trips the pattern; lowercase variants and
+        // suffixed derivatives of the live secret trip it too; the live
+        // translation secret does not (it is pinned positively below).
         expect(scanFile(victim, `${clean}\n// GOOGLE_FOO\n`)).toContain('GOOGLE_FOO');
+        expect(scanFile(victim, `${clean}\n// google_sheet_id\n`)).toContain('google_sheet_id');
+        expect(scanFile(victim, `${clean}\n// GOOGLE_API_KEY_EXTRA\n`)).toContain('GOOGLE_API_KEY_EXTRA');
         expect(scanFile(victim, `${clean}\n// GOOGLE_API_KEY\n`)).toEqual([]);
     });
 });

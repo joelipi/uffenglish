@@ -137,6 +137,22 @@ describe('geminiJson retry (free-tier throttling)', () => {
         expect(seen).toEqual([{ attempt: 1, status: 0, waitMs: 5000 }]);
     });
 
+    it('retries a body that drops after headers, then succeeds', async () => {
+        const waits = [];
+        const sleepImpl = vi.fn(async (ms) => { waits.push(ms); });
+        let calls = 0;
+        const fetchImpl = vi.fn(async () => {
+            calls++;
+            if (calls === 1) {
+                return { ok: true, status: 200, text: async () => { throw new Error('socket hang up'); } };
+            }
+            return okBlob({ ok: true });
+        });
+        const out = await geminiJson({ apiKey: 'k', system: 's', user: 'u', fetchImpl, sleepImpl });
+        expect(out).toEqual({ ok: true });
+        expect(waits).toEqual([5000]);
+    });
+
     it('gives up on repeated transport failures with an attempt count', async () => {
         const fetchImpl = vi.fn(async () => { throw new Error('DNS reset'); });
         await expect(geminiJson({ apiKey: 'k', system: 's', user: 'u', fetchImpl, sleepImpl: noSleep, maxAttempts: 2 }))
@@ -243,5 +259,18 @@ describe('translateSrt (captions path, no behavior change)', () => {
     it('throws when the response omits the srt key', async () => {
         const { fetchImpl } = stubFetch({ translation: 'x' });
         await expect(translateSrt('1\n...', 'es', { fetchImpl, apiKey: 'k' })).rejects.toThrow(/srt/);
+    });
+
+    it('throws on an empty or whitespace-only srt like on missing', async () => {
+        for (const srt of ['', '   ']) {
+            const { fetchImpl } = stubFetch({ srt });
+            await expect(translateSrt('1\n...', 'es', { fetchImpl, apiKey: 'k' })).rejects.toThrow(/srt/);
+        }
+    });
+
+    it('throws a readable message on a non-Error rejection', async () => {
+        const fetchImpl = vi.fn(async () => { throw 'string blowup'; });
+        await expect(geminiJson({ apiKey: 'k', system: 's', user: 'u', fetchImpl, sleepImpl: noSleep, maxAttempts: 1 }))
+            .rejects.toThrow(/string blowup/);
     });
 });
