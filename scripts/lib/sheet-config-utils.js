@@ -986,20 +986,59 @@ export function findMissingColumns(rows) {
 }
 
 /**
- * Assemble every course the sheet defines. Partitions the video rows by the
- * `course_id` column value (first-seen order), then builds each independently:
- * a course with any missing required column is skipped whole (all-or-nothing),
- * and a structural error in one course never blocks another.
+ * Steps of one course's rows still waiting on the render: a step is complete
+ * when at least one of its rows carries a non-blank `srt`. The render writes
+ * SRT only for groups it concatenated, and the write-back never clears — so a
+ * missing `srt` means that step has no published video yet. Grouping mirrors
+ * the builder EXACTLY (master: `join` else `video_file` within a lesson).
+ * Never throws; skipped silently:
+ * - `success` rows (code-owned step, never rendered),
+ * - friend/UGC steps (`{friendCode}` keys carry burned-in captions, never `srt`),
+ * - rows with a blank `lesson_id` (unattributable to any lesson),
+ * - authoring-shape courses entirely (their subtitles come from
+ *   `subtitle_text`, which needs no render).
+ * Pure; returns `[{ lesson, key }]` in first-seen order.
+ */
+export function incompleteVideoSteps(rows) {
+    const videoRows = (rows || []).filter(isVideoRow);
+    if (!isMasterFormat(headerKeys(videoRows))) return [];
+    const lessonOrder = [];
+    const lessonRows = new Map();
+    for (const row of videoRows) {
+        const lessonId = cell(row, 'lesson_id').trim();
+        if (!lessonId) continue;
+        if (!lessonRows.has(lessonId)) { lessonRows.set(lessonId, []); lessonOrder.push(lessonId); }
+        lessonRows.get(lessonId).push(row);
+    }
+    const missing = [];
+    for (const lessonId of lessonOrder) {
+        for (const { key, subgroups } of groupMasterRowsByKey(lessonRows.get(lessonId))) {
+            const stepRows = subgroups
+                .flatMap((group) => group.rows)
+                .filter((row) => cell(row, 'response_type').trim() !== 'success');
+            if (stepRows.length === 0) continue;
+            if (isFriendVideoSlug(key)) continue;
+            if (!stepRows.some((row) => cell(row, 'srt').trim())) {
+                missing.push({ lesson: lessonId, key });
+            }
+        }
+    }
+    return missing;
+}
+
+/**
+ * Partition video rows by the `course_id` column value (first-seen order).
+ * `course_id` is course-scoped and may be filled once (blank on later rows),
+ * so a blank cell belongs to the most recent non-blank value above it. A
+ * leading blank still forms the `""` partition and is reported missing.
+ * Pure; shared by the builder and the `--require-videos` completeness check
+ * so the two can never partition differently.
  *
  * @param {Array<Record<string,string>>} rows parsed rows
- * @returns {Array<{courseId: string, config?: object, error?: {kind: 'missing-columns', missing: Array<{column,where}>} | {kind: 'error', message: string}}>}
+ * @returns {Array<{courseId: string, rows: Array<Record<string,string>>}>}
  */
-export function buildCourseConfigs(rows) {
+export function partitionRowsByCourse(rows) {
     const videoRows = (rows || []).filter(isVideoRow);
-
-    // `course_id` is course-scoped and may be filled once (blank on later rows),
-    // so a blank cell belongs to the most recent non-blank value above it. A
-    // leading blank still forms the `""` partition and is reported missing.
     const order = [];
     const partitions = new Map();
     let currentCourseId = '';
@@ -1010,9 +1049,20 @@ export function buildCourseConfigs(rows) {
         if (!partitions.has(courseId)) { partitions.set(courseId, []); order.push(courseId); }
         partitions.get(courseId).push(row);
     }
+    return order.map((courseId) => ({ courseId, rows: partitions.get(courseId) }));
+}
 
-    return order.map((courseId) => {
-        const partitionRows = partitions.get(courseId);
+/**
+ * Assemble every course the sheet defines. Partitions the video rows by the
+ * `course_id` column value (first-seen order), then builds each independently:
+ * a course with any missing required column is skipped whole (all-or-nothing),
+ * and a structural error in one course never blocks another.
+ *
+ * @param {Array<Record<string,string>>} rows parsed rows
+ * @returns {Array<{courseId: string, config?: object, error?: {kind: 'missing-columns', missing: Array<{column,where}>} | {kind: 'error', message: string}}>}
+ */
+export function buildCourseConfigs(rows) {
+    return partitionRowsByCourse(rows).map(({ courseId, rows: partitionRows }) => {
         const missing = findMissingColumns(partitionRows);
         if (missing.length > 0) {
             return { courseId, error: { kind: 'missing-columns', missing } };

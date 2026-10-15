@@ -18,7 +18,7 @@ const WORKFLOW = path.join(ROOT, '.github/workflows/configs.yml');
 
 const read = () => readFileSync(WORKFLOW, 'utf8');
 
-const RUN_COMMAND = 'node scripts/generate-config-from-sheet.mjs --check';
+const RUN_COMMAND = 'node scripts/generate-config-from-sheet.mjs --check --require-videos';
 
 /** The "Generate configs" step block (its env + run), so a header-comment
  * occurrence of a token cannot keep an assertion green. */
@@ -149,7 +149,7 @@ describe('configs.yml source guard', () => {
         const good = read();
         // Appending `--from-api` to the run command trips the scoped absence
         // (the header comment carries no such token to hide behind).
-        const mutated = good.replace('mjs --check 2>&1', 'mjs --check --from-api 2>&1');
+        const mutated = good.replace('mjs --check --require-videos 2>&1', 'mjs --check --require-videos --from-api 2>&1');
         expect(mutated).not.toBe(good);
         expect(() => assertConfigsContract(mutated)).toThrow();
     });

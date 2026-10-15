@@ -312,6 +312,75 @@ describe('generate-config-from-sheet disk input', () => {
     });
 });
 
+// --require-videos: a course is skipped whole until every step rendered
+// (carries an srt). Friend clips and authoring-shape courses never block,
+// and without the flag behavior is unchanged.
+describe('generate-config-from-sheet --require-videos', () => {
+    const HEADER = [
+        'title_text', 'order', 'phrase', 'filename', 'video_file', 'course_id',
+        'course_name', 'lesson_id', 'lesson_title', 'response_type',
+        'recap_sources', 'recap_overlay', 'srt',
+    ].join(',');
+    const row = (video, file, srt) => [
+        'T', '1', 'Q', file, video, 'c', 'C', 'a', 'A',
+        'friendClosedResponse', 'none', 'shareCta', srt,
+    ].join(',');
+    const csvOf = (rows) => [HEADER, ...rows].join('\n');
+
+    it('generates a fully-rendered course', async () => {
+        const dir = tmpDir();
+        try {
+            const csv = csvOf([row('v1', 'f1', 'S1'), row('v2', 'f2', 'S2')]);
+            const { code } = await runCli([csvIn(dir, csv, 'm.csv'), `--out=${dir}`, '--require-videos']);
+            expect(code).toBe(0);
+            expect(JSON.parse(readFileSync(path.join(dir, 'c.json'), 'utf8')).courseId).toBe('c');
+        } finally { rmSync(dir, { recursive: true, force: true }); }
+    });
+
+    it('skips a course with an unrendered step whole and reports it', async () => {
+        const dir = tmpDir();
+        try {
+            const csv = csvOf([row('v1', 'f1', 'S1'), row('v2', 'f2', '')]);
+            const { code, stderr } = await runCli([csvIn(dir, csv, 'm.csv'), `--out=${dir}`, '--require-videos']);
+            expect(code).toBe(1);
+            expect(stderr).toContain('SKIP course "c": videos pending for 1 step(s): step "v2" (lessons "a")');
+            expect(existsSync(path.join(dir, 'c.json'))).toBe(false);
+        } finally { rmSync(dir, { recursive: true, force: true }); }
+    });
+
+    it('--check keeps a pending skip non-fatal', async () => {
+        const dir = tmpDir();
+        try {
+            const csv = csvOf([row('v1', 'f1', '')]);
+            const { code, stdout } = await runCli([csvIn(dir, csv, 'm.csv'), `--out=${dir}`, '--require-videos', '--check']);
+            expect(code).toBe(0);
+            expect(stdout).toContain('SKIPPED 1 course(s), WROTE 0');
+        } finally { rmSync(dir, { recursive: true, force: true }); }
+    });
+
+    it('a friend clip without srt never blocks its course', async () => {
+        const dir = tmpDir();
+        try {
+            const q1 = ['T', '1', 'Q', 'f1', 'v1', 'c', 'C', 'a', 'A', 'friendClosedResponse', 'friend', 'shareCta', 'S1'].join(',');
+            const qf = ['T', '1', '', '', '{friendCode}crs-a-01', 'c', 'C', 'a', 'A', 'friendClosedResponse', 'friend', 'shareCta', ''].join(',');
+            const lines = [HEADER, q1, qf].join(String.fromCharCode(10));
+            const { code } = await runCli([csvIn(dir, lines, 'm.csv'), `--out=${dir}`, '--require-videos']);
+            expect(code).toBe(0);
+            expect(existsSync(path.join(dir, 'c.json'))).toBe(true);
+        } finally { rmSync(dir, { recursive: true, force: true }); }
+    });
+
+    it('without the flag an srt-less course still generates', async () => {
+        const dir = tmpDir();
+        try {
+            const csv = csvOf([row('v1', 'f1', '')]);
+            const { code } = await runCli([csvIn(dir, csv, 'm.csv'), `--out=${dir}`]);
+            expect(code).toBe(0);
+            expect(existsSync(path.join(dir, 'c.json'))).toBe(true);
+        } finally { rmSync(dir, { recursive: true, force: true }); }
+    });
+});
+
 // Story 050, Task 2: the generator reads the overlay master (a `phrase` header).
 describe('generate-config-from-sheet master format', () => {
     it('writes a valid config whose lessons/steps match a master fixture', async () => {

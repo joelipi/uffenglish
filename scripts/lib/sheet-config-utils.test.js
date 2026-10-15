@@ -9,6 +9,7 @@ import {
     csvField,
     serializeWithHeaderLine,
     rawHeaderLine,
+    incompleteVideoSteps,
     isVideoRow,
     buildSteps,
     buildCourseConfig,
@@ -1374,8 +1375,7 @@ describe('serializeCsv (the file-commit writers)', () => {
     });
 });
 
-describe('serializeWithHeaderLine (header-casing-preserving rewrites)', () => {
-    it('keeps the exact header bytes while quoting body cells', () => {
+describe('serializeWithHeaderLine (header-casing-preserving rewrites)', () => {    it('keeps the exact header bytes while quoting body cells', () => {
         const out = serializeWithHeaderLine('a,BgSound,c', ['a', 'bgsound', 'c'], [
             { a: 'x,y', bgsound: 'S', c: '' },
         ]);

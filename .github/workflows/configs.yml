@@ -44,7 +44,7 @@ jobs:
       - name: Generate configs
         run: |
           set -o pipefail
-          node scripts/generate-config-from-sheet.mjs --check 2>&1 | tee /tmp/configs.log
+          node scripts/generate-config-from-sheet.mjs --check --require-videos 2>&1 | tee /tmp/configs.log
       - name: Report skips
         if: always()
         run: |

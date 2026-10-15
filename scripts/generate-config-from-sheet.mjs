@@ -20,7 +20,7 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { flagValue } from './lib/cli-utils.js';
-import { parseCsv, buildCourseConfigs, isValidCourseId } from './lib/sheet-config-utils.js';
+import { parseCsv, buildCourseConfigs, isValidCourseId, partitionRowsByCourse, incompleteVideoSteps } from './lib/sheet-config-utils.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -41,6 +41,9 @@ Options:
   --course=<courseId>   Only this course (from the CSV's course_id column)
   --out=<dir>           Output DIRECTORY (default src/config)
   --csv=<path>          Master CSV file (default: the committed public/wouldyourather.master.csv)
+  --require-videos      Skip a course whole until every one of its steps
+                        carries an srt (i.e. every step rendered+published);
+                        friend clips and authoring-shape courses never block
   --dry-run             Print the plan; write nothing
   --check               CI mode: skips are non-fatal (exit 0); still writes the rest
   --help, -h            Show this help
@@ -53,6 +56,18 @@ function missingReport(missing) {
     return missing.map((m) => `${m.column} (${m.where})`).join(', ');
 }
 
+function pendingReport(pending) {
+    // One entry per step; a reused video lists every lesson waiting on it
+    // (e.g. an answer lesson replaying an ask step still pending render).
+    const order = [];
+    const byKey = new Map();
+    for (const p of pending) {
+        if (!byKey.has(p.key)) { byKey.set(p.key, []); order.push(p.key); }
+        if (!byKey.get(p.key).includes(p.lesson)) byKey.get(p.key).push(p.lesson);
+    }
+    return order.map((k) => `step "${k}" (lessons ${byKey.get(k).map((l) => `"${l}"`).join(', ')})`).join(', ');
+}
+
 /**
  * Build and write configs from parsed rows. Extracted so tests can drive it
  * with in-memory rows and compare the written files. `register` appends
@@ -62,7 +77,7 @@ function missingReport(missing) {
  */
 export async function generateConfigsFromRows({
     rows, courseFilter, outDir, dryRun = false, check = false, register = false,
-    log = console.log, errorLog = console.error,
+    requireVideos = false, log = console.log, errorLog = console.error,
 } = {}) {
     let results = buildCourseConfigs(rows);
     if (results.length === 0) throw new Error('no video rows found in the CSV');
@@ -75,6 +90,7 @@ export async function generateConfigsFromRows({
 
     let wrote = 0;
     let skipped = 0;
+    const partitionsByCourse = new Map(partitionRowsByCourse(rows).map((p) => [p.courseId, p.rows]));
 
     for (const result of results) {
         const { courseId } = result;
@@ -94,6 +110,20 @@ export async function generateConfigsFromRows({
             skipped++;
             errorLog(`SKIP course "${courseId}": invalid courseId: expected [A-Za-z0-9][A-Za-z0-9_-]*`);
             continue;
+        }
+
+        // With --require-videos a course waits until every step rendered: a
+        // step without an `srt` has no published video yet, so no config is
+        // created or pushed for it. Friend clips and authoring-shape courses
+        // never block (their subtitles need no render).
+        if (requireVideos) {
+            const partition = partitionsByCourse.get(courseId) || [];
+            const pending = incompleteVideoSteps(partition);
+            if (pending.length > 0) {
+                skipped++;
+                errorLog(`SKIP course "${courseId}": videos pending for ${pending.length} step(s): ${pendingReport(pending)}`);
+                continue;
+            }
         }
 
         const outPath = path.join(outDir, `${courseId}.json`);
@@ -139,6 +169,7 @@ async function main() {
     const csvPath = csvFlag ? path.resolve(csvFlag) : path.join(ROOT, MASTER_CSV_REL);
     const dryRun = args.includes('--dry-run');
     const check = args.includes('--check');
+    const requireVideos = args.includes('--require-videos');
 
     const outDir = outOverride ? path.resolve(outOverride) : CONFIG_DIR;
 
@@ -151,7 +182,7 @@ async function main() {
     }
 
     const { skipped } = await generateConfigsFromRows({
-        rows, courseFilter, outDir, dryRun, check, register: !outOverride,
+        rows, courseFilter, outDir, dryRun, check, requireVideos, register: !outOverride,
     });
 
     if (!dryRun && !check && skipped > 0) {

@@ -204,7 +204,10 @@ records takes and presses **render**:
   manual `workflow_dispatch`) and chains the three actions as reusable
   workflows — `srt` → `translate` → `configs`, ordered by `needs:` — so a single
   event runs the whole chain. Each action stays independently runnable from the
-  Actions UI.
+  Actions UI. `configs.yml` runs the generator with `--require-videos`, so a
+  course whose steps still lack published videos is skipped whole (reported,
+  non-fatal) instead of shipping a videoless config — the config for a course
+  is created only once all of its videos are up.
 - **No publish lag in the post-render chain.** Every job checks out the repo
   fresh after the preceding job's push, so it sees the `srt` and translation
   cells the earlier jobs just committed. The one freshness caveat left is the
