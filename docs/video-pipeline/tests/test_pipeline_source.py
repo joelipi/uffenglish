@@ -40,6 +40,10 @@ def assert_title_band_pins(overlay: str) -> None:
     assert "body_min = max(10, int(video_height * 0.018))" in overlay, "body floor pin"
     assert "title_base = max(12, int(body_min * 1.5))" in overlay, "title must be 1.5x the body floor"
     assert "title_base = max(10, int(video_height * 0.05))" not in overlay, "old oversized base"
+    # The clamp and its divisor (the CSS line-height) — without them the base
+    # can exceed its block height and the shrink loop fires every render.
+    assert "title_base = min(title_base, max(12, int(_title_height_cap / 1.6)))" in overlay, \
+        "base must be clamped to the band height"
 
 
 def extract_overlay_constants():
@@ -437,6 +441,15 @@ class OverlayTitleBandGuardTest(unittest.TestCase):
         assert "BODY_TOP = COMPACT_BLUR_RATIO" in overlay
         assert "COMPACT_BLUR_RATIO = 0.12" in read()
 
+    def test_line_height_constant_matches_the_emitted_css(self):
+        # The clamp divides by this; the CSS sets it. Pin them together so a
+        # CSS change cannot silently desynchronize the constant.
+        overlay = slice_between(read(), "def create_overlay_html", "def add_background_sound")
+        title_block = slice_between(overlay, ".title {{", "}}")
+        css = re.search(r"line-height:\s*([0-9.]+)", title_block)
+        self.assertIsNotNone(css)
+        self.assertEqual(float(css.group(1)), TITLE_LINE_HEIGHT)
+        self.assertIn(f"int(_title_height_cap / {TITLE_LINE_HEIGHT})", overlay)
     def test_title_top_keeps_the_chrome_margin(self):
         assert "TITLE_TOP = 0.07" in slice_between(
             read(), "def create_overlay_html", "def add_background_sound")
@@ -503,6 +516,10 @@ class OverlayTitleBandGuardTest(unittest.TestCase):
             good.replace("TITLE_TOP = 0.07", "TITLE_TOP = 0.02"),
             good.replace("title_base = max(12, int(body_min * 1.5))",
                          "title_base = max(12, int(video_height * 0.05))"),
+            # The clamp divisor is the CSS line-height: drifting it breaks the
+            # invariant the pin exists to catch.
+            good.replace("int(_title_height_cap / 1.6)",
+                         "int(_title_height_cap / 1.5)"),
         ]
         for mutated in mutations:
             self.assertNotEqual(mutated, good)
