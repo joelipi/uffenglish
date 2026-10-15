@@ -187,10 +187,13 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
 
 /* Auth navigation links (signup / login / forgot-password / back-to-login).
    These render on dark-blue surfaces (AuthLayout card #1a3a5a, bg-dark
-   modals), where the default Bootstrap blue (#0d6efd) is unreadable, so they
-   are bold white with an underline, lightening on hover. */
-.auth-link { color: #ffffff !important; font-weight: 700; text-decoration: underline; }
-.auth-link:hover, .auth-link:focus-visible { color: #adb5bd !important; }
+   modals), where the default browser link blue is unreadable, so they
+   are bold white with an underline, lightening on hover. No `!important`
+   needed: app.css has no bare-anchor rule, the homepage stylesheets scope
+   theirs under `.uff-home-bs` (never an ancestor of the auth routes), and a
+   class already beats the user-agent link color. */
+.auth-link { color: #ffffff; font-weight: 700; text-decoration: underline; }
+.auth-link:hover, .auth-link:focus-visible { color: #adb5bd; }
 
 /* --- Cards --- */
 .card {
