@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { buildVideoSpeedToggleView } from '../modules/video/video-speed-logic.js';
 
 // Render-only snail speed toggle. Every rule (steps, labels, next rate)
 // comes from video-speed-logic.js — this file holds no rate math.
-export default function VideoSpeedToggle({ rate = 1, onCycle }) {
+// Memoized: parents like SimpleVideoPlayer re-render on every timeupdate,
+// and the toggle must not re-render (or re-log) with them.
+function VideoSpeedToggle({ rate = 1, onCycle }) {
     const view = buildVideoSpeedToggleView({ rate });
-    console.log(`[VideoSpeedToggle] render rate=${view.label} slowed=${view.slowed}`);
     const handleClick = (e) => {
         e.stopPropagation();
         console.log(`[VideoSpeedToggle] toggle ${view.label} -> ${view.nextLabel}`);
@@ -28,3 +29,5 @@ export default function VideoSpeedToggle({ rate = 1, onCycle }) {
         </button>
     );
 }
+
+export default memo(VideoSpeedToggle);

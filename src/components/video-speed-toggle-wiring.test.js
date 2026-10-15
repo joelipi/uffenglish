@@ -13,6 +13,7 @@ const ROOT = path.resolve(__dirname, '../..');
 const read = (rel) => readFileSync(path.join(ROOT, rel), 'utf8');
 
 const logic = read('src/modules/video/video-speed-logic.js');
+const hook = read('src/hooks/useVideoSpeed.js');
 const toggle = read('src/components/VideoSpeedToggle.jsx');
 const simple = read('src/components/SimpleVideoPlayer.web.jsx');
 const interactive = read('src/components/InteractiveVideoPlayer.web.jsx');
@@ -59,46 +60,62 @@ describe('VideoSpeedToggle is render-only with a snail icon', () => {
     it('stops propagation so the overlay never toggles play/pause', () => {
         expect(toggle).toContain('e.stopPropagation()');
     });
+
+    it('logs only from the click handler, never in the render body', () => {
+        const renderBody = toggle.slice(toggle.indexOf('function VideoSpeedToggle'), toggle.indexOf('const handleClick'));
+        expect(renderBody).not.toContain('console.log');
+    });
+});
+
+describe('useVideoSpeed owns the shared speed contract', () => {
+    it('holds the rate state, the per-clip reset and the element sync', () => {
+        expect(hook).toContain("from '../modules/video/video-speed-logic.js'");
+        expect(hook).toContain('export function useVideoSpeed(videoRef, resetKey)');
+        expect(hook).toContain('const [rate, setRate] = useState(1);');
+        expect(hook).toContain('setRate(1);');
+        expect(hook).toContain('applyVideoSpeed(videoRef.current, rate)');
+        expect(hook).toContain('nextVideoSpeed(rate)');
+    });
 });
 
 describe('non-interactive video surfaces render the toggle', () => {
-    it('SimpleVideoPlayer imports the toggle and the logic, and renders it', () => {
-        expect(simple).toContain("from './VideoSpeedToggle.jsx'");
-        expect(simple).toContain("from '../modules/video/video-speed-logic.js'");
+    it('SimpleVideoPlayer shares the hook and renders the toggle', () => {
+        expect(simple).toContain("from '../hooks/useVideoSpeed.js'");
+        expect(simple).toContain('useVideoSpeed(videoRef, config?.videoUrl)');
         expect(simple).toContain('<VideoSpeedToggle rate={playbackRate} onCycle={handleSpeedCycle} />');
     });
 
-    it('SimpleVideoPlayer resets the rate per clip and syncs it to the element', () => {
-        expect(simple).toContain('const [playbackRate, setPlaybackRate] = useState(1);');
-        expect(simple).toContain('applyVideoSpeed(videoRef.current, playbackRate)');
-        expect(simple).toContain('setPlaybackRate(1);');
-        expect(simple).toContain('nextVideoSpeed(playbackRate)');
+    it('SimpleVideoPlayer holds no speed state, reset or sync of its own', () => {
+        expect(simple).not.toContain('const [playbackRate, setPlaybackRate]');
+        expect(simple).not.toContain('nextVideoSpeed(playbackRate)');
+        expect(simple).not.toContain('applyVideoSpeed(videoRef.current');
     });
 
     it('TutorialModal renders the toggle over its portrait video', () => {
-        expect(tutorial).toContain("from '../VideoSpeedToggle.jsx'");
-        expect(tutorial).toContain('<VideoSpeedToggle rate={playbackRate} onCycle={setPlaybackRate} />');
-        expect(tutorial).toContain('applyVideoSpeed(videoRef.current, playbackRate)');
+        expect(tutorial).toContain("from '../../hooks/useVideoSpeed.js'");
+        expect(tutorial).toContain('useVideoSpeed(videoRef, view.videoUrl)');
+        expect(tutorial).toContain('<VideoSpeedToggle rate={playbackRate} onCycle={handleSpeedCycle} />');
     });
 
     it('PlaybackVideo renders the toggle', () => {
-        expect(playback).toContain("from './VideoSpeedToggle.jsx'");
-        expect(playback).toContain('<VideoSpeedToggle rate={playbackRate} onCycle={setPlaybackRate} />');
-        expect(playback).toContain('applyVideoSpeed(videoRef.current, playbackRate)');
+        expect(playback).toContain("from '../hooks/useVideoSpeed.js'");
+        expect(playback).toContain('useVideoSpeed(videoRef, blob)');
+        expect(playback).toContain('<VideoSpeedToggle rate={playbackRate} onCycle={handleSpeedCycle} />');
     });
 
     it('SuccessVideo renders the toggle', () => {
-        expect(success).toContain("from '../VideoSpeedToggle.jsx'");
-        expect(success).toContain('<VideoSpeedToggle rate={playbackRate} onCycle={setPlaybackRate} />');
-        expect(success).toContain('applyVideoSpeed(videoRef.current, playbackRate)');
+        expect(success).toContain("from '../../hooks/useVideoSpeed.js'");
+        expect(success).toContain('useVideoSpeed(videoRef, blob)');
+        expect(success).toContain('<VideoSpeedToggle rate={playbackRate} onCycle={handleSpeedCycle} />');
     });
 });
 
 describe('InteractiveVideoPlayer is excluded', () => {
-    it('never imports or renders the snail toggle', () => {
+    it('never imports or renders the snail toggle or the shared hook', () => {
         expect(interactive).not.toContain('VideoSpeedToggle');
         expect(interactive).not.toContain('video-speed-toggle');
         expect(interactive).not.toContain('nextVideoSpeed');
+        expect(interactive).not.toContain('useVideoSpeed');
     });
 });
 

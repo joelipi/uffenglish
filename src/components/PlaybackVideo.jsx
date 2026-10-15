@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { appStore } from '../modules/store/store.js';
 import { usePlaybackVideo } from '../hooks/usePlaybackVideo.js';
-import { applyVideoSpeed } from '../modules/video/video-speed-logic.js';
+import { useVideoSpeed } from '../hooks/useVideoSpeed.js';
 import VideoSpeedToggle from './VideoSpeedToggle.jsx';
 
 // Intentional navigator sniff — guarded with typeof checks. In React Native
@@ -16,11 +16,7 @@ export default function PlaybackVideo() {
     const prevClearTrigger = useRef(videoClearTrigger);
     const prevPlayTrigger = useRef(videoPlayTrigger);
     // Snail speed toggle (1x -> 0.8x -> 0.6x -> 1x), reset per recording.
-    const [playbackRate, setPlaybackRate] = useState(1);
-    useEffect(() => { setPlaybackRate(1); }, [blob]);
-    useEffect(() => {
-        if (videoRef.current && blob) applyVideoSpeed(videoRef.current, playbackRate);
-    }, [playbackRate, blob]);
+    const [playbackRate, handleSpeedCycle] = useVideoSpeed(videoRef, blob);
 
     const handleVideoEnded = () => {
         const video = videoRef.current;
@@ -140,7 +136,7 @@ export default function PlaybackVideo() {
                     appStore.getState().setPlaybackMuted(next);
                 }}
                 style={{ cursor: 'pointer' }} />
-            <VideoSpeedToggle rate={playbackRate} onCycle={setPlaybackRate} />
+            <VideoSpeedToggle rate={playbackRate} onCycle={handleSpeedCycle} />
         </div>
     );
 }

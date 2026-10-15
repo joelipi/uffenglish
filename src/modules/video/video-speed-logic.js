@@ -46,7 +46,9 @@ export function applyVideoSpeed(video, rate) {
     if (!video || Number.isNaN(n)) return n;
     try {
         video.playbackRate = n;
-    } catch {}
-    console.log(`[VideoSpeed] playbackRate set to ${n}x`);
+        console.log(`[VideoSpeed] playbackRate set to ${n}x`);
+    } catch (e) {
+        console.warn(`[VideoSpeed] failed to set playbackRate to ${n}x:`, e?.message);
+    }
     return n;
 }

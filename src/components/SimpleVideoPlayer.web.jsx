@@ -9,7 +9,7 @@ import { getBilingual } from '../data/strings.js';
 import { useNativeLanguage } from '../hooks/use-native-language.js';
 import { isBranchingStep, BRANCH_OVERLAY_PHASE } from '../modules/lesson/branch-choice-logic.js';
 import { getSimpleVideoOverlayTextKey } from '../modules/video/response-decision-logic.js';
-import { nextVideoSpeed, applyVideoSpeed } from '../modules/video/video-speed-logic.js';
+import { useVideoSpeed } from '../hooks/useVideoSpeed.js';
 import VideoSpeedToggle from './VideoSpeedToggle.jsx';
 import VideoPlayIcon from './VideoPlayIcon.jsx';
 
@@ -40,9 +40,10 @@ export default function SimpleVideoPlayer() {
     const [scrollOffset, setScrollOffset] = useState(0);
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
-    // Snail speed toggle (1x -> 0.8x -> 0.6x -> 1x). Local to this player so
-    // the interactive player's scoring-coupled playbackRate is untouched.
-    const [playbackRate, setPlaybackRate] = useState(1);
+    // Snail speed toggle (1x -> 0.8x -> 0.6x -> 1x), shared via useVideoSpeed.
+    // Local to this player so the interactive player's scoring-coupled
+    // playbackRate is untouched.
+    const [playbackRate, handleSpeedCycle] = useVideoSpeed(videoRef, config?.videoUrl);
     const appPhase = useStore(appStore, (s) => s.appPhase);
     const currentVideo = useStore(appStore, (s) => s.currentVideo);
     const overlayLang = useNativeLanguage();
@@ -52,18 +53,6 @@ export default function SimpleVideoPlayer() {
         () => getBilingual(overlayTextKey, overlayLang),
         [overlayTextKey, overlayLang]
     );
-    // Reset the snail speed toggle whenever the clip changes so a slowed
-    // rate never leaks into the next step's video.
-    const videoUrl = config?.videoUrl;
-    useEffect(() => { setPlaybackRate(1); }, [videoUrl]);
-    // Sync the toggle rate to the element. The rule (which rates exist)
-    // lives in video-speed-logic.js; this effect only writes the result.
-    useEffect(() => {
-        if (videoRef.current) applyVideoSpeed(videoRef.current, playbackRate);
-    }, [playbackRate, videoUrl, loaded]);
-    const handleSpeedCycle = useCallback((next) => {
-        setPlaybackRate(next ?? nextVideoSpeed(playbackRate));
-    }, [playbackRate]);
     // Store player reference for external pause/play
     // Conforms to VideoPlayerHandle — same contract as InteractiveVideoPlayer
     // so the platform-agnostic answer pipeline can drive both uniformly.

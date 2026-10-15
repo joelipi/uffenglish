@@ -3,11 +3,11 @@
 // Render-only: every rule (slug, URL, subtitle text, close policy) comes from
 // src/modules/video/tutorial-logic.js and the localized Continue label from
 // src/data/strings.js. This file holds no gates, mappings, or URL building.
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { getBilingual } from '../../data/strings.js';
 import { useNativeLanguage } from '../../hooks/use-native-language.js';
 import { buildTutorialModalView, createTutorialModalHandlers } from '../../modules/video/tutorial-logic.js';
-import { applyVideoSpeed } from '../../modules/video/video-speed-logic.js';
+import { useVideoSpeed } from '../../hooks/useVideoSpeed.js';
 import VideoSpeedToggle from '../VideoSpeedToggle.jsx';
 import { pauseLessonVideoForTutorial } from '../../modules/lesson/lesson-progression.js';
 
@@ -17,11 +17,7 @@ export default function TutorialModal({ stepType, onClose }) {
     const continueLabel = getBilingual('continue', lang);
     const videoRef = useRef(null);
     // Snail speed toggle (1x -> 0.8x -> 0.6x -> 1x), reset per tutorial clip.
-    const [playbackRate, setPlaybackRate] = useState(1);
-    useEffect(() => { setPlaybackRate(1); }, [view.videoUrl]);
-    useEffect(() => {
-        if (videoRef.current) applyVideoSpeed(videoRef.current, playbackRate);
-    }, [playbackRate, view.videoUrl]);
+    const [playbackRate, handleSpeedCycle] = useVideoSpeed(videoRef, view.videoUrl);
 
     // Callers pass an inline arrow, so hold it in a ref and expose a stable
     // close() — the keydown effect below then attaches its listener once
@@ -92,7 +88,7 @@ export default function TutorialModal({ stepType, onClose }) {
                         preload="metadata"
                         aria-label={`Tutorial for ${view.stepType}`}
                     />
-                    <VideoSpeedToggle rate={playbackRate} onCycle={setPlaybackRate} />
+                    <VideoSpeedToggle rate={playbackRate} onCycle={handleSpeedCycle} />
                     <div className="ivp-subtitle-scroll-container tutorial-modal-subtitles">
                         <div className="ivp-subtitles tutorial-modal-subtitle-text" lang={view.subtitleLang}>
                             {view.subtitleText}

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store/store.js';
-import { applyVideoSpeed } from '../../modules/video/video-speed-logic.js';
+import { useVideoSpeed } from '../../hooks/useVideoSpeed.js';
 import VideoSpeedToggle from '../VideoSpeedToggle.jsx';
 
 export default function SuccessVideo() {
@@ -13,11 +13,7 @@ export default function SuccessVideo() {
     const afterVideoActive = useStore(appStore, (state) => state.afterVideoActive);
     const [playing, setPlaying] = useState(false);
     // Snail speed toggle (1x -> 0.8x -> 0.6x -> 1x), reset per result clip.
-    const [playbackRate, setPlaybackRate] = useState(1);
-    useEffect(() => { setPlaybackRate(1); }, [blob]);
-    useEffect(() => {
-        if (videoRef.current && blob) applyVideoSpeed(videoRef.current, playbackRate);
-    }, [playbackRate, blob]);
+    const [playbackRate, handleSpeedCycle] = useVideoSpeed(videoRef, blob);
 
     useEffect(() => {
         const video = videoRef.current;
@@ -58,7 +54,7 @@ export default function SuccessVideo() {
                     backgroundColor: 'black',
                     cursor: 'pointer'
                 }} />
-            <VideoSpeedToggle rate={playbackRate} onCycle={setPlaybackRate} />
+            <VideoSpeedToggle rate={playbackRate} onCycle={handleSpeedCycle} />
             {!playing && (
                 <div onClick={handleToggle} style={{
                     position: 'absolute',
