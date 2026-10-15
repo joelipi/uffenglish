@@ -47,7 +47,7 @@ function assertOneClickDocs({ authoring }) {
 
 // The docs contract: the authoring guide documents every one of the 21
 // localization columns (`phrase` is master-only, not in this guide) and the
-// bot-commit + DeepSeek setup — and carries no Google Sheets surface at all —
+// bot-commit + Gemini setup — and carries no Google Sheets surface at all —
 // while the product feature list carries the round-trip entry.
 function assertDocsContract({ authoring, product }) {
     for (const field of LOCALIZATION_FIELDS.filter((f) => f.field !== 'phrase')) {
@@ -59,7 +59,7 @@ function assertDocsContract({ authoring, product }) {
     expect(authoring).toContain('wouldyourather.source.txt');
     expect(authoring).toContain('wouldyourather.master.csv');
     expect(authoring).toContain('translate-master-csv.mjs');
-    expect(authoring).toContain('DEEPSEEK_API_KEY');
+    expect(authoring).toContain('GOOGLE_API_KEY');
     expect(authoring).toContain('GH_NEW_TOKEN');
     expect(authoring).not.toContain('GOOGLE_SERVICE_ACCOUNT_JSON');
     expect(authoring).not.toContain('GOOGLE_SHEET_ID');
@@ -84,7 +84,7 @@ describe('story 065 docs contract', () => {
             { authoring: authoring.replace('lesson_title_es', 'X'), product },
             { authoring: authoring.replace('subtitle_text_bn', 'X'), product },
             { authoring: authoring.replace('srt_bn', 'X'), product },
-            { authoring: authoring.replace('DEEPSEEK_API_KEY', 'X'), product },
+            { authoring: authoring.split('GOOGLE_API_KEY').join('X'), product },
             { authoring: authoring.split('wouldyourather.master.csv').join('X'), product },
             { authoring: authoring.split('translate-master-csv.mjs').join('X'), product },
             { authoring, product: product.split('stories/049-translate-sheet/story.md').join('X') },

@@ -1,5 +1,5 @@
 // scripts/translate-master-csv.test.js
-// Story 065, Task 4: the file-based translator with injected DeepSeek seams.
+// Story 065, Task 4: the file-based translator with injected Gemini seams.
 // No live credential is used anywhere — the core pass takes fakes, and the
 // subprocess cases only exercise --help / validation errors.
 import { describe, it, expect, vi } from 'vitest';
@@ -229,7 +229,7 @@ describe('parseLanguages', () => {
 
 function runCli(args, env = {}) {
     const clean = { ...process.env };
-    delete clean.DEEPSEEK_API_KEY;
+    delete clean.GOOGLE_API_KEY;
     Object.assign(clean, env);
     return new Promise((resolve) => {
         execFile('node', [SCRIPT, ...args], { cwd: ROOT, env: clean }, (err, stdout, stderr) => {
@@ -259,26 +259,28 @@ describe('translate-master-csv CLI validation', () => {
         expect(stderr).toContain('xx');
     });
 
-    it('errors clearly when DEEPSEEK_API_KEY is missing', async () => {
+    it('errors clearly when GOOGLE_API_KEY is missing', async () => {
         const dir = mkdtempSync(path.join(os.tmpdir(), 'uff-trcsv-'));
         try {
             const file = path.join(dir, 'm.csv');
             writeFileSync(file, 'lesson_title,lesson_title_es\nHi,\n');
             const { code, stderr } = await runCli([`--csv=${file}`]);
             expect(code).not.toBe(0);
-            expect(stderr).toContain('DEEPSEEK_API_KEY');
+            expect(stderr).toContain('GOOGLE_API_KEY');
         } finally { rmSync(dir, { recursive: true, force: true }); }
     });
 
     it('errors clearly when the CSV file is missing', async () => {
-        const { code, stderr } = await runCli(['--csv=/tmp/uff-no-such.csv'], { DEEPSEEK_API_KEY: 'k' });
+        const { code, stderr } = await runCli(['--csv=/tmp/uff-no-such.csv'], { GOOGLE_API_KEY: 'k' });
         expect(code).not.toBe(0);
         expect(stderr).toContain('ERROR:');
     });
 
     it('the raw source carries no Google Sheets surface', () => {
         const src = readFileSync(SCRIPT, 'utf8');
-        expect(src).not.toContain('GOOGLE_');
+        expect(src).toContain('GOOGLE_API_KEY');
+        expect(src).not.toContain('GOOGLE_SERVICE_ACCOUNT_JSON');
+        expect(src).not.toContain('GOOGLE_SHEET_ID');
         expect(src).not.toContain('docs.google.com');
         expect(src).not.toContain('batchUpdate');
         expect(src).not.toContain('spreadsheetId');
@@ -286,7 +288,7 @@ describe('translate-master-csv CLI validation', () => {
 
     it('--dry-run on the committed master prints a plan and writes nothing', async () => {
         const before = readFileSync(path.join(ROOT, 'public/wouldyourather.master.csv'), 'utf8');
-        const { code, stdout } = await runCli(['--dry-run'], { DEEPSEEK_API_KEY: 'k' });
+        const { code, stdout } = await runCli(['--dry-run'], { GOOGLE_API_KEY: 'k' });
         expect(code).toBe(0);
         expect(stdout).toContain('filled,');
         expect(readFileSync(path.join(ROOT, 'public/wouldyourather.master.csv'), 'utf8')).toBe(before);

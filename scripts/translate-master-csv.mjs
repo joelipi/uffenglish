@@ -16,7 +16,7 @@
 //   node scripts/translate-master-csv.mjs [--csv=<path>]
 //     [--languages=es,pt,bn] [--dry-run] [--force]
 //
-// Requires DEEPSEEK_API_KEY. The translated file is written through a
+// Requires GOOGLE_API_KEY. The translated file is written through a
 // same-directory temp file + rename (the story-047 crash-safety rule).
 
 import { promises as fs } from 'node:fs';
@@ -32,7 +32,7 @@ import {
     countPresentTranslations,
     validateSrtDocument,
 } from './lib/sheet-translate-utils.js';
-import { translateText as realTranslateText, translateSrt as realTranslateSrt } from './lib/deepseek.js';
+import { translateText as realTranslateText, translateSrt as realTranslateSrt } from './lib/gemini.js';
 import { MASTER_CSV_REL } from './generate-config-from-sheet.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -52,7 +52,7 @@ Options:
   --force               Retranslate non-blank target cells (operator-only)
   --help, -h            Show this help
 
-Requires DEEPSEEK_API_KEY.`;
+Requires GOOGLE_API_KEY.`;
 
 /** Parse/validate a comma-separated `--languages` value. */
 export function parseLanguages(value) {
@@ -111,7 +111,7 @@ export async function runTranslateCsv({
     const plan = planSheetTranslations({ rows, headers, sheetRows, languages, force });
     const already = countPresentTranslations({ rows, headers, languages });
 
-    // Fail fast before any DeepSeek call or write if the file is missing a
+    // Fail fast before any Gemini call or write if the file is missing a
     // target column the plan needs.
     const headerSet = new Set(headers.map((h) => String(h).trim().toLowerCase()));
     const missingColumns = [...new Set(plan.map((p) => p.column))]
@@ -201,8 +201,8 @@ async function main() {
     const dryRun = args.includes('--dry-run');
     const force = args.includes('--force');
 
-    if (!process.env.DEEPSEEK_API_KEY) {
-        console.error('ERROR: DEEPSEEK_API_KEY is not set. Set it before running the translator.');
+    if (!process.env.GOOGLE_API_KEY) {
+        console.error('ERROR: GOOGLE_API_KEY is not set. Set it before running the translator.');
         process.exit(1);
     }
 

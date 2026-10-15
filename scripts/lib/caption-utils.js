@@ -3,14 +3,14 @@
 // (stories/009-auto-caption-simple-videos). All network/process work lives
 // behind injected functions (transcribe/translate) so the whole pipeline is
 // unit-testable with fakes. The CLI (scripts/generate-captions.mjs) supplies
-// the real git/R2/ffmpeg/Whisper/DeepSeek implementations.
+// the real git/R2/ffmpeg/Whisper/Gemini implementations.
 
 import { modify, applyEdits, parse } from 'jsonc-parser';
 
 export const WHISPER_MODEL = 'onnx-community/whisper-base.en';
-// The DeepSeek model/transport now lives in the shared client (story 049);
+// The translation model/transport now lives in the shared client;
 // re-exported here so existing importers keep one definition.
-export { DEEPSEEK_MODEL } from './deepseek.js';
+export { GEMINI_MODEL } from './gemini.js';
 // Matches the six-language convention used across the recap CTA strings in
 // src/data/strings.js (EN, ES, PT, FR, HI, BN).
 export const CAPTION_LANGUAGES = ['en', 'es', 'pt', 'fr', 'hi', 'bn'];

@@ -43,7 +43,7 @@ jobs:
       - name: Generate captions
         if: steps.changed.outputs.files != ''
         env:
-          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
           CAPTION_MODEL_CACHE: ${{ runner.temp }}/uff-caption-model
         run: node scripts/generate-captions.mjs --base "${{ steps.changed.outputs.base }}" --head "${{ github.sha }}" --files "${{ steps.changed.outputs.files }}"
       - name: Commit captions

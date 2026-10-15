@@ -1,8 +1,8 @@
 name: Translate Master CSV
 
 # Manual, or called by the one-click pipeline.yml chain (`workflow_call`).
-# Reads the committed master CSV, fills blank per-language cells with DeepSeek
-# (`deepseek-v4-flash`), and commits the file back. Translation only fills
+# Reads the committed master CSV, fills blank per-language cells with Gemini
+# (`gemini-3.5-flash-lite`, free tier with retry), and commits the file back. Translation only fills
 # blanks (idempotent), so a human edit to a translation cell is honored; the
 # English source is never overwritten.
 on:
@@ -58,7 +58,7 @@ jobs:
       - run: npm ci
       - name: Translate master CSV
         env:
-          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
           LANGUAGES: ${{ inputs.languages || 'es,pt,bn' }}
           DRY_RUN: ${{ inputs.dry_run }}
         run: |
@@ -78,7 +78,7 @@ jobs:
           regenerate: |
             set -euo pipefail
             node scripts/translate-master-csv.mjs --languages="$LANGUAGES" 2>&1 | tee -a /tmp/translate.log
-          deepseek-key: ${{ secrets.DEEPSEEK_API_KEY }}
+          api-key: ${{ secrets.GOOGLE_API_KEY }}
           languages: ${{ inputs.languages || 'es,pt,bn' }}
       - name: Summarize
         if: always()

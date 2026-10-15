@@ -98,8 +98,8 @@ describes the config output each row produces — `step "<key>"`, then any of
 ## Localization columns
 
 The master CSV carries translations alongside the English source. `scripts/translate-master-csv.mjs`
-reads the English columns, translates with DeepSeek (`deepseek-v4-flash`, via the shared
-client in `scripts/lib/deepseek.js`), and commits the results back into the file's
+reads the English columns, translates with Gemini (`gemini-3.5-flash-lite`, via the shared
+client in `scripts/lib/gemini.js`), and commits the results back into the file's
 per-language columns below. The config generator then reads those columns into the
 `{en,es,pt,bn}` objects the app localizes from. Run the Action from the Actions UI
 ("Translate Master CSV" → Run workflow; it takes optional `dry_run` and `languages` inputs).
@@ -154,18 +154,18 @@ timings stay the caption pipeline's job — the translator never retimes. A step
   English `srt` column on every render, so the translator treats a stored `srt_<lang>` as
   stale — and re-plans it — whenever its cue count or timings no longer match the current
   English SRT. A re-timed step therefore never keeps an out-of-date translation (each
-  re-timed step costs one DeepSeek call per language). (A text-only English change with
+  re-timed step costs one Gemini call per language (retried with backoff on free-tier throttling). (A text-only English change with
   *unchanged* timings is not detectable this way; clear the `srt_<lang>` cell or run the CLI
   with `--force` to retranslate.)
 - **The English source is never overwritten** and a CSV with none of these columns
   generates English-only output exactly as before.
 
 **One-time setup (operator):** the Action commits with the repo's push-capable bot
-token and translates with DeepSeek — no Google account involved.
+token and translates with Gemini — a `GOOGLE_API_KEY` secret holds the key.
 
 1. Store a fine-grained PAT with **Contents: read and write** as the Actions
    secret **`GH_NEW_TOKEN`** (the same bot token `configs.yml` uses).
-2. Store the DeepSeek key as **`DEEPSEEK_API_KEY`**.
+2. Store the Gemini key as **`GOOGLE_API_KEY`** (AI Studio free tier suffices).
 
 ## One-click pipeline (automatic)
 

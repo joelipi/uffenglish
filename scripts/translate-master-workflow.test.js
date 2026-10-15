@@ -2,7 +2,7 @@
 // Story 065, Task 4: source guard for .github/workflows/translate-master.yml
 // and the CLI. The Action writes translations into the committed master CSV
 // (not a remote sheet), so this pins its shape: PAT checkout, bot-commit with
-// the loop guard, shared CSV-writer concurrency, DeepSeek-only secrets, and
+// the loop guard, shared CSV-writer concurrency, Gemini-only secrets, and
 // the absences (no Google surface, no --force).
 //
 // Lives under scripts/ so the src/** recorder-page scanner is unaffected. Raw
@@ -43,7 +43,7 @@ function assertWorkflowContract(text) {
     expect(text).toContain('workflow_dispatch:');
     // Story 051: the one-click pipeline calls this as a reusable workflow.
     expect(text).toContain('workflow_call:');
-    expect(text).toContain('secrets.DEEPSEEK_API_KEY');
+    expect(text).toContain('secrets.GOOGLE_API_KEY');
     expect(text).toContain('token: ${{ secrets.GH_NEW_TOKEN }}');
     expect(text).toContain('node scripts/translate-master-csv.mjs');
     expect(text).toContain('inputs.dry_run');
@@ -58,7 +58,7 @@ function assertWorkflowContract(text) {
     expect(commit).toContain('[skip translate]');
     expect(commit).toContain('add-paths: public/wouldyourather.master.csv');
     expect(commit).toContain('node scripts/translate-master-csv.mjs');
-    expect(commit).toContain('deepseek-key: ${{ secrets.DEEPSEEK_API_KEY }}');
+    expect(commit).toContain('api-key: ${{ secrets.GOOGLE_API_KEY }}');
 
     expect(text).toContain('[skip translate]');
     // The bot's own commit must not re-enter the job (loop guard on if:).
@@ -69,8 +69,10 @@ function assertWorkflowContract(text) {
     expect(conc).toContain('cancel-in-progress: false');
     expect(conc).toContain('queue: max');
     expect(text).toContain('node-version: 20');
-    // Absences: no Google surface, no force.
-    expect(text).not.toContain('GOOGLE_');
+    // Absences: no Sheets-era Google surface (GOOGLE_API_KEY is the live
+    // translation secret, pinned positively above), no force.
+    expect(text).not.toContain('GOOGLE_SERVICE_ACCOUNT_JSON');
+    expect(text).not.toContain('GOOGLE_SHEET_ID');
     expect(text).not.toContain('docs.google.com');
     expect(text).not.toContain('spreadsheet');
     expect(text).not.toContain('--force');
@@ -97,7 +99,7 @@ describe('translate-master.yml source guard', () => {
     it('the guard can fail on each required token', () => {
         const good = readWorkflow();
         const required = [
-            'workflow_dispatch:', 'workflow_call:', 'secrets.DEEPSEEK_API_KEY',
+            'workflow_dispatch:', 'workflow_call:', 'secrets.GOOGLE_API_KEY',
             'token: ${{ secrets.GH_NEW_TOKEN }}',
             'node scripts/translate-master-csv.mjs',
             'uses: ./.github/actions/bot-commit/',

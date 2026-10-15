@@ -24,8 +24,8 @@ inputs:
   regenerate:
     description: shell snippet re-deriving the outputs after a rebase (runs with the bot env below)
     required: true
-  deepseek-key:
-    description: DEEPSEEK_API_KEY value for translators (empty unless needed)
+  api-key:
+    description: translation API key value (empty unless needed)
     required: false
     default: ''
   r2-api-token:
@@ -50,7 +50,7 @@ runs:
   steps:
     - shell: bash
       env:
-        DEEPSEEK_API_KEY: ${{ inputs.deepseek-key }}
+        GOOGLE_API_KEY: ${{ inputs.api-key }}
         CLOUDFLARE_API_TOKEN: ${{ inputs.r2-api-token }}
         CLOUDFLARE_ACCOUNT_ID: ${{ inputs.r2-account-id }}
         R2_PRIVATE_BUCKET: ${{ inputs.r2-bucket }}

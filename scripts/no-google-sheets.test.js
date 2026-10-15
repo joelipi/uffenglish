@@ -1,8 +1,10 @@
 // scripts/no-google-sheets.test.js
 // Story 065, Task 7: Google Sheets is gone — repo files are the only
 // lesson-authoring store. This guard asserts zero Sheets references over the
-// shipped surface: no service-account/secret names, no published-CSV URLs, no
-// gid literals.
+// shipped surface: no service-account names, no sheet IDs, no published-CSV
+// URLs, no gid literals. (The translation provider is Gemini, whose
+// `GOOGLE_API_KEY` secret is pinned separately below — it is the one
+// `GOOGLE_*` name allowed to exist.)
 //
 // Scope is the shipped surface only: `*.test.js` / `test_*.py` files are
 // excluded because absence-guard tests intentionally embed the forbidden
@@ -19,7 +21,11 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
 
 const FORBIDDEN = [
-    'GOOGLE_',
+    'GOOGLE_SERVICE_ACCOUNT_JSON',
+    'GOOGLE_SHEET_ID',
+    'GOOGLE_SOURCE_SHEET_JSON',
+    'SOURCE_SHEET_ID',
+    'SOURCE_SHEET_TAB',
     'docs.google.com/spreadsheets',
     '2PACX',
     'gid=242913338',
@@ -90,6 +96,28 @@ describe('no Google Sheets references on the shipped surface', () => {
         for (const token of FORBIDDEN) {
             const hits = scanFile(victim, `${clean}\n// ${token}\n`);
             expect(hits, token).toContain(token);
+        }
+    });
+});
+
+describe('translation provider is Gemini (GOOGLE_API_KEY)', () => {
+    const read = (rel) => readFileSync(path.join(ROOT, rel), 'utf8');
+
+    it('both translation CLIs read GOOGLE_API_KEY and never DeepSeek names', () => {
+        for (const cli of ['scripts/translate-master-csv.mjs', 'scripts/generate-captions.mjs']) {
+            const src = read(cli);
+            expect(src, cli).toContain('GOOGLE_API_KEY');
+            expect(src, cli).not.toContain('DEEPSEEK_API_KEY');
+            expect(src, cli).not.toContain('deepseek');
+            expect(src, cli).toContain('./lib/gemini.js');
+        }
+    });
+
+    it('both translation workflows pass the Gemini secret', () => {
+        for (const wf of ['.github/workflows/translate-master.yml', '.github/workflows/captions.yml']) {
+            const text = read(wf);
+            expect(text, wf).toContain('secrets.GOOGLE_API_KEY');
+            expect(text, wf).not.toContain('DEEPSEEK');
         }
     });
 });

@@ -459,7 +459,8 @@ describe('committed master CSV input (story 065, Task 6)', () => {
         expect(cli).not.toContain('SHEET_URL');
         expect(cli).not.toContain('docs.google.com');
         expect(cli).not.toContain('--from-api');
-        expect(cli).not.toContain('GOOGLE_');
+        expect(cli).not.toContain('GOOGLE_SERVICE_ACCOUNT_JSON');
+        expect(cli).not.toContain('GOOGLE_SHEET_ID');
         expect(cli).not.toContain('loadRowsFromApi');
     };
 
