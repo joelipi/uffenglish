@@ -10,7 +10,9 @@
 //    DOM.
 //
 // Intentional window/navigator access, guarded by `typeof window`.
-import { STANDALONE_DISPLAY_MODE_QUERY, isApplePlatform } from './install-prompt-logic.js';let installElement = null;
+import { STANDALONE_DISPLAY_MODE_QUERY, isApplePlatform } from './install-prompt-logic.js';
+
+let installElement = null;
 
 /** Register the mounted `<pwa-install>` element (called by PWAInstallDialog). */
 export function registerInstallElement(element) {

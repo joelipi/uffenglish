@@ -284,20 +284,20 @@ export default function HomeScreen() {
                                 <i className="bi bi-file-earmark-text"></i> {Strings.get('legal_terms', lang)}
                             </Link>
                             {viewerId && viewerId !== 'guest' && (
-                                <PWAInstallButton
-                                    label={Strings.get(selectInstallCtaKey({ isApple: readIsApplePlatform() }), lang)}
-                                    style={installBtnStyle}
-                                    onBeforeOpen={closeMenu}
-                                />
-                            )}
-                            {viewerId && viewerId !== 'guest' && (
-                                <PushNotificationsOptIn
-                                    lang={lang}
-                                    variant="menu-item"
-                                    userId={viewerId}
-                                    style={installBtnStyle}
-                                    onBeforeOpen={closeMenu}
-                                />
+                                <>
+                                    <PWAInstallButton
+                                        label={Strings.get(selectInstallCtaKey({ isApple: readIsApplePlatform() }), lang)}
+                                        style={installBtnStyle}
+                                        onBeforeOpen={closeMenu}
+                                    />
+                                    <PushNotificationsOptIn
+                                        lang={lang}
+                                        variant="menu-item"
+                                        userId={viewerId}
+                                        style={installBtnStyle}
+                                        onBeforeOpen={closeMenu}
+                                    />
+                                </>
                             )}
                         </nav>
                         <div style={{ flex: 1 }} />

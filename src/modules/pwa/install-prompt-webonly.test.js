@@ -62,7 +62,8 @@ describe('readIsApplePlatform', () => {
     });
 });
 
-describe('install element registry', () => {    it('bridges the mounted dialog element to its trigger button', () => {
+describe('install element registry', () => {
+    it('bridges the mounted dialog element to its trigger button', () => {
         expect(getRegisteredInstallElement()).toBeNull();
         const element = { showDialog: vi.fn() };
         registerInstallElement(element);
