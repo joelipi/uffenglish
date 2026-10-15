@@ -121,14 +121,13 @@ describe('PWAInstallBanner', () => {
         }).not.toThrow();
         unmount();
     });
-}
 
     it('renders nothing for guests, anonymous users and installed apps', () => {
         setNavigator(WINDOWS);
         for (const userId of ['guest', null, undefined]) {
             const { container, unmount } = render(<PWAInstallBanner lang="en" userId={userId} />);
             expect(container.querySelector('[data-testid="pwa-install-banner"]')).toBeNull();
-            unmount();</
+            unmount();
         }
         window.matchMedia = () => ({ matches: true });
         const { container, unmount } = render(<PWAInstallBanner lang="en" userId="user-1" />);
