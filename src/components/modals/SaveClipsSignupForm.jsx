@@ -108,6 +108,7 @@ export default function SaveClipsSignupForm({ onSignupSuccess, onLoginLink }) {
                     <a
                         href="#"
                         id="saveClipsLoginLink"
+                        className="auth-link"
                         onClick={(e) => { e.preventDefault(); onLoginLink?.(); }}
                     >
                         {Strings.get('auth_log_in_link', lang)}

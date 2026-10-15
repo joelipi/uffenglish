@@ -42,7 +42,7 @@ export default function RecoverPasswordForm({ onBackToLogin }) {
             </form>
 
             <div className="text-center mt-3">
-                <p><a href="#" onClick={(e) => { e.preventDefault(); onBackToLogin?.(); }}>{Strings.get('auth_back_to_login', lang)}</a></p>
+                <p><a className="auth-link" href="#" onClick={(e) => { e.preventDefault(); onBackToLogin?.(); }}>{Strings.get('auth_back_to_login', lang)}</a></p>
             </div>
         </>
     );
