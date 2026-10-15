@@ -59,7 +59,7 @@ jobs:
       - name: Translate master CSV
         env:
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
-          LANGUAGES: ${{ inputs.languages }}
+          LANGUAGES: ${{ inputs.languages || 'es,pt,bn' }}
           DRY_RUN: ${{ inputs.dry_run }}
         run: |
           set -euo pipefail
@@ -76,10 +76,10 @@ jobs:
           add-paths: public/wouldyourather.master.csv
           no-change-echo: no translation changes
           regenerate: |
-            set -o pipefail
+            set -euo pipefail
             node scripts/translate-master-csv.mjs --languages="$LANGUAGES" 2>&1 | tee -a /tmp/translate.log
           deepseek-key: ${{ secrets.DEEPSEEK_API_KEY }}
-          languages: ${{ inputs.languages }}
+          languages: ${{ inputs.languages || 'es,pt,bn' }}
       - name: Summarize
         if: always()
         run: |

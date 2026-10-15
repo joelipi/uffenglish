@@ -69,7 +69,7 @@ jobs:
           add-paths: public/wouldyourather.master.csv
           no-change-echo: no master CSV changes
           regenerate: |
-            set -o pipefail
+            set -euo pipefail
             node scripts/generate-master-csv.mjs 2>&1 | tee -a /tmp/source-sync.log
       - name: Summarize
         if: always()

@@ -30,7 +30,10 @@ export function jobBlock(text, name, label = 'workflow') {
 
 /** The lines of one `- name:` step block (from `- name: <name>` to the next
  * sibling step or the end of the steps list), so a `with:` assertion cannot
- * be satisfied by a different step's lines. */
+ * be satisfied by a different step's lines. Assumes sibling steps start with
+ * `- name:`/`- uses:`/`- run:` at exactly 6 spaces (true for every guarded
+ * workflow today); a step starting otherwise would merge two steps into one
+ * block and its assertions would read across the boundary. */
 export function stepBlock(text, name, label = 'workflow') {
     const start = text.indexOf(`- name: ${name}`);
     if (start === -1) throw new Error(`${label}: step "${name}" not found`);

@@ -27,6 +27,11 @@ function assertActionContract(text) {
     }
     expect(text).toContain('git config user.email "11131426+joelipi@users.noreply.github.com"');
     expect(text).toContain('git commit -m "${{ inputs.commit-message }}"');
+    // Fail-fast shell: an unchecked failure (bad add-paths, failed regen)
+    // aborts loud instead of pushing stale content or logging a green
+    // "no changes".
+    expect(text).toContain('set -euo pipefail');
+    expect(text).toContain('bash -c "${{ inputs.regenerate }}" || exit 1');
     // Order follows the file: initial commit, then push → fail-fast arm →
     // fetch → rebase → regenerate → amend. A reordered file (e.g. pushing a
     // stale commit without regenerating) trips the index assertions.
@@ -64,6 +69,7 @@ describe('bot-commit action source guard', () => {
         const good = read();
         const tokens = [
             'bot-name:', 'commit-message:', 'add-paths:', 'regenerate:',
+            'set -euo pipefail', 'bash -c "${{ inputs.regenerate }}" || exit 1',
             'git commit --amend --no-edit', 'rebase --abort',
             'push failed after 3 attempts',
             'bash -c "${{ inputs.regenerate }}"',

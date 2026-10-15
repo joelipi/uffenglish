@@ -56,6 +56,7 @@ runs:
         R2_PRIVATE_BUCKET: ${{ inputs.r2-bucket }}
         LANGUAGES: ${{ inputs.languages }}
       run: |
+        set -euo pipefail
         git config user.name "${{ inputs.bot-name }}"
         git config user.email "11131426+joelipi@users.noreply.github.com"
         git add ${{ inputs.add-paths }}
@@ -74,10 +75,11 @@ runs:
             exit 1
           fi
           echo "push rejected; fetching + rebasing..."
+          # A fetch flake retries the push next iteration (no rebase happened,
+          # so pushing the same commit again is correct, not stale).
           git fetch origin "${{ github.ref_name }}" || continue
           git rebase "origin/${{ github.ref_name }}" || { git rebase --abort; exit 1; }
-          set -o pipefail
-          bash -c "${{ inputs.regenerate }}"
+          bash -c "${{ inputs.regenerate }}" || exit 1
           git add ${{ inputs.add-paths }}
           git diff --cached --quiet || git commit --amend --no-edit
         done

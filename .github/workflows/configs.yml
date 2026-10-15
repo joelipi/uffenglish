@@ -67,5 +67,5 @@ jobs:
           add-paths: src/config scripts/lib/generated-configs.json
           no-change-echo: no config changes
           regenerate: |
-            set -o pipefail
+            set -euo pipefail
             node scripts/generate-config-from-sheet.mjs --check --require-videos 2>&1 | tee -a /tmp/configs.log

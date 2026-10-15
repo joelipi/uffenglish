@@ -48,6 +48,10 @@ function assertWorkflowContract(text) {
     expect(text).toContain('node scripts/translate-master-csv.mjs');
     expect(text).toContain('inputs.dry_run');
     expect(text).toContain('inputs.languages');
+    // The pinned default holds on every path: an explicitly empty input can
+    // never reach the CLI as an empty --languages (which would translate
+    // nothing), in the run step or the retry regen alike.
+    expect(text).toContain("inputs.languages || 'es,pt,bn'");
     const commit = stepBlock(text, 'Commit translations', 'translate-master.yml');
     expect(commit).toContain('uses: ./.github/actions/bot-commit/');
     expect(commit).toContain('bot-name: uff-translate-bot');

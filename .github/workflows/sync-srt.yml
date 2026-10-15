@@ -59,7 +59,7 @@ jobs:
           add-paths: public/wouldyourather.master.csv
           no-change-echo: no srt changes
           regenerate: |
-            set -o pipefail
+            set -euo pipefail
             npx wrangler r2 object get "$R2_PRIVATE_BUCKET/pipeline-assets/video_data.csv" --file=/tmp/video_data.csv
             node scripts/write-srt-to-csv.mjs --csv=/tmp/video_data.csv 2>&1 | tee -a /tmp/srt.log
           r2-api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
