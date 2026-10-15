@@ -9,6 +9,7 @@ import { appStore } from '../../modules/store/store.js';
 import { useSignupForm } from '../auth/SignupForm.jsx';
 import Strings from '../../data/strings.js';
 import LegalLinks from '../legal/LegalLinks.jsx';
+import SignupConsent from '../legal/SignupConsent.jsx';
 
 export default function SaveClipsSignupForm({ onSignupSuccess, onLoginLink }) {
     const userData = useStore(appStore, (state) => state.userData);
@@ -102,12 +103,15 @@ export default function SaveClipsSignupForm({ onSignupSuccess, onLoginLink }) {
                 </button>
             </form>
 
+            <SignupConsent lang={lang} />
+
             <div className="text-center mt-3">
                 <p className="mb-0">
                     {Strings.get('auth_already_account', lang)}{' '}
                     <a
                         href="#"
                         id="saveClipsLoginLink"
+                        className="auth-link"
                         onClick={(e) => { e.preventDefault(); onLoginLink?.(); }}
                     >
                         {Strings.get('auth_log_in_link', lang)}
