@@ -11,20 +11,18 @@
 export const STANDALONE_DISPLAY_MODE_QUERY = '(display-mode: standalone)';
 
 /**
- * Apple platforms (iPhone/iPad/iPod, or iPadOS reporting "MacIntel" with
- * touch points, or desktop Mac) use "Add to Home Screen" wording: iOS has no
- * install prompt — the app is added from the Share sheet — and Mac users meet
- * the same phrase in Safari. Every other platform keeps "Install app".
- *
- * Mirrors the iPadOS rule in `modules/utils/orientation.js#isMobileUserAgent`
- * (same UA/platform/maxTouchPoints inputs) plus the desktop-Mac branch.
+ * Apple platforms (iPhone/iPad/iPod UA, or a Mac UA / "MacIntel" platform,
+ * which covers both iPadOS reporting as desktop and desktop Mac itself) use
+ * "Add to Home Screen" wording: iOS has no install prompt — the app is added
+ * from the Share sheet — and Mac users meet the same phrase in Safari. Every
+ * other platform keeps "Install app".
  */
-export function isApplePlatform({ userAgent = '', platform = '', maxTouchPoints = 0 } = {}) {
+export function isApplePlatform({ userAgent = '', platform = '' } = {}) {
     const ua = String(userAgent || '');
     const plat = String(platform || '');
     if (/iPad|iPhone|iPod/.test(ua)) return true;
     if (/Mac/.test(ua) || plat === 'MacIntel') return true;
-    if (/^iPad|iPhone|iPod/.test(plat)) return true;
+    if (/^(iPad|iPhone|iPod)/.test(plat)) return true;
     return false;
 }
 

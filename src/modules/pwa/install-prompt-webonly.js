@@ -10,8 +10,7 @@
 //    DOM.
 //
 // Intentional window/navigator access, guarded by `typeof window`.
-import { STANDALONE_DISPLAY_MODE_QUERY, isApplePlatform } from './install-prompt-logic.js';
-let installElement = null;
+import { STANDALONE_DISPLAY_MODE_QUERY, isApplePlatform } from './install-prompt-logic.js';let installElement = null;
 
 /** Register the mounted `<pwa-install>` element (called by PWAInstallDialog). */
 export function registerInstallElement(element) {
@@ -52,11 +51,7 @@ export function readIsApplePlatform() {
     if (typeof window === 'undefined') return false;
     try {
         const nav = window.navigator || {};
-        return isApplePlatform({
-            userAgent: nav.userAgent,
-            platform: nav.platform,
-            maxTouchPoints: nav.maxTouchPoints,
-        });
+        return isApplePlatform({ userAgent: nav.userAgent, platform: nav.platform });
     } catch (err) {
         console.error('[PWA] Failed to read the platform:', err);
         return false;

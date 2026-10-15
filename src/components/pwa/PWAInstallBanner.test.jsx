@@ -34,21 +34,18 @@ function render(element) {
     };
 }
 
-const setNavigator = ({ userAgent = '', platform = '', maxTouchPoints = 0 } = {}) => {
+const setNavigator = ({ userAgent = '', platform = '' } = {}) => {
     Object.defineProperty(window.navigator, 'userAgent', { value: userAgent, configurable: true });
     Object.defineProperty(window.navigator, 'platform', { value: platform, configurable: true });
-    Object.defineProperty(window.navigator, 'maxTouchPoints', { value: maxTouchPoints, configurable: true });
 };
 
 const IPHONE = {
     userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)',
     platform: 'iPhone',
-    maxTouchPoints: 5,
 };
 const WINDOWS = {
     userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
     platform: 'Win32',
-    maxTouchPoints: 0,
 };
 
 afterEach(() => {

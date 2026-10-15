@@ -315,9 +315,11 @@ export default function HomeScreen() {
             )}
 
             <div style={{ flex: 1, overflowY: 'auto' }}>
-                <PWAInstallBanner lang={lang} userId={viewerId} />
                 {viewerId && viewerId !== 'guest' && (
-                    <PushNotificationsOptIn lang={lang} variant="prompt" userId={viewerId} />
+                    <>
+                        <PWAInstallBanner lang={lang} userId={viewerId} />
+                        <PushNotificationsOptIn lang={lang} variant="prompt" userId={viewerId} />
+                    </>
                 )}
                 <FriendCoursesView
                     lang={lang}

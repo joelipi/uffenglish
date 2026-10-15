@@ -38,8 +38,10 @@ const BANNER_STYLE = {
 };
 
 export default function PWAInstallBanner({ lang = 'en', userId = null }) {
-    const isApple = readIsApplePlatform();
+    // Cheap pure gate first: guests and installed users never pay the
+    // platform read below.
     if (!shouldShowInstallBanner({ isStandalone: readIsStandaloneApp(), userId })) return null;
+    const isApple = readIsApplePlatform();
 
     const handleTap = () => {
         const opened = openInstallDialog(getRegisteredInstallElement());

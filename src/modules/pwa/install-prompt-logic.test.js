@@ -71,12 +71,9 @@ describe('isApplePlatform', () => {
         expect(isApplePlatform({ userAgent: IPAD_UA, platform: 'iPad' })).toBe(true);
     });
 
-    it('detects iPadOS reporting a desktop Mac UA via touch points', () => {
-        expect(isApplePlatform({ userAgent: IPADOS_DESKTOP_UA, platform: 'MacIntel', maxTouchPoints: 5 })).toBe(true);
-    });
-
-    it('detects desktop Mac (MacIntel without touch points)', () => {
-        expect(isApplePlatform({ userAgent: DESKTOP_MAC_UA, platform: 'MacIntel', maxTouchPoints: 0 })).toBe(true);
+    it('detects desktop Mac and iPadOS reporting a desktop Mac UA', () => {
+        expect(isApplePlatform({ userAgent: IPADOS_DESKTOP_UA, platform: 'MacIntel' })).toBe(true);
+        expect(isApplePlatform({ userAgent: DESKTOP_MAC_UA, platform: 'MacIntel' })).toBe(true);
     });
 
     it('rejects Android, Windows and unknown platforms', () => {

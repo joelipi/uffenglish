@@ -54,9 +54,11 @@ export default function CourseListings({ lang = 'en', courses, isLoading = false
             </div>
 
             <div data-testid="friend-courses-scroll" style={scrollStyle}>
-                <PWAInstallBanner lang={lang} userId={userId} />
                 {userId && userId !== 'guest' && (
-                    <PushNotificationsOptIn lang={lang} variant="prompt" userId={userId} />
+                    <>
+                        <PWAInstallBanner lang={lang} userId={userId} />
+                        <PushNotificationsOptIn lang={lang} variant="prompt" userId={userId} />
+                    </>
                 )}
                 <FriendCoursesView lang={lang} courses={courses} isLoading={isLoading} isError={isError} />
             </div>
