@@ -141,6 +141,8 @@ describe('app.css carries the toggle overlay stylesheet', () => {
         expect(block).toContain('top: calc(20%');
         expect(block).toContain('right: 12px');
         expect(block).toContain('z-index: 30');
+        // The speedometer glyph resolves white via currentColor — lock it.
+        expect(block).toContain('color: #fff');
         expect(block).toContain('border-radius: 9999px');
     });
 
