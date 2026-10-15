@@ -145,7 +145,7 @@ export default function SignupForm({ onSignupSuccess, onLoginLink }) {
             </form>
 
             <div className="text-center mt-3">
-                <p>{Strings.get('auth_already_account', lang)} <a href="#" onClick={(e) => { e.preventDefault(); onLoginLink?.(); }}>{Strings.get('auth_log_in_link', lang)}</a></p>
+                <p>{Strings.get('auth_already_account', lang)} <a className="auth-link" href="#" onClick={(e) => { e.preventDefault(); onLoginLink?.(); }}>{Strings.get('auth_log_in_link', lang)}</a></p>
             </div>
 
             <LegalLinks lang={lang} />

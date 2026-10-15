@@ -185,6 +185,13 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
 .btn-link { --bs-btn-font-weight: 400; --bs-btn-color: #f8f9fa; --bs-btn-bg: transparent; --bs-btn-border-color: transparent; --bs-btn-hover-color: #adb5bd; --bs-btn-hover-bg: transparent; --bs-btn-hover-border-color: transparent; --bs-btn-active-color: #adb5bd; --bs-btn-active-bg: transparent; --bs-btn-active-border-color: transparent; --bs-btn-disabled-color: #6c757d; --bs-btn-disabled-bg: transparent; --bs-btn-disabled-border-color: transparent; --bs-btn-box-shadow: none; --bs-btn-active-shadow: none; text-decoration: underline; }
 .btn-link:hover, .btn-link:focus-visible { color: var(--bs-btn-hover-color); background-color: transparent; border-color: transparent; }
 
+/* Auth navigation links (signup / login / forgot-password / back-to-login).
+   These render on dark-blue surfaces (AuthLayout card #1a3a5a, bg-dark
+   modals), where the default Bootstrap blue (#0d6efd) is unreadable, so they
+   are bold white with an underline, lightening on hover. */
+.auth-link { color: #ffffff !important; font-weight: 700; text-decoration: underline; }
+.auth-link:hover, .auth-link:focus-visible { color: #adb5bd !important; }
+
 /* --- Cards --- */
 .card {
   --bs-card-spacer-y: 1rem;
