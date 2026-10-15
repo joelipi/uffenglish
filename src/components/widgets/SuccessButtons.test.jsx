@@ -15,8 +15,11 @@ vi.mock('../../modules/api/api.js', () => ({
     useRecordFriendResponseMutation: () => ({ mutateAsync: vi.fn() }),
 }));
 
-import { VideoButton } from './SuccessButtons.jsx';
+import { VideoButton, ContinueButton } from './SuccessButtons.jsx';
 import { appStore } from '../../modules/store/store.js';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { SUCCESS_CONTINUE_REVEAL_DELAY_MS } from '../../modules/lesson/success-continue-logic.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -162,5 +165,67 @@ describe('VideoButton delayed Continue', () => {
         await tapShare(button);
         await advance(SUCCESS_CONTINUE_REVEAL_DELAY_MS);
         expect(continueVisible()).toBe(true);
+    });
+});
+
+describe('success Continue matches Share styling', () => {
+    let container;
+    let root;
+    let client;
+
+    beforeEach(() => {
+        container = document.createElement('div');
+        document.body.appendChild(container);
+        client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+        appStore.setState({
+            successVideoButton: { visible: true, loading: false, state: 'ready' },
+            successLessonId: 'b',
+            successFluencyData: { total: 80 },
+            successContinueButton: { visible: true, loading: false },
+            successRepeatButton: { visible: false },
+            successCanvasVisible: false,
+            afterVideoActive: null,
+            configData: FRIEND_CONFIG,
+            currentLessonIndex: 0,
+            userData: { native_language: 'en' },
+        });
+    });
+
+    afterEach(() => {
+        if (root) act(() => root.unmount());
+        container.remove();
+        root = null;
+        appStore.getState().hideSuccessScreen();
+        appStore.setState({ configData: null, userData: null });
+    });
+
+    it('gives Continue the same wrapper and button classes as Share (icon differs)', async () => {
+        root = createRoot(container);
+        await act(async () => {
+            root.render(
+                React.createElement(QueryClientProvider, { client },
+                    React.createElement('div', null,
+                        React.createElement(VideoButton, { canvasRef: { current: null } }),
+                        React.createElement(ContinueButton, { onLoadNextLesson: () => {} })
+                    )
+                )
+            );
+        });
+        const shareBtn = container.querySelector('#createVideoButton');
+        const continueBtn = container.querySelector('#continueButtonSuccess');
+        expect(shareBtn).not.toBeNull();
+        expect(continueBtn).not.toBeNull();
+        expect(continueBtn.className).toBe(shareBtn.className);
+        expect(continueBtn.closest('.ivp-choice-col').className)
+            .toBe(shareBtn.closest('.ivp-choice-col').className);
+        // Same styling except the icon.
+        expect(continueBtn.querySelector('i').className)
+            .not.toBe(shareBtn.querySelector('i').className);
+    });
+
+    it('does not suppress the Continue glow in CSS', async () => {
+        const cssPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../assets/css/app.css');
+        const css = readFileSync(cssPath, 'utf8');
+        expect(css).not.toContain('continueButtonSuccess');
     });
 });

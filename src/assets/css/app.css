@@ -1324,20 +1324,17 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
     text-shadow: 0 1px 3px rgba(0, 0, 0, 0.65);
 }
 
-/* Only Share glows — Replay and Continue stay flat so the primary action stands
-   out (same idea as the disabled glow on #replayBtn / #tutorialBtn). */
+/* Only Replay stays flat so the Share and Continue actions stand out
+   (same idea as the disabled glow on #replayBtn / #tutorialBtn). */
 #state-lesson-success #repeatButtonSuccess,
-#state-lesson-success #repeatButtonSuccess::before,
-#state-lesson-success #continueButtonSuccess,
-#state-lesson-success #continueButtonSuccess::before {
+#state-lesson-success #repeatButtonSuccess::before {
     animation: none !important;
 }
-#state-lesson-success #repeatButtonSuccess::before,
-#state-lesson-success #continueButtonSuccess::before {
+#state-lesson-success #repeatButtonSuccess::before {
     box-shadow: none !important;
 }
 
-/* Share is the primary action — bigger than Replay and Continue. */
+/* Share and Continue are the primary actions — bigger than Replay. */
 #state-lesson-success .call-btn-primary .call-btn {
     width: 76px;
     height: 76px;
