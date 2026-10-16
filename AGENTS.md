@@ -17,7 +17,16 @@ This repo relies heavily on tests that assert on source text ("guards"). Several
 - **A locale-coverage guard must assert the raw `strings` table, not `Strings.get()`.** `get()` falls back to the English value when a locale is missing, so `expect(get(key, 'pt')).toBeTruthy()` passes even with `pt` deleted. Assert `strings[key][lang]` (import the raw table) so a dropped translation actually fails.
 - **Anchor a property assertion to the line you mean.** An unanchored `/backdrop-filter:/` also matches the `-webkit-backdrop-filter:` line (same for `mask-image`, `transform`, …), so the guard for the *unprefixed* declaration can never fail — deleting it while keeping the prefixed twin stays green. Match with a line anchor (`/^\s*backdrop-filter:/m`) and assert each prefixed/unprefixed form on its own so either can fail independently.
 
-Before trusting a guard, prove it can fail by temporarily injecting the thing it forbids.
+Before trusting a guard, prove it can fail by temporarily injecting the thing it forbids. And when it goes red, **confirm the guard you meant is the one that failed** — a mutation that trips some neighbouring text assertion leaves you believing a behavioural guard is proven when it never fired.
+
+## A test must never be able to write to production
+
+Several scripts and Functions here upload to R2 (`scripts/set-whisper-model-cache.mjs`, `scripts/generate-thumbnails.mjs`, `functions/api/upload-segment.js`). Mocking is **not** sufficient isolation, and this has already corrupted live objects twice:
+
+- **`vi.mock('node:child_process')` does not reach the module under test.** The test file's own import was a `vi.fn()` while the script under test still called the real one, so a mocked `fetch` body (11 bytes) was genuinely uploaded, replacing `whisper/…/config.json` and the 29 MB decoder. Assert on what the *script did*, not on what the test file holds.
+- **Inject the writer** — `put = defaultPut` on every function that can write, passed down the whole call chain, and have every test supply its own.
+- **Injection alone is still bypassable:** a mutation that dropped `put` from one call fell through the *other* function's default to the real writer. So also add an env kill-switch checked at **call time** (`defaultPut` throws when `UFF_NO_R2_WRITES` is set) that the test file sets at module scope.
+- **After anything that can write, verify every artifact** against recorded size+ETag — not just the one you suspect. Checking only `config.json` left a second corrupt object live across two commits. `scripts/verify-whisper-model.sh` does this for the Whisper models and exits non-zero per problem; the ETags it records are the pristine MD5s, so a match proves content. Keep a verified copy of an artifact before mutating it in place, so a restore is a `wrangler r2 object put` away.
 
 ## A new `src/**` test file must not mention the recorder page
 
@@ -173,6 +182,8 @@ Primary branch is `main`. Commits land on `main` directly, so once committed `ma
 **Push the story branch when the work is verified.** A local-only branch cannot be tested or deployed, so once both reviewers pass, push it: `git push -u origin <story-branch>`. Do this for every story unless the user says otherwise — do not leave verified work unpushed. Merging into `main` is a separate, explicit step (only when the user asks); pushing the branch is the default end state of a completed story.
 
 **The working GitHub token is the repo's `.env` `GH_TOKEN`, not the shell/sandpod one.** The exported `GH_TOKEN` (and `~/.sandpod-env`'s copy) is a short-lived sandbox App token that is routinely expired — `gh auth status` reports it invalid and `sandpod gh refresh` can 500 (`platform mint failed`). A valid fine-grained PAT (`github_pat_…`, user `joelipi`) sits in the checked-out repo's `.env` under the `GH_TOKEN=` key. Test each candidate against `api.github.com/user` (200 vs 401), then push with it without putting it on argv: `TOK=$(grep -E '^GH_TOKEN=' .env | cut -d= -f2- | tr -d '"'"'"' \r'); git push "https://x-access-token:${TOK}@github.com/joelipi/uffenglish.git" HEAD:main`. Because the repo is public, `git fetch`/read succeeds unauthenticated — only `push` exposes the stale token, so a failed push does not mean there is no usable credential.
+
+**A `403` from `api.github.com/user` does not mean the sandpod App token cannot push.** A fresh `ghs_…` token answers `{"message":"Resource not accessible by integration"}` (App tokens are not users, so `/user` is simply forbidden) yet `git push "https://x-access-token:${GH_TOKEN}@github.com/joelipi/uffenglish.git" HEAD:refs/heads/<branch>` succeeds with it. Don't discard a working credential because `/user` 403s, and don't conclude the repo `.env` has no token without checking the key format — a worktree `.env` here held only `GOOGLE_ACCOUNT_SERVICE_KEY_RECORDER`, so `grep -E '^GH_TOKEN=' .env` came back empty while `eval "$(sandpod gh env)"` was the answer. Feature branches trigger no workflow (deploy/captions are `branches: [main]`), so pushing one is free.
 
 ---
 

@@ -227,25 +227,10 @@
 
 ---
 
-## Prove a guard fails by mutating it, then check *which* assertion fired
-**Date**: 2026-10-16
-**Area**: testing
-**What happened**: I mutation-tested 25 defects against the typography guards and all 25 went red, so I trusted the suite. It still contained a guard that could never fail: the behavioural PurgeCSS assertions passed with the safelist removed, and only a neighbouring *source* guard (which asserted `vite.config.js` contained the entry as text) noticed the mutation — so "25/25 green" was really 24/25 plus one accidental catch. The code reviewer found it by reading the guard's inputs instead of trusting its exit code.
-**Takeaway**: A mutation that goes red proves *something* failed, not that the intended guard did. When a fix touches one thing, mutate the thing the behavioural guard actually reads (e.g. delete the CSS rule, not the config line) and confirm the failing test is the behavioural one. Prefer a guard that fails for its own reason over one that can only be tripped by an adjacent text assertion.
-
----
-
 ## `git commit --amend` after a reviewer committed to the branch swallows their report
 **Date**: 2026-10-16
 **Area**: workflow
 **What happened**: The code-reviewer subagent commits its report to the branch (`docs/reviews/<topic>-review.md`). I then ran `git commit --amend` to fix a wrong commit message, which amended **the reviewer's** commit — folding its report into my message and orphaning my original commit. The branch ended up containing my work twice.
 **Takeaway**: After any subagent commits to the branch, never `--amend` the tip. To fix your own commit message, `git reset --soft <the commit before yours>` and recommit your files (leaving the reviewer's report to its own commit), or amend before the reviewer runs.
-
----
-## `vi.mock('node:child_process')` did not reach the module under test, and the test really wrote to production R2
-**Date**: 2026-10-16
-**Area**: testing | infra
-**What happened**: Writing tests for `scripts/set-whisper-model-cache.mjs` (which re-uploads the Whisper model to R2 via `wrangler r2 object put`) I mocked `fetch` to return an 11-byte body and mocked the child-process module with `vi.mock('node:child_process', …)`. The test file's own `execFileSync` import *was* a `vi.fn` (a test asserted so), but the script's was not: vitest did not propagate the builtin mock into that `.mjs` module, so the "mocked" tests invoked real wrangler and overwrote `whisper/onnx-community/whisper-tiny.en/config.json` and `onnx/decoder_model_merged_quantized.onnx` with the string `model-bytes`. I noticed because a later dry run printed `0.00 MB` for the 29 MB decoder; `HEAD` returned `content-length: 11` and the ETag had become the MD5 of `model-bytes`. Restored both from a pre-change download whose MD5s had been checked against the original ETags, then refactored. The exact sequence: a first corruption replaced both `config.json` and the decoder; after that I restored both; a later mutation round corrupted both again; I restored `config.json` and, checking only that one, concluded the second round was contained — it was not. A second corruption happened the same way even *after* adding `put` injection: a mutation that removed `put = defaultPut` from `run` let `stampOne`'s own default fall through to the real writer. And when I went back to check after that, **I re-verified only `config.json`** — the object I was already suspicious of — and declared R2 clean while the 29 MB decoder was still holding an 11-byte body from the same mutation run. It stayed corrupt across the two commits that followed (`c6f0f71` added the injection + `UFF_NO_R2_WRITES`, `466acd7` the verifier): both were made while I believed R2 was clean, and the learnings entry in the first of them asserted a restoration that was only half true.
-**Takeaway**: A mock that reaches the test file's import does not prove it reached the code under test — assert on what the *script* did, not on what the test file holds. For anything that writes to production, do not rely on module mocking: inject the writer (`put = defaultPut`) **and** add an env-var stop that the test suite sets (`UFF_NO_R2_WRITES`), because injection alone was still bypassable through a second default. Keep a verified copy of any artifact before mutating it in place. After anything touches a set of objects, verify **every** member against a recorded expected size+ETag — checking only the one you suspect is how a second corrupt object stayed live for three commits; `scripts/verify-whisper-model.sh` exists for this and exits non-zero per problem. And when a dry run suddenly reports a suspiciously small size, diff `content-length` and the ETag against the originals before assuming a caching problem.
 
 ---
