@@ -40,7 +40,10 @@ export default function WebcamPreview() {
             if (video.srcObject !== stream) {
                 video.srcObject = stream;
             }
-            video.play().catch(e => console.log('[Webcam] play failed:', e));
+            // Do not call video.play() imperatively here. The PiP element is
+            // muted and carries `autoPlay`; starting it synchronously can
+            // extend past the transient user-activation window and force the
+            // lesson video's play() into its muted fallback.
         } else {
             video.pause();
             video.srcObject = null;

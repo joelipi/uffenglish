@@ -76,14 +76,27 @@ describe('preloader reveal gate', () => {
             expect(SCRIPT_CODE).toMatch(/CAP_MS\s*=\s*2000/);
         });
 
+        it('has a minimum display floor of the same window', () => {
+            // Without the floor the cover vanishes after ~300ms on a warm cache,
+            // which is what made the preloader image effectively invisible, so
+            // the minimum is as load-bearing as the cap. A value out of range on
+            // either side breaks this (too short: no perceptible image; too long:
+            // holds an idle user hostage).
+            expect(SCRIPT_CODE).toMatch(/MIN_DISPLAY_MS\s*=\s*2000/);
+        });
+
         it('races the faces against that cap', () => {
             // Composition, not mere presence: with `Promise.race` and
             // `setTimeout(resolve, CAP_MS)` checked separately, deleting `cap`
             // from the race array leaves both strings still in the file and the
             // guard stays green while the cap no longer bounds anything.
+            // Two composition guards: the cap is still raced, and `minDisplay`
+            // is actually a member of the inner Promise.all — deleting it from
+            // the array alone must still fail. Both are tested by mutation.
             expect(SCRIPT_CODE).toMatch(
-                /Promise\.race\(\[\s*Promise\.all\(\[\s*whenFacesRegistered\(\)\.then\(loadFirstPaintFaces\),\s*whenAppRendered\(\)\s*\]\s*\)\s*,\s*cap\s*\]\s*\)\.then\(reveal,\s*reveal\)/
+                /Promise\.race\(\[\s*Promise\.all\(\[\s*whenFacesRegistered\(\)\.then\(loadFirstPaintFaces\),\s*whenAppRendered\(\),\s*minDisplay\s*\]\s*\)\s*,\s*cap\s*\]\s*\)\.then\(reveal,\s*reveal\)/
             );
+            expect(SCRIPT_CODE).toMatch(/minDisplay\s*=\s*new Promise\([\s\S]{0,120}?setTimeout\(\s*resolve,\s*MIN_DISPLAY_MS\s*\)/);
             expect(SCRIPT_CODE).toMatch(/cap\s*=\s*new Promise\([\s\S]{0,80}?setTimeout\(\s*resolve,\s*CAP_MS\s*\)/);
         });
 
@@ -125,7 +138,7 @@ describe('preloader reveal gate', () => {
             // Also composition: `whenAppRendered()` has to be one of the two
             // things the race waits on, not merely defined somewhere.
             expect(SCRIPT_CODE).toMatch(
-                /Promise\.all\(\[\s*whenFacesRegistered\(\)\.then\(loadFirstPaintFaces\),\s*whenAppRendered\(\)\s*\]\s*\)\s*,\s*cap/
+                /Promise\.all\(\[\s*whenFacesRegistered\(\)\.then\(loadFirstPaintFaces\),\s*whenAppRendered\(\),\s*minDisplay\s*\]\s*\)\s*,\s*cap/
             );
             expect(SCRIPT_CODE).toContain("getElementById('root')");
             expect(SCRIPT_CODE).toContain('childElementCount');
