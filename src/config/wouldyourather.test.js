@@ -85,6 +85,40 @@ describe('wouldyourather.json — subtitle tracks', () => {
 });
 
 describe('wouldyourather.json — localized text', () => {
+    // A title is a keyword list ("money vs. time, food vs. talk"), and the
+    // translator's taught-phrase instruction makes the model hand back
+    // "Respuesta: money vs. time, ..." — translated prefix, English body.
+    // Comparing strings for equality misses that, so compare vocabulary: the
+    // longest run of consecutive words shared with the English source must be
+    // short.
+    const NOISE = new Set(['ask', 'answer', 'vs', 'or', 'and', 'the', 'a', 'an', 'of', 'in', 'to', 'with']);
+
+    const words = (s) => String(s).toLowerCase()
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .split(/\s+/)
+        .filter((w) => w && !NOISE.has(w));
+
+    /** Longest run of consecutive words shared by both strings. */
+    function longestSharedRun(en, translated) {
+        const a = words(en), b = new Set(words(translated));
+        let best = 0, run = 0;
+        for (const w of a) {
+            run = b.has(w) ? run + 1 : 0;
+            best = Math.max(best, run);
+        }
+        return best;
+    }
+
+    it.each(TRANSLATED)('every %s title is fully translated, not just its prefix', (locale) => {
+        for (const lesson of wouldyourather.lessons) {
+            const shared = longestSharedRun(lesson.title.en, lesson.title[locale]);
+            expect(
+                shared,
+                `lesson ${lesson.lessonId} ${locale} title shares ${shared} consecutive English words: ${JSON.stringify(lesson.title[locale])}`,
+            ).toBeLessThanOrEqual(2);
+        }
+    });
+
     it.each(TRANSLATED)('every %s title, mission and cue is actually translated', (locale) => {
         for (const lesson of wouldyourather.lessons) {
             expect(lesson.title[locale], `lesson ${lesson.lessonId} missing ${locale} title`).toBeTypeOf('string');

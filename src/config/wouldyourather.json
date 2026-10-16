@@ -178,7 +178,10 @@
       "recapSources": "friend",
       "recapOverlay": "shareCta",
       "title": {
-        "en": "Answer: money vs. time, food vs. talk, vacation vs. weather"
+        "en": "Answer: money vs. time, food vs. talk, vacation vs. weather",
+        "es": "Respuesta: dinero vs. tiempo, comida vs. conversación, vacaciones vs. clima",
+        "pt": "Resposta: dinheiro vs. tempo, comida vs. conversa, férias vs. clima",
+        "bn": "উত্তর: টাকা বনাম সময়, খাবার বনাম কথোপকথন, ছুটি বনাম আবহাওয়া"
       },
       "mission": {
         "en": "talk about preferences",
@@ -619,7 +622,10 @@
       "recapSources": "none",
       "recapOverlay": "shareCta",
       "title": {
-        "en": "Ask: languages vs. instruments, city vs. country, honest vs. fun friends"
+        "en": "Ask: languages vs. instruments, city vs. country, honest vs. fun friends",
+        "es": "Pregunta: idiomas vs. instrumentos, ciudad vs. campo, amigos sinceros vs. amigos divertido",
+        "pt": "Pergunta: idiomas vs. instrumentos, cidade vs. campo, amigos honestos vs. amigos divertido",
+        "bn": "জিজ্ঞাসা করুন: ভাষা বনাম যন্ত্র, শহর বনাম গ্রাম, সৎ বনাম মজার বন্ধু"
       },
       "mission": {
         "en": "talk about preferences",
@@ -763,7 +769,10 @@
       "recapSources": "friend",
       "recapOverlay": "shareCta",
       "title": {
-        "en": "Answer: languages vs. instruments, city vs. country, honest vs. fun friends"
+        "en": "Answer: languages vs. instruments, city vs. country, honest vs. fun friends",
+        "es": "Respuesta: idiomas vs. instrumentos, ciudad vs. campo, amigos sinceros vs. amigos divertido",
+        "pt": "Resposta: idiomas vs. instrumentos, cidade vs. campo, amigos honestos vs. amigos divertido",
+        "bn": "উত্তর: ভাষা বনাম যন্ত্র, শহর বনাম গ্রাম, সৎ বনাম মজার বন্ধু"
       },
       "mission": {
         "en": "talk about preferences",
@@ -1204,7 +1213,10 @@
       "recapSources": "none",
       "recapOverlay": "shareCta",
       "title": {
-        "en": "Ask: job vs. pay, privacy, phone vs. music"
+        "en": "Ask: job vs. pay, privacy, phone vs. music",
+        "es": "Pregunta: trabajo vs. sueldo, privacidad, teléfono vs. música",
+        "pt": "Pergunta: emprego vs. salário, privacidade, telefone vs. música",
+        "bn": "জিজ্ঞাসা করুন: চাকরি বনাম বেতন, গোপনীয়তা, ফোন বনাম গান"
       },
       "mission": {
         "en": "talk about preferences",
@@ -1348,7 +1360,10 @@
       "recapSources": "friend",
       "recapOverlay": "shareCta",
       "title": {
-        "en": "Answer: job vs. pay, privacy, phone vs. music"
+        "en": "Answer: job vs. pay, privacy, phone vs. music",
+        "es": "Respuesta: trabajo vs. sueldo, privacidad, teléfono vs. música",
+        "pt": "Resposta: emprego vs. salário, privacidade, telefone vs. música",
+        "bn": "উত্তর: চাকরি বনাম বেতন, গোপনীয়তা, ফোন বনাম গান"
       },
       "mission": {
         "en": "talk about preferences",
