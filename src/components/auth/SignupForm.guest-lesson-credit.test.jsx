@@ -47,8 +47,10 @@ import { nextLessonCompletion } from '../../modules/user/lesson-count-logic.js';
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 // Minimal harness — the repo tests components with react-dom/client in jsdom.
+// `captcha: false` keeps these tests focused on lesson crediting; the gate
+// itself is covered by SignupForm.turnstile.test.jsx.
 function Harness() {
-    const form = useSignupForm({ nativeLanguage: 'ES' });
+    const form = useSignupForm({ nativeLanguage: 'ES', captcha: false });
     const click = (id, fn) => (
         <button data-testid={id} onClick={() => fn()}>{id}</button>
     );

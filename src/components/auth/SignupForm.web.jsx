@@ -1,7 +1,8 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store/store.js';
 import { useSignupForm } from './SignupForm.jsx';
+import TurnstileCaptcha from './TurnstileCaptcha.web.jsx';
 import Strings from '../../data/strings.js';
 import { SIGNUP_LANGUAGES } from '../../data/languages.js';
 import LegalLinks from '../legal/LegalLinks.jsx';
@@ -20,6 +21,7 @@ const ENGLISH_LEVELS = [
 ];
 
 export default function SignupForm({ onSignupSuccess, onLoginLink }) {
+    const turnstileRef = useRef(null);
     const userData = useStore(appStore, (state) => state.userData);
     const guestNativeLang = useStore(appStore, (state) => state.guestNativeLanguage);
     // Guest-first like the rest of the app (a guest choice wins over the
@@ -48,7 +50,16 @@ export default function SignupForm({ onSignupSuccess, onLoginLink }) {
         error,
         loading,
         handleSubmit,
-    } = useSignupForm({ onSignupSuccess });
+    } = useSignupForm({
+        onSignupSuccess,
+        // A fresh token per submit — Turnstile tokens are single-use and expire
+        // after ~5 minutes, so the one captured at render may be stale.
+        getCaptchaToken: () => {
+            const captcha = turnstileRef.current;
+            if (!captcha) return Promise.reject(new Error('Human verification is not ready yet. Please try again.'));
+            return captcha.getToken();
+        },
+    });
 
     // Prepopulate native language from the user's already-set language selection
     useEffect(() => {
@@ -145,6 +156,8 @@ export default function SignupForm({ onSignupSuccess, onLoginLink }) {
                         ))}
                     </select>
                 </div>
+
+                <TurnstileCaptcha ref={turnstileRef} />
 
                 <button type="submit" className="btn btn-primary w-100" disabled={loading}>
                     {loading ? Strings.get('auth_creating_account', lang) : Strings.get('auth_signup_title', lang)}

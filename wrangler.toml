@@ -44,3 +44,10 @@ SITE_URL = "https://ultrafastfluency.com"
 # secret together (a mismatch makes every send fail).
 VAPID_PUBLIC_KEY = "BPACBWNJq2D9dZPrwyBVwEO0A3D3KfVCCSHaOjx_k1jy1SYedCBxMiebBvwieyjH4VYZx2-fr8sxRDvLPIC7aVM"
 VAPID_SUBJECT = "mailto:welcome@ultrafastfluency.com"
+# Comma-separated frontend hostnames whose Turnstile tokens
+# /api/turnstile-verify accepts (functions/api/turnstile-verify.js). Non-secret.
+# Deliberately has NO localhost/127.0.0.1: the Turnstile widget is registered for
+# those hostnames, but a production backend must not trust a token solved there.
+# Keep this list and the widget's domain list in sync — siteverify returns the
+# hostname the challenge was actually solved on.
+TURNSTILE_HOSTNAMES = "ultrafastfluency.com,www.ultrafastfluency.com,cogdex.com,uffenglish.pages.dev,s.ultrafastfluency.com,go.ultrafastfluency.com"
