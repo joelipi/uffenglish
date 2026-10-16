@@ -43,7 +43,7 @@ inputs:
   languages:
     description: target languages for translators
     required: false
-    default: es,pt,bn,fr
+    default: es,pt,bn,fr,hi
 
 runs:
   using: composite

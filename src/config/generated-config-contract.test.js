@@ -40,8 +40,8 @@ const ALLOWLIST = path.join(__dirname, '../../scripts/lib/generated-configs.json
 const VIDEO_FIELDS = ['interactiveVideoUrl', 'introBackgroundVideoUrl', 'simpleVideoUrl'];
 
 // The only locale keys a generated translation object may carry. Anything else
-// (a stray hi, a typo) is a contract violation.
-const ALLOWED_LOCALES = ['en', 'es', 'pt', 'bn', 'fr'];
+// (a stray xx, a typo) is a contract violation.
+const ALLOWED_LOCALES = ['en', 'es', 'pt', 'bn', 'fr', 'hi'];
 
 function readAllowlist(listPath = ALLOWLIST) {
     const raw = JSON.parse(readFileSync(listPath, 'utf8'));

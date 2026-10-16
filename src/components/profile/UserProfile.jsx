@@ -4,6 +4,7 @@ import { supabase } from '../../modules/api/supabase.js';
 import { useUserProfile, useSyncUserMetaData, invalidateUserAndAuthCache, queryClient } from '../../modules/api/api.js';
 import { getAvatarBlobUrl, revokeAvatarBlobUrl } from '../../modules/avatar/avatar.service.js';
 import Strings from '../../data/strings.js';
+import { useNativeLanguage } from '../../hooks/use-native-language.js';
 import defaultProfilePic from '../../assets/img/userprofile.png';
 import { trackEvent } from '../../modules/utils/posthog.js';
 import { useAvatarUpload } from '../../modules/avatar/use-avatar-upload.js';
@@ -80,7 +81,9 @@ export default function UserProfile() {
         setAvatarUrl(null);
     }, [profile?.profilePictureUrl]);
 
-    const lang = profile?.native_language?.toLowerCase() || 'en';
+    // The editor localizes in the edited profile's language, guest-first like
+    // the rest of the app (a guest choice still wins when one exists).
+    const lang = useNativeLanguage(profile?.native_language);
     const isGuest = profile?.$id === 'guest';
     const displayName = profile?.display_name || '';
     const email = profile?.email || '';

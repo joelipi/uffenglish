@@ -101,20 +101,20 @@ The master CSV carries translations alongside the English source. `scripts/trans
 reads the English columns, translates with Gemini (`gemini-3.5-flash-lite`, via the shared
 client in `scripts/lib/gemini.js`), and commits the results back into the file's
 per-language columns below. The config generator then reads those columns into the
-`{en,es,pt,bn,fr}` objects the app localizes from. Run the Action from the Actions UI
+`{en,es,pt,bn,fr,hi}` objects the app localizes from. Run the Action from the Actions UI
 ("Translate Master CSV" → Run workflow; it takes optional `dry_run` and `languages` inputs).
 
-| English source | New columns (`lang` ∈ `es`, `pt`, `bn`, `fr`) | Config output |
+| English source | New columns (`lang` ∈ `es`, `pt`, `bn`, `fr`, `hi`) | Config output |
 |---|---|---|
-| `lesson_title` | `lesson_title_es`, `lesson_title_pt`, `lesson_title_bn`, `lesson_title_fr` | `lesson.title[lang]` |
-| `mission` | `mission_es`, `mission_pt`, `mission_bn`, `mission_fr` | `lesson.mission[lang]` |
-| `cue` (single) | `cue_es`, `cue_pt`, `cue_bn`, `cue_fr` | `step.cue[lang]` |
-| `cue_alt` | `cue_alt_es`, `cue_alt_pt`, `cue_alt_bn`, `cue_alt_fr` | `step.cue[i][lang]` (one cell per alternative line) |
-| `choose_step_text` | `choose_step_text_es`, `choose_step_text_pt`, `choose_step_text_bn`, `choose_step_text_fr` | `step.chooseStep[i].text[lang]` (one cell per choice line) |
-| `subtitle_text` | `subtitle_text_es`, `subtitle_text_pt`, `subtitle_text_bn`, `subtitle_text_fr` | `step.subtitles[lang]` (only when `srt` is blank) |
-| `srt` | `srt_es`, `srt_pt`, `srt_bn`, `srt_fr` | `step.subtitles[lang]` (localized video captions) |
+| `lesson_title` | `lesson_title_es`, `lesson_title_pt`, `lesson_title_bn`, `lesson_title_fr`, `lesson_title_hi` | `lesson.title[lang]` |
+| `mission` | `mission_es`, `mission_pt`, `mission_bn`, `mission_fr`, `mission_hi` | `lesson.mission[lang]` |
+| `cue` (single) | `cue_es`, `cue_pt`, `cue_bn`, `cue_fr`, `cue_hi` | `step.cue[lang]` |
+| `cue_alt` | `cue_alt_es`, `cue_alt_pt`, `cue_alt_bn`, `cue_alt_fr`, `cue_alt_hi` | `step.cue[i][lang]` (one cell per alternative line) |
+| `choose_step_text` | `choose_step_text_es`, `choose_step_text_pt`, `choose_step_text_bn`, `choose_step_text_fr`, `choose_step_text_hi` | `step.chooseStep[i].text[lang]` (one cell per choice line) |
+| `subtitle_text` | `subtitle_text_es`, `subtitle_text_pt`, `subtitle_text_bn`, `subtitle_text_fr`, `subtitle_text_hi` | `step.subtitles[lang]` (only when `srt` is blank) |
+| `srt` | `srt_es`, `srt_pt`, `srt_bn`, `srt_fr`, `srt_hi` | `step.subtitles[lang]` (localized video captions) |
 
-That is 28 columns (7 fields × 4 languages). `srt` **is** translated, but only the cue
+That is 35 columns (7 fields × 5 languages). `srt` **is** translated, but only the cue
 text: the translator uses `translateSrt`, which preserves cue numbers and timestamps
 exactly, and refuses to write a translation whose cue count or timings drifted. SRT
 timings stay the caption pipeline's job — the translator never retimes. A step with

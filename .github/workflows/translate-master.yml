@@ -15,7 +15,7 @@ on:
       languages:
         description: Comma-separated target languages
         type: string
-        default: es,pt,bn,fr
+        default: es,pt,bn,fr,hi
   workflow_call:
     inputs:
       dry_run:
@@ -25,7 +25,7 @@ on:
       languages:
         description: Comma-separated target languages
         type: string
-        default: es,pt,bn,fr
+        default: es,pt,bn,fr,hi
 
 permissions:
   contents: read
@@ -59,7 +59,7 @@ jobs:
       - name: Translate master CSV
         env:
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
-          LANGUAGES: ${{ inputs.languages || 'es,pt,bn,fr' }}
+          LANGUAGES: ${{ inputs.languages || 'es,pt,bn,fr,hi' }}
           DRY_RUN: ${{ inputs.dry_run }}
         run: |
           set -euo pipefail
@@ -79,7 +79,7 @@ jobs:
             set -euo pipefail
             node scripts/translate-master-csv.mjs --languages="$LANGUAGES" 2>&1 | tee -a /tmp/translate.log
           api-key: ${{ secrets.GOOGLE_API_KEY }}
-          languages: ${{ inputs.languages || 'es,pt,bn,fr' }}
+          languages: ${{ inputs.languages || 'es,pt,bn,fr,hi' }}
       - name: Summarize
         if: always()
         run: |

@@ -14,7 +14,7 @@
 // columns (`lesson_title_es`, `mission_pt`, `cue_es`, `cue_alt_es`,
 // `choose_step_text_es`, `subtitle_text_bn`, `srt_es`, … — the columns the
 // translate-master-csv Action fills), they are consumed into the existing
-// `{en,es,pt,bn,fr}` objects. The language columns are optional: a sheet with none
+// `{en,es,pt,bn,fr,hi}` objects. The language columns are optional: a sheet with none
 // of them still generates English-only output. Subtitles come from `srt`
 // (localized by `srt_<lang>`, timings preserved) or, when `srt` is blank,
 // `subtitle_text` (localized by `subtitle_text_<lang>`).
@@ -553,7 +553,7 @@ function sortByOrder(rows) {
 }
 
 /**
- * The master step's `cue`: an ordered array of `{en, es?, pt?, bn?, fr?}`, one
+ * The master step's `cue`: an ordered array of `{en, es?, pt?, bn?, fr?, hi?}`, one
  * element per non-blank `phrase` row, ordered by `Order` within each
  * `video_file` sub-group and concatenated in sub-group first-seen order.
  */

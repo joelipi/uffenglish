@@ -22,9 +22,9 @@
 import { parseSrt, validateTranslatedSrt } from './caption-utils.js';
 
 // Sheet-localization targets. Distinct from `CAPTION_LANGUAGES` in
-// caption-utils.js (which also carries `en`/`hi`); the app's generated
+// caption-utils.js (which also carries `en`); the app's generated
 // configs localize exactly these.
-export const SHEET_LANGUAGES = ['es', 'pt', 'bn', 'fr'];
+export const SHEET_LANGUAGES = ['es', 'pt', 'bn', 'fr', 'hi'];
 
 // The translatable fields the generic planner loop handles, with their English
 // source column. `cue` and `cue_alt` are mutually exclusive step shapes;
