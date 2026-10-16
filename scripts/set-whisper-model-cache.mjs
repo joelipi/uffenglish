@@ -140,9 +140,11 @@ export const buildPutArgs = (key, local, { cacheControl, contentType }) => {
  * alone has already proved insufficient: a test that stripped `put` from one
  * call fell through the default and really did overwrite a production object.
  * The test suite sets it, so no path out of this module can reach the bucket.
+ * Setting it to anything at all blocks, including an empty string — there is no
+ * "off" value, so it cannot be disabled by a stray `=0`.
  */
 export const defaultPut = (key, local, meta) => {
-    if (process.env.UFF_NO_R2_WRITES) {
+    if (process.env.UFF_NO_R2_WRITES !== undefined) {
         throw new Error(`refusing to write ${key}: UFF_NO_R2_WRITES is set`);
     }
     try {
@@ -162,8 +164,8 @@ export const defaultPut = (key, local, meta) => {
  *
  * Throws rather than writing if the fetched bytes do not match what R2 reports.
  * When the ETag carries no usable MD5 (a multipart upload, or none at all) the
- * round trip cannot be verified by digest; that is reported as `verified: null`
- * rather than passed off as a successful check.
+ * round trip cannot be verified by digest: a warning says so and the result
+ * carries `etagUnchanged: false` rather than passing it off as a clean check.
  */
 export async function stampOne(
     file,

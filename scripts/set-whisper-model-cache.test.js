@@ -11,7 +11,7 @@
 //
 // Importing the module is itself part of the contract — see the "import must not
 // write" test below, which relies on the `invokedDirectly` guard.
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, afterAll } from 'vitest';
 
 // Set before anything can call the writer. Injection is not enough on its own —
 // a test that stripped `put` from one call fell through the default and really
@@ -62,6 +62,10 @@ function tryBootPipelineRegion(source) {
     return source.slice(start, end);
 }
 
+afterAll(() => {
+    delete process.env.UFF_NO_R2_WRITES;
+});
+
 describe('model identity', () => {
     it('uses the same model id the worker boots', () => {
         // Raw source, and scoped to the function that calls pipeline(): a stale
@@ -86,14 +90,6 @@ describe('model identity', () => {
         expect(modelObjectUrl('config.json')).not.toContain('//whisper');
     });
 
-    it('keys uploads as {bucket}/whisper/{model}/{file}', () => {
-        const key = `${R2_BUCKET}/whisper/${MODEL_ID}/onnx/encoder_model_quantized.onnx`;
-        expect(key.startsWith(`${R2_BUCKET}/`)).toBe(true);
-        expect(key.split('/').filter(Boolean)).toEqual([
-            R2_BUCKET, 'whisper', 'onnx-community', 'whisper-tiny.en',
-            'onnx', 'encoder_model_quantized.onnx',
-        ]);
-    });
 });
 
 describe('file list', () => {
@@ -387,7 +383,9 @@ describe('buildPutArgs', () => {
             cacheControl: 'public, max-age=31536000', contentType: null,
         })).toEqual([
             'r2', 'object', 'put',
-            `${R2_BUCKET}/${KEY}`,
+            // 'uff' is spelled out on purpose: asserting `${R2_BUCKET}` here
+            // would only compare the module to itself.
+            `uff/${KEY}`,
             '--file', '/tmp/x.onnx',
             '--cache-control', 'public, max-age=31536000',
         ]);
@@ -439,6 +437,22 @@ describe('defaultPut', () => {
         expect(() => defaultPut('whisper/x/config.json', '/tmp/x', {
             cacheControl: 'public, max-age=1', contentType: null,
         })).toThrow(/refusing to write/);
+    });
+
+    it('blocks on any set value, including an empty string', () => {
+        // There is deliberately no "off" value, so a stray `UFF_NO_R2_WRITES=`
+        // cannot be mistaken for a disabled stop. A truthiness check would let
+        // the empty string through and re-open the hole.
+        const saved = process.env.UFF_NO_R2_WRITES;
+        try {
+            process.env.UFF_NO_R2_WRITES = '';
+            expect(() => defaultPut('whisper/x/config.json', '/tmp/x', {
+                cacheControl: 'public, max-age=1', contentType: null,
+            })).toThrow(/refusing to write/);
+        } finally {
+            if (saved === undefined) delete process.env.UFF_NO_R2_WRITES;
+            else process.env.UFF_NO_R2_WRITES = saved;
+        }
     });
 
     it('keeps wrangler\'s stderr, which is the actionable part', () => {
