@@ -173,7 +173,7 @@ describe('preloader reveal gate', () => {
     describe('the image itself', () => {
         // Binary, so it must be read as a Buffer — the text `read` helper
         // would mangle it and has no byteLength.
-        const image = readFileSync(path.join(ROOT, 'public', 'assets', 'img', 'u-f-f.png'));
+        const image = readFileSync(path.join(ROOT, 'public', 'assets', 'img', 'uff-big.png'));
 
         it('is still a transparent PNG', () => {
             // The overlay gradient shows through it; JPEG would kill that.
@@ -192,13 +192,13 @@ describe('preloader reveal gate', () => {
             else expect(hasTrns).toBe(false);
         });
 
-        it('is kept small', () => {
-            // Was 18,383 B; a zlib level-9 re-encode is pixel-identical over
-            // the gradient and 2,835 B. This budget is a backstop against a
-            // future "just re-export it" landing a multi-hundred-KB logo in the
-            // service-worker precache (workbox globPatterns picks it up, and
-            // /assets/* is served immutable for a year).
-            expect(image.byteLength).toBeLessThanOrEqual(4096);
+        it('stays within a sensible precache budget', () => {
+            // The new genuine ship is ~92,782 B after optimisation. This
+            // budget backstops against a future unoptimised multi-MB drop of a
+            // 1080×1350 UFF logo; anything beyond 300 KB is likely raw Can't-avoid
+            // source. (The previous 4 KB budget tracked a *different*, corrupted
+            // sparse file.)
+            expect(image.byteLength).toBeLessThanOrEqual(300000);
         });
 
         it('sits on the gradient, which is never transformed away', () => {
