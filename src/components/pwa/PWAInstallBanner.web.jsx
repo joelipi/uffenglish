@@ -12,7 +12,7 @@ import {
     shouldShowInstallBanner,
     selectInstallBannerBodyKey,
     selectInstallCtaKey,
-    openInstallDialog,
+    requestInstall,
 } from '../../modules/pwa/install-prompt-logic.js';
 import {
     readIsStandaloneApp,
@@ -44,10 +44,12 @@ export default function PWAInstallBanner({ lang = 'en', userId = null }) {
     const isApple = readIsApplePlatform();
 
     const handleClick = () => {
-        // Force (the default): the dialog must appear on click even when the
-        // browser has not raised beforeinstallprompt yet.
-        const opened = openInstallDialog(getRegisteredInstallElement());
-        console.log('[PWA] Install dialog requested from banner:', opened);
+        // Runs inside the click gesture (the browser requires transient user
+        // activation): installs directly where an OS prompt exists, otherwise
+        // opens the library's panel.
+        requestInstall(getRegisteredInstallElement()).then(({ ok, route }) => {
+            console.log('[PWA] Install click handled from banner:', route, ok);
+        });
     };
 
     return (

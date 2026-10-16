@@ -4,6 +4,7 @@ import {
     STANDALONE_DISPLAY_MODE_QUERY,
     shouldOfferInstall,
     openInstallDialog,
+    requestInstall,
     isApplePlatform,
     selectInstallCtaKey,
     selectInstallBannerBodyKey,
@@ -56,6 +57,93 @@ describe('openInstallDialog', () => {
         const boom = () => { throw new Error('dialog exploded'); };
         expect(openInstallDialog({ showDialog: boom })).toBe(false);
         expect(error).toHaveBeenCalled();
+    });
+});
+
+describe('requestInstall', () => {
+    // A stand-in for <pwa-install>: the documented events plus install()/
+    // showDialog(). `install()` resolves undefined either way and reports its
+    // outcome through those events, exactly like the real element.
+    const makeElement = ({ apple = false, onInstall } = {}) => {
+        const listeners = new Map();
+        return {
+            isAppleMobilePlatform: apple,
+            isAppleDesktopPlatform: false,
+            installed: false,
+            shown: false,
+            install: vi.fn(async () => {
+                if (onInstall) onInstall('pwa-install-fail-event');
+            }),
+            showDialog: vi.fn(function show() { this.shown = true; }),
+            addEventListener: vi.fn((type, fn) => {
+                if (!listeners.has(type)) listeners.set(type, []);
+                listeners.get(type).push(fn);
+            }),
+            removeEventListener: vi.fn((type, fn) => {
+                const arr = listeners.get(type) || [];
+                const i = arr.indexOf(fn);
+                if (i >= 0) arr.splice(i, 1);
+            }),
+            emit(type) { (listeners.get(type) || []).slice().forEach((fn) => fn({ type })); },
+        };
+    };
+
+    it('installs directly on Chromium and never opens the panel', async () => {
+        const el = makeElement({ onInstall: () => queueMicrotask(() => {}) });
+        const pending = requestInstall(el);
+        el.emit('pwa-user-choice-result-event');
+        await expect(pending).resolves.toEqual({ ok: true, route: 'install' });
+        expect(el.install).toHaveBeenCalledTimes(1);
+        expect(el.showDialog).not.toHaveBeenCalled();
+    });
+
+    it('falls back to the forced panel when no install backend exists', async () => {
+        const el = makeElement({ onInstall: (type) => queueMicrotask(() => el.emit(type)) });
+        const pending = requestInstall(el);
+        await expect(pending).resolves.toEqual({ ok: true, route: 'panel', reason: 'no-backend' });
+        expect(el.showDialog).toHaveBeenCalledWith(true);
+    });
+
+    it('shows the panel on Apple without calling install()', async () => {
+        const el = makeElement({ apple: true });
+        await expect(requestInstall(el)).resolves.toEqual({
+            ok: true, route: 'panel', reason: 'apple-instructions',
+        });
+        expect(el.install).not.toHaveBeenCalled();
+        expect(el.showDialog).toHaveBeenCalledWith(true);
+    });
+
+    it('falls back to the panel when install() throws', async () => {
+        const el = makeElement();
+        el.install = vi.fn(() => { throw new Error('boom'); });
+        const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+        await expect(requestInstall(el)).resolves.toEqual({
+            ok: true, route: 'panel', reason: 'no-backend',
+        });
+        expect(el.showDialog).toHaveBeenCalledWith(true);
+        expect(error).toHaveBeenCalled();
+    });
+
+    it('degrades to the panel when the element cannot install directly', async () => {
+        // No install()/addEventListener, but the panel still works.
+        const inert = { showDialog: vi.fn() };
+        await expect(requestInstall(inert)).resolves.toEqual({
+            ok: true, route: 'panel', reason: 'no-install-method',
+        });
+        expect(inert.showDialog).toHaveBeenCalledWith(true);
+    });
+
+    it('reports no route when there is no element at all', async () => {
+        await expect(requestInstall(null)).resolves.toEqual({
+            ok: false, route: 'none', reason: 'no-install-method',
+        });
+    });
+
+    it('removes its listeners so a later click is not resolved by this one', async () => {
+        const el = makeElement({ onInstall: (type) => queueMicrotask(() => el.emit(type)) });
+        await requestInstall(el);
+        expect(el.removeEventListener).toHaveBeenCalledWith('pwa-install-fail-event', expect.any(Function));
+        expect(el.removeEventListener).toHaveBeenCalledWith('pwa-user-choice-result-event', expect.any(Function));
     });
 });
 

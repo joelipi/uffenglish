@@ -102,3 +102,76 @@ export function openInstallDialog(element, { force = true } = {}) {
         return false;
     }
 }
+
+/**
+ * Run one install click: ask the library to install directly (so Android /
+ * Chromium goes straight to the OS prompt) and fall back to opening its panel
+ * whenever a direct install is impossible.
+ *
+ * Why the fallback exists: `install()` only reaches an OS prompt when a
+ * backend exists — the Web Install API, or the `beforeinstallprompt` the
+ * library retained (Chrome raises that only once its installability and
+ * engagement heuristics pass). With no backend it dispatches
+ * `pwa-install-fail-event` instead of installing, and Apple platforms have no
+ * such API at all, so those clicks must show the instruction panel.
+ *
+ * Apple is detected from the element's own documented readonly properties
+ * (`isAppleMobilePlatform` / `isAppleDesktopPlatform`) — on Apple the panel is
+ * the product: `install()` would only flip it to a how-to view that is
+ * invisible unless the panel is already shown.
+ *
+ * @param {unknown} element the `<pwa-install>` element (or null)
+ * @param {{ force?: boolean }} [options] `force` shows the panel even when the
+ *   component does not consider an install available
+ * @returns {Promise<{ ok: boolean, route: 'install'|'panel'|'none', reason?: string }>}
+ */
+export function requestInstall(element, { force = true } = {}) {
+    const isApple = !!(element
+        && (element.isAppleMobilePlatform || element.isAppleDesktopPlatform));
+    const canInstallDirectly = !isApple
+        && !!element
+        && typeof element.install === 'function'
+        && typeof element.addEventListener === 'function';
+
+    if (!canInstallDirectly) {
+        const shown = openInstallDialog(element, { force });
+        return Promise.resolve({
+            ok: shown,
+            route: shown ? 'panel' : 'none',
+            reason: isApple ? 'apple-instructions' : 'no-install-method',
+        });
+    }
+
+    // The element reports its outcome through documented events, not a return
+    // value: `install()` resolves undefined either way.
+    return new Promise((resolve) => {
+        let settled = false;
+        const cleanup = () => {
+            element.removeEventListener('pwa-install-fail-event', onFail);
+            element.removeEventListener('pwa-user-choice-result-event', onChoice);
+        };
+        const finish = (ok, route, reason) => {
+            if (settled) return;
+            settled = true;
+            cleanup();
+            resolve({ ok, route, reason });
+        };
+        const onFail = () => finish(openInstallDialog(element, { force }), 'panel', 'no-backend');
+        const onChoice = () => finish(true, 'install');
+
+        element.addEventListener('pwa-install-fail-event', onFail);
+        element.addEventListener('pwa-user-choice-result-event', onChoice);
+
+        try {
+            // Must run inside the user gesture: the browser requires transient
+            // activation for an install prompt.
+            Promise.resolve(element.install()).catch((err) => {
+                console.error('[PWA] Direct install request failed:', err);
+                onFail();
+            });
+        } catch (err) {
+            console.error('[PWA] Direct install request threw:', err);
+            onFail();
+        }
+    });
+}
