@@ -4,7 +4,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>UFF English</title>
+    <title>UFF English</title>    <script>
+        // Capture the deferred install prompt as early as possible so the app
+        // can surface the native OS dialog instead of the in-page drawer.
+        window.__uffDeferredPrompt = null;
+        window.addEventListener('beforeinstallprompt', function (e) {
+            try { e.preventDefault(); } catch (_) {}
+            window.__uffDeferredPrompt = e;
+            try { console.log('[PWA] beforeinstallprompt captured early, platforms=', e.platforms); } catch (_) {}
+        });
+    </script>
+
 
     <!-- Installable app (PWA). The `<link rel="manifest">` and the service
          worker registration script are injected into the built index.html by

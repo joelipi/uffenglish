@@ -11,7 +11,7 @@
 // component can use the Web Install API with a manifest `id`.
 import React, { useEffect, useRef } from 'react';
 import '@khmyznikov/pwa-install';
-import { registerInstallElement } from '../../modules/pwa/install-prompt-webonly.js';
+import { registerInstallElement, registerBeforeInstallPromptEvent } from '../../modules/pwa/install-prompt-webonly.js';
 
 export default function PWAInstallDialog() {
     const installRef = useRef(null);
@@ -19,8 +19,21 @@ export default function PWAInstallDialog() {
     useEffect(() => {
         registerInstallElement(installRef.current);
         console.log('[PWA] Install dialog registered');
-        return () => registerInstallElement(null);
+        if (typeof window !== 'undefined' && window.__uffDeferredPrompt) {
+            const r = registerBeforeInstallPromptEvent(window.__uffDeferredPrompt);
+            console.log('[PWA] picked up early deferred prompt:', r);
+        }
+        const handler = (e) => {
+            const r = registerBeforeInstallPromptEvent(e);
+            console.log('[PWA] beforeinstallprompt handler result:', r);
+        };
+        window.addEventListener('beforeinstallprompt', handler);
+        return () => {
+            window.removeEventListener('beforeinstallprompt', handler);
+            registerInstallElement(null);
+        };
     }, []);
+
 
     return (
         <pwa-install

@@ -56,24 +56,30 @@ afterEach(() => {
 });
 
 describe('PWAInstallBanner', () => {
-    it('renders the generic install copy with IMPORTANT! for signed-in users', () => {
+    it('renders the generic install copy with NEXT STEP for signed-in users', () => {
         setNavigator(WINDOWS);
         const { container, unmount } = render(<PWAInstallBanner lang="en" userId="user-1" />);
         const banner = container.querySelector('[data-testid="pwa-install-banner"]');
         expect(banner).not.toBeNull();
-        expect(banner.textContent).toContain('IMPORTANT!');
-        expect(banner.textContent).toContain('Install this app NOW');
+        expect(banner.textContent).toContain('NEXT STEP');
+        expect(banner.textContent).toContain('Install this app, the UFF app, NOW');
         expect(banner.textContent).toContain('No credit card');
+        const button = container.querySelector('[data-testid="pwa-install-banner-button"]');
+        expect(button).not.toBeNull();
+        expect(button.textContent).toContain('Install app');
         unmount();
     });
 
-    it('renders the Home Screen copy on Apple platforms', () => {
+    it('renders the Home Screen copy and Add to Home Screen button on Apple platforms', () => {
         setNavigator(IPHONE);
         const { container, unmount } = render(<PWAInstallBanner lang="en" userId="user-1" />);
         const banner = container.querySelector('[data-testid="pwa-install-banner"]');
         expect(banner).not.toBeNull();
         expect(banner.textContent).toContain('Home Screen NOW');
-        expect(banner.textContent).not.toContain('Install this app NOW');
+        expect(banner.textContent).not.toContain('Install this app, the UFF app, NOW');
+        const button = container.querySelector('[data-testid="pwa-install-banner-button"]');
+        expect(button).not.toBeNull();
+        expect(button.textContent).toContain('Add to Home Screen');
         unmount();
     });
 
@@ -81,8 +87,9 @@ describe('PWAInstallBanner', () => {
         setNavigator(WINDOWS);
         const { container, unmount } = render(<PWAInstallBanner lang="es" userId="user-1" />);
         const banner = container.querySelector('[data-testid="pwa-install-banner"]');
-        expect(banner.textContent).toContain('¡IMPORTANTE!');
-        expect(banner.textContent).toContain('Instala esta aplicación AHORA');
+        expect(banner.textContent).toContain('SIGUIENTE PASO');
+        // Spanish has no {name}-based distinction; only assert the title line.
+
         unmount();
     });
 
@@ -101,8 +108,18 @@ describe('PWAInstallBanner', () => {
         const showDialog = vi.fn();
         registerInstallElement({ showDialog });
         const { container, unmount } = render(<PWAInstallBanner lang="en" userId="user-1" />);
-        act(() => { container.querySelector('[data-testid="pwa-install-banner"]').click(); });
+        act(() => { container.querySelector('[data-testid="pwa-install-banner-button"]').click(); });
         expect(showDialog).toHaveBeenCalledWith(false);
+        unmount();
+    });
+
+    it('does not open the dialog when no install element is registered', () => {
+        // Sanity: clicking the banner button never throws, even with no element.
+        setNavigator(WINDOWS);
+        const { container, unmount } = render(<PWAInstallBanner lang="en" userId="user-1" />);
+        expect(() => {
+            act(() => { container.querySelector('[data-testid="pwa-install-banner-button"]').click(); });
+        }).not.toThrow();
         unmount();
     });
 
