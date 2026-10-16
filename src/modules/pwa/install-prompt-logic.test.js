@@ -27,16 +27,23 @@ describe('shouldOfferInstall', () => {
 });
 
 describe('openInstallDialog', () => {
-    it('asks the registered install element to open its dialog', () => {
+    it('asks the registered install element to open its dialog, forced by default', () => {
         const showDialog = vi.fn();
         expect(openInstallDialog({ showDialog })).toBe(true);
-        expect(showDialog).toHaveBeenCalledWith(false);
+        // Force is REQUIRED: the element renders only when
+        // `isInstallAvailable && !isDialogHidden`, and `showDialog(false)`
+        // leaves `isInstallAvailable` false — the panel then keeps its
+        // `opacity: 0; visibility: hidden` base styles and nothing appears.
+        expect(showDialog).toHaveBeenCalledWith(true);
     });
 
     it('passes force through so the dialog can open without a native prompt', () => {
         const showDialog = vi.fn();
         expect(openInstallDialog({ showDialog }, { force: true })).toBe(true);
         expect(showDialog).toHaveBeenCalledWith(true);
+        const other = vi.fn();
+        expect(openInstallDialog({ showDialog: other }, { force: false })).toBe(true);
+        expect(other).toHaveBeenCalledWith(false);
     });
 
     it('is fail-open for a missing, un-upgraded or broken element', () => {

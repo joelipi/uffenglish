@@ -77,12 +77,22 @@ export function shouldOfferInstall({ isStandalone = false } = {}) {
  * not upgraded yet (`showDialog` absent), or its implementation throws, so a
  * broken install dialog can never break the menu it was opened from.
  *
+ * `force` MUST default to true here. The element renders the dialog only when
+ * `isInstallAvailable && !isDialogHidden`, and `showDialog(false)` merely
+ * clears `isDialogHidden` — it leaves `isInstallAvailable` false, so the
+ * dialog keeps its `opacity: 0; visibility: hidden` base styles and NOTHING
+ * appears. `showDialog(true)` is the library's own "show regardless" path: it
+ * sets `isInstallAvailable = true`, which is what adds the `available` class
+ * and makes the panel visible. Chrome only raises `beforeinstallprompt` after
+ * its installability + engagement heuristics pass, so a user-initiated click
+ * must not depend on that event having fired.
+ *
  * @param {unknown} element the `<pwa-install>` element (or null)
  * @param {{ force?: boolean }} [options] `force` shows the dialog even when the
  *   component does not consider an install available
  * @returns {boolean} whether the dialog was asked to open
  */
-export function openInstallDialog(element, { force = false } = {}) {
+export function openInstallDialog(element, { force = true } = {}) {
     if (!element || typeof element.showDialog !== 'function') return false;
     try {
         element.showDialog(force);

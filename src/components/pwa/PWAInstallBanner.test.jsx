@@ -109,7 +109,9 @@ describe('PWAInstallBanner', () => {
         registerInstallElement({ showDialog });
         const { container, unmount } = render(<PWAInstallBanner lang="en" userId="user-1" />);
         act(() => { container.querySelector('[data-testid="pwa-install-banner-button"]').click(); });
-        expect(showDialog).toHaveBeenCalledWith(false);
+        // Forced open: without it the element renders nothing at all (the
+        // panel stays `opacity: 0; visibility: hidden`).
+        expect(showDialog).toHaveBeenCalledWith(true);
         unmount();
     });
 
