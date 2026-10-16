@@ -88,8 +88,11 @@ export const MODEL_FILES = [
 export const DEFAULT_MAX_AGE_SECONDS = 31536000; // 1 year
 
 // WHISPER_MODEL_BASE_URL already ends in `whisper/`, so this is the exact path
-// Transformers.js builds for this model.
-export const modelObjectUrl = (file) => `${WHISPER_MODEL_BASE_URL}${MODEL_ID}/${file}`;
+// Transformers.js builds for this model. Exported so scripts/verify-whisper-model.sh
+// can ask for the base instead of keeping a second copy of the origin.
+export const MODEL_BASE = `${WHISPER_MODEL_BASE_URL}${MODEL_ID}`;
+
+export const modelObjectUrl = (file) => `${MODEL_BASE}/${file}`;
 
 export const cacheControlFor = (maxAge) => `public, max-age=${maxAge}`;
 

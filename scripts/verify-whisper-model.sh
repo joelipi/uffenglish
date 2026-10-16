@@ -16,7 +16,14 @@
 # Usage:  bash scripts/verify-whisper-model.sh
 set -u
 
-BASE="https://r2.ultrafastfluency.com/whisper/onnx-community/whisper-tiny.en"
+cd "$(dirname "$0")/.." || exit 2
+# Ask the stamper for the base URL rather than repeating the host here; a drift
+# would otherwise be a second, untested copy of the path.
+BASE=$(node -e "import('./scripts/set-whisper-model-cache.mjs')
+    .then((m) => process.stdout.write(m.MODEL_BASE))") || {
+    echo "could not resolve the model base URL" >&2
+    exit 2
+}
 WANT_CC="${1:-public, max-age=31536000}"
 
 # file|expected-bytes|expected-etag-md5
@@ -30,9 +37,14 @@ onnx/decoder_model_merged_quantized.onnx|30718858|4ba556edd13daa9949aa38b8f7d751
 
 fail=0
 checked=0
+broken=""
 while IFS='|' read -r file bytes etag; do
     [ -z "$file" ] && continue
-    headers=$(curl -sI --max-time 20 "$BASE/$file" | tr -d '\r')
+    if ! headers=$(curl -fsI --max-time 20 "$BASE/$file" | tr -d '\r'); then
+        printf '  ERR %-42s request failed (missing object or network error)\n' "$file"
+        fail=$((fail + 1))
+        continue
+    fi
     got_len=$(echo "$headers" | awk 'tolower($1)=="content-length:"{print $2}')
     got_etag=$(echo "$headers" | awk 'tolower($1)=="etag:"{gsub(/"/,"",$2); print $2}')
     got_cc=$(echo "$headers" | awk 'tolower($1)=="cache-control:"{sub(/^[^ ]+ +/,""); print}')
@@ -42,6 +54,8 @@ while IFS='|' read -r file bytes etag; do
     if [ "$got_len" != "$bytes" ] || [ "$got_etag" != "$etag" ]; then
         status="BAD "
         fail=$((fail + 1))
+        broken="${broken}uff/whisper/onnx-community/whisper-tiny.en/$file
+"
     fi
     if [ "$got_cc" != "$WANT_CC" ]; then
         status="${status}CC "
@@ -56,7 +70,12 @@ echo
 if [ "$fail" -eq 0 ]; then
     echo "All $checked objects match their original bytes and carry '$WANT_CC'."
 else
-    echo "!!! $fail problem(s) across $checked object(s) — restore from a verified copy:"
-    echo "    wrangler r2 object put uff/whisper/onnx-community/whisper-tiny.en/<file> --file <copy> --cache-control '$WANT_CC'"
+    echo "!!! $fail problem(s) across $checked object(s)."
+    if [ -n "$broken" ]; then
+        echo "Restore each of these from a verified copy:"
+        echo "$broken" | while IFS= read -r key; do
+            [ -n "$key" ] && echo "    npx wrangler r2 object put $key --file <copy> --cache-control '$WANT_CC'"
+        done
+    fi
 fi
 exit $fail

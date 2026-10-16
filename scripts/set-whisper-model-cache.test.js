@@ -51,6 +51,10 @@ const SCRIPT = readFileSync(
     path.join(ROOT, 'scripts/set-whisper-model-cache.mjs'),
     'utf8'
 );
+const VERIFIER = readFileSync(
+    path.join(ROOT, 'scripts/verify-whisper-model.sh'),
+    'utf8'
+);
 
 /** The slice of the worker that actually builds the pipeline, so a matching id
  *  elsewhere in the file cannot satisfy the assertion below. */
@@ -464,3 +468,51 @@ describe('defaultPut', () => {
     });
 });
 
+
+describe('verify-whisper-model.sh', () => {
+    /** The `file|bytes|etag` rows of the verifier's table. */
+    function tableRows() {
+        return VERIFIER.split('\n')
+            // The first row carries the `FILES='` opener and the last a closing
+            // quote; strip both or two objects would silently go unchecked.
+            .map((l) => l.trim().replace(/^FILES='/, '').replace(/'$/, ''))
+            .filter((l) => /^[\w./-]+\|\d+\|[0-9a-f]{32}$/.test(l))
+            .map((l) => l.split('|'));
+    }
+
+    it('covers exactly the files the stamper writes', () => {
+        // Without this the verifier could keep checking seven objects while the
+        // stamper handles an eighth — precisely the "checked some, not all"
+        // failure it exists to prevent, and it would be silent.
+        expect(tableRows().map((r) => r[0])).toEqual(MODEL_FILES);
+    });
+
+    it('does not keep a second copy of the model origin', () => {
+        // The stamper single-sources the host through whisper-model-origin.js;
+        // the shell script must ask it rather than repeat the literal, or a moved
+        // CDN would leave the verifier checking a path nothing serves.
+        expect(VERIFIER).toContain('m.MODEL_BASE');
+        expect(VERIFIER).not.toContain('https://r2.ultrafastfluency.com');
+    });
+
+    it('records a size and an MD5 ETag for every row', () => {
+        for (const [file, bytes, etag] of tableRows()) {
+            expect(Number(bytes), `${file} size`).toBeGreaterThan(0);
+            expect(etag, `${file} etag`).toMatch(/^[0-9a-f]{32}$/);
+        }
+        expect(tableRows().length).toBeGreaterThan(1);
+    });
+
+    it('fails loudly rather than reporting a bad object as healthy', () => {
+        // curl -fsI so a 404/5xx cannot be read as "empty headers, therefore
+        // mismatched" without saying the request itself failed.
+        expect(VERIFIER).toContain('curl -fsI');
+        expect(VERIFIER).toMatch(/request failed/);
+        // And it must not exit 0 on problems.
+        expect(VERIFIER).toMatch(/exit \$fail/);
+    });
+
+    it('ends with a newline', () => {
+        expect(VERIFIER.endsWith('\n')).toBe(true);
+    });
+});
