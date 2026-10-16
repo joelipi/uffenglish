@@ -9,7 +9,7 @@ import { SUCCESS_VIDEO_FRIEND, SUCCESS_VIDEO_SINGLE_PLAYER } from './success-ste
 
 // vitest runs from the repo root; avoid import.meta.url (jsdom rewrites it).
 const ROOT = process.cwd();
-const LANGS = ['en', 'es', 'pt', 'bn'];
+const LANGS = ['en', 'es', 'pt', 'bn', 'fr'];
 const TYPES = ['friend', 'single-player'];
 
 // The SRT parser (simple-video-controller.js) splits blocks on blank lines and

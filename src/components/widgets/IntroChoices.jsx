@@ -7,13 +7,14 @@ import { setupTextInputForStep } from '../../modules/lesson/step-executor-webonl
 import { getSpeechInputToggleCallback, getSpeechEngineRetryCallback } from '../../modules/lesson/step-loader-callbacks.js';
 import { getSpeechUiState } from '../../modules/speech/speech-ui-state.js';
 import Strings from '../../data/strings.js';
+import { useNativeLanguage } from '../../hooks/use-native-language.js';
 import { trackEvent } from '../../modules/utils/posthog.js';
 
 export default function IntroChoices() {
     const bottomState = useStore(appStore, (state) => state.bottomState);
     const isWhisperReady = useStore(appStore, (state) => state.isWhisperReady);
     const isWhisperEngineFailed = useStore(appStore, (state) => state.isWhisperEngineFailed);
-    const nativeLang = useStore(appStore, (state) => state.userData?.native_language);
+    const nativeLang = useNativeLanguage();
     const location = useLocation();
     // Friend-challenge lessons exist to produce a shared video, so their mode
     // chooser offers only video. Detection is route-only (share link or the

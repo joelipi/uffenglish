@@ -35,7 +35,7 @@ function assertWorkflowCallBlock(text) {
     expect(block).toContain('dry_run:');
     expect(block).toContain('default: false');
     expect(block).toContain('languages:');
-    expect(block).toContain('default: es,pt,bn');
+    expect(block).toContain('default: es,pt,bn,fr');
 }
 
 // The full contract for the workflow: required wiring + deliberate absences.
@@ -51,7 +51,7 @@ function assertWorkflowContract(text) {
     // The pinned default holds on every path: an explicitly empty input can
     // never reach the CLI as an empty --languages (which would translate
     // nothing), in the run step or the retry regen alike.
-    expect(text).toContain("inputs.languages || 'es,pt,bn'");
+    expect(text).toContain("inputs.languages || 'es,pt,bn,fr'");
     const commit = stepBlock(text, 'Commit translations', 'translate-master.yml');
     expect(commit).toContain('uses: ./.github/actions/bot-commit/');
     expect(commit).toContain('bot-name: uff-translate-bot');
@@ -90,7 +90,7 @@ describe('translate-master.yml source guard', () => {
     it('the workflow_call block guard can fail', () => {
         const good = readWorkflow();
         const block = workflowCallBlock(good);
-        const mutatedBlock = block.replace('default: es,pt,bn', 'default: xx');
+        const mutatedBlock = block.replace('default: es,pt,bn,fr', 'default: xx');
         expect(mutatedBlock).not.toBe(block);
         const mutated = good.replace(block, mutatedBlock);
         expect(() => assertWorkflowCallBlock(mutated)).toThrow();

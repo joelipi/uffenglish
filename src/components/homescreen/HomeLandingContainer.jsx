@@ -1,9 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useStore } from 'zustand';
 import { appStore } from '../../modules/store/store.js';
 import { useAuthStatus, fetchUserByShareCode } from '../../modules/api/api.js';
 import Strings from '../../data/strings.js';
+import { useNativeLanguage } from '../../hooks/use-native-language.js';
 import {
     GO_LESSON_PATH,
     normalizeShareCode,
@@ -19,9 +19,7 @@ import HomeLanding from './HomeLanding.jsx';
 export default function HomeLandingContainer() {
     const navigate = useNavigate();
     const { data: isLoggedIn } = useAuthStatus();
-    const guestLang = useStore(appStore, (s) => s.guestNativeLanguage);
-    const userLang = useStore(appStore, (s) => s.userData?.native_language);
-    const lang = guestLang || userLang || 'en';
+    const lang = useNativeLanguage();
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
     const showcaseVideos = useMemo(() => buildShowcaseVideos(), []);

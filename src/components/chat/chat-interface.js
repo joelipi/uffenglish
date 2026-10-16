@@ -1,5 +1,6 @@
 import { appStore } from '../../modules/store/store.js';
 import Strings from '../../data/strings.js';
+import { getAppLanguage } from '../../modules/bilingual/config-normalizer.js';
 import { getBotIdentity } from '../../modules/user/bot-identity.js';
 
 export function showChat() {
@@ -11,7 +12,7 @@ export function addAILoadingMessage(text) {
     showChat();
     let defaultText = 'Analyzing...';
     if (typeof Strings !== 'undefined' && typeof Strings.getBilingual === 'function') {
-        const bilingual = Strings.getBilingual('ai_analyzing', storeState.userData?.native_language);
+        const bilingual = Strings.getBilingual('ai_analyzing', getAppLanguage(storeState));
         defaultText = bilingual.english || defaultText;
     }
     storeState.addChatMessage({

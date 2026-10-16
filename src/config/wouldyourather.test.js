@@ -11,8 +11,8 @@ import { describe, it, expect } from 'vitest';
 import wouldyourather from './wouldyourather.json';
 import { SimpleVideoStateController } from '../modules/video/simple-video-controller.js';
 
-const LOCALES = ['en', 'es', 'pt', 'bn'];
-const TRANSLATED = ['es', 'pt', 'bn'];
+const LOCALES = ['en', 'es', 'pt', 'bn', 'fr'];
+const TRANSLATED = ['es', 'pt', 'bn', 'fr'];
 
 /** Every step that carries a subtitle track, across every lesson. */
 function captionSteps() {
@@ -204,4 +204,41 @@ describe('wouldyourather.json — lesson titles match their own questions', () =
             }
         }
     );
+});
+
+describe('wouldyourather.json — French lesson coverage', () => {
+    // The reported regression: a French guest saw the UI in French but the
+    // mission and every cue/subtitle in English, because no fr translation
+    // existed (Spanish worked — es was present). Every lesson's mission, cue
+    // element and subtitle track must carry fr.
+    it.each(wouldyourather.lessons.map((l) => l.lessonId))('lesson %s mission carries fr', (lessonId) => {
+        const lesson = wouldyourather.lessons.find((l) => l.lessonId === lessonId);
+        expect(typeof lesson.mission?.fr, `lesson ${lessonId} mission.fr`).toBe('string');
+        expect(lesson.mission.fr.trim().length, `lesson ${lessonId} mission.fr empty`).toBeGreaterThan(0);
+    });
+
+    it('every cue element carries a non-empty fr translation', () => {
+        for (const lesson of wouldyourather.lessons) {
+            for (const step of lesson.steps || []) {
+                for (const cue of step.cue || []) {
+                    expect(typeof cue.fr, `${lesson.lessonId}/${step.simpleVideoUrl} cue.fr`).toBe('string');
+                    expect(cue.fr.trim().length, `${lesson.lessonId} cue.fr empty`).toBeGreaterThan(0);
+                }
+            }
+        }
+    });
+
+    it('every branching choice carries a non-empty fr translation', () => {
+        let choices = 0;
+        for (const lesson of wouldyourather.lessons) {
+            for (const step of lesson.steps || []) {
+                for (const choice of step.chooseStep || []) {
+                    choices++;
+                    expect(typeof choice.text?.fr, `${lesson.lessonId} chooseStep.fr`).toBe('string');
+                    expect(choice.text.fr.trim().length, `${lesson.lessonId} chooseStep.fr empty`).toBeGreaterThan(0);
+                }
+            }
+        }
+        expect(choices).toBeGreaterThan(0);
+    });
 });

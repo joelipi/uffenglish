@@ -19,29 +19,29 @@ import {
 } from './sheet-translate-utils.js';
 
 describe('column contract', () => {
-    it('exposes the three sheet languages', () => {
-        expect(SHEET_LANGUAGES).toEqual(['es', 'pt', 'bn']);
+    it('exposes the four sheet languages', () => {
+        expect(SHEET_LANGUAGES).toEqual(['es', 'pt', 'bn', 'fr']);
     });
 
-    it('maps exactly the seven generic translatable sources (21 columns)', () => {
+    it('maps exactly the seven generic translatable sources (28 columns)', () => {
         expect(TRANSLATABLE_FIELDS.map((f) => f.source)).toEqual([
             'lesson_title', 'mission', 'cue', 'cue_alt', 'choose_step_text', 'subtitle_text', 'phrase',
         ]);
         const cols = TRANSLATABLE_FIELDS.flatMap((f) =>
             SHEET_LANGUAGES.map((l) => localizedColumn(f.field, l)));
-        expect(cols).toHaveLength(21);
+        expect(cols).toHaveLength(28);
         expect(cols).toContain('cue_pt');
         expect(cols).toContain('choose_step_text_es');
         expect(cols).toContain('subtitle_text_bn');
         expect(cols).toContain('phrase_es');
     });
 
-    it('LOCALIZATION_FIELDS adds srt to the generic fields (24 columns total)', () => {
+    it('LOCALIZATION_FIELDS adds srt to the generic fields (32 columns total)', () => {
         expect(LOCALIZATION_FIELDS).toHaveLength(TRANSLATABLE_FIELDS.length + 1);
         expect(LOCALIZATION_FIELDS.map((f) => f.field)).toContain('srt');
         const cols = LOCALIZATION_FIELDS.flatMap((f) =>
             SHEET_LANGUAGES.map((l) => localizedColumn(f.field, l)));
-        expect(cols).toHaveLength(24);
+        expect(cols).toHaveLength(32);
         expect(cols).toContain('srt_bn');
     });
 

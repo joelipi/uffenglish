@@ -11,6 +11,7 @@
 // never of the course.
 
 import { isFriendLesson } from '../courses/friend-courses-logic.js';
+import { normalizeLanguageCode } from '../utils/utils.js';
 
 // The two canonical success videos (assets/videos/<slug>.mp4).
 export const SUCCESS_VIDEO_FRIEND = 'friend-success';
@@ -52,7 +53,10 @@ export function successVideoSlugFor(type) {
  */
 export function successSubtitlesFor({ type, lang = 'en', srtByType = {} } = {}) {
     const byLang = srtByType[type] || {};
-    return byLang[lang] || byLang.en || undefined;
+    // Guest/profile codes are uppercase (`ES`) and may carry a region (`pt-BR`);
+    // the caption keys are bare lowercase, so normalize through the shared
+    // helper — without this every non-English guest silently got English.
+    return byLang[normalizeLanguageCode(lang)] || byLang.en || undefined;
 }
 
 /**

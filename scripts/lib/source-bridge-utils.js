@@ -73,7 +73,7 @@ export const BRIDGE_CONFIG_COLUMNS = [
     'course_id', 'course_name', 'hero', 'lesson_id', 'lesson_title', 'response_type',
     'unit', 'mission', 'recap_sources', 'recap_overlay', 'intro_video',
     'success_video', 'success_srt', 'success_srt_es', 'success_srt_pt',
-    'success_srt_bn', 'srt', 'next_step', 'choose_step_next', 'choose_step_text',
+    'success_srt_bn', 'success_srt_fr', 'srt', 'next_step', 'choose_step_next', 'choose_step_text',
     'publish_lesson_id',
 ];
 

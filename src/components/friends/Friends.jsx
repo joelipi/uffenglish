@@ -1,8 +1,7 @@
 import { useNavigate, Link } from 'react-router-dom';
 import { useUserProfile, useFriendProfiles } from '../../modules/api/api.js';
-import { appStore } from '../../modules/store/store.js';
-import { useStore } from 'zustand';
 import Strings from '../../data/strings.js';
+import { useNativeLanguage } from '../../hooks/use-native-language.js';
 import defaultProfilePic from '../../assets/img/userprofile.png';
 import { getFriendUserIds, buildFriendsList } from '../../modules/user/friends-logic.js';
 
@@ -81,9 +80,7 @@ export default function Friends() {
 
     // Subscribed (not one-shot `getState()`): the page re-renders when the
     // guest language changes elsewhere. Same guest-first expression as HomeScreen.
-    const guestLang = useStore(appStore, (state) => state.guestNativeLanguage);
-    const userDataLang = useStore(appStore, (state) => state.userData?.native_language);
-    const lang = (guestLang || profile?.native_language || userDataLang || 'en').toLowerCase();
+    const lang = useNativeLanguage();
 
     const friends = isGuest ? [] : buildFriendsList({ profile, friendProfiles: friendProfiles ?? [], nowMs: Date.now() });
     const isLoading = profileLoading || (!isGuest && friendIds.length > 0 && friendsLoading);

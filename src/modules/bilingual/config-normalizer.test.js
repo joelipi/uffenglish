@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { normalizeConfig, resolveConfigLanguage, isConfigLanguageSettled } from './config-normalizer.js';
+import { normalizeConfig, resolveConfigLanguage, isConfigLanguageSettled, getAppLanguage, getAppLanguageFor } from './config-normalizer.js';
 import { appStore } from '../store/store.js';
 
 describe('normalizeConfig', () => {
@@ -167,6 +167,42 @@ describe('resolveConfigLanguage', () => {
     });
 });
 
+describe('getAppLanguage / getAppLanguageFor', () => {
+    // The single source of truth for non-component language reads: the store's
+    // guest choice wins over the mirrored profile language, defaulting to 'en'.
+    // A French guest whose async bootstrap wrote profile 'EN' still gets 'FR'.
+    const withStore = (guestNativeLanguage, userData, fn) => {
+        const prev = appStore.getState();
+        appStore.setState({ guestNativeLanguage, userData });
+        try {
+            fn();
+        } finally {
+            appStore.setState({ guestNativeLanguage: prev.guestNativeLanguage, userData: prev.userData });
+        }
+    };
+
+    it('prefers the store guest language over the profile language', () => {
+        expect(getAppLanguage({ guestNativeLanguage: 'FR', userData: { native_language: 'EN' } })).toBe('FR');
+        withStore('FR', { native_language: 'EN' }, () => {
+            expect(getAppLanguage()).toBe('FR');
+            expect(getAppLanguageFor({ native_language: 'EN' })).toBe('FR');
+        });
+    });
+
+    it('falls back to the profile language and then to en', () => {
+        expect(getAppLanguage({ guestNativeLanguage: null, userData: { native_language: 'ES' } })).toBe('ES');
+        expect(getAppLanguage({ guestNativeLanguage: null, userData: null })).toBe('en');
+        withStore(null, { native_language: 'ES' }, () => {
+            expect(getAppLanguage()).toBe('ES');
+            expect(getAppLanguageFor({ native_language: 'ES' })).toBe('ES');
+        });
+        withStore(null, null, () => {
+            expect(getAppLanguage()).toBe('en');
+            expect(getAppLanguageFor(null)).toBe('en');
+        });
+    });
+});
+
 describe('isConfigLanguageSettled', () => {
     // The guest modal opens AFTER the config fetch resolves, so the config must
     // not be normalized until the language is settled — otherwise subtitles are
@@ -206,6 +242,23 @@ describe('normalizeConfig localizes subtitles to the resolved language', () => {
         };
         normalizeConfig(configData, resolveConfigLanguage('ES', 'EN'));
         expect(configData.lessons[0].steps[0].subtitles).toBe('Subtítulo español');
+    });
+
+    it('flattens subtitles to French for an uppercase FR guest', () => {
+        // The reported regression: the store holds uppercase guest codes, and
+        // the lesson carried no fr — UI French, subtitles English. With fr
+        // content present, an 'FR' guest must get the French track, not English.
+        const configData = {
+            lessons: [{
+                steps: [{
+                    responseType: 'viewAndContinue',
+                    simpleVideoUrl: 'testvideointro',
+                    subtitles: { en: 'English sub', es: 'Subtítulo español', fr: 'Sous-titre français' },
+                }]
+            }]
+        };
+        normalizeConfig(configData, getAppLanguage({ guestNativeLanguage: 'FR', userData: { native_language: 'EN' } }));
+        expect(configData.lessons[0].steps[0].subtitles).toBe('Sous-titre français');
     });
 
     it('falls back to English when the resolved language has no translation', () => {
