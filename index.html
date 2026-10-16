@@ -22,8 +22,9 @@
 
     <!-- Google Fonts — the brand kit (Inter body / Titillium Web headings + the
          :lang() override faces), loaded NON-BLOCKING: a plain
-         `<link rel="stylesheet">` here would hold the parser before it reaches
-         the module script at the end of <body>, and with it the whole boot
+         `<link rel="stylesheet">` here stalls rendering AND module-script
+         execution, so the entry script at the end of <body> would not run until
+         the font CSS resolved — and with it the whole boot
          chain that starts the Whisper model download (speech.js arms
          `preloadWhisperEngine()` at module scope, which spawns the worker that
          fetches the ONNX graphs). Keeping this non-render-blocking keeps the

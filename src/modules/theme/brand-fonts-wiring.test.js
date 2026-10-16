@@ -111,8 +111,9 @@ describe('brand fonts: index.html <head> wiring', () => {
     });
 
     it('loads the font stylesheet NON-BLOCKING', () => {
-        // A plain `<link rel="stylesheet">` in <head> holds the parser before it
-        // reaches the module script at the end of <body> — and with it the whole
+        // A plain `<link rel="stylesheet">` in <head> stalls rendering and module-script
+        // execution, so the entry script at the end of <body> would not run until
+        // the font CSS resolved — and with it the whole
         // boot chain that starts the Whisper model download (speech.js arms
         // preloadWhisperEngine() at module scope, which spawns the worker that
         // fetches the ONNX graphs). Swap-on-load plus the <noscript> stylesheet

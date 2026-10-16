@@ -53,8 +53,12 @@ describe('whisper model origin', () => {
         expect(DEMO_WORKER).toMatch(
             new RegExp(`env\\.remoteHost\\s*=\\s*'${WHISPER_MODEL_ORIGIN}'`)
         );
+        // `whisper/{model}/` — the path without its trailing slash, then the
+        // template. Built from the constant rather than string-chopped so a path
+        // that gains a directory cannot silently break the expectation.
+        const template = `${WHISPER_MODEL_PATH}\\{model\\}/`;
         expect(DEMO_WORKER).toMatch(
-            new RegExp(`env\\.remotePathTemplate\\s*=\\s*'${WHISPER_MODEL_PATH.replace('/', '')}/\\{model\\}/'`)
+            new RegExp(`env\\.remotePathTemplate\\s*=\\s*'${template}'`)
         );
     });
 

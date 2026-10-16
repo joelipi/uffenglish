@@ -19,6 +19,7 @@ import {
     quoteFamily,
     requestedFamilies,
     requestedFontSpecs,
+    stylesheetLinkTag,
 } from './brand-fonts.js';
 
 describe('brand typography kit', () => {
@@ -195,21 +196,34 @@ describe('brand typography kit', () => {
             expect(tags.filter((t) => t.includes('crossorigin'))).toHaveLength(1);
         });
 
-        it('preconnects before the stylesheet', () => {
-            expect(tags.indexOf(tags[0])).toBeLessThan(tags.indexOf(tags[2]));
-            expect(tags.indexOf(tags[1])).toBeLessThan(tags.indexOf(tags[2]));
+        it('preconnects before the font stylesheet is fetched', () => {
+            const preloadAt = tags.indexOf(tags[2]);
+            expect(tags.indexOf(tags[0])).toBeLessThan(preloadAt);
+            expect(tags.indexOf(tags[1])).toBeLessThan(preloadAt);
         });
 
-        it('carries exactly one stylesheet link, pointing at the css2 URL', () => {
-            const stylesheets = tags.filter((t) => t.includes('rel="stylesheet"'));
-            expect(stylesheets).toHaveLength(1);
-            expect(stylesheets[0]).toContain(googleFontsUrl());
+        it('loads the stylesheet non-blocking, with a noscript fallback', () => {
+            // tags[2] is the preload+swap; tags[3] is the <noscript> stylesheet.
+            expect(tags[2]).toContain(`<link rel="preload" as="style" href="${googleFontsUrl()}"`);
+            expect(tags[2]).toContain(`onload="this.onload=null;this.rel='stylesheet'"`);
+            expect(tags[3]).toBe(`<noscript>${stylesheetLinkTag()}</noscript>`);
+        });
+
+        it('carries exactly one plain stylesheet link, pointing at the css2 URL', () => {
+            // The only plain stylesheet is the <noscript> fallback — the list
+            // has no bare render-blocking one.
+            const plain = tags.filter((t) =>
+                t.includes(`<link rel="stylesheet" href="${googleFontsUrl()}">`)
+            );
+            expect(plain).toHaveLength(1);
+            expect(plain[0]).toBe(`<noscript>${stylesheetLinkTag()}</noscript>`);
+            expect(tags.some((t) => t === stylesheetLinkTag())).toBe(false);
         });
 
         it('does not put crossorigin on the stylesheet link', () => {
             // The css2 stylesheet is fetched as a plain stylesheet; only the
             // .woff2 files on gstatic are CORS requests.
-            expect(tags[2]).not.toContain('crossorigin');
+            expect(stylesheetLinkTag()).not.toContain('crossorigin');
         });
     });
 });
