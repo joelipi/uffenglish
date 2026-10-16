@@ -1161,10 +1161,10 @@ mark {{
    <mark> so the existing mark styling above is preserved. */
 aside {{
     position: fixed;
-    top: {BODY_TOP * video_height}px;
+    top: {TITLE_TOP * video_height}px;
     left: {video_width * 0.02}px;
-    max-width: {video_width * 0.50}px;
-    max-height: {body_band}px;
+    max-width: {video_width * 0.60}px;
+    max-height: {(APP_CAPTION_TOP - TITLE_TOP) * video_height}px;
     background: rgba(255, 255, 255, 0.85);
     color: #111111;
     font-family: '{SUBTITLE_FONT}', sans-serif;
@@ -1232,6 +1232,17 @@ strong {{
             titleEl.style.fontSize = titleSize + 'px';
         }}
     }}
+    // The aside is a translucent callout capped at a max box. Grow is not
+    // wanted for it (it should read at aside_size); shrink instead so long
+    // text never overflows its capped dimensions.
+    document.querySelectorAll('aside').forEach(function (el) {{
+        var size = {aside_size};
+        el.style.fontSize = size + 'px';
+        while (size > 8 && (el.scrollHeight > el.clientHeight || el.scrollWidth > el.clientWidth)) {{
+            size -= 1;
+            el.style.fontSize = size + 'px';
+        }}
+    }});
     fitToBand(document.querySelector('.subtitle'), {body_min}, {body_max});
 </script>
 

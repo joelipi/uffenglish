@@ -550,11 +550,11 @@ class OverlayTitleAndAsideGuardTest(unittest.TestCase):
         self.assertIn("padding: {TITLE_PADDING_Y}px 40px", span)
         self.assertIn("border-radius: 36px", span)
 
-    def test_aside_is_capped_at_half_the_width(self):
+    def test_aside_is_capped_at_sixty_percent_width(self):
         overlay = slice_between(read(), "def create_overlay_html", "def add_background_sound")
         aside = slice_between(overlay, "aside {{", "}}")
-        self.assertIn("max-width: {video_width * 0.50}px", aside)
-        self.assertNotIn("width: {video_width * 0.70}px", aside)
+        self.assertIn("max-width: {video_width * 0.60}px", aside)
+        self.assertNotIn("max-width: {video_width * 0.70}px", aside)
 
 
 if __name__ == "__main__":
