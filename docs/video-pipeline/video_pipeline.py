@@ -1075,7 +1075,6 @@ html, body{{background:transparent!important; width:{video_width}px; height:{vid
     font-size: {title_base}px;
     font-weight: 900;
     line-height: 1.6;
-    z-index: 2;
 }}
 
 .title span {{
@@ -1125,7 +1124,6 @@ html, body{{background:transparent!important; width:{video_width}px; height:{vid
     text-shadow: 2px 2px 4px rgba(0,0,0,0.9);
     letter-spacing: 1px;
     text-transform: uppercase;
-    z-index: 2;
 }}
 
 u {{
@@ -1163,10 +1161,13 @@ mark {{
    <mark> so the existing mark styling above is preserved. */
 aside {{
     position: fixed;
-    top: {TITLE_TOP * video_height}px;
+    /* Start just below the branching-step top blur (VIDEO_HEADER_RATIO ~0.19,
+       plus a little margin) and the title band, and stop above the app
+       captions, so the callout never overlaps either. */
+    top: {video_height * 0.20}px;
     left: {video_width * 0.02}px;
     max-width: {video_width * 0.60}px;
-    max-height: {(APP_CAPTION_TOP - TITLE_TOP) * video_height}px;
+    max-height: {(APP_CAPTION_TOP - 0.20) * video_height}px;
     background: rgba(255, 255, 255, 0.85);
     color: #111111;
     font-family: '{SUBTITLE_FONT}', sans-serif;
@@ -1180,7 +1181,6 @@ aside {{
     border-radius: {aside_size * 0.8}px;
     box-shadow: 0 8px 28px rgba(0, 0, 0, 0.25);
     overflow: hidden;
-    z-index: 1;
 }}
 
 /* <strong> is used for highlighting (in the callout box and subtitles).
