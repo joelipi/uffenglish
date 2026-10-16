@@ -3,6 +3,13 @@
 // updates) but only asks for name, email, and password: the native language is
 // already known from the guest flow, and the English level is not needed to
 // create a share code.
+//
+// `captcha: false` opts out of the Turnstile gate: this form lives inside a
+// native <dialog> that is CLOSED until the guest presses the create-video
+// button, and the Turnstile script (async defer, loaded once for the whole SPA)
+// has already finished its render pass by then — a widget mounted into a closed
+// dialog gets no challenge and no token. The standalone /signup route is the
+// protected surface; this modal stays on the plain Supabase path.
 import React from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store/store.js';
@@ -33,7 +40,7 @@ export default function SaveClipsSignupForm({ onSignupSuccess, onLoginLink }) {
         error,
         loading,
         handleSubmit,
-    } = useSignupForm({ onSignupSuccess, nativeLanguage: storedNativeLang });
+    } = useSignupForm({ onSignupSuccess, nativeLanguage: storedNativeLang, captcha: false });
 
     return (
         <>
