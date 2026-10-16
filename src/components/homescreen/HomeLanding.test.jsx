@@ -411,7 +411,7 @@ describe('HomeLanding', () => {
         expect(section.className).toContain('uff-showcase-gradient');
         const icons = q('any-device-icons');
         expect(icons).not.toBeNull();
-        for (const name of ['android', 'ios', 'windows', 'mac', 'linux', 'chromebook']) {
+        for (const name of ['smartphone', 'laptop', 'tablet']) {
             const icon = q(`any-device-icon-${name}`);
             expect(icon).not.toBeNull();
             expect(icon.querySelector('i.bi')).not.toBeNull();
@@ -421,7 +421,7 @@ describe('HomeLanding', () => {
         }
         // Icons come before the heading and body in DOM order.
         expect(section.innerHTML.indexOf('any-device-icons')).toBeLessThan(section.innerHTML.indexOf('any-device-heading'));
-        expect(q('any-device-heading').textContent).toBe('Anyone, anywhere, any device.');
+        expect(q('any-device-heading').textContent).toBe('Anywhere, Any Device.');
         expect(q('any-device-text').textContent).toBe("It works on any recent device (since about 2020): phone, tablet, or computer. You don't even have to install an app!");
     });
 

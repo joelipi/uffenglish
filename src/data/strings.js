@@ -2469,12 +2469,12 @@ const strings = {
         bn: "আপনার বন্ধুদের সাথে চিরকাল বিনামূল্যে ইংরেজি বলার চর্চা করুন।"
     },
     'home_landing_devices_heading': {
-        en: "Anyone, anywhere, any device.",
-        es: "Cualquiera, en cualquier lugar, en cualquier dispositivo.",
-        pt: "Qualquer pessoa, em qualquer lugar, em qualquer dispositivo.",
-        fr: "Qui que vous soyez, où que vous soyez, sur n'importe quel appareil.",
-        hi: "कोई भी, कहीं भी, कोई भी डिवाइस।",
-        bn: "যে কেউ, যেকোনো জায়গায়, যেকোনো ডিভাইসে।"
+        en: "Anywhere, Any Device.",
+        es: 'En cualquier lugar, en cualquier dispositivo.',
+        pt: 'Em qualquer lugar, em qualquer dispositivo.',
+        fr: "N'importe où, n'importe quel appareil.",
+        hi: 'कहीं भी, कोई भी डिवाइस।',
+        bn: 'যেকোনো জায়গায়, যেকোনো ডিভাইস।',
     },
     'home_landing_devices_body': {
         en: "It works on any recent device (since about 2020): phone, tablet, or computer. You don't even have to install an app!",
