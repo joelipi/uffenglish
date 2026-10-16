@@ -90,7 +90,10 @@ export function getAppLanguage(state) {
  * @returns {string} a language code, defaulting to 'en'
  */
 export function getAppLanguageFor(userData) {
-    return resolveConfigLanguage(appStore.getState().guestNativeLanguage, userData?.native_language);
+    return getAppLanguage({
+        guestNativeLanguage: appStore.getState().guestNativeLanguage,
+        userData,
+    });
 }
 
 /**

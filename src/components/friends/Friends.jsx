@@ -79,8 +79,11 @@ export default function Friends() {
     const { data: friendProfiles, isLoading: friendsLoading } = useFriendProfiles(friendIds);
 
     // Subscribed (not one-shot `getState()`): the page re-renders when the
-    // guest language changes elsewhere. Same guest-first expression as HomeScreen.
-    const lang = useNativeLanguage();
+    // guest language changes elsewhere. Guest-first through the shared hook;
+    // the freshly fetched query profile rides as the fallback so a language
+    // changed in the profile editor (which the store mirror has not caught up
+    // with yet) already localizes this page.
+    const lang = useNativeLanguage(profile?.native_language);
 
     const friends = isGuest ? [] : buildFriendsList({ profile, friendProfiles: friendProfiles ?? [], nowMs: Date.now() });
     const isLoading = profileLoading || (!isGuest && friendIds.length > 0 && friendsLoading);

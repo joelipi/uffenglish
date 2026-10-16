@@ -3,7 +3,7 @@ import { Outlet, useParams } from 'react-router-dom';
 import { useStore } from 'zustand';
 import { useQuery } from '@tanstack/react-query';
 import { appStore } from '../modules/store/store.js';
-import { normalizeConfig, resolveConfigLanguage, isConfigLanguageSettled } from '../modules/bilingual/config-normalizer.js';
+import { normalizeConfig, getAppLanguage, isConfigLanguageSettled } from '../modules/bilingual/config-normalizer.js';
 import { applySuccessSteps } from '../modules/lesson/success-step.web.js';
 import { setKnownShareCodes } from '../modules/video/video-source.js';
 import { useAppBootstrap } from '../hooks/use-app-bootstrap-webonly.js';
@@ -42,12 +42,12 @@ export default function AppLayout() {
     // Waiting for the language to settle normalizes exactly once, with the right
     // language, and never re-normalizes (which would restart the lesson).
     // Guest language wins over the profile language, matching the rest of the
-    // app (guestNativeLanguage || userData.native_language || 'en').
+    // app (see getAppLanguage).
     useEffect(() => {
         if (!fetchedConfig || !userData || configData) return;
         if (!isConfigLanguageSettled({ isLoggedIn, guestLang })) return;
         const courseLevel = fetchedConfig.courseLevel || 'A0';
-        const lang = resolveConfigLanguage(guestLang, userData?.native_language);
+        const lang = getAppLanguage();
         // normalizeConfig must run first: it migrates legacy `questions` to
         // `steps`, which the success injection below needs to exist.
         normalizeConfig(fetchedConfig, lang);
