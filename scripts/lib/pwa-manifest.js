@@ -58,20 +58,25 @@ export const PWA_ICONS = [
  * these for its "More" gallery and Chrome uses them in its own install UI —
  * there is no attribute for screenshots, they are manifest-only.
  *
+ * They live under `public/assets/img/` (served from `/assets/img/…`), NOT at
+ * the site root: the app's router treats any single-segment root URL as a
+ * `/:shareCode` profile link, so a root-level `pwa-screenshot-narrow.png`
+ * competes with that catch-all.
+ *
  * Regenerate by loading /course/wouldyourather/lesson/a, dismissing the
  * guest modal, starting the intro video so the "INCOMING VIDEO" label
  * clears, then clipping to #root (never to fixed viewport coordinates).
  */
 export const PWA_SCREENSHOTS = [
     {
-        src: '/pwa-screenshot-narrow.png',
+        src: '/assets/img/pwa-screenshot-narrow.png',
         sizes: '720x1280',
         type: 'image/png',
         form_factor: 'narrow',
         label: 'Practise speaking with your friend',
     },
     {
-        src: '/pwa-screenshot-wide.png',
+        src: '/assets/img/pwa-screenshot-wide.png',
         sizes: '1280x800',
         type: 'image/png',
         form_factor: 'wide',
