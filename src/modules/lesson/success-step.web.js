@@ -12,10 +12,14 @@ import friendEn from '../../assets/subtitles/friend-success.en.srt?raw';
 import friendEs from '../../assets/subtitles/friend-success.es.srt?raw';
 import friendPt from '../../assets/subtitles/friend-success.pt.srt?raw';
 import friendBn from '../../assets/subtitles/friend-success.bn.srt?raw';
+import friendFr from '../../assets/subtitles/friend-success.fr.srt?raw';
+import friendHi from '../../assets/subtitles/friend-success.hi.srt?raw';
 import singlePlayerEn from '../../assets/subtitles/single-player-success.en.srt?raw';
 import singlePlayerEs from '../../assets/subtitles/single-player-success.es.srt?raw';
 import singlePlayerPt from '../../assets/subtitles/single-player-success.pt.srt?raw';
 import singlePlayerBn from '../../assets/subtitles/single-player-success.bn.srt?raw';
+import singlePlayerFr from '../../assets/subtitles/single-player-success.fr.srt?raw';
+import singlePlayerHi from '../../assets/subtitles/single-player-success.hi.srt?raw';
 
 import {
     SUCCESS_TYPE_FRIEND,
@@ -29,8 +33,8 @@ import {
  * kept as separate files so each video's captions can diverge independently.
  */
 export const SUCCESS_SRT = {
-    [SUCCESS_TYPE_FRIEND]: { en: friendEn, es: friendEs, pt: friendPt, bn: friendBn },
-    [SUCCESS_TYPE_SINGLE_PLAYER]: { en: singlePlayerEn, es: singlePlayerEs, pt: singlePlayerPt, bn: singlePlayerBn },
+    [SUCCESS_TYPE_FRIEND]: { en: friendEn, es: friendEs, pt: friendPt, bn: friendBn, fr: friendFr, hi: friendHi },
+    [SUCCESS_TYPE_SINGLE_PLAYER]: { en: singlePlayerEn, es: singlePlayerEs, pt: singlePlayerPt, bn: singlePlayerBn, fr: singlePlayerFr, hi: singlePlayerHi },
 };
 
 /**

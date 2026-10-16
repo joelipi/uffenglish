@@ -5,6 +5,7 @@ import { useQuery, useQueries } from '@tanstack/react-query';
 import { appStore } from '../../modules/store/store.js';
 import { useAuthStatus, useUserProfile, useNotifications, fetchUserByShareCode, signOut } from '../../modules/api/api.js';
 import Strings from '../../data/strings.js';
+import { useNativeLanguage } from '../../hooks/use-native-language.js';
 import { trackEvent } from '../../modules/utils/posthog.js';
 import { loadConfigEntries, resolveCourseHeroImage } from '../../modules/courses/friend-course-configs.js';
 import { listFriendCourses } from '../../modules/courses/friend-courses-logic.js';
@@ -27,9 +28,7 @@ export default function HomeScreen() {
     const [menuOpen, setMenuOpen] = useState(false);
     const courseId = useStore(appStore, state => state.courseId);
     const activeLessonId = useStore(appStore, state => state.activeLessonId);
-    const guestLang = useStore(appStore, state => state.guestNativeLanguage);
-    const userDataLang = useStore(appStore, state => state.userData?.native_language);
-    const lang = guestLang || userDataLang || 'en';
+    const lang = useNativeLanguage();
 
     const { data: isLoggedIn } = useAuthStatus();
     const { data: profile } = useUserProfile();

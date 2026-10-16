@@ -22,7 +22,13 @@ const ENGLISH_LEVELS = [
 export default function SignupForm({ onSignupSuccess, onLoginLink }) {
     const userData = useStore(appStore, (state) => state.userData);
     const guestNativeLang = useStore(appStore, (state) => state.guestNativeLanguage);
-    const storedNativeLang = userData?.native_language || guestNativeLang || '';
+    // Guest-first like the rest of the app (a guest choice wins over the
+    // mirrored profile value), with the browser language as the last resort
+    // before English for direct /signup deep links that never saw the guest
+    // modal's silent browser-language adoption. Kept inline (not the shared
+    // hook) because the hook defaults to 'en', which would kill the navigator
+    // fallback.
+    const storedNativeLang = guestNativeLang || userData?.native_language || '';
 
     const lang = (storedNativeLang || navigator.language || 'en').split('-')[0].toLowerCase();
 

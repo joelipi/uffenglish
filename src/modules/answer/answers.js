@@ -5,6 +5,7 @@ import swearjar from '../utils/swearjar.js';
 import { evaluateWithAI } from '../api/api.js';
 import Strings from '../../data/strings.js';
 import { appStore } from '../store/store.js';
+import { getAppLanguageFor } from '../bilingual/config-normalizer.js';
 import { getCueText } from '../utils/utils.js';
 
 // ── ClosedResponse cue evaluation ──
@@ -335,7 +336,7 @@ export async function processAnswerLogic({
                     type: 'grammar_diff',
                     original: userResponse,
                     corrected: evaluation.grammarCorrectedText || evaluation.finalCorrectedText || userResponse,
-                    header: Strings.get('stats_grammar_header', userData?.native_language)
+                    header: Strings.get('stats_grammar_header', getAppLanguageFor(userData))
                 });
             }
 
@@ -347,7 +348,7 @@ export async function processAnswerLogic({
                     type: 'vocab_diff',
                     original: userResponse,
                     corrected: evaluation.finalCorrectedText || userResponse,
-                    header: Strings.get('stats_vocab_header', userData?.native_language)
+                    header: Strings.get('stats_vocab_header', getAppLanguageFor(userData))
                 });
             }
 
@@ -373,7 +374,7 @@ export async function processAnswerLogic({
             if (displayCorrection && cleanCorrected.length > 0 && labels.some(l => pragmaticsLabels.includes(l))) {
                 feedbackChunks.push({
                     type: 'pragmatics',
-                    header: Strings.get('recommended_correction', userData?.native_language) || "Recommended Corrected Version",
+                    header: Strings.get('recommended_correction', getAppLanguageFor(userData)) || "Recommended Corrected Version",
                     message: "",
                     correction: displayCorrection
                 });
@@ -405,10 +406,10 @@ export async function validateAnswerPrecheck(val, cue, stepData, courseLevel, us
     const similarity = calculateSimilarity(normalizeduserResponse, normalizedcue);
 
     if (responsesGiven && responsesGiven.includes(normalizeduserResponse)) {
-        warningMessage = Strings.get('already_used', userData?.native_language);
+        warningMessage = Strings.get('already_used', getAppLanguageFor(userData));
         isInvalid = true;
     } else if (similarity >= 85) {
-        warningMessage = Strings.get('no_repetition', userData?.native_language);
+        warningMessage = Strings.get('no_repetition', getAppLanguageFor(userData));
         isInvalid = true;
     } else {
         if (courseLevel.toUpperCase() === 'A2') { minWordsRequired = 4; }
@@ -420,9 +421,9 @@ export async function validateAnswerPrecheck(val, cue, stepData, courseLevel, us
         if (wordCount < minWordsRequired || isProfane) {
             isInvalid = true;
             if (isProfane) {
-                warningMessage = Strings.get('inappropriate', userData?.native_language);
+                warningMessage = Strings.get('inappropriate', getAppLanguageFor(userData));
             } else {
-                warningMessage = Strings.get(`min_words_${minWordsRequired}`, userData?.native_language) || Strings.get('min_words_3', userData?.native_language);
+                warningMessage = Strings.get(`min_words_${minWordsRequired}`, getAppLanguageFor(userData)) || Strings.get('min_words_3', getAppLanguageFor(userData));
             }
         }
     }

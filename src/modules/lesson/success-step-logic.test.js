@@ -40,6 +40,15 @@ describe('successSubtitlesFor', () => {
         expect(successSubtitlesFor({ type: 'friend', lang: 'bn', srtByType: SRT })).toBe('FRIEND EN');
         expect(successSubtitlesFor({ type: 'friend', lang: 'en', srtByType: {} })).toBeUndefined();
     });
+
+    it('resolves the uppercase guest codes the store actually holds', () => {
+        expect(successSubtitlesFor({ type: 'friend', lang: 'ES', srtByType: SRT })).toBe('FRIEND ES');
+        expect(successSubtitlesFor({ type: 'single-player', lang: 'ES', srtByType: SRT })).toBe('SP ES');
+    });
+
+    it('resolves region-tagged codes to the base language', () => {
+        expect(successSubtitlesFor({ type: 'friend', lang: 'es-ES', srtByType: SRT })).toBe('FRIEND ES');
+    });
 });
 
 describe('buildSuccessStep', () => {

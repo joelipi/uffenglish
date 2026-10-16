@@ -62,6 +62,41 @@ export function resolveConfigLanguage(guestLang, profileLang) {
 }
 
 /**
+ * The single source of truth for the app's active language outside React.
+ *
+ * `guestNativeLanguage` is authoritative and `userData.native_language` is its
+ * mirror (AGENTS.md): the async profile bootstrap can write the fetched
+ * profile's `native_language` ("EN") after a guest picked another language, so
+ * reading `userData.native_language` directly renders English while the rest
+ * of the app is localized. Call this (or `useNativeLanguage()` in components)
+ * instead of reading `userData.native_language` — every ad-hoc expression is
+ * a future localization regression.
+ *
+ * @param {object} [state] - defaults to the live store state (test seam)
+ * @returns {string} a language code, defaulting to 'en'
+ */
+export function getAppLanguage(state) {
+    const s = state || appStore.getState();
+    return resolveConfigLanguage(s.guestNativeLanguage, s.userData?.native_language);
+}
+
+/**
+ * Same guest-first rule for pure functions that carry `userData` as a
+ * parameter (answer scoring, speech callbacks): the store's guest choice wins,
+ * the parameter is the fallback, so existing callers and test doubles keep
+ * working unchanged.
+ *
+ * @param {object} [userData] - e.g. the scoring pipeline's user record
+ * @returns {string} a language code, defaulting to 'en'
+ */
+export function getAppLanguageFor(userData) {
+    return getAppLanguage({
+        guestNativeLanguage: appStore.getState().guestNativeLanguage,
+        userData,
+    });
+}
+
+/**
  * Whether the guest language is settled enough to normalize a course config.
  * The guest modal opens AFTER the config fetch resolves, so normalizing on
  * fetch would flatten subtitles to English before the guest picks a language.

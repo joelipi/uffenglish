@@ -72,7 +72,7 @@ function assertDocsContract({ authoring, product }) {
 }
 
 describe('story 065 docs contract', () => {
-    it('documents the 21 localization columns + bot-commit setup with no Sheets surface', () => {
+    it('documents the 35 localization columns + bot-commit setup with no Sheets surface', () => {
         expect(() => assertDocsContract({ authoring: read(AUTHORING), product: read(PRODUCT) })).not.toThrow();
     });
 

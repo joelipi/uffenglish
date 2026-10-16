@@ -11,8 +11,8 @@ import { describe, it, expect } from 'vitest';
 import wouldyourather from './wouldyourather.json';
 import { SimpleVideoStateController } from '../modules/video/simple-video-controller.js';
 
-const LOCALES = ['en', 'es', 'pt', 'bn'];
-const TRANSLATED = ['es', 'pt', 'bn'];
+const LOCALES = ['en', 'es', 'pt', 'bn', 'fr', 'hi'];
+const TRANSLATED = ['es', 'pt', 'bn', 'fr', 'hi'];
 
 /** Every step that carries a subtitle track, across every lesson. */
 function captionSteps() {
@@ -204,4 +204,48 @@ describe('wouldyourather.json — lesson titles match their own questions', () =
             }
         }
     );
+});
+
+describe('wouldyourather.json — French and Hindi lesson coverage', () => {
+    // The reported regression: a French guest saw the UI in French but the
+    // mission and every cue/subtitle in English, because no fr translation
+    // existed (Spanish worked — es was present). Hindi had the same gap.
+    // Every lesson's mission, cue element and subtitle track must carry fr
+    // and hi.
+    it.each(wouldyourather.lessons.map((l) => l.lessonId))('lesson %s mission carries fr and hi', (lessonId) => {
+        const lesson = wouldyourather.lessons.find((l) => l.lessonId === lessonId);
+        for (const lang of ['fr', 'hi']) {
+            expect(typeof lesson.mission?.[lang], `lesson ${lessonId} mission.${lang}`).toBe('string');
+            expect(lesson.mission[lang].trim().length, `lesson ${lessonId} mission.${lang} empty`).toBeGreaterThan(0);
+        }
+    });
+
+    it('every cue element carries non-empty fr and hi translations', () => {
+        for (const lesson of wouldyourather.lessons) {
+            for (const step of lesson.steps || []) {
+                for (const cue of step.cue || []) {
+                    for (const lang of ['fr', 'hi']) {
+                        expect(typeof cue[lang], `${lesson.lessonId}/${step.simpleVideoUrl} cue.${lang}`).toBe('string');
+                        expect(cue[lang].trim().length, `${lesson.lessonId} cue.${lang} empty`).toBeGreaterThan(0);
+                    }
+                }
+            }
+        }
+    });
+
+    it('every branching choice carries non-empty fr and hi translations', () => {
+        let choices = 0;
+        for (const lesson of wouldyourather.lessons) {
+            for (const step of lesson.steps || []) {
+                for (const choice of step.chooseStep || []) {
+                    choices++;
+                    for (const lang of ['fr', 'hi']) {
+                        expect(typeof choice.text?.[lang], `${lesson.lessonId} chooseStep.${lang}`).toBe('string');
+                        expect(choice.text[lang].trim().length, `${lesson.lessonId} chooseStep.${lang} empty`).toBeGreaterThan(0);
+                    }
+                }
+            }
+        }
+        expect(choices).toBeGreaterThan(0);
+    });
 });

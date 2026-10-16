@@ -431,7 +431,7 @@ describe('buildCourseConfig', () => {
 });
 
 // Story 049, Task 4: the language columns are consumed into the existing
-// `{en,es,pt,bn}` objects, additively (back-compat: no columns -> `{en}`).
+// `{en,es,pt,bn,fr,hi}` objects, additively (back-compat: no columns -> `{en}`).
 describe('buildCourseConfig localization columns', () => {
     const base = {
         course_id: 'c', course_name: 'C', lesson_id: 'a', lesson_title: 'Lesson A',
@@ -665,6 +665,8 @@ describe('lesson level patterns (a1..c1) and courseMission', () => {
             es: 'hablar sobre preferencias',
             pt: 'falar sobre preferências',
             bn: 'পছন্দ সম্পর্কে কথা বলুন',
+            fr: 'parler de préférences',
+            hi: 'पसंद के बारे में बात करें',
         });
         expect(real.courseMission.A1).toEqual({ en: 'X or Y' });
         expect(real.courseMission.C1).toEqual({ en: 'if I had to choose between [gerund verb X] and [gerund verb Y], my preference would be to [infinitive verb]' });
@@ -1311,12 +1313,12 @@ describe('docs/video-pipeline/sample-sheet.csv round-trip', () => {
     const samplePath = path.join(__dirname, '../../docs/video-pipeline/sample-sheet.csv');
     const csv = readFileSync(samplePath, 'utf8');
 
-    it('headers include all 21 authoring localization columns (phrase is master-only)', () => {
+    it('headers include all 35 authoring localization columns (phrase is master-only)', () => {
         const { headers } = parseCsv(csv);
         const authoringFields = LOCALIZATION_FIELDS.filter((f) => f.field !== 'phrase');
         const expected = authoringFields.flatMap((f) =>
             SHEET_LANGUAGES.map((l) => localizedColumn(f.field, l)));
-        expect(expected).toHaveLength(21);
+        expect(expected).toHaveLength(35);
         for (const col of expected) expect(headers).toContain(col);
         for (const col of ['next_step', 'choose_step_next', 'choose_step_text']) {
             expect(headers).toContain(col);

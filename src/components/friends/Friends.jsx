@@ -1,8 +1,7 @@
 import { useNavigate, Link } from 'react-router-dom';
 import { useUserProfile, useFriendProfiles } from '../../modules/api/api.js';
-import { appStore } from '../../modules/store/store.js';
-import { useStore } from 'zustand';
 import Strings from '../../data/strings.js';
+import { useNativeLanguage } from '../../hooks/use-native-language.js';
 import defaultProfilePic from '../../assets/img/userprofile.png';
 import { getFriendUserIds, buildFriendsList } from '../../modules/user/friends-logic.js';
 
@@ -80,10 +79,11 @@ export default function Friends() {
     const { data: friendProfiles, isLoading: friendsLoading } = useFriendProfiles(friendIds);
 
     // Subscribed (not one-shot `getState()`): the page re-renders when the
-    // guest language changes elsewhere. Same guest-first expression as HomeScreen.
-    const guestLang = useStore(appStore, (state) => state.guestNativeLanguage);
-    const userDataLang = useStore(appStore, (state) => state.userData?.native_language);
-    const lang = (guestLang || profile?.native_language || userDataLang || 'en').toLowerCase();
+    // guest language changes elsewhere. Guest-first through the shared hook;
+    // the freshly fetched query profile rides as the fallback so a language
+    // changed in the profile editor (which the store mirror has not caught up
+    // with yet) already localizes this page.
+    const lang = useNativeLanguage(profile?.native_language);
 
     const friends = isGuest ? [] : buildFriendsList({ profile, friendProfiles: friendProfiles ?? [], nowMs: Date.now() });
     const isLoading = profileLoading || (!isGuest && friendIds.length > 0 && friendsLoading);

@@ -3,6 +3,7 @@ import * as Core from './speech.core.js';
 import { validateAnswerPrecheck, findMatchingCueText } from '../answer/answers.js';
 import { appStore } from '../store/store.js';
 import Strings from '../../data/strings.js';
+import { getAppLanguage } from '../bilingual/config-normalizer.js';
 
 function computeWaveformPeaks(audioData, numPeaks = 120) {
     const blockSize = Math.max(1, Math.floor(audioData.length / numPeaks));
@@ -208,7 +209,7 @@ export function createSpeechOrchestrator({
                     } else {
                         appStore.getState().setSystemMessage({
                             type: 'media-error',
-                            text: Strings.get('error_media_generic', appStore.getState().userData?.native_language) || String(e?.message || e),
+                            text: Strings.get('error_media_generic', getAppLanguage()) || String(e?.message || e),
                         });
                     }
                     return;

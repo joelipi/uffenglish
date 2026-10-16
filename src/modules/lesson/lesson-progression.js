@@ -5,6 +5,7 @@
 
 import { appStore, getCurrentVideoPlayer } from '../store/store.js';
 import Strings from '../../data/strings.js';
+import { getAppLanguage } from '../bilingual/config-normalizer.js';
 import teacherAvatar from '../../assets/img/teacherprofile.webp';
 import userAvatar from '../../assets/img/userprofile.png';
 import aiAvatar from '../../assets/img/ai.webp';
@@ -32,7 +33,7 @@ export function createProgression(deps) {
     }
 
     function showCompletionMessage() {
-        const msg = Strings.get('msg_lesson_complete_all', appStore.getState().userData?.native_language);
+        const msg = Strings.get('msg_lesson_complete_all', getAppLanguage());
         const heading = msg.match(/<h3>(.*?)<\/h3>/)?.[1] || '';
         const body = msg.match(/<p>(.*?)<\/p>/)?.[1] || '';
         appStore.getState().setCompletionMessage({ heading, body });
@@ -179,7 +180,7 @@ export function createProgression(deps) {
             userAvatarUrl: appStore.getState().userData?.profilePictureUrl || userAvatar
         });
 
-        addAILoadingMessage(Strings.get('ai_thinking', appStore.getState().userData?.native_language));
+        addAILoadingMessage(Strings.get('ai_thinking', getAppLanguage()));
 
         const context = getChatHistoryContext();
         try {
