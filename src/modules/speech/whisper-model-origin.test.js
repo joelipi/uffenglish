@@ -95,3 +95,49 @@ describe('whisper model origin', () => {
         expect(SPEECH).toMatch(/\n\s+whisperAdapter\.preloadWhisperEngine\(\);/);
     });
 });
+
+describe('the demo worker does not re-download the model itself', () => {
+    // It used to pre-fetch the two ONNX graphs into its own Cache API bucket.
+    // Transformers.js opens `transformers-cache`, so nothing ever read that
+    // bucket: every cold load pulled ~41 MB twice, sequentially, and buffered
+    // 29 MB of decoder in JS heap on the way. Phone bandwidth and heap for
+    // nothing. pipeline() now does the one fetch-and-cache pass itself.
+
+    // Comments stripped so the explanatory comment naming the removed
+    // identifiers cannot satisfy a "must not contain" assertion. Stripping
+    // comments is safe here because these are bare-identifier checks; the
+    // line-comment pattern requires the `//` NOT to follow a colon, so the
+    // `//` in `https://r2.ultrafastfluency.com` survives.
+    const code = DEMO_WORKER
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/(^|[^:])\/\/.*$/gm, '$1');
+
+    it('lets Transformers.js own the cache', () => {
+        expect(code).toMatch(/env\.useBrowserCache\s*=\s*true/);
+    });
+
+    it('opens no Cache API bucket of its own', () => {
+        // `caches.open(<anything>)` here would mean a bucket nothing reads.
+        expect([...code.matchAll(/caches\.open\(/g)]).toEqual([]);
+        // Nor may it hard-code the library's bucket name and write into it
+        // under a key scheme of its own.
+        expect(code).not.toContain('transformers-cache');
+    });
+
+    it('does not fetch the ONNX graphs by hand', () => {
+        for (const file of ['encoder_model_quantized.onnx', 'decoder_model_merged_quantized.onnx']) {
+            expect(code).not.toContain(file);
+        }
+    });
+
+    it('does not buffer a whole model file into JS memory', () => {
+        // `response.arrayBuffer()` on a ~29 MB response is the heap spike that
+        // went away with the duplicate pre-cache.
+        expect(code).not.toContain('arrayBuffer');
+    });
+
+    it('still boots the pipeline from the model origin', () => {
+        expect(code).toContain('automatic-speech-recognition');
+        expect(code).toContain('onnx-community/whisper-tiny.en');
+    });
+});
