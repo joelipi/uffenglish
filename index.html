@@ -310,10 +310,15 @@
         }
 
         .appLoadingImage {
-            width: 80vw;
-            height: 80vh;
-            max-width: 800px;
-            max-height: 800px;
+            /* Giant: fill almost the whole cover so the UFF mark reads large
+               rather than as a sparse ~2% mark at 80vw. The cover itself
+               already holds 2s (see MIN_DISPLAY_MS above), so enlarging this
+               only helps — nothing downstream depends on its box size. */
+            width: 95vw;
+            height: 95vh;
+            max-width: 95vw;
+            max-height: 95vh;
+            filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.55));
             /* The PNG has a transparent background — the gradient on
                #appLoadingImageDiv above is what shows through it, so this box
                is the thing that is transformed, never the gradient. */
