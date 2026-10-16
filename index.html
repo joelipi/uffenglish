@@ -361,27 +361,6 @@
             }
         }
 
-        #ui-progress-container {
-            position: absolute;
-            top: 40%;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 60%;
-            max-width: 300px;
-            height: 6px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 10px;
-            overflow: hidden;
-            z-index: 1000000;
-        }
-
-        #ui-progress-bar {
-            width: 0%;
-            height: 100%;
-            background: #ffffff;
-            border-radius: 10px;
-            transition: width 0.1s linear;
-        }
     </style>
 
     <!-- Cloudflare Turnstile (signup bot gate). `async defer` so it never blocks
@@ -398,13 +377,6 @@
     <!-- RESTORED: App Loading & Pre-caching Script -->
     <script>
         window.preloadLessonAssets = async function (lessonData, buildVideoUrlFn, buildPosterUrlFn) {
-            const progressBar = document.getElementById('ui-progress-bar');
-            let progress = 0;
-            const progressInterval = setInterval(() => {
-                progress += (95 - progress) * 0.05;
-                if (progressBar) progressBar.style.width = progress + '%';
-            }, 100);
-
             try {
                 // High-priority poster preload for lesson intro — ensures the
                 // intro rectangle is never empty (LQIP already prevents black).
@@ -449,13 +421,9 @@
                     new Promise(resolve => setTimeout(resolve, 1500))
                 ]);
 
-                clearInterval(progressInterval);
-                if (progressBar) progressBar.style.width = '100%';
-
                 await new Promise(resolve => setTimeout(resolve, 250));
             } catch (error) {
                 console.error("Failsafe unlocked preloader:", error);
-                clearInterval(progressInterval);
             }
         };
     </script>
@@ -471,9 +439,6 @@
         </div>
             <div id="appLoadingImageDiv">
                 <div class="appLoadingImage"></div>
-                <div id="ui-progress-container">
-                    <div id="ui-progress-bar"></div>
-                </div>
             </div>
     </main>
 

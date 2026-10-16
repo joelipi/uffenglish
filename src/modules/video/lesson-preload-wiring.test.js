@@ -50,8 +50,9 @@ describe('index.html bulk video prefetch removal', () => {
         expect(source).toContain('lessonData?.steps?.[0]?.introBackgroundVideoUrl');
     });
 
-    it('keeps the progress bar interval', () => {
-        expect(source).toContain('#ui-progress-bar');
-        expect(source).toContain('progressInterval');
+    it('no longer renders the progress bar (removed per user request)', () => {
+        expect(source).not.toContain('#ui-progress-bar');
+        expect(source).not.toContain('ui-progress-container');
+        expect(source).not.toContain('progressInterval');
     });
 });
