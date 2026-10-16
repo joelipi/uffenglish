@@ -31,9 +31,14 @@ export function getRegisteredInstallElement() {
  * small in-page drawer. Called from the `beforeinstallprompt` listener.
  */
 export function registerBeforeInstallPromptEvent(event) {
-    if (!event || typeof event.prompt !== 'function') return false;
+    if (!event || typeof event.prompt !== 'function') {
+        console.log('[PWA] registerBeforeInstallPromptEvent: not a valid event', event && Object.keys(event));
+        return false;
+    }
     try { event.preventDefault(); } catch (e) { /* ignore */ }
     deferredInstallPrompt = event;
+    if (typeof window !== 'undefined') window.__uffDeferredPrompt = event;
+    console.log('[PWA] beforeinstallprompt staged, platforms=', event.platforms);
     return true;
 }
 
@@ -50,8 +55,12 @@ export function hasNativeInstallPrompt() {
 export async function triggerNativeInstallPrompt() {
     const e = deferredInstallPrompt;
     deferredInstallPrompt = null;
-    if (!e || typeof e.prompt !== 'function') return null;
+    if (!e || typeof e.prompt !== 'function') {
+        console.log('[PWA] triggerNativeInstallPrompt: no staged event');
+        return null;
+    }
     try {
+        console.log('[PWA] triggering native OS install prompt');
         e.prompt();
         const choice = await e.userChoice;
         return choice || null;
