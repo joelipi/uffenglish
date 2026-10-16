@@ -15,10 +15,10 @@ import {
     requestInstall,
 } from '../../modules/pwa/install-prompt-logic.js';
 import {
-    readIsStandaloneApp,
     readIsApplePlatform,
     getRegisteredInstallElement,
 } from '../../modules/pwa/install-prompt-webonly.js';
+import { useStandaloneApp } from '../../modules/pwa/use-standalone-app.js';
 
 const BANNER_STYLE = {
     flexShrink: 0,
@@ -38,9 +38,12 @@ const BANNER_STYLE = {
 };
 
 export default function PWAInstallBanner({ lang = 'en', userId = null }) {
+    // Live, not a one-shot read: installing from this banner must make it go
+    // away without a reload (see use-standalone-app).
+    const isStandalone = useStandaloneApp();
     // Cheap pure gate first: guests and installed users never pay the
     // platform read below.
-    if (!shouldShowInstallBanner({ isStandalone: readIsStandaloneApp(), userId })) return null;
+    if (!shouldShowInstallBanner({ isStandalone, userId })) return null;
     const isApple = readIsApplePlatform();
 
     const handleClick = () => {

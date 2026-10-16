@@ -170,19 +170,20 @@ describe('PushNotificationsOptIn — installed-app prompt', () => {
         unmount();
     });
 
-    it('keeps offering on every later launch — a dismissal only hides it now', async () => {
-        const first = render(<PushNotificationsOptIn lang="en" variant="prompt" userId="user-1" />);
+    it('has no "Not now" escape hatch — the offer persists until enabled', async () => {
+        const { container, unmount } = render(
+            <PushNotificationsOptIn lang="en" variant="prompt" userId="user-1" />
+        );
         await flush();
-        await act(async () => { first.container.querySelector('[data-testid="push-dismiss"]').click(); });
-        expect(first.container.querySelector('[data-testid="push-prompt"]')).toBeNull();
-        first.unmount();
-
-        // A fresh mount (i.e. the next launch) offers it again: "repeatedly,
-        // always, until they enable them".
-        const second = render(<PushNotificationsOptIn lang="en" variant="prompt" userId="user-1" />);
-        await flush();
-        expect(second.container.querySelector('[data-testid="push-prompt"]')).toBeTruthy();
-        second.unmount();
+        expect(container.querySelector('[data-testid="push-prompt"]')).toBeTruthy();
+        expect(container.querySelector('[data-testid="push-dismiss"]')).toBeNull();
+        // The accept button must not be light-on-light: --uff-btn-bg is white
+        // and --uff-btn-fg near-black (app.css :root).
+        const enable = container.querySelector('[data-testid="push-enable"]');
+        expect(enable.style.color).toContain('--uff-btn-fg');
+        expect(enable.style.color).not.toBe('white');
+        expect(enable.style.background).toContain('--uff-btn-bg');
+        unmount();
     });
 
     it('does not show the card in a plain browser tab (not installed)', async () => {

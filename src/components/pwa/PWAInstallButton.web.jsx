@@ -6,10 +6,14 @@
 // the home screen's own tests stay light.
 import React from 'react';
 import { shouldOfferInstall, requestInstall } from '../../modules/pwa/install-prompt-logic.js';
-import { getRegisteredInstallElement, readIsStandaloneApp } from '../../modules/pwa/install-prompt-webonly.js';
+import { getRegisteredInstallElement } from '../../modules/pwa/install-prompt-webonly.js';
+import { useStandaloneApp } from '../../modules/pwa/use-standalone-app.js';
 
 export default function PWAInstallButton({ label, style, onBeforeOpen }) {
-    if (!shouldOfferInstall({ isStandalone: readIsStandaloneApp() })) return null;
+    // Live, so the entry hides itself right after the app is installed
+    // (see use-standalone-app) instead of waiting for a reload.
+    const isStandalone = useStandaloneApp();
+    if (!shouldOfferInstall({ isStandalone })) return null;
 
     const handleClick = () => {
         if (typeof onBeforeOpen === 'function') onBeforeOpen();

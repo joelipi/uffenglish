@@ -51,6 +51,35 @@ export const PWA_ICONS = [
 ];
 
 /**
+ * Install-dialog screenshots: real captures of lesson `a` of the
+ * `wouldyourather` course (the friend-practice lesson), driven through
+ * Playwright against the running app. `sizes` must match the real pixel
+ * dimensions or Chrome ignores the entry. `@khmyznikov/pwa-install` reads
+ * these for its "More" gallery and Chrome uses them in its own install UI —
+ * there is no attribute for screenshots, they are manifest-only.
+ *
+ * Regenerate by loading /course/wouldyourather/lesson/a, dismissing the
+ * guest modal, starting the intro video so the "INCOMING VIDEO" label
+ * clears, then clipping to #root (never to fixed viewport coordinates).
+ */
+export const PWA_SCREENSHOTS = [
+    {
+        src: '/pwa-screenshot-narrow.png',
+        sizes: '720x1280',
+        type: 'image/png',
+        form_factor: 'narrow',
+        label: 'Practise speaking with your friend',
+    },
+    {
+        src: '/pwa-screenshot-wide.png',
+        sizes: '1280x800',
+        type: 'image/png',
+        form_factor: 'wide',
+        label: 'Practise speaking with your friend',
+    },
+];
+
+/**
  * The web app manifest. Keep it a plain function of the constants above so
  * tests can assert the exact object the build emits.
  */
@@ -69,6 +98,7 @@ export function buildPwaManifest() {
         dir: 'ltr',
         categories: APP_CATEGORIES,
         icons: PWA_ICONS,
+        screenshots: PWA_SCREENSHOTS,
         // Chrome's criteria: must be absent or false for the install prompt.
         prefer_related_applications: false,
     };

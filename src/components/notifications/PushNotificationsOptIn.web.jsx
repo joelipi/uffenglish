@@ -51,8 +51,6 @@ export default function PushNotificationsOptIn({
     const [installed, setInstalled] = useState(false);
     const [busy, setBusy] = useState(false);
     const [outcome, setOutcome] = useState(null);
-    // Session-only: "Not now" hides the card until the next launch, never longer.
-    const [hiddenNow, setHiddenNow] = useState(false);
 
     // An installed app: either we are running as one, or the browser just told us
     // this tab's site was installed (Chromium's `appinstalled`). iOS never fires
@@ -123,11 +121,6 @@ export default function PushNotificationsOptIn({
         setState(await refreshOffer());
     }, [refreshOffer, onBeforeOpen]);
 
-    const handleDismiss = useCallback(() => {
-        // Next launch offers it again — only enabling removes the card.
-        setHiddenNow(true);
-    }, []);
-
     // One definition for both variants: a denial is either the live permission
     // (state) or the result the attempt just returned — the second covers the
     // moment before the browser has reflected the new permission.
@@ -160,8 +153,11 @@ export default function PushNotificationsOptIn({
     }
 
     // The card owns the initiative: only an installed app shows it, and it
-    // returns every launch until notifications are enabled.
-    if (!installed || hiddenNow) return null;
+    // returns every launch until notifications are enabled. There is no
+    // "Not now" escape hatch — the card is the only thing standing between a
+    // signed-in user and their notifications, and a dismissal the user can
+    // always re-trigger is just a dismissal.
+    if (!installed) return null;
 
     return (
         <div data-testid="push-prompt" style={{ ...PROMPT_STYLE, ...(style || {}) }}>
@@ -187,28 +183,17 @@ export default function PushNotificationsOptIn({
                         padding: '10px',
                         borderRadius: '8px',
                         border: 'none',
-                        background: 'var(--uff-btn-bg, linear-gradient(135deg, #3a8fd5 0%, #00c0d8 100%))',
-                        color: 'white',
+                        // The app's unified-button tokens: --uff-btn-bg is WHITE
+                        // and --uff-btn-fg is near-black (app.css :root). A
+                        // hardcoded light-on-light `color: 'white'` made this
+                        // button unreadable, so both values come from the tokens.
+                        background: 'var(--uff-btn-bg, #ffffff)',
+                        color: 'var(--uff-btn-fg, #1a1a1a)',
                         fontWeight: 600,
                         cursor: 'pointer',
                     }}
                 >
                     {Strings.get('push_optin_enable', lang)}
-                </button>
-                <button
-                    type="button"
-                    data-testid="push-dismiss"
-                    onClick={handleDismiss}
-                    style={{
-                        padding: '10px 14px',
-                        borderRadius: '8px',
-                        border: '1px solid #2a4a6a',
-                        background: 'transparent',
-                        color: 'white',
-                        cursor: 'pointer',
-                    }}
-                >
-                    {Strings.get('push_optin_dismiss', lang)}
                 </button>
             </div>
         </div>
