@@ -1,41 +1,36 @@
-# Code review — `brand-typography` (`origin/main..HEAD`)
+# Code review — `brand-typography` (`origin/main..HEAD`) — re-review
 
-Range: `origin/main..HEAD` (branch `brand-typography`). Reviewer: code-reviewer subagent.
+Range: `origin/main..HEAD` (branch `brand-typography`). This supersedes the earlier
+Fail on this same path: both blocking guard findings are fixed and verified.
 
-Production intent (Inter body / italic Titillium Web headings / `:lang()` overrides) is
-sound; the cascade reasoning in `app.css` checks out. The blocking findings are in the
-guard tests, which cannot catch the regressions they claim to guard.
+Method note: verified by reading the code and `node_modules/purgecss` +
+`node_modules/vite-plugin-purgecss/dist/index.js` and tracing the guard logic. The
+read-only reviewer contract forbids running the suite, so failure modes below were
+established by static trace, not by mutation execution.
 
 ## Correctness Issues
 
-- `src/modules/theme/brand-fonts-bundle.test.js:18,31-38` — The PurgeCSS "production"
-  reproduction is self-referential and tautological. `PURGECSS_CONTENT` is
-  `**/*.{js,css,html,png,svg,ico,webmanifest,woff,woff2}`, resolved from the repo root, so
-  the scanned content **includes `src/assets/css/app.css` itself** (plus
-  `brand-fonts.js` and this test), which contain the literal `:lang(ja)`/`zh-Hant`/… tokens.
-  `:lang()` guards then survive because the selector's own text is in the content — the
-  `safelist: [/^:lang/]` is not what keeps them. Delete the safelist entry tomorrow and these
-  tests still pass, so they do not prove the fix works. (Per `node_modules/purgecss`,
-  `shouldKeepSelector` also auto-keeps any selector nested directly inside a pseudo, and the
-  top-level `:is`/`:lang`/combinator nodes `continue` rather than fail, so the whole rule
-  survives on the `#root` id alone.) Why it matters: this is the *only* test guarding a
-  regression that is invisible in dev (CJK/Devanagari headings silently losing their face in
-  production). How to fix: model the real purge input — `content: [{ raw: indexHtml + '<bundled js>', extension: 'html' }]`
-  (see `node_modules/vite-plugin-purgecss/dist/index.js`), not a whole-repo glob — and prove
-  the guard fails by removing `/^:lang/` locally. Also note the claim at
-  `brand-fonts-bundle.test.js:15-18` ("the content glob … the production build uses") is
-  false, and the test at `:97` asserts the **workbox `globPatterns`** string
-  (`vite.config.js:114`), which is unrelated to PurgeCSS content. [score: 4]
+None blocking.
 
-- `src/modules/theme/brand-fonts-wiring.test.js:330-336` — The `h4`/`h5`/`h6` guard cannot
-  fail for the regression it describes. The regex `^[#\w.[\]]*h4[ ,:{]` (multiline) only
-  matches when `h4` is *directly* preceded by `#`/`\w`/`.`/`[`/`]` with **no space**, so the
-  realistic form the comment worries about — `#root h4 { font-weight: … }` (space between
-  `#root` and `h4`) — does not match, and the guard stays green if someone adds it. Why it
-  matters: the test gives false confidence that h4-h6 are excluded from the display
-  treatment. How to fix: assert on the heading selectors actually present, e.g. collect all
-  `#root`-anchored rule prefixes with `blockFor`/a selector scan and assert none target
-  `h4`-`h6`, rather than a start-of-line token regex. [score: 4]
+- The two previously-blocking guards are now genuinely able to fail:
+  - `src/modules/theme/brand-fonts-bundle.test.js` now models the plugin's real call
+    (`content: [{ raw: html + bundleCode, extension: 'html' }]`, `css: [{ raw: APP_CSS }]`)
+    instead of a content glob, and adds an explicit empty-safelist run. `purgeAsTheBuildDoes()`
+    derives its output **only** from `APP_CSS`, so deleting any `#root :is(...):lang(x)` rule
+    drops `:lang(x)` from the output and the `keeps the :lang(%s) heading rule` case goes red.
+    This matches PurgeCSS 4.1.3's `shouldKeepSelector`, which returns true for a selector node
+    whose parent is a pseudo (`h1/h2/h3` inside `:is()`) and `continue`s on the `:lang()` node,
+    so each rule survives on the `#root` id alone — the premise is pinned by the
+    `index.html still contains the id` case. Removing `#root` from `index.html` therefore reds
+    the suite (via that premise case).
+  - `src/modules/theme/brand-fonts-wiring.test.js:332-351` scans the real selector lists and
+    takes the subject compound (`selector.split(/[\s>+~]/).pop()`), so `#root h4 { … }` yields
+    subject `h4`, is pushed, and the `toEqual([...])` assertion fails. Dropping the `:is()`
+    nesting is caught both by the wiring `every heading selector nests its type selectors
+    inside :is()` case and the same case in the bundle test.
+- `vite.config.js:88-96` — the `/^:lang/` safelist entry is correctly gone; nothing else in the
+  tree asserts the old story (`grep` finds the token only in the rewritten bundle test and this
+  review). The `safelistFromConfig()` parity case makes a re-added entry fail.
 
 ## Simplicity Issues
 
@@ -51,39 +46,34 @@ None.
 
 ## Other Notes
 
-- `index.html:23-33` — Loading regression: the diff replaces the previous non-blocking
-  `rel="preload" as="style" onload="this.rel='stylesheet'"` + `<noscript>` pair with a plain
-  render-blocking `<link rel="stylesheet">` placed in `<head>` *before* the inline critical
-  `<style>`. A render-blocking stylesheet in the head blocks first paint, so the inline
-  preloader can no longer paint until `fonts.googleapis.com` responds — the opposite of the
-  stated goal ("costs no extra round-trip" smooths latency but not render-blocking). The
-  `app.css` comment at `:9-16` argues an `@import` is render-blocking "which would undo the
-  non-blocking preloader paint", yet the `<link>` it substitutes is equally render-blocking.
-  Non-blocking, but worth a conscious decision: keep `media="print"`/`onload` swap or accept
-  the FCP hit for the CJK font kit. [score: 3]
-- `src/modules/video/video-processor.web.js:149-150,1094-1247` — The recap/canvas drawing
-  still uses `"Orbitron"`/`"Plus Jakarta Sans"`, which the site never loads, so the rendered
-  video falls back to `sans-serif`. The new "no dead font references" guard scopes itself to
-  DOM sources (`brand-fonts-wiring.test.js:415-438`) and deliberately skips these. Pre-existing
-  and outside this change's surface, but the brand kit now makes the mismatch visible. [score: 2]
+- `src/modules/theme/brand-fonts-bundle.test.js:33-44` — `bundleCode()` walks all of `src/`, so
+  the content string also contains `app.css`'s own `#root`/`:lang(...)` tokens and the test
+  files. This is a small fidelity gap vs the plugin (production passes app.css only as the CSS
+  input), but it does not create false confidence: deleting a rule still reds the `:lang()`
+  case, and an `index.html` `#root` regression is caught by the dedicated premise case.
+  [score: 2]
+- `index.html:32` — the Google Fonts `<link rel="stylesheet">` is render-blocking and sits before
+  the inline critical `<style>`. This is the deliberate, user-requested trade-off (preconnect +
+  `display=swap`), and no comment now claims it is non-blocking, so there is no hidden
+  correctness problem. [score: 2]
+- `src/modules/video/video-processor.web.js` still draws the recap canvas with `"Orbitron"` /
+  `"Plus Jakarta Sans"`, which the site never loads (the new DOM guard deliberately scopes them
+  out). Pre-existing and outside this change; flagged once before, still non-blocking. [score: 2]
 
 ## Suggestions
 
-- `src/modules/theme/brand-fonts-bundle.test.js:5` — imports `purgecss` directly although it
-  is only a transitive dependency of `vite-plugin-purgecss` (`package.json:44`). If the plugin
-  bumps/drops it, the test fails to collect. Add `purgecss` as an explicit devDependency.
+- `src/modules/theme/brand-fonts-wiring.test.js:343-344` — the subject test `/^h[1-6]$/` misses a
+  compound subject such as `#root h4.brand { … }` (subject `h4.brand`), so a heading rule that
+  targets an h4 with a class would not be caught. Matching `/^h[1-6](?![-\w])/` on the stripped
+  subject would close the gap. Non-blocking — the named regression (`#root h4 { … }`) does fail.
   [score: 2]
-- `src/modules/theme/brand-fonts.js:224` — file has no trailing newline (`\ No newline at end
-  of file`). [score: 1]
-- `src/modules/theme/brand-fonts-wiring.test.js` — the inline-preloader guard depends on the
-  exact `'body,\n        html {'` whitespace (8-space indent); a reformat breaks the test
-  without any behaviour change. Consider a regex/`indexOf('html {')`-style marker. [score: 1]
+- `src/modules/theme/brand-fonts-bundle.test.js` / `brand-fonts-wiring.test.js` lack a trailing
+  newline (`brand-fonts.js` was fixed). Cosmetic. [score: 1]
 
 ## Verdict
 
-**Fail** — two findings score ≥ 4 (both false-confidence guards in the new test files).
+**Pass**
 
-**Reasoning:** The production CSS/cascade work looks correct, but the test that exists
-specifically to prove the production purge keeps the overrides cannot fail when the safelist
-is removed (self-referential content), and the h4-h6 guard cannot match the regression it
-names. Those guards should be made able to fail before this is trusted.
+**Reasoning:** Both blocking false-confidence guards are now able to fail for the regressions
+they name (verified by tracing the concrete inputs), the incorrect `/^:lang/` safelist entry and
+its false-story comment are gone, and no new blocking issue was introduced.
