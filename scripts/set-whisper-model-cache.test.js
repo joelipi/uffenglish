@@ -495,13 +495,9 @@ describe('verify-whisper-model.sh', () => {
         expect(VERIFIER).not.toContain('https://r2.ultrafastfluency.com');
     });
 
-    it('records a size and an MD5 ETag for every row', () => {
-        for (const [file, bytes, etag] of tableRows()) {
-            expect(Number(bytes), `${file} size`).toBeGreaterThan(0);
-            expect(etag, `${file} etag`).toMatch(/^[0-9a-f]{32}$/);
-        }
-        expect(tableRows().length).toBeGreaterThan(1);
-    });
+    // No per-row shape test: tableRows() already filters on the row regex, so
+    // such assertions could not fail. The equality guard above is the real one —
+    // a truncated ETag or missing size simply drops a row and fails on length.
 
     it('fails loudly rather than reporting a bad object as healthy', () => {
         // curl -fsI so a 404/5xx cannot be read as "empty headers, therefore
