@@ -631,7 +631,7 @@ describe('lesson level patterns (a1..c1) and courseMission', () => {
         const config = buildCourseConfig([{
             course_id: 'wouldyourather', course_name: 'Preferences in English A1➡B2',
             lesson_id: 'a', lesson_title: 'Ask',
-            mission: 'talk about preferences between 2-3 options',
+            mission: 'talk about preferences',
             a1: 'X or Y',
             a2: 'which is better, noun X or noun Y',
             b1: 'would rather + [verb stem X] or [verb stem Y]',
@@ -640,7 +640,7 @@ describe('lesson level patterns (a1..c1) and courseMission', () => {
             video_file: 'v', filename: 'f1', order: '1', response_type: 'viewAndContinue',
         }]);
         expect(config.courseMission).toEqual({
-            mission: { en: 'talk about preferences between 2-3 options' },
+            mission: { en: 'talk about preferences' },
             A1: { en: 'X or Y' },
             A2: { en: 'which is better, noun X or noun Y' },
             B1: { en: 'would rather + [verb stem X] or [verb stem Y]' },
@@ -660,14 +660,14 @@ describe('lesson level patterns (a1..c1) and courseMission', () => {
     it('checked-in wouldyourather courseMission carries the specified course copy', () => {
         const real = JSON.parse(readFileSync(
             path.join(__dirname, '../../src/config/wouldyourather.json'), 'utf8'));
-        expect(real.courseMission).toEqual({
-            mission: { en: 'talk about preferences' },
-            A1: { en: 'X or Y' },
-            A2: { en: 'which is better, noun X or noun Y' },
-            B1: { en: 'would rather + [verb stem X] or [verb stem Y]' },
-            B2: { en: 'given the choice between [gerund verb X] and [gerund verb Y]' },
-            C1: { en: 'if I had to choose between [gerund verb X] and [gerund verb Y], my preference would be to [infinitive verb]' },
+        expect(real.courseMission.mission).toEqual({
+            en: 'talk about preferences',
+            es: 'hablar sobre preferencias',
+            pt: 'falar sobre preferências',
+            bn: 'পছন্দ সম্পর্কে কথা বলুন',
         });
+        expect(real.courseMission.A1).toEqual({ en: 'X or Y' });
+        expect(real.courseMission.C1).toEqual({ en: 'if I had to choose between [gerund verb X] and [gerund verb Y], my preference would be to [infinitive verb]' });
         expect(real.lessons[0].a1).toEqual({ en: 'X or Y' });
         expect(real.lessons[0].c1).toEqual({
             en: 'if I had to choose between [gerund verb X] and [gerund verb Y], my preference would be to [infinitive verb]',

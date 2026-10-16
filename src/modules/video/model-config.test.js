@@ -122,13 +122,17 @@ describe('wouldyourather lesson b branching step', () => {
         expect('subtitles' in step).toBe(false);
     });
 
-    it('keeps its chooseStep choices', () => {
-        // English is the source; the translator fills `_es`/`_pt`/`_bn` on the
-        // next translate-master run (the rewrite's new choices start unlocalized).
-        expect(step.chooseStep).toEqual([
-            { nextStep: 1, text: { en: '$1,000,000 today' } },
-            { nextStep: 2, text: { en: '$5,000,000 in 5 years' } },
-        ]);
+    it('keeps its chooseStep choices (english plus any filled translations)', () => {
+        // Translation is filled by translate-master and updated by configs.yml;
+        // only the English source value is stable, the others scale with runs.
+        const choices = step.chooseStep;
+        expect(choices).toHaveLength(2);
+        expect(choices[0].nextStep).toBe(1);
+        expect(choices[0].text.en).toBe('$1,000,000 today');
+        expect(choices[1].nextStep).toBe(2);
+        expect(choices[1].text.en).toBe('$5,000,000 in 5 years');
+        // At least the english is always present for both branches.
+        for (const c of choices) expect(typeof c.text.en).toBe('string');
     });
 });
 
