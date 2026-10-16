@@ -981,7 +981,11 @@ describe('recorder auto-render — zero server changes', () => {
             'scripts/verify-thumbnails.test.js',
             'src/modules/video/model-config.test.js',
             'src/modules/courses/friend-courses-logic.test.js',
-            'src/modules/courses/friend-course-configs.test.js',
+            'src/modules/courses/friend-course-configs.test.js',            // Translation-batching refactor.
+            'scripts/lib/gemini.js',
+            'scripts/lib/gemini.test.js',
+            'scripts/translate-master-csv.mjs',
+
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);

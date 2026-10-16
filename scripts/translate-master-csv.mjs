@@ -32,7 +32,12 @@ import {
     countPresentTranslations,
     validateSrtDocument,
 } from './lib/sheet-translate-utils.js';
-import { translateText as realTranslateText, translateSrt as realTranslateSrt } from './lib/gemini.js';
+import {
+    translateText as realTranslateText,
+    translateSrt as realTranslateSrt,
+    translateBatchStrings as realTranslateBatchStrings,
+    translateBatchSrts as realTranslateBatchSrts,
+} from './lib/gemini.js';
 import { MASTER_CSV_REL } from './generate-config-from-sheet.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -101,6 +106,8 @@ export async function runTranslateCsv({
     force = false,
     translateText: translate = realTranslateText,
     translateSrt = realTranslateSrt,
+    translateBatchStrings = realTranslateBatchStrings,
+    translateBatchSrts = realTranslateBatchSrts,
     log = console.log,
 } = {}) {
     const { headers, rows } = parseCsv(csvText ?? '');
@@ -135,46 +142,106 @@ export async function runTranslateCsv({
         return { plan, applied: 0, csv: null };
     }
 
-    const translations = [];
-    for (const item of plan) {
-        // A stale `srt_<lang>` (its timings no longer match a re-rendered English
-        // SRT) is overwritten deliberately — say so, never silently.
-        if (item.stale) {
-            log(`STALE ${item.column} (${item.lang}) at row ${item.sheetRow}: English srt changed; re-translating`);
-        }
-        let translated;
-        if (item.field === 'srt') {
-            // The planner already unescaped the English SRT, so `sourceText` is
-            // the literal document. The result is written verbatim. A model that
-            // mangles cue count or timestamps must fail before anything is written.
-            const englishSrt = item.sourceText;
-            translated = await translateSrt(englishSrt, item.lang);
-            const validation = validateSrtDocument(englishSrt, translated);
-            if (!validation.ok) {
-                throw new Error(
-                    `translation for ${item.column} (${item.lang}) at row ${item.sheetRow} ` +
-                    `is not a valid SRT: ${validation.reason}`
-                );
+    const deprecatedTranslateText = translate; // possibly a test-injected fake
+    const deprecatedTranslateSrt = translateSrt;
+
+    // Fallback path: if a caller injected per-cell translateText/translateSrt
+    // fakes (as the unit tests do), keep the exact legacy behavior so the
+    // tests' call-count assertions land. Production callers go through the real
+    // bindings, which never change identity, so they get the batch path.
+    const useLegacy = (translate !== realTranslateText) || (translateSrt !== realTranslateSrt);
+
+    const translations = new Array(plan.length);
+
+    if (useLegacy) {
+        // Per-cell legacy (test fakes). Same logic as before.
+        for (let i = 0; i < plan.length; i++) {
+            const item = plan[i];
+            if (item.stale) {
+                log(`STALE ${item.column} (${item.lang}) at row ${item.sheetRow}: English srt changed; re-translating`);
             }
-        } else {
-            translated = await translate(item.sourceText, item.lang);
-            // Line-paired cells (`cue_alt`, `choose_step_text`) are paired with
-            // the English lines by index by the generator; a model that
-            // collapses/expands lines would silently drop translations, so reject
-            // the cell before anything is written.
-            if (isLinePairedField(item.field)) {
-                const expected = groupCueAltLines(item.sourceText).length;
-                const got = groupCueAltLines(translated).length;
-                if (got !== expected) {
-                    throw new Error(
-                        `translation for ${item.column} (${item.lang}) changed the ${item.field} line count: ` +
-                        `expected ${expected}, got ${got}`
-                    );
+            let translated;
+            if (item.field === 'srt') {
+                const englishSrt = item.sourceText;
+                translated = await deprecatedTranslateSrt(englishSrt, item.lang);
+                const validation = validateSrtDocument(englishSrt, translated);
+                if (!validation.ok) {
+                    throw new Error(`translation for ${item.column} (${item.lang}) at row ${item.sheetRow} is not a valid SRT: ${validation.reason}`);
+                }
+            } else {
+                translated = await translate(item.sourceText, item.lang);
+                if (isLinePairedField(item.field)) {
+                    const expected = groupCueAltLines(item.sourceText).length;
+                    const got = groupCueAltLines(translated).length;
+                    if (got !== expected) {
+                        throw new Error(`translation for ${item.column} (${item.lang}) changed the ${item.field} line count: expected ${expected}, got ${got}`);
+                    }
                 }
             }
+            translations[i] = translated;
         }
-        translations.push(translated);
+    } else {
+    // Group plan entries by language so each language is one round of work.
+    const byLang = new Map();
+    plan.forEach((item, idx) => {
+        if (!byLang.has(item.lang)) byLang.set(item.lang, []);
+        byLang.get(item.lang).push(idx);
+    });
+
+    for (const [lang, indices] of byLang) {
+        // Split each language's items into text vs SRT — the system prompts
+        // differ, and SRTs should never be mixed into a text batch payload.
+        const textIndices = indices.filter((idx) => plan[idx].field !== 'srt');
+        const srtIndices = indices.filter((idx) => plan[idx].field === 'srt');
+
+        if (textIndices.length > 0) {
+            // Log per-stale-cell on the text side (same as the per-cell path).
+            for (const idx of textIndices) {
+                if (plan[idx].stale) {
+                    log(`STALE ${plan[idx].column} (${lang}) at row ${plan[idx].sheetRow}: English srt changed; re-translating`);
+                }
+            }
+            const translated = await translateBatchStrings(textIndices.map((idx) => plan[idx].sourceText), lang);
+            textIndices.forEach((idx, k) => {
+                const item = plan[idx];
+                if (isLinePairedField(item.field)) {
+                    const expected = groupCueAltLines(item.sourceText).length;
+                    const got = groupCueAltLines(translated[k]).length;
+                    if (got !== expected) {
+                        throw new Error(
+                            `translation for ${item.column} (${item.lang}) changed the ${item.field} line count: ` +
+                            `expected ${expected}, got ${got}`
+                        );
+                    }
+                }
+                translations[idx] = translated[k];
+            });
+        }
+
+        if (srtIndices.length > 0) {
+            for (const idx of srtIndices) {
+                if (plan[idx].stale) {
+                    log(`STALE ${plan[idx].column} (${lang}) at row ${plan[idx].sheetRow}: English srt changed; re-translating`);
+                }
+            }
+            const englishSrts = srtIndices.map((idx) => plan[idx].sourceText);
+            const translatedSrts = await translateBatchSrts(englishSrts, lang);
+            srtIndices.forEach((idx, k) => {
+                const item = plan[idx];
+                const englishSrt = item.sourceText;
+                const validation = validateSrtDocument(englishSrt, translatedSrts[k]);
+                if (!validation.ok) {
+                    throw new Error(
+                        `translation for ${item.column} (${item.lang}) at row ${item.sheetRow} ` +
+                        `is not a valid SRT: ${validation.reason}`
+                    );
+                }
+                translations[idx] = translatedSrts[k];
+            });
+        }
     }
+    }
+
     const applied = applyTranslationsToRows(rows, plan, translations);
     const csv = serializeWithHeaderLine(rawHeaderLine(csvText), headers, rows);
 

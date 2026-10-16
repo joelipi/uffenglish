@@ -11,6 +11,8 @@ import {
     retryAfterMs,
     translateText,
     translateSrt,
+    translateBatchStrings,
+    translateBatchSrts,
 } from './gemini.js';
 
 // A fetch stub that records the request and returns a single JSON content blob.
@@ -272,5 +274,53 @@ describe('translateSrt (captions path, no behavior change)', () => {
         const fetchImpl = vi.fn(async () => { throw 'string blowup'; });
         await expect(geminiJson({ apiKey: 'k', system: 's', user: 'u', fetchImpl, sleepImpl: noSleep, maxAttempts: 1 }))
             .rejects.toThrow(/string blowup/);
+    });
+});
+
+
+describe('translateBatchStrings (batches one request)', () => {
+    it('sends a single request and parses the array, preserving order', async () => {
+        const content = { translations: ['Hola', 'Adios'] };
+        const { fetchImpl, calls } = stubFetch(content);
+        const out = await translateBatchStrings(['Hello', 'Bye'], 'es', { fetchImpl, apiKey: 'k' });
+        expect(out).toEqual(['Hola', 'Adios']);
+        expect(calls).toHaveLength(1);
+        // Single request payload carries both texts as a JSON array.
+        const body = JSON.parse(calls[0].init.body);
+        const user = JSON.parse(body.messages[1].content);
+        expect(user).toEqual(['Hello', 'Bye']);
+    });
+
+    it('rejects a length mismatch (no silent drop)', async () => {
+        const { fetchImpl } = stubFetch({ translations: ['Hola'] });
+        await expect(translateBatchStrings(['Hello','Bye'], 'es', { fetchImpl, apiKey: 'k' })).rejects.toThrow();
+    });
+
+    it('rejects empty inner strings', async () => {
+        const { fetchImpl } = stubFetch({ translations: ['Hola',''] });
+        await expect(translateBatchStrings(['Hello','Bye'], 'es', { fetchImpl, apiKey: 'k' })).rejects.toThrow(/non-empty/);
+    });
+
+    it('returns empty array for empty input without a network call', async () => {
+        const fetchImpl = vi.fn();
+        const out = await translateBatchStrings([], 'es', { fetchImpl, apiKey: 'k' });
+        expect(out).toEqual([]);
+        expect(fetchImpl).not.toHaveBeenCalled();
+    });
+});
+
+describe('translateBatchSrts', () => {
+    it('returns one SRT per input, single request', async () => {
+        const english = '1\n00:00:00,000 --> 00:00:01,000\nHi\n';
+        const translated = english.replace('Hi', 'Hola');
+        const { fetchImpl, calls } = stubFetch({ translations: [translated] });
+        const out = await translateBatchSrts([english], 'es', { fetchImpl, apiKey: 'k' });
+        expect(out).toEqual([translated.trim()]);
+        expect(calls).toHaveLength(1);
+    });
+
+    it('rejects an empty output SRT', async () => {
+        const { fetchImpl } = stubFetch({ translations: [''] });
+        await expect(translateBatchSrts(['1\n...'], 'es', { fetchImpl, apiKey: 'k' })).rejects.toThrow();
     });
 });

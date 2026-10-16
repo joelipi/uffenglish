@@ -193,3 +193,86 @@ export async function translateSrt(englishSrt, lang, { fetchImpl, apiKey, sleepI
     }
     return parsed.srt;
 }
+
+/**
+ * Translate an array of short English strings into `lang` in a single Gemini
+ * request (`{"translations":[...]}`). One network round trip for the whole
+ * batch — keeps a 50-cell SRT/answer job from turning into ~50 sequential
+ * API calls throttled by the free-tier RPM cap. Returns the trimmed translation
+ * for each input, in order. Throws if the count or any inner value is wrong,
+ * so a bad batch fails before anything is written (same safety as translateText).
+ *
+ * @param {string[]} texts
+ * @param {string} lang
+ * @param opts
+ * @returns {Promise<string[]>}
+ */
+export async function translateBatchStrings(texts, lang, { fetchImpl, apiKey, sleepImpl, onRetry } = {}) {
+    const cleaned = Array.isArray(texts) ? texts : [];
+    const count = cleaned.length;
+    if (count === 0) return [];
+
+    const system =
+        `You translate English text into ${lang}. ` +
+        `There are ${count} items; translate each one independently. ` +
+        'Return ONLY a JSON object of the form {"translations": ["<translation 1>", ...]} ' +
+        `with exactly ${count} strings in the same order. ` +
+        'Translate only the text; do not add commentary. ' +
+        'Preserve each input\'s line breaks exactly (keep the same number of lines per item). ' +
+        TAUGHT_PHRASE_INSTRUCTION;
+
+    const parsed = await geminiJson({
+        apiKey: resolveApiKey(apiKey), system, user: JSON.stringify(cleaned),
+        fetchImpl, sleepImpl, onRetry,
+    });
+
+    const arr = parsed?.translations;
+    if (!Array.isArray(arr) || arr.length !== count) {
+        throw new Error(`Gemini batch response missing "translations": expected ${count} strings, got ${Array.isArray(arr) ? arr.length : typeof arr}`);
+    }
+    const result = arr.map((t, i) => {
+        if (typeof t !== 'string' || t.trim() === '') {
+            throw new Error(`Gemini batch response item ${i} was not a non-empty string`);
+        }
+        return t.trim();
+    });
+    return result;
+}
+
+/**
+ * Translate an array of English SRT documents into `lang` in one Gemini request.
+ * Each input SRT maps 1:1 to the matching output SRT in the returned array.
+ * Preserves cue numbers and timestamps for every document.
+ */
+export async function translateBatchSrts(srts, lang, { fetchImpl, apiKey, sleepImpl, onRetry } = {}) {
+    const cleaned = Array.isArray(srts) ? srts : [];
+    const count = cleaned.length;
+    if (count === 0) return [];
+
+    // Mark each one so the model doesn't merge them accidentally.
+    const userPayload = cleaned.map((srt, i) => `[${i}]\n${srt}`);
+
+    const system =
+        `You translate English subtitle (SRT) files into ${lang}. ` +
+        `There are ${count} documents separated by [i] markers; translate each independently. ` +
+        'Return ONLY a JSON object of the form {"translations": ["<translated SRT 1>", ...]}' +
+        ` with exactly ${count} strings in the same order. ` +
+        'Preserve cue numbers and timestamps exactly for every document; translate only the subtitle text. ' +
+        TAUGHT_PHRASE_INSTRUCTION;
+
+    const parsed = await geminiJson({
+        apiKey: resolveApiKey(apiKey), system, user: JSON.stringify(userPayload),
+        fetchImpl, sleepImpl, onRetry,
+    });
+
+    const arr = parsed?.translations;
+    if (!Array.isArray(arr) || arr.length !== count) {
+        throw new Error(`Gemini batch response missing "translations": expected ${count} SRTs, got ${Array.isArray(arr) ? arr.length : typeof arr}`);
+    }
+    return arr.map((t, i) => {
+        if (typeof t !== 'string' || t.trim() === '') {
+            throw new Error(`Gemini batch response SRT item ${i} was empty`);
+        }
+        return t.trim();
+    });
+}
