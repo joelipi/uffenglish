@@ -336,18 +336,29 @@ describe('brand fonts: heading rules', () => {
         // a naive `^[#\w.]*h4` pattern would never match `#root h4 {`.
         const css = withoutBlockComments(APP_CSS);
         const selectorLists = [...css.matchAll(/([^{}]+)\{/g)].map((m) => m[1]);
-        const headingSelectors = [];
+        const subjects = [];
         for (const list of selectorLists) {
             for (const selector of splitSelectorList(list)) {
-                // Only the last compound can be the subject of the selector.
+                // Only the last whitespace/combinator-delimited token can carry
+                // the heading element. `(?![-\w])` so a compound subject such as
+                // `h4.brand` is caught too — `h4` followed by `.` must not slip
+                // through.
                 const subject = selector.split(/[\s>+~]/).pop() ?? '';
-                if (/^h[1-6]$/.test(subject)) headingSelectors.push(selector);
+                if (/^h[1-6](?![-\w])/.test(subject)) subjects.push({ selector, subject });
             }
         }
 
-        // Exactly the brand rules (the h1/h2/h3 group plus h1's 900 override),
-        // and nothing targeting h4-h6.
-        expect(headingSelectors).toEqual(['#root h1', '#root h2', '#root h3', '#root h1']);
+        // Nothing anywhere targets h4-h6.
+        expect(subjects.filter(({ subject }) => /^h[456]/.test(subject))).toEqual([]);
+        // Every remaining heading subject belongs to a #root-anchored brand rule,
+        // so no unanchored rule can re-enter and lose the cascade to Bootstrap.
+        for (const { selector } of subjects) {
+            expect(selector.startsWith('#root ')).toBe(true);
+        }
+        // And the kit's own rules are present.
+        expect(subjects.map(({ selector }) => selector)).toEqual(
+            expect.arrayContaining(['#root h1', '#root h2', '#root h3'])
+        );
     });
 });
 
