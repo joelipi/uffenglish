@@ -211,7 +211,31 @@ export const STYLESHEET_ORIGIN = 'https://fonts.googleapis.com';
 export const FONT_FILE_ORIGIN = 'https://fonts.gstatic.com';
 
 /**
- * The exact <head> tags, in the order they must appear. `preconnect` starts
+ * The canonical, plain stylesheet link for this font kit — the form to copy
+ * into a page that does not boot a speech engine:
+ *
+ *   <link rel="stylesheet" href="…">
+ *
+ * It is render-blocking. index.html uses the non-blocking form below instead,
+ * because the Whisper model download sits behind the whole boot chain.
+ */
+export function stylesheetLinkTag() {
+    return `<link rel="stylesheet" href="${googleFontsUrl()}">`;
+}
+
+/**
+ * The non-blocking form used by index.html: the stylesheet is preloaded and
+ * swapped to `rel="stylesheet"` once it arrives, so the parser is never held
+ * on a third-party origin. `<noscript>` carries the plain stylesheet for
+ * clients without JS, where the swap would never fire.
+ */
+export const GOOGLE_FONTS_NON_BLOCKING_TAGS = [
+    `<link rel="preload" as="style" href="${googleFontsUrl()}" onload="this.onload=null;this.rel='stylesheet'">`,
+    `<noscript>${stylesheetLinkTag()}</noscript>`,
+];
+
+/**
+ * Every font <head> tag, in the order they must appear. `preconnect` starts
  * the TCP/TLS handshake to both font origins while the parser is still walking
  * the head, so the stylesheet costs no extra round-trip.
  */
@@ -219,6 +243,6 @@ export function headLinkTags() {
     return [
         `<link rel="preconnect" href="${STYLESHEET_ORIGIN}">`,
         `<link rel="preconnect" href="${FONT_FILE_ORIGIN}" crossorigin>`,
-        `<link rel="stylesheet" href="${googleFontsUrl()}">`,
+        ...GOOGLE_FONTS_NON_BLOCKING_TAGS,
     ];
 }

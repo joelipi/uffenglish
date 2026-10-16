@@ -8,7 +8,7 @@ import {
     UNIVERSAL_FALLBACK_FONTS,
     fontStack,
     googleFontsUrl,
-    headLinkTags,
+    stylesheetLinkTag,
     langHeadingFontStack,
     langHeadingVariable,
     quoteFamily,
@@ -102,22 +102,56 @@ function ruleFor(source, selectorToken) {
 }
 
 describe('brand fonts: index.html <head> wiring', () => {
-    it('declares the exact stylesheet URL the module generates', () => {
-        expect(INDEX_HTML).toContain(`<link rel="stylesheet" href="${googleFontsUrl()}">`);
+    it('declares the exact font URL the module generates', () => {
+        expect(INDEX_HTML).toContain(googleFontsUrl());
     });
 
-    it('preconnects both origins before the stylesheet', () => {
-        const [googleapis, gstatic, stylesheet] = headLinkTags();
-        const a = INDEX_HTML.indexOf(googleapis);
-        const b = INDEX_HTML.indexOf(gstatic);
-        const c = INDEX_HTML.indexOf(stylesheet);
-        expect(a).toBeGreaterThan(-1);
-        expect(b).toBeGreaterThan(-1);
-        expect(c).toBeGreaterThan(-1);
-        // Order is load-bearing: a preconnect after the stylesheet it is meant
-        // to warm arrives too late to help.
-        expect(a).toBeLessThan(c);
-        expect(b).toBeLessThan(c);
+    it('carries the plain stylesheet link inside <noscript> for no-JS clients', () => {
+        expect(INDEX_HTML).toContain(`<noscript>${stylesheetLinkTag()}</noscript>`);
+    });
+
+    it('loads the font stylesheet NON-BLOCKING', () => {
+        // A plain `<link rel="stylesheet">` in <head> holds the parser before it
+        // reaches the module script at the end of <body> — and with it the whole
+        // boot chain that starts the Whisper model download (speech.js arms
+        // preloadWhisperEngine() at module scope, which spawns the worker that
+        // fetches the ONNX graphs). Swap-on-load plus the <noscript> stylesheet
+        // keeps the critical inline CSS ahead of that chain.
+        expect(INDEX_HTML).toContain(`<link rel="preload" as="style" href="${googleFontsUrl()}"`);
+        expect(INDEX_HTML).toContain(`onload="this.onload=null;this.rel='stylesheet'"`);
+    });
+
+    it('has no render-blocking font stylesheet outside <noscript>', () => {
+        // Strip the noscript block (which legitimately holds one), then assert
+        // nothing left in the document blocks the parser on the font origin.
+        const withoutNoscript = INDEX_HTML.replace(/<noscript>[\s\S]*?<\/noscript>/g, '');
+        const blocking = [...withoutNoscript.matchAll(/<link[^>]*rel="stylesheet"[^>]*>/g)]
+            .map((m) => m[0])
+            .filter((tag) => tag.includes('fonts.googleapis.com'));
+        expect(blocking).toEqual([]);
+    });
+
+    it('the preload link sits in <head>, before the inline critical styles', () => {
+        const headEnd = INDEX_HTML.indexOf('</head>');
+        const preload = INDEX_HTML.indexOf('<link rel="preload" as="style"');
+        const criticalStyle = INDEX_HTML.indexOf('<!-- Critical inline styles');
+        expect(headEnd).toBeGreaterThan(-1);
+        expect(preload).toBeGreaterThan(-1);
+        expect(preload).toBeLessThan(headEnd);
+        expect(preload).toBeLessThan(criticalStyle);
+    });
+
+    it('preconnects both font origins before the stylesheet preload', () => {
+        const googleapis = INDEX_HTML.indexOf('<link rel="preconnect" href="https://fonts.googleapis.com">');
+        const gstatic = INDEX_HTML.indexOf('<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>');
+        const preload = INDEX_HTML.indexOf('<link rel="preload" as="style"');
+        expect(googleapis).toBeGreaterThan(-1);
+        expect(gstatic).toBeGreaterThan(-1);
+        expect(preload).toBeGreaterThan(-1);
+        // Order is load-bearing: a preconnect after the resource it warms
+        // arrives too late to help.
+        expect(googleapis).toBeLessThan(preload);
+        expect(gstatic).toBeLessThan(preload);
     });
 
     it('keeps crossorigin on the gstatic preconnect only', () => {
@@ -129,16 +163,6 @@ describe('brand fonts: index.html <head> wiring', () => {
 
     it('keeps display=swap so text is never invisible while the fonts load', () => {
         expect(INDEX_HTML).toContain('&display=swap');
-    });
-
-    it('has exactly one font stylesheet link', () => {
-        const links = INDEX_HTML.match(/<link[^>]*fonts\.googleapis\.com\/css2[^>]*>/g) ?? [];
-        expect(links).toHaveLength(1);
-    });
-
-    it('no longer loads the fonts twice (the old preload + noscript pair is gone)', () => {
-        expect(INDEX_HTML).not.toMatch(/<link[^>]*rel="preload"[^>]*fonts\.googleapis/);
-        expect(INDEX_HTML).not.toMatch(/<noscript><link[^>]*fonts\.googleapis/);
     });
 
     it('does not @import the fonts in app.css (a second, render-blocking fetch)', () => {
