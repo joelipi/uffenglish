@@ -33,10 +33,14 @@ const sampleAt = (handle, ms, animationName) =>
         anim.pause();
         anim.currentTime = time;
         const cs = getComputedStyle(el);
-        const m = new DOMMatrixReadOnly(cs.transform);
+        // Under prefers-reduced-motion there is no transform at all, so
+        // `transform` is the string 'none' and DOMMatrixReadOnly may reject it.
+        const scale = cs.transform && cs.transform !== 'none'
+            ? Number(new DOMMatrixReadOnly(cs.transform).a.toFixed(3))
+            : 1;
         return {
             opacity: Number(Number(cs.opacity).toFixed(3)),
-            scale: Number(m.a.toFixed(3)),
+            scale,
         };
     }, [ms, animationName]);
 

@@ -292,3 +292,135 @@ opens `transformers-cache`, nothing reads `uff-whisper-demo-cache-v1`, and `pipe
 fetches exactly the two removed filenames — so the deletion is a genuine win with no
 offline or mobile regression, and the added guards can fail on the mutation they name.
 The only finding is a non-blocking accuracy nit in the "82 MB" framing of the comment.
+
+---
+
+# Code review — commit `3ca8cd8` "Hold the preloader until the fonts land, and restore its grow/fade animation"
+
+Range: `origin/main..HEAD` (branch `brand-typography`); scoped to `3ca8cd8`
+(`index.html` reveal gate + CSS, `src/modules/theme/preloader-reveal-gate.test.js`,
+`tests/preloader-image-animation.spec.js`, `tests/preloader-reveal.spec.js`). This
+verifies the fixes requested by the previous Fail on the preloader work; the
+earlier commits on this branch already passed and are not re-reviewed.
+
+Method note: read-only trace of the source and of the CSS/script interaction; per
+the reviewer contract no test/lint/build was run, so the failure modes below are
+established by static trace, not by mutation execution.
+
+## Correctness Issues
+
+None blocking. Every fix from the previous Fail is present and real.
+
+- **The pop-away is genuinely fixed.** `index.html:97-122` — `reveal()` adds
+  `.app-revealing` (`:112`), then wires the `animationend` listener (`:116-118`)
+  and the `setTimeout(hideCover, EXIT_FADE_MS + 400)` failsafe (`:121`).
+  `.app-ready` (the `display:none` rule, `:281-283`) is added by `hideCover`
+  alone, so the overlay leaves the tree only after `preloaderImageOut`
+  (250 ms, `:318-320`) has run; the overlay's own gradient is untouched during
+  the fade, so it stays in the tree and painting. `EXIT_FADE_MS` (`:75`) is
+  asserted equal to the CSS duration.
+- `try/catch` wraps the whole wiring (`:124-186`) with `catch → reveal()`, so a
+  synchronous throw no longer falls through to the 4 s CSS failsafe.
+- The no-`document.fonts` branch (`:125-131`) routes through
+  `whenAppRendered().then(reveal, reveal)` — it waits for React instead of
+  revealing during head parse.
+- The two presence-only guards are now composition assertions. The unit test
+  matches `Promise.race([Promise.all([… , whenAppRendered()]), cap])` as a unit
+  and `cap = new Promise(… setTimeout(resolve, CAP_MS))` separately, so deleting
+  `cap` from the race array reds the case; the second composition case pins
+  `whenAppRendered()` as one of the raced promises.
+- `classList.add('app-ready')` is asserted to occur exactly once
+  (`…).toHaveLength(1)`), replacing the unenforceable "not adjacent" prose check.
+- The Playwright reveal spec awaits `goto` and reads the pre-reveal state from
+  `app-ready` (`preloader-reveal.spec.js:29-32`), not a pre-`goto` visibility
+  check.
+- Commit message now reads "15.4% of the original size" (2835/18383 = 15.42%),
+  not a "15.4% reduction".
+
+Bounded — no stranding, no unbounded empty gradient (traced):
+
+- Font-API path: `Promise.race` against the 2 s `cap`, both `.then(reveal, reveal)`;
+  `whenFacesRegistered` and `whenAppRendered` each poll at most `POLL_TRIES`
+  (150 × 20 ms). Any rejection lands on `reveal` too.
+- No-Font-API path: bounded by `whenAppRendered`'s own 3 s poll, then `reveal`.
+- Script failure / blocked inline script: the CSS-only `preloaderFailsafe`
+  animation (`:268`, 4 s `forwards`) hides the overlay, and the unit test pins
+  its delay to be longer than `CAP_MS`.
+- At the 2 s cap the app may not have painted, so the cover can lift onto a blank
+  frame — but that is the deliberate trade-off (better than a stranded cover) and
+  is bounded; `whenAppRendered` is what normally prevents it.
+
+## Simplicity Issues
+
+None. The two-phase split is the minimum needed to reconcile a dynamic reveal
+with an animatable exit; the CSS failsafe, the JS cap and the `app-revealing`
+guard each cover a distinct failure mode.
+
+## Security Issues
+
+None.
+
+## Concurrency Issues
+
+None. All timers are bounded and every resolve path funnels through the
+idempotent `reveal()` / `hideCover()`. `hideCover`'s `setTimeout` cannot leak or
+double-fire harmfully: it is a single 650 ms timer guarded by the `hidden` flag,
+the `classList.add` is idempotent, and `reveal()`'s `app-revealing` guard
+(`:100`) makes repeat calls no-ops.
+
+## Other Notes
+
+- `tests/preloader-image-animation.spec.js:77-98` — the live-element test is
+  sound: it cannot false-pass, because if the real gate already added `.app-ready`
+  the overlay is `display:none` (`toBeVisible()` fails) and `getAnimations()`
+  would not find `preloaderImageOut`. It does, however, add `.app-revealing`
+  itself (`:86`), so it only exercises the CSS mapping and cannot catch removal
+  of the gate's own `classList.add('app-revealing')`. That regression is covered
+  by the unit guard pinning the class add and the `animationend → hideCover`
+  wiring, so combined coverage holds. It also races the real gate (must run
+  before the gate completes) — the same timing fragility the probe rewrite
+  removed elsewhere, but it fails loud, not silently. [score: 3]
+- `tests/preloader-image-animation.spec.js:36` — `new DOMMatrixReadOnly(cs.transform)`
+  on a transform of `none`. The reduced-motion `@keyframes preloaderImageIn`
+  (`index.html:326-329`) drops `transform`, so `cs.transform` is exactly `none`
+  in the reduced-motion case and this helper can throw before any assertion runs,
+  depending on whether the engine accepts `'none'`. Guard it
+  (`const scale = cs.transform === 'none' ? 1 : new DOMMatrixReadOnly(cs.transform).a`).
+  [score: 3]
+- `tests/preloader-reveal.spec.js:52` — `Date.now() - started` is measured from
+  before `page.goto`, so the assertion includes the page load plus the 2 s cap;
+  `< CAP_MS + 1000` is tight on a cold Vite server. Prefer measuring from the
+  reveal observation or widening the slack. [score: 2]
+- Fast-load artifact (non-blocking): if the gate reveals before
+  `preloaderImageIn`'s 350 ms completes, swapping in `preloaderImageOut` restarts
+  at `opacity: 1; scale(1)`, so the image can jump from a partially-faded state
+  to full opacity before fading out. Cosmetic; the reported pop-away (image
+  removed at full opacity) is gone. [score: 2]
+- `index.html` still has no trailing newline (pre-existing, not introduced
+  here). [score: 1]
+
+## Suggestions
+
+- The composition regexes tolerate whitespace/newlines (a Prettier reflow is
+  safe) but hard-code helper names and argument order — renaming
+  `whenFacesRegistered` / `loadFirstPaintFaces` / `whenAppRendered` reds the
+  guards. Acceptable for a composition guard; a one-line comment naming the
+  contract would help the next maintainer. [score: 2]
+- `preloader-reveal-gate.test.js` — the case named "gives up when document.fonts
+  is unavailable and **reveals immediately**" is now misnamed: the branch
+  (`index.html:125-131`) waits for React. Rename to describe the actual path.
+  [score: 1]
+
+## Verdict
+
+**Pass**
+
+**Reasoning:** The pop-away regression is genuinely fixed — the exit fade is
+driven by `.app-revealing`, `.app-ready` is added only after `animationend` (or
+the timeout), and the overlay stays painting through it — and every path to the
+cover is bounded (2 s JS cap, 3 s poll bound, 4 s CSS failsafe). The rewritten
+guards are real composition assertions, not presence checks. The remaining
+findings are non-blocking test-timing/robustness nits.
+
+Reviewed `3ca8cd8` only; the pre-existing `recorder-page.test.js` and
+`tests/poster-check.spec.js` failures at HEAD are unrelated and out of scope.

@@ -73,6 +73,10 @@
             // below — it is the grace period before the overlay is hidden, so a
             // mismatch means the timeout either fires mid-fade or lingers.
             var EXIT_FADE_MS = 250;
+            // Must match `preloaderImageIn` in the stylesheet below. The exit
+            // waits for the entry animation to finish before starting (see
+            // reveal()), so the hideCover failsafe has to cover both.
+            var ENTRY_FADE_MS = 350;
             var POLL_MS = 20;
             var POLL_TRIES = 150;           // 150 * 20ms = 3s of polling, then give up
             // Passing a text argument is what keeps this to the `latin` subset.
@@ -109,7 +113,24 @@
 
                 if (!image) { hideCover(); return; }
 
-                html.classList.add('app-revealing');
+                function startExit() {
+                    html.classList.add('app-revealing');
+                }
+
+                // Hand off cleanly from the entry animation. If the reveal lands
+                // while `preloaderImageIn` is still running, switching straight
+                // to the exit animation restarts it at opacity 1 and the image
+                // visibly jumps up before fading. Letting the entry finish
+                // costs at most its 350ms and starts the exit from full opacity.
+                var entry = image.getAnimations().filter(function (a) {
+                    return a.animationName === 'preloaderImageIn';
+                })[0];
+                if (entry && entry.playState === 'running') {
+                    entry.addEventListener('finish', startExit, { once: true });
+                } else {
+                    startExit();
+                }
+
                 // Let the exit fade actually play before the overlay is taken
                 // out of the tree — display:none is not animatable, so doing it
                 // in the same frame would pop the image away at full opacity.
@@ -117,8 +138,9 @@
                     if (event.animationName === 'preloaderImageOut') hideCover();
                 });
                 // …and if that event never arrives (animation cancelled, a
-                // future CSS change), do not keep the user waiting.
-                setTimeout(hideCover, EXIT_FADE_MS + 400);
+                // future CSS change), do not keep the user waiting. Generous
+                // enough to cover the entry handoff above.
+                setTimeout(hideCover, EXIT_FADE_MS + 400 + ENTRY_FADE_MS);
             }
 
             try {

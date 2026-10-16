@@ -42,14 +42,32 @@ test.describe('preloader reveal gate', () => {
         await page.route('**://fonts.googleapis.com/**', (route) => route.abort());
         await page.route('**://fonts.gstatic.com/**', (route) => route.abort());
 
-        const started = Date.now();
+        // Record when the cover actually lifted, relative to navigation start.
+        // Measured inside the page rather than around page.goto(), which on a
+        // cold dev server can itself take ~1s and would eat the budget.
+        await page.addInitScript(() => {
+            window.__navAt = performance.now();
+            window.__revealAt = null;
+            const obs = new MutationObserver(() => {
+                if (document.documentElement.classList.contains('app-ready') && window.__revealAt === null) {
+                    window.__revealAt = performance.now();
+                }
+            });
+            document.addEventListener('readystatechange', () => {
+                obs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+            });
+        });
+
         await page.goto('/');
         await expect(page.locator('#appLoadingImageDiv')).toBeHidden({
             timeout: REVEAL_BUDGET_MS,
         });
+
+        const elapsed = await page.evaluate(() => window.__revealAt - window.__navAt);
+        console.log('REVEALED_AFTER ' + Math.round(elapsed) + 'ms');
         // Not merely "eventually": it must not have had to wait out the 4s CSS
         // failsafe, so this is the JS cap doing the work.
-        expect(Date.now() - started).toBeLessThan(CAP_MS + 1000);
+        expect(elapsed).toBeLessThan(CAP_MS + 1000);
     });
 
     test('the cover is the large brand preloader image', async ({ page }) => {

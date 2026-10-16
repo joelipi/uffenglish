@@ -243,8 +243,30 @@ describe('preloader reveal gate', () => {
             expect(SCRIPT_CODE).toMatch(/function hideCover\(\)\s*\{[\s\S]{0,200}classList\.add\('app-ready'\)/);
         });
 
+        it('hands off from the entry animation so the exit never jumps', () => {
+            // If the reveal lands while `preloaderImageIn` is still running,
+            // switching straight to the exit animation restarts it at opacity 1
+            // and the image visibly jumps up before fading out.
+            expect(SCRIPT_CODE).toMatch(
+                /var entry = image\.getAnimations\(\)[\s\S]{0,200}animationName === 'preloaderImageIn'/
+            );
+            expect(SCRIPT_CODE).toMatch(
+                /entry\.playState === 'running'\)[\s\S]{0,120}addEventListener\('finish',\s*startExit/
+            );
+            expect(SCRIPT_CODE).toMatch(/function startExit\(\)\s*\{\s*html\.classList\.add\('app-revealing'\)/);
+        });
+
+        it('keeps ENTRY_FADE_MS in step with the entry animation duration', () => {
+            const css = CODE.match(/preloaderImageIn\s+(\d+)ms/);
+            const js = SCRIPT_CODE.match(/ENTRY_FADE_MS\s*=\s*(\d+)/);
+            expect(Number(css[1])).toBe(Number(js[1]));
+        });
+
         it('hides the cover even if the exit animation never ends', () => {
-            expect(SCRIPT_CODE).toMatch(/setTimeout\(hideCover,\s*EXIT_FADE_MS\s*\+\s*\d+\)/);
+            // Generous enough to cover both the entry handoff and the exit.
+            expect(SCRIPT_CODE).toMatch(
+                /setTimeout\(hideCover,\s*EXIT_FADE_MS\s*\+\s*\d+\s*\+\s*ENTRY_FADE_MS\)/
+            );
         });
 
         it('keeps EXIT_FADE_MS in step with the exit animation duration', () => {
@@ -265,9 +287,9 @@ describe('preloader reveal gate', () => {
             expect(SCRIPT_CODE).toMatch(/\}\s*catch \(error\)\s*\{[\s\S]{0,160}reveal\(\);/);
         });
 
-        it('takes the same reveal path when document.fonts is missing', () => {
-            // The no-Font-Loading-API branch used to reveal immediately during
-            // head parse, before React painted — inconsistent with the design.
+        it('waits for React on the no-Font-Loading-API path too', () => {
+            // This branch used to reveal immediately during head parse, before
+            // React painted — inconsistent with the design rationale.
             expect(SCRIPT_CODE).toMatch(
                 /if \(!document\.fonts \|\| !document\.fonts\.load\)\s*\{[\s\S]{0,200}whenAppRendered\(\)\.then\(reveal,\s*reveal\);[\s\S]{0,40}return;/
             );
