@@ -532,7 +532,7 @@ class OverlayTitleBandGuardTest(unittest.TestCase):
 
 
 class OverlayTitleAndAsideGuardTest(unittest.TestCase):
-    """The title is a wrapping white pill and the aside is capped at half width.
+    """The title is a wrapping white pill and the aside spans title-bottom..captions at 60% width.
 
     A regression here shipped the title as a full-bleed white slab (no vertical
     padding, corners clipped) and a 70%-wide aside. These guards pin the
@@ -550,11 +550,20 @@ class OverlayTitleAndAsideGuardTest(unittest.TestCase):
         self.assertIn("padding: {TITLE_PADDING_Y}px 40px", span)
         self.assertIn("border-radius: 36px", span)
 
-    def test_aside_is_capped_at_sixty_percent_width(self):
+    def test_aside_extends_from_title_bottom_to_captions_at_sixty_percent_width(self):
         overlay = slice_between(read(), "def create_overlay_html", "def add_background_sound")
         aside = slice_between(overlay, "aside {{", "}}")
+        self.assertIn("top: {video_height * 0.20}px", aside)
         self.assertIn("max-width: {video_width * 0.60}px", aside)
+        self.assertIn("max-height: {(APP_CAPTION_TOP - 0.20) * video_height}px", aside)
+        self.assertNotIn("top: {TITLE_TOP * video_height}px", aside)
         self.assertNotIn("max-width: {video_width * 0.70}px", aside)
+
+    def test_aside_shrinks_to_fit_overlong_text(self):
+        overlay = slice_between(read(), "def create_overlay_html", "def add_background_sound")
+        self.assertIn("document.querySelectorAll('aside')", overlay)
+        self.assertIn("el.scrollHeight > el.clientHeight", overlay)
+        self.assertIn("el.scrollWidth > el.clientWidth", overlay)
 
 
 if __name__ == "__main__":
