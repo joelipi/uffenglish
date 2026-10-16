@@ -8,9 +8,25 @@ import { sendWelcomeEmail } from '../../modules/user/email-confirmation.js';
 import { guestSignupLessonCredit } from '../../modules/user/lesson-count-logic.js';
 import { calculateCurrentStreak } from '../../modules/user/user-profile.js';
 import { flushPendingFriendCredits } from '../../modules/user/friend-credit-sync.js';
+import { verifyTurnstileToken } from '../../modules/auth/turnstile-logic.js';
 import defaultProfilePic from '../../assets/img/userprofile.png';
 
-export function useSignupForm({ onSignupSuccess, nativeLanguage: initialNativeLanguage = '' } = {}) {
+/**
+ * Shared signup logic. `captcha` gates the submit on a server-side Turnstile
+ * verification; it defaults to on and is turned off only for the success-step
+ * modal form (SaveClipsSignupForm), which renders inside a native <dialog>
+ * that is closed at the time the widget would have to run.
+ *
+ * `getCaptchaToken` supplies a FRESH widget token at submit time — Turnstile
+ * tokens are single-use and expire after ~5 minutes, so the form cannot capture
+ * one at render and reuse it.
+ */
+export function useSignupForm({
+    onSignupSuccess,
+    nativeLanguage: initialNativeLanguage = '',
+    captcha = true,
+    getCaptchaToken,
+} = {}) {
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
     const [email, setEmail] = useState('');
@@ -27,6 +43,20 @@ export function useSignupForm({ onSignupSuccess, nativeLanguage: initialNativeLa
 
         try {
             const fullName = `${firstName.trim()} ${lastName.trim()}`;
+
+            // Bot gate, in front of the Supabase call. The token is verified
+            // server-side (functions/api/turnstile-verify.js) before any account
+            // is created, so a bot that skips the widget gets no account.
+            if (captcha) {
+                if (typeof getCaptchaToken !== 'function') {
+                    throw new Error('Human verification is not ready yet. Please try again.');
+                }
+                const captchaToken = await getCaptchaToken();
+                const captchaVerified = await verifyTurnstileToken(captchaToken);
+                if (!captchaVerified) {
+                    throw new Error('Human verification failed. Please try again.');
+                }
+            }
 
             const { data, error: signUpError } = await supabase.auth.signUp({
                 email,

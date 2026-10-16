@@ -379,6 +379,13 @@
         }
     </style>
 
+    <!-- Cloudflare Turnstile (signup bot gate). `async defer` so it never blocks
+         boot — components/auth/TurnstileCaptcha.web.jsx waits for
+         `window.turnstile` and renders the widget explicitly, which is the
+         supported React integration. The site key is public by design; the
+         secret lives only in the Pages Function (functions/api/turnstile-verify.js). -->
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+
 </head>
 
 <body>
