@@ -191,3 +191,104 @@ verified; `crossorigin` on the preconnect matches the anonymous-CORS model fetch
 the hint is useful on the cold-load path; and the new `whisper-model-origin.test.js`
 guards genuinely fail on the mutations they name (the column-0 fix holds). The only
 findings are non-blocking test drift and cosmetic nits.
+
+---
+
+# Code review — commit `1945eb7` "Drop the Whisper demo worker's duplicate model pre-cache"
+
+Range: `origin/main..HEAD` (branch `brand-typography`). Scoped to `1945eb7` and the
+guards it adds to `src/modules/speech/whisper-model-origin.test.js`; the earlier
+typography commits already passed and are not re-reviewed.
+
+Method note: read-only trace of the source and of the installed
+`@huggingface/transformers@3.8.1` bundle (`node_modules/@huggingface/transformers/dist/transformers.js`),
+plus HEAD requests to the R2 model URLs. No test/lint/build run (reviewer contract);
+`node -e` one-liners were used only to evaluate the guard regexes against the source,
+which is inspection, not a suite run.
+
+## Correctness Issues
+
+None blocking. Every claim that gates this change verified against the installed bundle:
+
+- **The dead-weight claim is true.** `transformers.js:37377` is the only
+  `caches.open(...)` the library performs, and it is `caches.open('transformers-cache')`,
+  reached because `whisper-worker-demo.js:28` sets `env.useBrowserCache = true`. The
+  deleted loop wrote to `uff-whisper-demo-cache-v1`, a different bucket, so nothing
+  Transformers does could read it. `grep` across the tree finds the bucket name only in
+  the new explanatory comment (`whisper-worker-demo.js:47`) — no runtime reader exists.
+- **`pipeline()` fetches exactly the two removed filenames.** `dtype.q8` maps to the
+  `_quantized` suffix (`transformers.js:36850`), the default subfolder is `onnx`
+  (`:36976` / `:12406`), and the model names resolve to `encoder_model` and
+  `decoder_model_merged` (`:12406`, `:12771`), producing
+  `onnx/encoder_model_quantized.onnx` and `onnx/decoder_model_merged_quantized.onnx`.
+  The remote URL is built from `env.remoteHost` + `env.remotePathTemplate` + filename
+  (`:37390`), which is byte-identical to the URL the deleted loop interpolated
+  (`https://r2.ultrafastfluency.com/whisper/onnx-community/whisper-tiny.en/…`).
+- **No offline regression.** `env.useBrowserCache = true` is untouched, and the library
+  still writes/reads every model file under `transformers-cache`; the removed bucket was
+  never on the read path. A cached second load behaves identically.
+- **The mobile error path improves rather than regresses.** The deleted loop ran inside
+  `bootWhisperEngine`'s `try`, so a pre-cache network failure aborted boot *before*
+  `pipeline()` was ever attempted (a single point of failure ahead of the real work).
+  Now the only fetch is `pipeline()`'s, and its failure is surfaced by the existing
+  per-device catch (`whisper-worker-demo.js:110-118`).
+
+The new guards are genuinely able to fail (assertions evaluated against the live source
+and against the original pre-cache re-inserted verbatim):
+
+- Reinstating the loop flips `caches.open` occurrences from 0 → 1, and makes
+  `not.toContain('arrayBuffer')` and the ONNX-filename checks red. The positive
+  assertions (`env.useBrowserCache = true`, `automatic-speech-recognition`,
+  `onnx-community/whisper-tiny.en`) hold on the current file.
+- The comment stripper (`whisper-model-origin.test.js:111-113`) removes the prose copies
+  of `transformers-cache` / `uff-whisper-demo-cache-v1`, so an explanatory comment cannot
+  satisfy a "must not contain" assertion, and the `[^:]//` carve-out leaves the real
+  `https://` in `env.remoteHost` intact so the origin guard still matches. No real
+  regression can hide behind the stripper (regression code is code, not comment).
+
+## Simplicity Issues
+
+None. The change deletes a helper, a constant list and a loop with no replacement.
+
+## Security Issues
+
+None.
+
+## Concurrency Issues
+
+None.
+
+## Other Notes
+
+- `src/workers/whisper/whisper-worker-demo.js:48-49` (and the commit message) — the
+  "~82 MB instead of ~41 MB" transfer figure is **likely overstated**. The R2 model
+  responses carry **no `Cache-Control` header at all** (verified by HEAD on both files:
+  only `etag`, `last-modified`, `accept-ranges`; `cf-cache-status: DYNAMIC`), so the
+  browser caches them heuristically, and Transformers fetches with a default-cache
+  `fetch(urlOrPath)` (`transformers.js:37169`). The pipeline's later request for the same
+  URL would therefore be served from the browser HTTP cache rather than re-transferred.
+  The genuine wins are still real and worth keeping — the ~29 MB decoder
+  `arrayBuffer()` heap spike, the serialised pre-pass delaying `pipeline()`'s start, and
+  the write into a bucket nothing reads — but the byte-count doubling is probably wrong:
+  the first pass warmed the very HTTP cache its second pass duplicated. Recommend
+  restating the comment/message as the heap + latency win rather than "82 MB", so a
+  future reader does not re-introduce an eager pass to "warm the cache". [score: 3]
+- `src/workers/whisper/whisper-worker-web.js:49-71` (the sherpa/PWA worker) has the same
+  `caches.open` + `arrayBuffer` shape but is **not** dead weight: its `loadAndCacheFile`
+  returns the bytes to the caller (`getPreloadedPackage` / `instantiateWasm`), so the
+  fetch is the real one and the cache is consulted on later loads. Correctly outside the
+  scope of this commit; noting only so the two workers are not confused. [score: 1]
+
+## Suggestions
+
+- None material.
+
+## Verdict
+
+**Pass**
+
+**Reasoning:** The core claim is confirmed against the installed bundle — Transformers.js
+opens `transformers-cache`, nothing reads `uff-whisper-demo-cache-v1`, and `pipeline()`
+fetches exactly the two removed filenames — so the deletion is a genuine win with no
+offline or mobile regression, and the added guards can fail on the mutation they name.
+The only finding is a non-blocking accuracy nit in the "82 MB" framing of the comment.
