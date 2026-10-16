@@ -250,14 +250,17 @@ export async function translateBatchSrts(srts, lang, { fetchImpl, apiKey, sleepI
     if (count === 0) return [];
 
     // Mark each one so the model doesn't merge them accidentally.
-    const userPayload = cleaned.map((srt, i) => `[${i}]\n${srt}`);
+    const userPayload = cleaned.map((srt, i) => `DOCUMENT ${i}\n${srt}`);
 
     const system =
         `You translate English subtitle (SRT) files into ${lang}. ` +
-        `There are ${count} documents separated by [i] markers; translate each independently. ` +
-        'Return ONLY a JSON object of the form {"translations": ["<translated SRT 1>", ...]}' +
-        ` with exactly ${count} strings in the same order. ` +
-        'Preserve cue numbers and timestamps exactly for every document; translate only the subtitle text. ' +
+        `There are ${count} SRT documents, labeled DOCUMENT 0 .. DOCUMENT ${count - 1}. ` +
+        'Translate each independently. Return ONLY a JSON object of the form ' +
+        '{"translations": ["<translated SRT 0>", ...]} with exactly ${count} ' +
+        'strings in the same order. CRITICAL: a translation string MUST start ' +
+        'directly with a cue number line then a timestamp line; a leading ' +
+        'DOCUMENT index or `[i]` token is INVALID. Preserve cue numbers and ' +
+        'timestamps exactly; translate only the subtitle text. ' +
         TAUGHT_PHRASE_INSTRUCTION;
 
     const parsed = await geminiJson({

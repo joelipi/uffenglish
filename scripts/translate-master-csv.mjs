@@ -99,6 +99,21 @@ export function applyTranslationsToRows(rows, plan, translations) {
  *
  * @returns {Promise<{plan: Array, applied: number, csv: string|null}>}
  */
+
+/**
+ * LLMs occasionally prepend non-SRT garbage (index markers like `[9]`, or a
+ * one-word preamble) before cue 1 in a batched request. Stripping everything
+ * before the first cue block cleans that. Idempotent.
+ */
+export function stripTranslatedSrtPreamble(s) {
+    if (typeof s !== 'string') return s;
+    const text = s.trim();
+    const m = text.match(/(?:^|\n)(\d+\s*\n\d{1,2}:\d{2}:\d{2}[\d.,]*\s*-->\s*\d{1,2}:\d{2}:\d{2})/);
+    if (!m) return text;
+    if (m.index === 0) return text;
+    return text.slice(m.index + (text[m.index] === '\n' ? 1 : 0)).trim();
+}
+
 export async function runTranslateCsv({
     csvText,
     languages = SHEET_LANGUAGES,
@@ -226,17 +241,19 @@ export async function runTranslateCsv({
             }
             const englishSrts = srtIndices.map((idx) => plan[idx].sourceText);
             const translatedSrts = await translateBatchSrts(englishSrts, lang);
+            const normalizedSrts = translatedSrts.map(stripTranslatedSrtPreamble);
+
             srtIndices.forEach((idx, k) => {
                 const item = plan[idx];
                 const englishSrt = item.sourceText;
-                const validation = validateSrtDocument(englishSrt, translatedSrts[k]);
+                const validation = validateSrtDocument(englishSrt, normalizedSrts[k]);
                 if (!validation.ok) {
                     throw new Error(
                         `translation for ${item.column} (${item.lang}) at row ${item.sheetRow} ` +
                         `is not a valid SRT: ${validation.reason}`
                     );
                 }
-                translations[idx] = translatedSrts[k];
+                translations[idx] = normalizedSrts[k];
             });
         }
     }

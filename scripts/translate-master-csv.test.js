@@ -294,3 +294,17 @@ describe('translate-master-csv CLI validation', () => {
         expect(readFileSync(path.join(ROOT, 'public/wouldyourather.master.csv'), 'utf8')).toBe(before);
     });
 });
+
+
+describe('stripTranslatedSrtPreamble normalizer', () => {
+    it('leaves a clean SRT unchanged', async () => {
+        const { stripTranslatedSrtPreamble } = await import('./translate-master-csv.mjs');
+        const srt = '1\n00:00:00,000 --> 00:00:01,000\nHi\n';
+        expect(stripTranslatedSrtPreamble(srt)).toBe(srt.trim());
+    });
+    it('strips a hallucinated [9] marker before cue 1', async () => {
+        const { stripTranslatedSrtPreamble } = await import('./translate-master-csv.mjs');
+        const srt = '[9]\n1\n00:00:00,000 --> 00:00:01,000\nHola\n';
+        expect(stripTranslatedSrtPreamble(srt)).toBe('1\n00:00:00,000 --> 00:00:01,000\nHola');
+    });
+});

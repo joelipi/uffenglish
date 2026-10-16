@@ -953,6 +953,10 @@ describe('recorder auto-render — zero server changes', () => {
             // Story 066 (recorder auto-render).
             'public/recorder.html',
             'src/modules/video/recorder-page.test.js',
+            'scripts/translate-master-csv.mjs',
+            'scripts/translate-master-csv.test.js',
+            'scripts/lib/gemini.js',
+            'scripts/lib/gemini.test.js',
             'docs/product.md',
             'stories/066-recorder-auto-render-lessons/story.md',
             // Story 068 (title pill + social publish).
