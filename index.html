@@ -56,6 +56,137 @@
          literals by whisper-model-origin.test.js. -->
     <link rel="preconnect" href="https://r2.ultrafastfluency.com" crossorigin>
 
+    <!-- Preloader reveal gate.
+         The brand fonts load non-render-blocking (see above) so the Whisper
+         model download can start as early as possible — which means the first
+         paint *can* land before the webfonts. Rather than let the user see the
+         fallback stack and then a swap, hold the existing preloader cover until
+         the faces visible at first paint have resolved, and reveal from there.
+
+         Hard-capped at CAP_MS so a slow or blocked font CDN can never hold the
+         app hostage: past the cap the app shows in whatever font stack it has,
+         which is the behaviour we had before. -->
+    <script>
+        (function () {
+            var CAP_MS = 2000;
+            // Must match the `preloaderImageOut` duration in the stylesheet
+            // below — it is the grace period before the overlay is hidden, so a
+            // mismatch means the timeout either fires mid-fade or lingers.
+            var EXIT_FADE_MS = 250;
+            var POLL_MS = 20;
+            var POLL_TRIES = 150;           // 150 * 20ms = 3s of polling, then give up
+            // Passing a text argument is what keeps this to the `latin` subset.
+            // Without it document.fonts.load() pulls EVERY unicode-range slice
+            // Google serves for the family (21 for Inter alone), which on a
+            // phone is the opposite of what this gate is for.
+            var LATIN_SAMPLE = 'Aa';
+            // Only the faces on screen at first paint. h1/h2/h3 are italic;
+            // Titillium Web has no italic 900, so h1 slants the 900 upright
+            // face and both of those are listed. The :lang() override faces
+            // (Zen Kaku Gothic New, Noto Sans SC/TC, Khand, Hind Siliguri) are
+            // deliberately NOT forced — they are only needed once such text is
+            // actually on screen, and pre-pulling their CJK slices would cost
+            // megabytes of everyone's first load.
+            var FIRST_PAINT_FACES = [
+                '400 1rem Inter',
+                '600 1rem Inter',
+                'italic 700 1rem "Titillium Web"',
+                '900 1rem "Titillium Web"'
+            ];
+
+            function reveal() {
+                var html = document.documentElement;
+                // Idempotent: the cap and the faces race can both land here.
+                if (html.classList.contains('app-revealing')) return;
+
+                var image = document.querySelector('.appLoadingImage');
+                var hidden = false;
+                function hideCover() {
+                    if (hidden) return;
+                    hidden = true;
+                    html.classList.add('app-ready');
+                }
+
+                if (!image) { hideCover(); return; }
+
+                html.classList.add('app-revealing');
+                // Let the exit fade actually play before the overlay is taken
+                // out of the tree — display:none is not animatable, so doing it
+                // in the same frame would pop the image away at full opacity.
+                image.addEventListener('animationend', function (event) {
+                    if (event.animationName === 'preloaderImageOut') hideCover();
+                });
+                // …and if that event never arrives (animation cancelled, a
+                // future CSS change), do not keep the user waiting.
+                setTimeout(hideCover, EXIT_FADE_MS + 400);
+            }
+
+            try {
+                if (!document.fonts || !document.fonts.load) {
+                    // No Font Loading API: nothing to wait for, but still go
+                    // through the same path so the cover lifts only once React
+                    // has painted.
+                    whenAppRendered().then(reveal, reveal);
+                    return;
+                }
+
+            // The font stylesheet is itself non-blocking, so at this point in
+            // the parse no @font-face rule for the kit exists yet and
+            // document.fonts.load() would match nothing and resolve instantly —
+            // which would lift the preloader before the fonts had even started.
+            // Wait for the faces to be registered first.
+            function whenFacesRegistered() {
+                return new Promise(function (resolve) {
+                    var tries = 0;
+                    (function poll() {
+                        var registered = false;
+                        for (var i = 0; i < document.fonts.length; i++) {
+                            if (/Inter|Titillium/.test(document.fonts[i].family)) {
+                                registered = true;
+                                break;
+                            }
+                        }
+                        if (registered || tries++ >= POLL_TRIES) { resolve(); return; }
+                        setTimeout(poll, POLL_MS);
+                    })();
+                });
+            }
+
+            function loadFirstPaintFaces() {
+                return Promise.all(FIRST_PAINT_FACES.map(function (face) {
+                    return document.fonts.load(face, LATIN_SAMPLE).catch(function () { return null; });
+                }));
+            }
+
+            // React painting into #root, so lifting the cover never exposes an
+            // empty frame between the preloader gradient and the app.
+            function whenAppRendered() {
+                return new Promise(function (resolve) {
+                    var tries = 0;
+                    (function poll() {
+                        var root = document.getElementById('root');
+                        if ((root && root.childElementCount > 0) || tries++ >= POLL_TRIES) {
+                            resolve();
+                            return;
+                        }
+                        setTimeout(poll, POLL_MS);
+                    })();
+                });
+            }
+
+            var cap = new Promise(function (resolve) { setTimeout(resolve, CAP_MS); });
+                Promise.race([
+                    Promise.all([whenFacesRegistered().then(loadFirstPaintFaces), whenAppRendered()]),
+                    cap
+                ]).then(reveal, reveal);
+            } catch (error) {
+                // A synchronous failure while wiring the gate up must not cost
+                // the user the 4s CSS failsafe — lift the cover now.
+                reveal();
+            }
+        })();
+    </script>
+
     <!-- Critical inline styles (preloader — must be available before external CSS loads) -->
     <style>
         /* Critical Error State */
@@ -128,9 +259,26 @@
             align-items: center;
             justify-content: center;
             z-index: 999999;
+            /* Failsafe only: the reveal script below lifts this on the app-ready
+               class as soon as the first-paint webfaces resolve. If that script
+               never runs (JS error, blocked inline script) this animation still
+               clears the overlay at 4s, so a script failure can never leave the
+               app stranded behind an image. `visibility` is animatable, so a
+               0s step at a delay is enough — no transition needed. */
+            animation: preloaderFailsafe 0s linear 4s forwards;
         }
 
-        #root:not(:empty) ~ #appLoadingImageDiv {
+        @keyframes preloaderFailsafe {
+            to { opacity: 0; visibility: hidden; pointer-events: none; }
+        }
+
+        /* The preloader covers the first paint and lifts only once the body
+           face and the display faces have resolved (see the reveal script),
+           so the app is never shown rendering in the fallback stack and then
+           swapping to the webfont. This replaces the old
+           `#root:not(:empty) ~ #appLoadingImageDiv` rule, which lifted on React
+           mounting regardless of whether the fonts had arrived. */
+        .app-ready #appLoadingImageDiv {
             display: none !important;
         }
 
@@ -139,8 +287,46 @@
             height: 80vh;
             max-width: 800px;
             max-height: 800px;
+            /* The PNG has a transparent background — the gradient on
+               #appLoadingImageDiv above is what shows through it, so this box
+               is the thing that is transformed, never the gradient. */
             background: url('/assets/img/u-f-f.png') no-repeat center center;
             background-size: contain;
+            /* Two phases, not one fixed-length timeline. The gate below decides
+               when to reveal based on when the fonts and React are ready, so a
+               single 2s animation would usually be cut off by
+               `display: none` mid-hold — the image popping away at full opacity
+               instead of fading out. So: grow+fade in on mount, then fade out
+               when the gate says reveal, then hide. `both` so it starts at
+               opacity 0 rather than flashing opaque for one frame. */
+            animation: preloaderImageIn 350ms ease-out both;
+        }
+
+        @keyframes preloaderImageIn {
+            0% { opacity: 0; transform: scale(0.85); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        @keyframes preloaderImageOut {
+            0% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; transform: scale(1); }
+        }
+
+        /* The reveal script adds .app-revealing when it is time to lift the
+           cover. This replaces the entry animation with the exit one, and
+           forwards keeps it at opacity 0 until .app-ready hides the overlay. */
+        .app-revealing .appLoadingImage {
+            animation: preloaderImageOut 250ms ease-in forwards;
+        }
+
+        /* Reduced motion: no growth at all. The fades stay, because they are
+           what carries the reveal — removing them would make the cover just
+           vanish with no explanation. */
+        @media (prefers-reduced-motion: reduce) {
+            @keyframes preloaderImageIn {
+                0% { opacity: 0; }
+                100% { opacity: 1; }
+            }
         }
 
         #ui-progress-container {
