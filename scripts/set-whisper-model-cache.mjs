@@ -25,9 +25,24 @@
 // HOW IT WORKS
 // wrangler exposes no metadata-only edit, and this environment has no S3
 // credentials for a self-`copyObject` with MetadataDirective: REPLACE. So each
-// object is fetched and written back byte-identical. The ETag of a single-part
-// upload is the MD5, so a correct round-trip must leave it unchanged — that is
-// the safety check, and the script fails loudly if it is not.
+// object is fetched and written back byte-identical. For a single-part upload
+// the ETag is the MD5, so a correct round-trip must leave it unchanged — that is
+// the safety check, and the script fails loudly if it is not. A multipart or
+// absent ETag carries no usable MD5: the length is still checked, but the round
+// trip cannot be verified by digest and the script warns rather than implying
+// it verified something. wrangler replaces all httpMetadata, so any existing
+// Content-Type is passed back explicitly and read back afterwards.
+//
+// A failure part-way leaves the earlier objects stamped; re-running is safe,
+// because objects already carrying the wanted header are skipped without
+// re-downloading.
+//
+// TESTS MUST PASS A `put`
+// The writer is injected (`put = defaultPut`) on both stampOne and run, and any
+// test must supply its own. Vitest's `vi.mock('node:child_process')` does NOT
+// reach this module — see docs/learnings.md — so a test that looked fully mocked
+// while mock-fetch returned 11 bytes really did run wrangler and overwrite two
+// production objects. Injecting `put` is what actually isolates it.
 //
 // Usage:
 //   node scripts/set-whisper-model-cache.mjs                    # dry run
@@ -97,10 +112,63 @@ export async function head(url) {
 }
 
 /**
- * Stamp one object. `dryRun` reports the intended change without writing.
- * Throws rather than writing if the fetched bytes do not match what R2 reports.
+ * The wrangler argv for one upload, as a pure function so it can be asserted on
+ * without running wrangler.
+ *
+ * wrangler takes the destination as ONE `{bucket}/{key}` positional and replaces
+ * all httpMetadata, so a Content-Type has to be passed back explicitly or it is
+ * silently dropped — but these objects may have none, in which case passing an
+ * empty one would invent a type.
  */
-export async function stampOne(file, { maxAge, dryRun, workDir }) {
+export const buildPutArgs = (key, local, { cacheControl, contentType }) => {
+    const args = [
+        'r2', 'object', 'put',
+        `${R2_BUCKET}/${key}`,
+        '--file', local, '--cache-control', cacheControl,
+    ];
+    if (contentType) args.push('--content-type', contentType);
+    return args;
+};
+
+/**
+ * Upload `local` over `key` with the given httpMetadata. This is the only
+ * function that writes anything, and it is injectable so `stampOne` can be
+ * exercised without mocking node:child_process (which does not reach into this
+ * module) or touching R2.
+ *
+ * `UFF_NO_R2_WRITES` is a hard stop, checked at call time, because injection
+ * alone has already proved insufficient: a test that stripped `put` from one
+ * call fell through the default and really did overwrite a production object.
+ * The test suite sets it, so no path out of this module can reach the bucket.
+ */
+export const defaultPut = (key, local, meta) => {
+    if (process.env.UFF_NO_R2_WRITES) {
+        throw new Error(`refusing to write ${key}: UFF_NO_R2_WRITES is set`);
+    }
+    try {
+        execFileSync('npx', ['wrangler', ...buildPutArgs(key, local, meta)], {
+            stdio: ['ignore', 'pipe', 'pipe'],
+        });
+    } catch (e) {
+        // Keep the detail: main() only prints e.message, and wrangler's stderr
+        // (e.g. "bucket not found") is the actionable part.
+        throw new Error(`wrangler put failed — ${e.stderr || e.message}`.trim());
+    }
+};
+
+/**
+ * Stamp one object. `dryRun` defaults to true, so a direct caller that forgets
+ * it reports instead of writing.
+ *
+ * Throws rather than writing if the fetched bytes do not match what R2 reports.
+ * When the ETag carries no usable MD5 (a multipart upload, or none at all) the
+ * round trip cannot be verified by digest; that is reported as `verified: null`
+ * rather than passed off as a successful check.
+ */
+export async function stampOne(
+    file,
+    { maxAge, dryRun = true, workDir, warn = console.warn, put = defaultPut }
+) {
     const url = modelObjectUrl(file);
     const before = await head(url);
     const cacheControl = cacheControlFor(maxAge);
@@ -122,6 +190,16 @@ export async function stampOne(file, { maxAge, dryRun, workDir }) {
     if (expected && md5(bytes) !== expected) {
         throw new Error(`${file}: content does not match its ETag — refusing to write`);
     }
+    if (!expected) {
+        warn(
+            `  WARN ${file}: ETag ${before.etag ?? '(none)'} carries no MD5, so the round trip ` +
+            'can only be checked by length'
+        );
+    }
+
+    // These objects currently carry no Content-Type; pass nothing back in that
+    // case, and report one appearing after the write.
+    const contentType = before['content-type'] ?? null;
 
     if (dryRun) {
         return {
@@ -133,30 +211,37 @@ export async function stampOne(file, { maxAge, dryRun, workDir }) {
         };
     }
 
-    // Same bytes, same key — only the metadata changes. wrangler takes the
-    // destination as ONE `{bucket}/{key}` positional.
+    // Same bytes, same key — only the metadata changes.
     const local = join(workDir, file);
     mkdirSync(dirname(local), { recursive: true });
     writeFileSync(local, bytes);
 
-    execFileSync(
-        'npx',
-        [
-            'wrangler', 'r2', 'object', 'put',
-            `${R2_BUCKET}/whisper/${MODEL_ID}/${file}`,
-            '--file', local, '--cache-control', cacheControl,
-        ],
-        { stdio: ['ignore', 'pipe', 'pipe'] }
-    );
+    try {
+        put(`whisper/${MODEL_ID}/${file}`, local, { cacheControl, contentType });
+    } catch (e) {
+        // Name the object: one of seven uploads failing is otherwise unattributable.
+        throw new Error(`${file}: ${e.message}`);
+    }
 
     const after = await head(url);
-    if (after.etag !== before.etag) {
+    // Only a single-part ETag is stable across a round trip: re-uploading a
+    // multipart object as one part legitimately changes it, so comparing those
+    // would throw after a perfectly good write.
+    if (expected && after.etag !== before.etag) {
         throw new Error(`${file}: ETag changed (${before.etag} -> ${after.etag}) — content was not preserved`);
     }
     if (after['cache-control'] !== cacheControl) {
         throw new Error(`${file}: Cache-Control reads back as ${after['cache-control'] ?? '(none)'}`);
     }
-    return { file, action: 'set', bytes: bytes.length, to: cacheControl, etagUnchanged: true };
+    if (contentType && after['content-type'] !== contentType) {
+        throw new Error(
+            `${file}: Content-Type reads back as ${after['content-type'] ?? '(none)'}, was ${contentType}`
+        );
+    }
+    if (!contentType && after['content-type']) {
+        warn(`  WARN ${file}: gained an unexpected Content-Type: ${after['content-type']}`);
+    }
+    return { file, action: 'set', bytes: bytes.length, to: cacheControl, etagUnchanged: Boolean(expected) };
 }
 
 export async function run({
@@ -164,13 +249,17 @@ export async function run({
     dryRun = true,
     files = MODEL_FILES,
     log = console.log,
+    warn = console.warn,
+    // Threaded through so a caller (and any test) can exercise the whole loop
+    // without reaching the real bucket via defaultPut.
+    put = defaultPut,
 } = {}) {
     const workDir = mkdtempSync(join(tmpdir(), 'whisper-cache-'));
     const results = [];
     try {
         log(`${dryRun ? 'DRY RUN' : 'APPLY'} — ${MODEL_ID} (${files.length} files, max-age=${maxAge})`);
         for (const file of files) {
-            const result = await stampOne(file, { maxAge, dryRun, workDir });
+            const result = await stampOne(file, { maxAge, dryRun, workDir, warn, put });
             results.push(result);
             log(`  ${result.action.padEnd(12)} ${file}  ${(result.bytes / 1048576).toFixed(2)} MB`);
         }

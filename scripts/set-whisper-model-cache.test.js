@@ -11,10 +11,18 @@
 //
 // Importing the module is itself part of the contract — see the "import must not
 // write" test below, which relies on the `invokedDirectly` guard.
-import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
+// Set before anything can call the writer. Injection is not enough on its own —
+// a test that stripped `put` from one call fell through the default and really
+// did overwrite a production object, so defaultPut refuses outright here.
+process.env.UFF_NO_R2_WRITES = '1';
+import { createHash } from 'node:crypto';
+import { readFileSync, mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
 import {
     DEFAULT_MAX_AGE_SECONDS,
     MODEL_FILES,
@@ -22,8 +30,12 @@ import {
     R2_BUCKET,
     cacheControlFor,
     etagHex,
+    buildPutArgs,
+    defaultPut,
     modelObjectUrl,
     parseArgs,
+    run,
+    stampOne,
 } from './set-whisper-model-cache.mjs';
 import {
     WHISPER_MODEL_BASE_URL,
@@ -56,7 +68,12 @@ describe('model identity', () => {
         // duplicate of the id in a comment or another branch would not qualify.
         const region = tryBootPipelineRegion(WORKER);
         expect(region).toContain(MODEL_ID);
-        expect(region.indexOf('await pipeline(')).toBeLessThan(region.indexOf(MODEL_ID));
+        // Assert the anchor EXISTS first: indexOf returns -1 when missing, and
+        // -1 is less than any positive index, so ordering alone would pass
+        // vacuously if the pipeline() call were renamed or dropped.
+        const call = region.indexOf('await pipeline(');
+        expect(call, 'the pipeline() call anchors the assertion').toBeGreaterThan(-1);
+        expect(call).toBeLessThan(region.indexOf(MODEL_ID));
     });
 
     it('builds object URLs from the shared model origin module', () => {
@@ -167,3 +184,269 @@ describe('write safety', () => {
         );
     });
 });
+describe('stampOne (network mocked, put injected)', () => {
+    const BODY = 'model-bytes';
+    const BODY_ETAG = `"${createHash('md5').update(BODY).digest('hex')}"`;
+    const WANTED = cacheControlFor(DEFAULT_MAX_AGE_SECONDS);
+    let workDir;
+    let warnings;
+    let put;
+    const realFetch = global.fetch;
+
+    /**
+     * Serve `before` for the first HEAD, `after` (default: the wanted header
+     * applied, i.e. what a successful write reads back) for the second, and
+     * BODY for the GET. `after` differing is what lets the multipart test prove
+     * the post-write ETag is not compared.
+     */
+    function serve(before, after = { 'cache-control': WANTED }) {
+        let heads = 0;
+        const body = Buffer.from(BODY);
+        global.fetch = vi.fn(async (_url, init) => {
+            const headers = init?.method === 'HEAD'
+                ? (heads++ === 0 ? before : { ...before, ...after })
+                : before;
+            return {
+                ok: true,
+                status: 200,
+                headers: new Headers(headers),
+                arrayBuffer: async () => body.buffer.slice(body.byteOffset, body.byteOffset + body.byteLength),
+            };
+        });
+    }
+
+    beforeEach(() => {
+        workDir = mkdtempSync(path.join(tmpdir(), 'stamp-test-'));
+        warnings = [];
+        put = vi.fn();
+    });
+    afterEach(() => {
+        global.fetch = realFetch;
+        rmSync(workDir, { recursive: true, force: true });
+    });
+
+    const baseHeaders = () => ({
+        etag: BODY_ETAG,
+        'content-length': String(BODY.length),
+    });
+
+    const stamp = (file, extra = {}) => stampOne(file, {
+        maxAge: DEFAULT_MAX_AGE_SECONDS, workDir, put, warn: (m) => warnings.push(m), ...extra,
+    });
+
+    it('skips an already-correct object without downloading it', async () => {
+        serve({ ...baseHeaders(), 'cache-control': WANTED });
+        const result = await stamp('config.json');
+        expect(result.action).toBe('already-set');
+        expect(global.fetch).toHaveBeenCalledTimes(1); // HEAD only, no GET
+        expect(put).not.toHaveBeenCalled();
+    });
+
+    it('defaults to a dry run — a caller that omits dryRun must not write', async () => {
+        serve(baseHeaders());
+        const result = await stampOne('config.json', {
+            maxAge: DEFAULT_MAX_AGE_SECONDS, workDir, put, warn: () => {},
+        });
+        expect(result.action).toBe('would-set');
+        expect(put).not.toHaveBeenCalled();
+    });
+
+    it('writes the one {bucket}/{key} with the wanted Cache-Control', async () => {
+        serve(baseHeaders());
+        const result = await stamp('config.json', { dryRun: false });
+        expect(result.action).toBe('set');
+        const [key, local, meta] = put.mock.calls[0];
+        expect(key).toBe(`whisper/${MODEL_ID}/config.json`);
+        expect(local.startsWith(workDir)).toBe(true);
+        expect(meta.cacheControl).toBe(WANTED);
+    });
+
+    it('passes an existing Content-Type back and does not invent one otherwise', async () => {
+        serve({ ...baseHeaders(), 'content-type': 'application/octet-stream' });
+        await stamp('config.json', { dryRun: false });
+        expect(put.mock.calls[0][2].contentType).toBe('application/octet-stream');
+
+        put.mockReset();
+        serve(baseHeaders());
+        await stamp('config.json', { dryRun: false });
+        expect(put.mock.calls[0][2].contentType).toBeNull();
+    });
+
+    it('refuses to write when the bytes disagree with the ETag', async () => {
+        serve({ ...baseHeaders(), etag: '"0000000000000000000000000000ffff"' });
+        await expect(stamp('config.json', { dryRun: false })).rejects.toThrow(/does not match its ETag/);
+        expect(put).not.toHaveBeenCalled();
+    });
+
+    it('refuses to write when the length disagrees', async () => {
+        serve({ etag: BODY_ETAG, 'content-length': String(BODY.length + 10) });
+        await expect(stamp('config.json', { dryRun: false })).rejects.toThrow(/refusing to write/);
+        expect(put).not.toHaveBeenCalled();
+    });
+
+    it('warns instead of claiming verification when the ETag has no MD5', async () => {
+        // A multipart ETag is legitimately changed by a single-part re-upload, so
+        // it must neither gate the write nor fail after it.
+        serve(
+            { etag: '"00000000000000000000000000000000-3"', 'content-length': String(BODY.length) },
+            { etag: '"11111111111111111111111111111111"', 'cache-control': WANTED }
+        );
+        const result = await stamp('config.json', { dryRun: false });
+        expect(result.action).toBe('set');
+        expect(result.etagUnchanged).toBe(false);
+        expect(warnings.join('\n')).toMatch(/carries no MD5/);
+        expect(put).toHaveBeenCalled();
+    });
+
+    it('fails when a single-part ETag changed, i.e. the content moved', async () => {
+        serve(baseHeaders(), { etag: '"22222222222222222222222222222222"', 'cache-control': WANTED });
+        await expect(stamp('config.json', { dryRun: false })).rejects.toThrow(/content was not preserved/);
+    });
+
+    it('names the object when the upload fails', async () => {
+        serve(baseHeaders());
+        put.mockImplementation(() => {
+            throw new Error('wrangler put failed — bucket not found');
+        });
+        await expect(stamp('onnx/decoder_model_merged_quantized.onnx', { dryRun: false }))
+            .rejects.toThrow(/decoder_model_merged_quantized\.onnx: wrangler put failed.*bucket not found/);
+    });
+
+    it('fails when a Content-Type does not read back', async () => {
+        // wrangler replaces all httpMetadata, so a dropped Content-Type is a
+        // silent metadata loss; the read-back is what catches it.
+        serve(
+            { ...baseHeaders(), 'content-type': 'application/octet-stream' },
+            { 'content-type': 'binary/octet-stream', 'cache-control': WANTED }
+        );
+        await expect(stamp('config.json', { dryRun: false }))
+            .rejects.toThrow(/Content-Type reads back as binary\/octet-stream/);
+    });
+
+    it('fails when Cache-Control does not read back', async () => {
+        serve(baseHeaders(), { 'cache-control': 'public, max-age=60' });
+        await expect(stamp('config.json', { dryRun: false })).rejects.toThrow(/Cache-Control reads back/);
+    });
+});
+
+describe('run', () => {
+    const RUN_BODY = 'run-model-bytes';
+    const RUN_WANTED = cacheControlFor(DEFAULT_MAX_AGE_SECONDS);
+
+    it('drives the whole loop through an injected put, never the real bucket', async () => {
+        // The regression this protects: a loop that reached defaultPut here
+        // really executed wrangler against production R2.
+        const realFetch = global.fetch;
+        const put = vi.fn();
+        const body = Buffer.from(RUN_BODY);
+        const digest = `"${createHash('md5').update(RUN_BODY).digest('hex')}"`;
+        const fresh = { etag: digest, 'content-length': String(body.length) };
+        let heads = 0;
+        global.fetch = vi.fn(async (_url, init) => ({
+            ok: true,
+            status: 200,
+            // First HEAD per object is the uncached "before"; the second reflects
+            // the write. run() interleaves them, so count per-URL instead.
+            headers: new Headers(init?.method === 'HEAD' && heads++ % 2 === 0
+                ? fresh
+                : { ...fresh, 'cache-control': RUN_WANTED }),
+            arrayBuffer: async () => body.buffer.slice(body.byteOffset, body.byteOffset + body.byteLength),
+        }));
+        const workDir = mkdtempSync(path.join(tmpdir(), 'run-test-'));
+        try {
+            const results = await run({
+                maxAge: DEFAULT_MAX_AGE_SECONDS,
+                dryRun: false,
+                files: ['config.json', 'onnx/decoder_model_merged_quantized.onnx'],
+                put,
+                log: () => {},
+                warn: () => {},
+            });
+            expect(results.map((r) => r.action)).toEqual(['set', 'set']);
+            expect(put).toHaveBeenCalledTimes(2);
+        } finally {
+            global.fetch = realFetch;
+            rmSync(workDir, { recursive: true, force: true });
+        }
+    });
+
+    it('passes the injected put down to every stampOne call', () => {
+        // If run() stopped threading `put`, stampOne would fall back to
+        // defaultPut and hit the real bucket even though the caller supplied one.
+        const at = SCRIPT.indexOf('export async function run(');
+        expect(SCRIPT.slice(at, SCRIPT.indexOf('} = {}', at))).toContain('put = defaultPut');
+        expect(SCRIPT).toMatch(/stampOne\(file, \{[^}]*\bput\b[^}]*\}\)/);
+    });
+});
+
+describe('buildPutArgs', () => {
+    const KEY = `whisper/${MODEL_ID}/onnx/encoder_model_quantized.onnx`;
+
+    it('is one {bucket}/{key} positional plus --file and --cache-control', () => {
+        expect(buildPutArgs(KEY, '/tmp/x.onnx', {
+            cacheControl: 'public, max-age=31536000', contentType: null,
+        })).toEqual([
+            'r2', 'object', 'put',
+            `${R2_BUCKET}/${KEY}`,
+            '--file', '/tmp/x.onnx',
+            '--cache-control', 'public, max-age=31536000',
+        ]);
+    });
+
+    it('passes an existing Content-Type back rather than dropping it', () => {
+        const args = buildPutArgs(KEY, '/tmp/x.onnx', {
+            cacheControl: 'public, max-age=1', contentType: 'application/octet-stream',
+        });
+        expect(args).toContain('--content-type');
+        expect(args[args.indexOf('--content-type') + 1]).toBe('application/octet-stream');
+    });
+
+    it('invents no Content-Type when the object has none', () => {
+        const args = buildPutArgs(KEY, '/tmp/x.onnx', {
+            cacheControl: 'public, max-age=1', contentType: null,
+        });
+        expect(args).not.toContain('--content-type');
+    });
+});
+
+describe('defaultPut', () => {
+    /** Source slice of one exported arrow function, header comment excluded. */
+    function bodyOf(decl) {
+        const at = SCRIPT.indexOf(decl);
+        expect(at, `${decl} must exist`).toBeGreaterThan(-1);
+        const brace = SCRIPT.indexOf('{', at);
+        return SCRIPT.slice(brace, SCRIPT.indexOf('\n};', brace));
+    }
+
+    it('is the writer stampOne falls back to', () => {
+        // Without this default a caller that omits `put` would have no writer at
+        // all, and every injection test would still pass.
+        const at = SCRIPT.indexOf('export async function stampOne');
+        expect(SCRIPT.slice(at, SCRIPT.indexOf(') {', at))).toContain('put = defaultPut');
+        expect(defaultPut).toBeTypeOf('function');
+    });
+
+    it('is the only caller of execFileSync, and goes through buildPutArgs', () => {
+        const body = bodyOf('export const defaultPut = (key, local, meta)');
+        expect(body).toContain('execFileSync');
+        expect(body).toContain('buildPutArgs');
+    });
+
+    it('refuses outright while UFF_NO_R2_WRITES is set', () => {
+        // The backstop behind the injection: even a fall-through to the default
+        // writer raises instead of touching R2.
+        expect(process.env.UFF_NO_R2_WRITES).toBe('1');
+        expect(() => defaultPut('whisper/x/config.json', '/tmp/x', {
+            cacheControl: 'public, max-age=1', contentType: null,
+        })).toThrow(/refusing to write/);
+    });
+
+    it('keeps wrangler\'s stderr, which is the actionable part', () => {
+        // main() prints only e.message, so a bare "Command failed" here would
+        // hide why the upload failed.
+        const body = bodyOf('export const defaultPut = (key, local, meta)');
+        expect(body).toContain('e.stderr');
+        expect(body).toMatch(/wrangler put failed/);
+    });
+});
+
