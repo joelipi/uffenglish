@@ -218,3 +218,27 @@
 **Takeaway**: These 4 failures are the sandbox baseline, not a regression — compare against this count before investigating a "new" failure, and when a verify gate fails on these files, prove the cause is a missing package rather than debugging the source. The failures are collection-time (no tests run), so the "Test Files X failed / Tests Y passed" summary is the quickest signal.
 
 ---
+
+## A PurgeCSS guard must model `vite-plugin-purgecss`'s real call, not a content glob
+**Date**: 2026-10-16
+**Area**: build | testing
+**What happened**: A guard for the brand typography's `:lang()` heading rules called `new PurgeCSS().purge({ content: ['**/*.{js,css,html,…}'], css: ['src/assets/css/app.css'], safelist })`. That reported the rules being stripped from production, which I diagnosed as a production-only bug, "fixed" with a `/^:lang/` safelist entry, and wrote into the commit message. `vite-plugin-purgecss` does not glob anything: it passes `content: [{ raw: transformedIndexHtml + ' ' + Object.entries(bundle).map(([,a]) => a.code).join('; '), extension: 'html' }]` and `css: [{ raw: bundle[file].source }]` — one raw string. Modelled that way, the rules survive with an **empty** safelist, because `shouldKeepSelector()` returns true for any selector node parented by a pseudo (so `h1/h2/h3` inside `:is(…)` always survive, and `:lang(x)` hits `default: continue`) and the leading `#root` is in the content. There was no bug and the safelist entry was noise.
+**Takeaway**: Copy the call out of `node_modules/vite-plugin-purgecss/dist/index.js` before writing any PurgeCSS guard — a `content` glob scans the stylesheet under purge into its own content set, so selectors survive for the wrong reason and the guard stays green even with the fix removed. When a guard reports a production-only bug, reproduce it against the real plugin call *and* check whether the guard still fails with the proposed fix reverted.
+
+---
+
+## Prove a guard fails by mutating it, then check *which* assertion fired
+**Date**: 2026-10-16
+**Area**: testing
+**What happened**: I mutation-tested 25 defects against the typography guards and all 25 went red, so I trusted the suite. It still contained a guard that could never fail: the behavioural PurgeCSS assertions passed with the safelist removed, and only a neighbouring *source* guard (which asserted `vite.config.js` contained the entry as text) noticed the mutation — so "25/25 green" was really 24/25 plus one accidental catch. The code reviewer found it by reading the guard's inputs instead of trusting its exit code.
+**Takeaway**: A mutation that goes red proves *something* failed, not that the intended guard did. When a fix touches one thing, mutate the thing the behavioural guard actually reads (e.g. delete the CSS rule, not the config line) and confirm the failing test is the behavioural one. Prefer a guard that fails for its own reason over one that can only be tripped by an adjacent text assertion.
+
+---
+
+## `git commit --amend` after a reviewer committed to the branch swallows their report
+**Date**: 2026-10-16
+**Area**: workflow
+**What happened**: The code-reviewer subagent commits its report to the branch (`docs/reviews/<topic>-review.md`). I then ran `git commit --amend` to fix a wrong commit message, which amended **the reviewer's** commit — folding its report into my message and orphaning my original commit. The branch ended up containing my work twice.
+**Takeaway**: After any subagent commits to the branch, never `--amend` the tip. To fix your own commit message, `git reset --soft <the commit before yours>` and recommit your files (leaving the reviewer's report to its own commit), or amend before the reviewer runs.
+
+---
