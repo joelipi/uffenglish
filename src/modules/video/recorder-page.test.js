@@ -950,6 +950,10 @@ describe('recorder auto-render — zero server changes', () => {
         // Each story's set of authorized paths. 066 scoped the recorder
         // feature; 068 works on the render's overlay + social publish.
         const allowlist = [
+            // wouldyourather: stale lesson titles + stray SRT batch markers.
+            'wouldyourather.source.txt',
+            'src/config/wouldyourather.json',
+            'src/config/wouldyourather.test.js',
             // Story 066 (recorder auto-render).
             'public/recorder.html',
             'src/modules/video/recorder-page.test.js',

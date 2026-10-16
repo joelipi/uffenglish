@@ -69,7 +69,7 @@
       },
       "answer": {
         "id": "b",
-        "title": "Answer: money vs. time, food vs. talk, beach vs. mountains"
+        "title": "Answer: money vs. time, food vs. talk, vacation vs. weather"
       },
       "topics": [
         {
@@ -155,11 +155,11 @@
     {
       "ask": {
         "id": "c",
-        "title": "Ask: rich vs. free, cook vs. restaurant, alone vs. friends"
+        "title": "Ask: languages vs. instruments, city vs. country, honest vs. fun friends"
       },
       "answer": {
         "id": "d",
-        "title": "Answer: rich vs. free, cook vs. restaurant, alone vs. friends"
+        "title": "Answer: languages vs. instruments, city vs. country, honest vs. fun friends"
       },
       "topics": [
         {
@@ -245,11 +245,11 @@
     {
       "ask": {
         "id": "e",
-        "title": "Ask: time vs. money, sweet vs. salty, home vs. out"
+        "title": "Ask: job vs. pay, privacy, phone vs. music"
       },
       "answer": {
         "id": "f",
-        "title": "Answer: time vs. money, sweet vs. salty, home vs. out"
+        "title": "Answer: job vs. pay, privacy, phone vs. music"
       },
       "topics": [
         {
