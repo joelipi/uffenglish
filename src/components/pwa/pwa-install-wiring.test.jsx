@@ -73,16 +73,29 @@ describe('PWAInstallButton', () => {
         unmount();
     });
 
-    it('opens the registered dialog and closes its host menu first', () => {
+    it('installs directly on click (forced panel is the fallback) and closes its host menu first', async () => {
+        const install = vi.fn(async () => {});
         const showDialog = vi.fn();
-        registerInstallElement({ showDialog });
+        // A Chromium-shaped element: install() plus the documented events.
+        const element = {
+            install,
+            showDialog,
+            isAppleMobilePlatform: false,
+            isAppleDesktopPlatform: false,
+            addEventListener: vi.fn(),
+            removeEventListener: vi.fn(),
+        };
+        registerInstallElement(element);
         const onBeforeOpen = vi.fn();
         const { container, unmount } = render(
             <PWAInstallButton label="Install app" onBeforeOpen={onBeforeOpen} />
         );
         act(() => { container.querySelector('[data-testid="install-app"]').click(); });
         expect(onBeforeOpen).toHaveBeenCalled();
-        expect(showDialog).toHaveBeenCalledWith(false);
+        // The direct path: the OS prompt, no panel in between.
+        expect(install).toHaveBeenCalledTimes(1);
+        expect(showDialog).not.toHaveBeenCalled();
+        await act(async () => {});
         unmount();
     });
 
