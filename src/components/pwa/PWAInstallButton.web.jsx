@@ -2,11 +2,10 @@
 // The "Install app"/"Add to Home Screen" entry point. Render-only: it asks
 // the pure rules whether to offer an install at all and hands the click to the
 // registered <pwa-install> element (mounted in RootLayout), which owns the whole
-// install flow — its own panel, and the OS prompt / Web Install API / fallback
-// it chooses from there. It deliberately does not import the `pwa-install`
-// package, so the home screen's own tests stay light.
+// install flow. It deliberately does not import the `pwa-install` package, so
+// the home screen's own tests stay light.
 import React from 'react';
-import { shouldOfferInstall, openInstallDialog } from '../../modules/pwa/install-prompt-logic.js';
+import { shouldOfferInstall, requestInstall } from '../../modules/pwa/install-prompt-logic.js';
 import { getRegisteredInstallElement, readIsStandaloneApp } from '../../modules/pwa/install-prompt-webonly.js';
 
 export default function PWAInstallButton({ label, style, onBeforeOpen }) {
@@ -14,10 +13,12 @@ export default function PWAInstallButton({ label, style, onBeforeOpen }) {
 
     const handleClick = () => {
         if (typeof onBeforeOpen === 'function') onBeforeOpen();
-        // Force (the default): the dialog must appear on click even when the
-        // browser has not raised beforeinstallprompt yet.
-        const opened = openInstallDialog(getRegisteredInstallElement());
-        console.log('[PWA] Install dialog requested:', opened);
+        // Runs inside the click gesture (the browser requires transient user
+        // activation to show an install prompt): installs directly where an OS
+        // prompt exists, otherwise opens the library's panel.
+        requestInstall(getRegisteredInstallElement()).then(({ ok, route }) => {
+            console.log('[PWA] Install click handled:', route, ok);
+        });
     };
 
     return (
