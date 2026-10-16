@@ -68,6 +68,7 @@
          which is the behaviour we had before. -->
     <script>
         (function () {
+            var MIN_DISPLAY_MS = 2000;
             var CAP_MS = 2000;
             // Must match the `preloaderImageOut` duration in the stylesheet
             // below — it is the grace period before the overlay is hidden, so a
@@ -196,9 +197,13 @@
                 });
             }
 
+            var minDisplay = new Promise(function (resolve) { setTimeout(resolve, MIN_DISPLAY_MS); });
+            // MIN_DISPLAY stops the cover from vanishing after ~300ms on a warm
+            // cache (which is what made the preloader image effectively invisible);
+            // CAP_MS keeps it from holding longer than 2s when fonts are slow.
             var cap = new Promise(function (resolve) { setTimeout(resolve, CAP_MS); });
                 Promise.race([
-                    Promise.all([whenFacesRegistered().then(loadFirstPaintFaces), whenAppRendered()]),
+                    Promise.all([whenFacesRegistered().then(loadFirstPaintFaces), whenAppRendered(), minDisplay]),
                     cap
                 ]).then(reveal, reveal);
             } catch (error) {
