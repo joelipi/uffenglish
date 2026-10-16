@@ -1075,6 +1075,7 @@ html, body{{background:transparent!important; width:{video_width}px; height:{vid
     font-size: {title_base}px;
     font-weight: 900;
     line-height: 1.6;
+    z-index: 2;
 }}
 
 .title span {{
@@ -1124,6 +1125,7 @@ html, body{{background:transparent!important; width:{video_width}px; height:{vid
     text-shadow: 2px 2px 4px rgba(0,0,0,0.9);
     letter-spacing: 1px;
     text-transform: uppercase;
+    z-index: 2;
 }}
 
 u {{
@@ -1178,6 +1180,7 @@ aside {{
     border-radius: {aside_size * 0.8}px;
     box-shadow: 0 8px 28px rgba(0, 0, 0, 0.25);
     overflow: hidden;
+    z-index: 1;
 }}
 
 /* <strong> is used for highlighting (in the callout box and subtitles).
