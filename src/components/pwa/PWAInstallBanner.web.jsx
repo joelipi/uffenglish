@@ -1,13 +1,5 @@
 // components/pwa/PWAInstallBanner.web.jsx
-// The non-dismissible install banner pinned to the top of /home, /profile and
-// /courses for signed-in users who are NOT running the installed PWA (guests
-// never see install affordances; installed users get the notification prompt
-// instead). Render-only: every gate lives in install-prompt-logic.js, the
-// browser is read through install-prompt-webonly.js, and tapping the banner
-// opens the same <pwa-install> dialog as the menu entry point. It renders the
-// standard primary CTA (btn-primary + glow/pulse) inlined in the banner, not a
-// hand-rolled style.
-import React from 'react';
+import React, { useState } from 'react';
 import Strings from '../../data/strings.js';
 import {
     shouldShowInstallBanner,
@@ -41,6 +33,7 @@ const BANNER_STYLE = {
 };
 
 export default function PWAInstallBanner({ lang = 'en', userId = null }) {
+    const [showHelp, setShowHelp] = useState(false);
     // Cheap pure gate first: guests and installed users never pay the
     // platform read below.
     if (!shouldShowInstallBanner({ isStandalone: readIsStandaloneApp(), userId })) return null;
@@ -51,11 +44,10 @@ export default function PWAInstallBanner({ lang = 'en', userId = null }) {
         if (nativeAvailable) {
             triggerNativeInstallPrompt?.().then((choice) => {
                 console.log('[PWA] Native install prompt outcome:', choice && choice.outcome);
-            }).catch((err) => console.error('[PWA] native install failed:', err));
+            }).catch((err) => console.error('[PWA] Native install prompt failed:', err));
             return;
         }
-        const opened = openInstallDialog(getRegisteredInstallElement());
-        console.log('[PWA] Install dialog requested from banner:', opened);
+        setShowHelp(true);
     };
 
     return (
@@ -78,6 +70,35 @@ export default function PWAInstallBanner({ lang = 'en', userId = null }) {
                 <i className="bi bi-download" aria-hidden="true" style={{ marginRight: '8px' }}></i>
                 {Strings.get(selectInstallCtaKey({ isApple }), lang)}
             </button>
+            {showHelp && (
+                <div style={{
+                    position: 'fixed', inset: 0, zIndex: 2100, display: 'flex',
+                    alignItems: 'center', justifyContent: 'center',
+                    background: 'rgba(0,0,0,0.65)', padding: '16px',
+                }} onClick={() => setShowHelp(false)}>
+                    <div onClick={(e) => e.stopPropagation()} style={{
+                        background: '#12304d', color: 'white', borderRadius: '12px',
+                        padding: '24px', maxWidth: '420px', width: '100%',
+                        fontFamily: "'Inter', 'Plus Jakarta Sans', sans-serif",
+                    }}>
+                        <h3 style={{ margin: '0 0 12px', fontSize: '18px' }}>
+                            {isApple ? 'Add to Home Screen' : 'Install the UFF app'}
+                        </h3>
+                        <p style={{ margin: '0 0 12px', fontSize: '14px', lineHeight: 1.5, opacity: 0.9 }}>
+                            {isApple
+                                ? 'Tap the Share button in Safari, then choose "Add to Home Screen".'
+                                : 'Chrome has not offered a one-tap install yet. Open Chrome\\u2019s menu and choose "Install app" / "Add to Home screen", or reload and retry after this page has offered it.'}
+                        </p>
+                        <button type="button" onClick={() => setShowHelp(false)} style={{
+                            background: 'var(--uff-btn-bg, linear-gradient(135deg,#3a8fd5 0%,#00c0d8 100%))',
+                            color: 'white', border: 'none', borderRadius: '8px',
+                            padding: '10px 18px', fontWeight: 600, cursor: 'pointer',
+                        }}>
+                            OK
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
