@@ -13,7 +13,8 @@
     /* Bootstrap 5.3 theme variables, set to the app's palette. */
     --bs-body-bg: #0b1a2a;
     --bs-body-color: #e9ecef;
-    --bs-body-font-family: 'Inter', 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    /* One source of truth for the body stack (src/modules/theme/brand-fonts.js). */
+    --bs-body-font-family: var(--font-body);
     --bs-emphasis-color: #ffffff;
     --bs-emphasis-color-rgb: 255, 255, 255;
     --bs-secondary-color: #adb5bd;

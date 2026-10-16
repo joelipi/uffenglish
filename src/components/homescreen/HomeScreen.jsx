@@ -175,7 +175,7 @@ export default function HomeScreen() {
         overflowY: 'auto',
         backgroundColor: '#0b1a2a',
         color: 'white',
-        fontFamily: "'Inter', 'Plus Jakarta Sans', sans-serif",
+        fontFamily: 'var(--font-body)',
         display: 'flex',
         flexDirection: 'column',
     };

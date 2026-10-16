@@ -22,7 +22,7 @@ export default function LegalPage({ markdown, titleKey }) {
         overflow: 'hidden',
         backgroundColor: '#0b1a2a',
         color: 'white',
-        fontFamily: "'Inter', 'Plus Jakarta Sans', sans-serif",
+        fontFamily: 'var(--font-body)',
     };
 
     const topBarStyle = {

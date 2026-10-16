@@ -13,7 +13,7 @@ export default function AuthLayout() {
                 width: '100%',
                 maxWidth: '420px',
                 color: 'white',
-                fontFamily: "'Plus Jakarta Sans', sans-serif",
+                fontFamily: 'var(--font-body)',
             }}>
                 <Outlet />
             </div>

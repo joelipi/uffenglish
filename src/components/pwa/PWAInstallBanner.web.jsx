@@ -33,7 +33,7 @@ const BANNER_STYLE = {
     borderBottom: '2px solid #00c0d8',
     background: 'linear-gradient(135deg, #7a1f1f 0%, #3a0f2a 100%)',
     color: 'white',
-    fontFamily: "'Inter', 'Plus Jakarta Sans', sans-serif",
+    fontFamily: 'var(--font-body)',
     textAlign: 'center',
 };
 

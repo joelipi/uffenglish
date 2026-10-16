@@ -20,7 +20,7 @@ export default function CourseListings({ lang = 'en', courses, isLoading = false
         overflow: 'hidden',
         backgroundColor: '#0b1a2a',
         color: 'white',
-        fontFamily: "'Inter', 'Plus Jakarta Sans', sans-serif",
+        fontFamily: 'var(--font-body)',
     };
 
     const headerStyle = {

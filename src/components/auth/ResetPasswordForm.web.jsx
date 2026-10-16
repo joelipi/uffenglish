@@ -20,7 +20,7 @@ export default function ResetPasswordForm({ onResetSuccess }) {
     if (invalidLink) {
         return (
             <>
-                <h2 className="text-center mb-4" style={{ fontFamily: "'Orbitron', sans-serif", color: 'yellow' }}>
+                <h2 className="text-center mb-4" style={{ color: 'yellow' }}>
                     {Strings.get('auth_reset_title', lang)}
                 </h2>
                 <div className="alert alert-danger" role="alert">
@@ -32,7 +32,7 @@ export default function ResetPasswordForm({ onResetSuccess }) {
 
     return (
         <>
-            <h2 className="text-center mb-4" style={{ fontFamily: "'Orbitron', sans-serif", color: 'yellow' }}>
+            <h2 className="text-center mb-4" style={{ color: 'yellow' }}>
                 {Strings.get('auth_reset_title', lang)}
             </h2>
             {error && <div className="alert alert-danger" role="alert">{error}</div>}

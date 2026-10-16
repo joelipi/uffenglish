@@ -11,7 +11,7 @@ const containerStyle = {
     overflowY: 'auto',
     backgroundColor: '#0b1a2a',
     color: 'white',
-    fontFamily: "'Plus Jakarta Sans', sans-serif",
+    fontFamily: 'var(--font-body)',
     paddingBottom: '40px',
 };
 

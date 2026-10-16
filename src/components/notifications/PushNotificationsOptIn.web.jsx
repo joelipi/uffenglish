@@ -37,7 +37,7 @@ const PROMPT_STYLE = {
     border: '1px solid #1a3a5a',
     background: '#12304d',
     color: 'white',
-    fontFamily: "'Inter', 'Plus Jakarta Sans', sans-serif",
+    fontFamily: 'var(--font-body)',
 };
 
 export default function PushNotificationsOptIn({

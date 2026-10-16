@@ -6,15 +6,47 @@
          they render before this file downloads.
    ============================================================================= */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+/* NOTE: the Google Fonts <link> lives in index.html <head> (preconnect +
+   stylesheet, display=swap). This stylesheet deliberately does not pull the
+   fonts in itself. An at-rule import is only discovered once THIS file has
+   downloaded and been parsed, so the preconnect in the head cannot start the
+   font request any earlier, and until the import resolves the import itself
+   holds up this stylesheet's declarations. Fetching the same URL from two
+   places also leaves two independent copies of the kit to keep in step.
+   The stacks below are generated from src/modules/theme/brand-fonts.js, and
+   brand-fonts-wiring.test.js fails if the two drift apart. */
 
 *, *::before, *::after { box-sizing: border-box; }
 
-body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; font-size: 1rem; font-weight: 400; line-height: 1.5; color: #212529; background-color: #fff; -webkit-text-size-adjust: 100%; -moz-tab-size: 4; tab-size: 4; }
+body { margin: 0; font-family: var(--font-body); font-size: 1rem; font-weight: 400; line-height: 1.5; color: #212529; background-color: #fff; -webkit-text-size-adjust: 100%; -moz-tab-size: 4; tab-size: 4; }
 .app-container { background-color: #000; }
 
 :root {
   --bs-body-color: #212529;
+
+  /* --- Brand typography (see src/modules/theme/brand-fonts.js) -------------
+     --font-body and --font-heading both end in the universal fallback tail
+     (system-ui → OS-native faces → Noto Sans → sans-serif), so a character no
+     loaded font covers still renders from a face that does. Swapping the brand
+     heading kit (e.g. to Tomorrow, Chakra Petch or Saira) means editing
+     --font-heading and HEADING_FONT_FAMILY in that module — nothing else in the
+     codebase names the family. */
+  --font-body: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans', sans-serif;
+  --font-heading: 'Titillium Web', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans', sans-serif;
+
+  /* Stylistic :lang() heading overrides. A heading that falls back to the OS
+     face loses the forward-leaning feel the kit is built around, so each major
+     non-Latin alphabet gets its own geometric/tech face. Noto Sans sits in the
+     shared tail above, so a character even these lack still resolves.
+
+     Each variable is named after the face it holds (brand-fonts.js derives the
+     name), which is why zh-Hant/zh-HK/zh-TW share one: they share one family. */
+  --font-heading-zen-kaku-gothic-new: 'Zen Kaku Gothic New', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans', sans-serif;
+  --font-heading-noto-sans-sc: 'Noto Sans SC', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans', sans-serif;
+  --font-heading-noto-sans-tc: 'Noto Sans TC', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans', sans-serif;
+  --font-heading-khand: Khand, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans', sans-serif;
+  --font-heading-hind-siliguri: 'Hind Siliguri', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans', sans-serif;
+
   /*--bs-border-radius: 0.375rem; --bs-border-radius-pill: 50rem;*/
   --bs-border-width: 1px; --bs-border-color: #dee2e6;
   --bs-box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15);
@@ -25,6 +57,49 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
   --bs-warning-rgb: 255,193,7; --bs-info-rgb: 13,202,240;
   --bs-light-rgb: 248,249,250; --bs-success-rgb: 25,135,84;
 }
+
+/* --- Headings: the display face, italic for forward momentum ---
+   h1 takes the 900 face, h2/h3 the 700 — the two weights the kit loads. The
+   italic is a real face at 700; Titillium Web has no italic 900 on Google
+   Fonts, so h1's slant is synthesised by the browser (see
+   HEADING_ITALIC_WEIGHTS in src/modules/theme/brand-fonts.js).
+
+   The selectors are anchored to #root deliberately. The homepage loads real
+   Bootstrap 5.3.8 (src/generated/homepage-bootstrap.css), whose reboot emits
+   `.uff-home-bs h1, … h6 { font-weight: 500 }` — specificity (0,1,1), which
+   beats a bare `h1` (0,0,1) and loads *after* this file. A bare selector would
+   therefore leave every homepage heading at 500. #root is (1,0,1), so the brand
+   weights win regardless of stylesheet order; the app renders no portals, so
+   every heading lives under it.
+
+   `font-style` is deliberately not restated in the :lang() rules below. The
+   existing global `[lang]:not([lang="en"]):not([lang="EN"]) { font-style:
+   italic }` already italicises localized strings, and the video-overlay
+   surfaces opt back out with `font-style: normal !important`; re-declaring it
+   here would fight both. Those rules only swap the family.
+
+   The :lang() rules below repeat the #root anchor for the same reason: an id
+   outranks any number of pseudo-classes, so an unanchored `:lang()` rule would
+   lose to the bare `#root h1, …` rule above and leave a heading that is itself
+   in that language on the Latin face. */
+#root h1, #root h2, #root h3 { font-family: var(--font-heading); font-style: italic; font-weight: 700; }
+#root h1 { font-weight: 900; }
+
+/* Stylistic :lang() overrides. Each rule covers a heading that is itself in
+   that language AND a localized <span lang="…"> inside a heading — this app
+   renders translations as spans (e.g. <h2><span lang="hi">…</span></h2>), and
+   those spans inherit font-family from the heading, so matching only the
+   heading would leave them on the OS face.
+
+   Traditional Chinese is listed after the generic zh rule because the generic
+   subtag also matches the zh-Hant/zh-HK/zh-TW subtags, and the later,
+   equal-specificity rule wins. */
+#root :is(h1, h2, h3):lang(ja), #root :is(h1, h2, h3) :lang(ja) { font-family: var(--font-heading-zen-kaku-gothic-new); }
+#root :is(h1, h2, h3):lang(zh), #root :is(h1, h2, h3) :lang(zh) { font-family: var(--font-heading-noto-sans-sc); }
+#root :is(h1, h2, h3):lang(zh-Hant), #root :is(h1, h2, h3):lang(zh-HK), #root :is(h1, h2, h3):lang(zh-TW),
+#root :is(h1, h2, h3) :lang(zh-Hant), #root :is(h1, h2, h3) :lang(zh-HK), #root :is(h1, h2, h3) :lang(zh-TW) { font-family: var(--font-heading-noto-sans-tc); }
+#root :is(h1, h2, h3):lang(hi), #root :is(h1, h2, h3) :lang(hi) { font-family: var(--font-heading-khand); }
+#root :is(h1, h2, h3):lang(bn), #root :is(h1, h2, h3) :lang(bn) { font-family: var(--font-heading-hind-siliguri); }
 
 /* --- Display --- */
 .d-none { display: none !important; }
@@ -280,7 +355,7 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
   top: 35%;
   left: 50%;
   transform: translate(-50%, -50%);
-  font-family: 'Orbitron', monospace;
+  font-family: var(--font-heading);
   font-size: 2.5em;
   font-weight: bold;
   color: #ff4757;
