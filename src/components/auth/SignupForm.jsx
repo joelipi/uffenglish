@@ -9,6 +9,10 @@ import { guestSignupLessonCredit } from '../../modules/user/lesson-count-logic.j
 import { calculateCurrentStreak } from '../../modules/user/user-profile.js';
 import { flushPendingFriendCredits } from '../../modules/user/friend-credit-sync.js';
 import { verifyTurnstileToken } from '../../modules/auth/turnstile-logic.js';
+import {
+    checkEmailAddress,
+    normalizeEmail,
+} from '../../modules/auth/email-validation-logic.js';
 import defaultProfilePic from '../../assets/img/userprofile.png';
 
 /**
@@ -20,6 +24,13 @@ import defaultProfilePic from '../../assets/img/userprofile.png';
  * `getCaptchaToken` supplies a FRESH widget token at submit time — Turnstile
  * tokens are single-use and expire after ~5 minutes, so the form cannot capture
  * one at render and reuse it.
+ *
+ * This hook also runs the zero-cost email screen before any account is created.
+ * It returns `emailError` as a reason CODE plus `emailSuggestion`, never copy:
+ * the view resolves both through strings.js, because logic owns decisions and
+ * display owns language. `captcha: false` does NOT disable the email check —
+ * the screen is a data-quality gate, not a bot gate, so it applies to every
+ * signup surface including the modal.
  */
 export function useSignupForm({
     onSignupSuccess,
@@ -34,11 +45,37 @@ export function useSignupForm({
     const [nativeLanguage, setNativeLanguage] = useState(initialNativeLanguage);
     const [userLevel, setUserLevel] = useState('');
     const [error, setError] = useState('');
+    const [emailError, setEmailError] = useState('');
+    const [emailSuggestion, setEmailSuggestion] = useState('');
     const [loading, setLoading] = useState(false);
+
+    /**
+     * Replace the address and drop any stale screen verdict.
+     *
+     * Clearing lives here rather than in the views because deciding WHICH state
+     * a stale verdict invalidates is logic, not rendering — and because two
+     * views (the standalone form and the save-clips modal) share this hook and
+     * must recover identically.
+     *
+     * `setEmail` is deliberately NOT exported: a view could then write the
+     * address without clearing the verdict, and the stale alert would return
+     * with no visible cause. Only this function may change the address.
+     *
+     * Only the email verdict is invalidated. A generic `error` (e.g. Supabase
+     * reporting the address is already registered) is left alone, because
+     * editing the field is not evidence that a non-email failure went away.
+     */
+    function handleEmailChange(value) {
+        setEmail(value);
+        setEmailError('');
+        setEmailSuggestion('');
+    }
 
     async function handleSubmit(e) {
         e.preventDefault();
         setError('');
+        setEmailError('');
+        setEmailSuggestion('');
         setLoading(true);
 
         try {
@@ -58,8 +95,29 @@ export function useSignupForm({
                 }
             }
 
+            // One canonical identity for the whole submit: the address that is SCREENED
+            // is the address that is CREATED. GoTrue normalizes server-side too,
+            // but normalizing here keeps the screen, the profile row and the
+            // login lookup agreeing even if that ever changes.
+            const signupEmail = normalizeEmail(email);
+
+            // Zero-cost email screen, in front of the Supabase call and after
+            // the bot gate. The server (functions/api/email-validate.js) is
+            // authoritative — a browser-only check is bypassed by posting
+            // straight to Supabase — and it fails OPEN, so a lookup outage
+            // returns valid:true and lands here as a no-op rather than costing
+            // a signup. Only a definite verdict blocks, and then no account is
+            // created.
+            const emailVerdict = await checkEmailAddress(signupEmail);
+            if (!emailVerdict.valid) {
+                console.log(`[Signup] Email screen rejected the address (${emailVerdict.reason})`);
+                setEmailError(emailVerdict.reason);
+                setEmailSuggestion(emailVerdict.suggestion || '');
+                return;
+            }
+
             const { data, error: signUpError } = await supabase.auth.signUp({
-                email,
+                email: signupEmail,
                 password,
                 // native_language rides on user_metadata so the welcome email can
                 // be localized without an extra profile query at send time.
@@ -96,9 +154,23 @@ export function useSignupForm({
             const signupDates = lessonCredit.creditLesson
                 ? [new Date().toLocaleDateString('en-CA')]
                 : [];
-            const { error: insertError } = await supabase.from('user_profiles').insert({
+            // UPSERT, not insert. The fire-and-forget geo/referrer collection above
+            // (collect-signup-data.js) also writes this row, via
+            // syncUserMetaDataMutation's upsert. Which of the two lands first is
+            // a network race, so a plain INSERT here failed with
+            // `duplicate key value violates unique constraint
+            // "user_profiles_pkey"` whenever geo won — the account existed, the
+            // signup reported failure, and the profile row kept a NULL email
+            // because only the geo columns had been written.
+            //
+            // With onConflict: 'id' the write is idempotent and order
+            // independent: an existing row is UPDATEd with these columns, and a
+            // missing one is INSERTed. Postgres only updates the columns
+            // actually supplied, so the geo write landing afterwards adds its
+            // fields without disturbing the profile.
+            const { error: insertError } = await supabase.from('user_profiles').upsert({
                 id: user.id,
-                email: email,
+                email: signupEmail,
                 first_name: firstName.trim(),
                 last_name: lastName.trim(),
                 join_date: new Date().toISOString(),
@@ -110,7 +182,7 @@ export function useSignupForm({
                 ...(lessonCredit.creditLesson
                     ? { lessons_completed: lessonCredit.lessonsCompleted, counted_lessons: lessonCredit.countedLessons }
                     : {}),
-            });
+            }, { onConflict: 'id' });
             if (insertError) {
                 console.error('[Signup] Failed to create profile row:', insertError);
                 throw insertError;
@@ -131,7 +203,7 @@ export function useSignupForm({
             queryClient.setQueryData(['auth', 'status'], true);
             const profile = {
                 $id: user.id,
-                email: email,
+                email: signupEmail,
                 display_name: fullName,
                 join_date: user.created_at,
                 auth_method: 'supabase',
@@ -197,7 +269,7 @@ export function useSignupForm({
         lastName,
         setLastName,
         email,
-        setEmail,
+        handleEmailChange,
         password,
         setPassword,
         nativeLanguage,
@@ -205,6 +277,8 @@ export function useSignupForm({
         userLevel,
         setUserLevel,
         error,
+        emailError,
+        emailSuggestion,
         loading,
         handleSubmit,
     };

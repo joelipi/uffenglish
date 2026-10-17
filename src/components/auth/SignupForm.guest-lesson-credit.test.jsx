@@ -6,8 +6,9 @@ import { createRoot } from 'react-dom/client';
 import { act } from 'react';
 
 // Tracks every insert, tagged with the table it targeted.
-const { insertCalls, setQueryDataSpy, recordFriendCompletionSpy } = vi.hoisted(() => ({
+const { insertCalls, upsertOpts, setQueryDataSpy, recordFriendCompletionSpy } = vi.hoisted(() => ({
     insertCalls: [],
+    upsertOpts: [],
     setQueryDataSpy: vi.fn(),
     recordFriendCompletionSpy: vi.fn(async () => ({ recorded: true })),
 }));
@@ -21,11 +22,18 @@ vi.mock('../../modules/api/supabase.js', () => ({
             }),
         },
         from: (table) => ({
+            // useSignupForm writes the profile with upsert (it must be
+            // idempotent — the geo collector writes the same row), so record
+            // there. insert stays stubbed for any other caller.
+            upsert: (row, opts) => {
+                upsertOpts.push(opts);
+                insertCalls.push({ table, row });
+                return Promise.resolve({ error: null });
+            },
             insert: (row) => {
                 insertCalls.push({ table, row });
                 return Promise.resolve({ error: null });
             },
-            upsert: () => Promise.resolve({ error: null }),
         }),
     },
 }));
@@ -38,6 +46,14 @@ vi.mock('../../modules/api/api.js', () => ({
 
 vi.mock('../../modules/user/email-confirmation.js', () => ({
     sendWelcomeEmail: vi.fn(async () => ({ sent: true })),
+}));
+
+// The zero-cost email screen runs inside handleSubmit. Mocked so this spec
+// stays hermetic — unmocked it would attempt a real fetch and pass only because
+// the client wrapper fails OPEN, which is not what this test is about.
+vi.mock('../../modules/auth/email-validation-logic.js', () => ({
+    checkEmailAddress: vi.fn(async () => ({ valid: true, reason: 'ok', suggestion: '' })),
+    normalizeEmail: (raw) => (typeof raw === 'string' ? raw.trim().toLowerCase() : ''),
 }));
 
 import { useSignupForm } from './SignupForm.jsx';
@@ -58,7 +74,7 @@ function Harness() {
         <div>
             {click('first', () => form.setFirstName('Jo'))}
             {click('last', () => form.setLastName('Kim'))}
-            {click('email', () => form.setEmail('jo@example.com'))}
+            {click('email', () => form.handleEmailChange('jo@example.com'))}
             {click('password', () => form.setPassword('password123'))}
             {click('submit', () => form.handleSubmit({ preventDefault() {} }))}
         </div>

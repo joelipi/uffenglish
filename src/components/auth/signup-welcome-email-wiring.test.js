@@ -26,11 +26,17 @@ describe('SignupForm welcome-email wiring', () => {
         expect(endAt).toBeGreaterThan(submitAt);
         const region = src.slice(submitAt, endAt);
 
-        const insertAt = region.indexOf(".from('user_profiles').insert(");
+        // The profile write is an UPSERT (onConflict: 'id'), not an insert: the
+        // fire-and-forget geo collector writes the same row, so a plain insert
+        // raced it and failed the signup with a primary-key violation. Search
+        // for the upsert specifically, so a revert to `.insert(` fails here.
+        const insertAt = region.indexOf(".from('user_profiles').upsert(");
         const sendAt = region.indexOf('void sendWelcomeEmail();');
         const successAt = region.indexOf('onSignupSuccess?.();');
 
-        expect(insertAt, 'profile insert call').toBeGreaterThan(-1);
+        expect(insertAt, 'profile upsert call').toBeGreaterThan(-1);
+        expect(region.indexOf(".from('user_profiles').insert("),
+            'the profile write must not be a plain insert again').toBe(-1);
         expect(sendAt, 'void sendWelcomeEmail() call').toBeGreaterThan(-1);
         expect(successAt, 'onSignupSuccess callback').toBeGreaterThan(-1);
         expect(insertAt).toBeLessThan(sendAt);

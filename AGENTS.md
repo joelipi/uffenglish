@@ -19,6 +19,10 @@ This repo relies heavily on tests that assert on source text ("guards"). Several
 
 Before trusting a guard, prove it can fail by temporarily injecting the thing it forbids. And when it goes red, **confirm the guard you meant is the one that failed** — a mutation that trips some neighbouring text assertion leaves you believing a behavioural guard is proven when it never fired.
 
+**Scope a guard's assertions to the region they are about, and discover its inputs.** Two traps that both leave a guard green forever:
+- `toContain('someIdentifier')` over a whole file is satisfied by a *destructuring* or an *import*, not by the rendering you meant to check. Delete the JSX and it stays green. Slice to the block (bounded at a real marker) and assert the call/attribute *inside* that slice.
+- A guard that names its files by hand stops guarding the day a second consumer appears. Walk the tree (`readdirSync` recursion) and assert the discovered set, so a new consumer fails the guard instead of silently escaping it. Strip comments before matching, or the guard's own prose about the bug matches itself; assemble self-matching patterns from parts.
+
 ## A test must never be able to write to production
 
 Several scripts and Functions here upload to R2 (`scripts/set-whisper-model-cache.mjs`, `scripts/generate-thumbnails.mjs`, `functions/api/upload-segment.js`). Mocking is **not** sufficient isolation, and this has already corrupted live objects twice:
@@ -212,8 +216,9 @@ Execute small, incremental changes and routine bug fixes immediately without ask
 **Console discipline — treat these as bugs:**
 - Any unexpected or relevant console error or warning
 - Any expected debug/success log that does not appear (silent failures must be investigated)
+- **A `TypeError` printed during a vitest run is a failure even when the suite is green.** React rethrows an error from an event handler, vitest prints it, and the spec still reports PASS — so a harness that drives a component by dispatching clicks can stop exercising the path entirely without any test going red. When a spec dispatches DOM events, grep the run output for `TypeError`/`ReferenceError` before believing the count, and assert on the *effect* of the interaction, not only that no assertion threw.
 
-**Clean up after deletions.** After removing any export, verify all imports of that export are also removed. Run the smoke test to catch load-time errors:
+**Clean up after deletions.** After removing any export, verify all imports of that export are also removed — and grep for *destructured* uses, which are the ones that bite: a component or harness reading `const { a, setA } = useThing()` gets `undefined` for a key that is no longer returned, which throws only when the user (or the harness) invokes it. Run the smoke test to catch load-time errors:
 ```
 tests/answer-flow.spec.js
 ```
