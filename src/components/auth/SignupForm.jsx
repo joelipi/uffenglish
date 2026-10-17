@@ -154,7 +154,21 @@ export function useSignupForm({
             const signupDates = lessonCredit.creditLesson
                 ? [new Date().toLocaleDateString('en-CA')]
                 : [];
-            const { error: insertError } = await supabase.from('user_profiles').insert({
+            // UPSERT, not insert. The fire-and-forget geo/referrer collection above
+            // (collect-signup-data.js) also writes this row, via
+            // syncUserMetaDataMutation's upsert. Which of the two lands first is
+            // a network race, so a plain INSERT here failed with
+            // `duplicate key value violates unique constraint
+            // "user_profiles_pkey"` whenever geo won — the account existed, the
+            // signup reported failure, and the profile row kept a NULL email
+            // because only the geo columns had been written.
+            //
+            // With onConflict: 'id' the write is idempotent and order
+            // independent: an existing row is UPDATEd with these columns, and a
+            // missing one is INSERTed. Postgres only updates the columns
+            // actually supplied, so the geo write landing afterwards adds its
+            // fields without disturbing the profile.
+            const { error: insertError } = await supabase.from('user_profiles').upsert({
                 id: user.id,
                 email: signupEmail,
                 first_name: firstName.trim(),
@@ -168,7 +182,7 @@ export function useSignupForm({
                 ...(lessonCredit.creditLesson
                     ? { lessons_completed: lessonCredit.lessonsCompleted, counted_lessons: lessonCredit.countedLessons }
                     : {}),
-            });
+            }, { onConflict: 'id' });
             if (insertError) {
                 console.error('[Signup] Failed to create profile row:', insertError);
                 throw insertError;
