@@ -52,6 +52,7 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 function Harness({ options, email = 'jo@example.com' }) {
     const form = useSignupForm(options);
+    formRef = form;
     const click = (id, fn) => (
         <button data-testid={id} onClick={() => fn()}>{id}</button>
     );
@@ -65,10 +66,16 @@ function Harness({ options, email = 'jo@example.com' }) {
             <div data-testid="error">{form.error}</div>
             <div data-testid="email-error">{form.emailError}</div>
             <div data-testid="email-suggestion">{form.emailSuggestion}</div>
+            <div data-testid="email-value">{form.email}</div>
             <div data-testid="loading">{String(form.loading)}</div>
         </div>
     );
 }
+
+// Lets a test drive the real change handler the views call, rather than a
+// stand-in: the crash this pins was in the wiring between view and hook.
+let formRef = null;
+const emailChange = (value) => formRef.handleEmailChange(value);
 
 async function submit(options, email) {
     await act(async () => { host.render(<Harness options={options} email={email} />); });
@@ -228,5 +235,51 @@ describe('useSignupForm email screen', () => {
         expect(signUpSpy).not.toHaveBeenCalled();
         expect(insertCalls.length).toBe(0);
         expect(read('email-error')).toBe('null-mx');
+    });
+
+    describe('recovering from a rejection', () => {
+        async function rejectThenEdit() {
+            emailSpy.mockResolvedValueOnce({ valid: false, reason: 'disposable', suggestion: '' });
+            await submit({ captcha: true, getCaptchaToken: tokenSpy });
+            expect(read('email-error')).toBe('disposable');
+
+            // The user fixes the address. This is the path the user MUST be able
+            // to take, so it has to clear the stale verdict rather than throw.
+            await act(async () => {
+                emailChange('jo@gmail.com');
+            });
+        }
+
+        it('clears the stale verdict when the address is edited, without throwing', async () => {
+            await rejectThenEdit();
+            expect(read('email-error')).toBe('');
+            expect(read('email-suggestion')).toBe('');
+        });
+
+        it('lets the corrected address through on the next submit', async () => {
+            await rejectThenEdit();
+            emailSpy.mockResolvedValue({ valid: true, reason: 'ok', suggestion: '' });
+            await submit({ captcha: true, getCaptchaToken: tokenSpy }, 'jo@gmail.com');
+
+            expect(emailSpy).toHaveBeenLastCalledWith('jo@gmail.com');
+            expect(signUpSpy).toHaveBeenCalledTimes(1);
+            expect(read('email-error')).toBe('');
+        });
+
+        it('keeps the typed address in the field', async () => {
+            await rejectThenEdit();
+            expect(read('email-value')).toBe('jo@gmail.com');
+        });
+    });
+
+    it('creates the account under the same normalized identity it screened', async () => {
+        // The screened address and the created address must be one string, or
+        // "one canonical identity" is only true because GoTrue happens to
+        // normalize again server-side.
+        await submit({ captcha: true, getCaptchaToken: tokenSpy }, '  Jo@Example.COM ');
+
+        expect(emailSpy).toHaveBeenCalledWith('jo@example.com');
+        expect(signUpSpy.mock.calls[0][0].email).toBe('jo@example.com');
+        expect(insertCalls[0].email).toBe('jo@example.com');
     });
 });

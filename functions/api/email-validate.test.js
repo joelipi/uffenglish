@@ -297,7 +297,10 @@ describe('onRequestPost DNS verdicts', () => {
         it.each([
             ['SERVFAIL on both A and AAAA', SERVFAIL],
             ['a malformed body on A', null],
-            ['a truncated/unknown rcode on A', { Status: 2, Answer: [] }],
+            // NOERROR but truncated: the records present are not proof that no
+            // others exist, so an empty Answer cannot be trusted here.
+            ['a truncated NOERROR answer on A', { Status: 0, Answer: [], Truncated: true }],
+            ['an unknown rcode on A', { Status: 5, Answer: [] }],
         ])('on the A/AAAA fallback: %s', async (_label, brokenAnswer) => {
             vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
                 const type = /type=([A-Z]+)/.exec(String(url))?.[1];
@@ -542,5 +545,15 @@ describe('docs/email-validation.md', () => {
 
         expect(doc).toMatch(/EMAIL_VALIDATE_CACHE_TTL_MS|600000|600 ?000/);
         expect(doc).toMatch(/example\.com|example\.org|example\.net/);
+
+        // Operational instructions, not prose: a rewrite that quietly drops how
+        // to extend the tables, or the no-new-variables rule, has to fail.
+        expect(doc).toMatch(/Extending the tables/i);
+        expect(doc).toMatch(/DISPOSABLE_DOMAINS/);
+        expect(doc).toMatch(/DOMAIN_TYPOS/);
+        expect(doc).toMatch(/googlemail\.com/);       // must stay OUT of the typo map
+        expect(doc).toMatch(/needs-address-lookup/);   // the internal sentinel
+        expect(doc).toMatch(/no\s+`?env`?\s+property/i);
+        expect(doc).toMatch(/isolate-local/i);
     });
 });

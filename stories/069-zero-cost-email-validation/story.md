@@ -103,9 +103,13 @@ const verdict = await checkEmailAddress(normalizeEmail(email));
 if (!verdict.valid) { setEmailError(verdict.reason); setEmailSuggestion(verdict.suggestion || ''); return; }
 ```
 
-The early `return` still runs the existing `finally { setLoading(false) }`, and `signUp` is not called. `signUp` keeps receiving the typed `email` (GoTrue normalizes it server-side) — no behaviour change to the account-creation call. A `checkEmailAddress` that returns `valid: true` (including `lookup-unavailable`) changes nothing downstream.
+The early `return` still runs the existing `finally { setLoading(false) }`, and `signUp` is not called. **`signUp`, the profile insert and the query-cache profile all receive the same `normalizeEmail(email)` value the screen checked** — amended during implementation from "the typed `email`". GoTrue normalizes server-side so either works, but giving the screened address and the created address one string is what makes "one canonical identity" true rather than dependent on a second normalization elsewhere; it also makes the screen's verdict provably about the account that gets created. A `checkEmailAddress` that returns `valid: true` (including `lookup-unavailable`) changes nothing downstream.
 
 `src/components/auth/SignupForm.web.jsx` resolves the code — `Strings.get(emailValidationErrorKey(emailError), lang, { suggestion: emailSuggestion })` — into a second alert (`data-testid="email-error"`, `role="alert"`) beside the existing `error` alert; the hook itself never holds copy. `Strings.get` supports `{placeholder}` replacement (`src/data/strings.js:2772-2796`), so `auth_email_error_typo` reads "That email domain looks misspelled — did you mean {suggestion}?" with localized copy everywhere.
+
+**Both surfaces must render the verdict, not just the standalone form.** `SaveClipsSignupForm.jsx` shares the hook with `captcha: false`, so a blocked address there would re-enable the button with no message — indistinguishable from a broken modal. It renders the same alert.
+
+**Clearing a stale verdict belongs to the hook.** The hook exposes `handleEmailChange(value)`, which sets the address and drops `emailError`/`emailSuggestion` together; the views call it from the email `onChange`. Deciding which state a stale verdict invalidates is logic, not rendering, and two surfaces must recover identically. A view must never destructure a setter the hook does not return — it reads as `undefined` and only throws when the user types, so a structural guard compares the view's destructured names against the hook's returned names.
 
 New `strings.js` keys, each carrying all six locales (`en/es/pt/fr/hi/bn`) with genuine Devanagari `hi` and Bengali `bn` copy: `auth_email_error_required`, `auth_email_error_invalid`, `auth_email_error_disposable`, `auth_email_error_typo`, `auth_email_error_no_mail`.
 

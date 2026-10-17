@@ -14,6 +14,7 @@ import React from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store/store.js';
 import { useSignupForm } from '../auth/SignupForm.jsx';
+import { emailValidationErrorKey } from '../../modules/auth/email-validation-logic.js';
 import Strings from '../../data/strings.js';
 import SignupConsent from '../legal/SignupConsent.jsx';
 
@@ -33,10 +34,12 @@ export default function SaveClipsSignupForm({ onSignupSuccess, onLoginLink }) {
         lastName,
         setLastName,
         email,
-        setEmail,
+        handleEmailChange,
         password,
         setPassword,
         error,
+        emailError,
+        emailSuggestion,
         loading,
         handleSubmit,
     } = useSignupForm({ onSignupSuccess, nativeLanguage: storedNativeLang, captcha: false });
@@ -44,6 +47,15 @@ export default function SaveClipsSignupForm({ onSignupSuccess, onLoginLink }) {
     return (
         <>
             {error && <div className="alert alert-danger" role="alert">{error}</div>}
+            {/* The email screen applies to this surface too (it shares the hook
+                with captcha: false), so a rejected address MUST be explained
+                here — otherwise the button simply stops responding and reads as
+                a broken modal. Same code -> copy contract as the main form. */}
+            {emailError && (
+                <div className="alert alert-danger" role="alert" data-testid="email-error">
+                    {Strings.get(emailValidationErrorKey(emailError), lang, { suggestion: emailSuggestion })}
+                </div>
+            )}
 
             <form onSubmit={handleSubmit}>
                 <div className="row mb-3">
@@ -83,7 +95,7 @@ export default function SaveClipsSignupForm({ onSignupSuccess, onLoginLink }) {
                         className="form-control"
                         id="save-clips-email"
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        onChange={(e) => handleEmailChange(e.target.value)}
                         required
                     />
                 </div>

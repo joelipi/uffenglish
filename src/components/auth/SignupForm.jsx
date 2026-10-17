@@ -49,6 +49,20 @@ export function useSignupForm({
     const [emailSuggestion, setEmailSuggestion] = useState('');
     const [loading, setLoading] = useState(false);
 
+    /**
+     * Replace the address and drop any stale screen verdict.
+     *
+     * Clearing lives here rather than in the views because deciding WHICH state
+     * a stale verdict invalidates is logic, not rendering — and because two
+     * views (the standalone form and the save-clips modal) share this hook and
+     * must recover identically.
+     */
+    function handleEmailChange(value) {
+        setEmail(value);
+        setEmailError('');
+        setEmailSuggestion('');
+    }
+
     async function handleSubmit(e) {
         e.preventDefault();
         setError('');
@@ -234,6 +248,7 @@ export function useSignupForm({
         setLastName,
         email,
         setEmail,
+        handleEmailChange,
         password,
         setPassword,
         nativeLanguage,

@@ -79,6 +79,45 @@ describe('signup email screen wiring', () => {
         expect(returnBlock).not.toMatch(/auth_email_error_/);
     });
 
+    it('returns every name the view destructures', () => {
+        // A view that destructures a key the hook does not return gets
+        // `undefined` — silently green until a user types. This compares the two
+        // lists exactly rather than grepping for one substring.
+        const view = readFileSync(path.join(HERE, 'SignupForm.web.jsx'), 'utf8');
+        const modal = readFileSync(
+            path.join(HERE, '../../components/modals/SaveClipsSignupForm.jsx'), 'utf8');
+
+        const hookReturned = /return\s*\{([\s\S]*?)\n {4}\};\n\}/.exec(source);
+        expect(hookReturned, 'could not find the hook return block').toBeTruthy();
+        const returnedNames = hookReturned[1].split(',').map((s) => s.trim()).filter(Boolean);
+        expect(returnedNames.length, 'the slice looks wrong — guard would be vacuous')
+            .toBeGreaterThan(5);
+
+        for (const [label, sourceText] of [['SignupForm.web.jsx', view], ['SaveClipsSignupForm.jsx', modal]]) {
+            const destructured = /const\s*\{([\s\S]*?)\}\s*=\s*useSignupForm/.exec(sourceText);
+            expect(destructured, `could not find the useSignupForm destructuring in ${label}`)
+                .toBeTruthy();
+            for (const name of destructured[1].split(',').map((s) => s.trim()).filter(Boolean)) {
+                expect(returnedNames, `${label} destructures "${name}", which useSignupForm does not return`)
+                    .toContain(name);
+            }
+        }
+    });
+
+    it('surfaces the verdict on both signup surfaces', () => {
+        // The screen runs on every useSignupForm caller. A surface that renders
+        // no alert makes a rejected address look like a dead submit button.
+        for (const [label, rel] of [
+            ['SignupForm.web.jsx', './SignupForm.web.jsx'],
+            ['SaveClipsSignupForm.jsx', '../../components/modals/SaveClipsSignupForm.jsx'],
+        ]) {
+            const text = readFileSync(path.join(HERE, rel), 'utf8');
+            expect(text, `${label} renders no email verdict`).toContain('emailError');
+            expect(text, `${label} does not resolve the code to copy`)
+                .toContain('emailValidationErrorKey');
+        }
+    });
+
     it('imports the screen from the shared logic module', () => {
         expect(source).toMatch(/from '\.\.\/\.\.\/modules\/auth\/email-validation-logic\.js'/);
         expect(source).toMatch(/normalizeEmail/);

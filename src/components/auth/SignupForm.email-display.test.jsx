@@ -5,6 +5,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createRoot } from 'react-dom/client';
 import { act } from 'react';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const { signupFormMock } = vi.hoisted(() => ({ signupFormMock: vi.fn() }));
 
@@ -38,6 +41,7 @@ const BASE_FORM = {
     setLastName: () => {},
     email: 'jo@example.com',
     setEmail: () => {},
+    handleEmailChange: () => {},
     password: 'password123',
     setPassword: () => {},
     nativeLanguage: 'es',
@@ -142,5 +146,56 @@ describe('SignupForm.web.jsx email screen display', () => {
         const alerts = [...container.querySelectorAll('[role="alert"]')];
         expect(alerts).toHaveLength(2);
         expect(alerts.some((el) => el.dataset.testid === 'email-error')).toBe(true);
+    });
+
+    it('routes a keystroke on #email through the hook, without throwing', async () => {
+        // Regression: the view once destructured setEmailError/setEmailSuggestion,
+        // which the hook never returned, so typing after a rejection threw
+        // `setEmailError is not a function` on EVERY keystroke — breaking the
+        // one path the user must be able to take to recover. Driven through the
+        // real DOM event, because no unit test of the hook alone could catch it.
+        const changes = [];
+        signupFormMock.mockReturnValue({
+            ...BASE_FORM,
+            emailError: 'disposable',
+            handleEmailChange: (value) => changes.push(value),
+        });
+        appStore.setState({ guestNativeLanguage: 'en', userData: null });
+        await act(async () => { host.render(<SignupForm />); });
+        expect(alert()).not.toBeNull();
+
+        // React tracks the input's value, so assigning `.value` directly is
+        // swallowed; the native setter bypasses the tracker and lets onChange run.
+        const input = container.querySelector('#email');
+        const nativeSetter = Object.getOwnPropertyDescriptor(
+            window.HTMLInputElement.prototype, 'value').set;
+        await act(async () => {
+            nativeSetter.call(input, 'jo@gmail.com');
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+
+        expect(changes).toEqual(['jo@gmail.com']);
+    });
+
+    it('does not reference any setter the hook does not return', () => {
+        // The guard that was missing: destructuring a non-existent key is
+        // silent until the user types, so the view may only take functions the
+        // hook actually returns.
+        const HERE = path.dirname(fileURLToPath(import.meta.url));
+        const view = readFileSync(path.join(HERE, 'SignupForm.web.jsx'), 'utf8');
+        const hook = readFileSync(path.join(HERE, 'SignupForm.jsx'), 'utf8');
+
+        const destructured = /const\s*\{([\s\S]*?)\}\s*=\s*useSignupForm/.exec(view);
+        expect(destructured, 'could not find the useSignupForm destructuring').toBeTruthy();
+        const returned = /return\s*\{([\s\S]*?)\n {4}\};\n\}/.exec(hook);
+        expect(returned, 'could not find the hook return block').toBeTruthy();
+
+        const returnedNames = returned[1].split(',').map((s) => s.trim()).filter(Boolean);
+        expect(returnedNames.length, 'the slice looks wrong — guard would be vacuous')
+            .toBeGreaterThan(5);
+        for (const name of destructured[1].split(',').map((s) => s.trim()).filter(Boolean)) {
+            expect(returnedNames, `the view destructures "${name}" but the hook does not return it`)
+                .toContain(name);
+        }
     });
 });

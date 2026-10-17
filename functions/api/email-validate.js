@@ -249,12 +249,13 @@ async function queryDns(domain, type) {
 
 /**
  * A DoH answer we can act on: NOERROR (the answer set is trustworthy) or
- * NXDOMAIN (definitively no such record). Any other rcode — SERVFAIL, REFUSED,
- * a truncation flag — is an uncertainty about the RESOLVER, not a statement
- * about the domain.
+ * NXDOMAIN (definitively no such record). Anything else is an uncertainty about
+ * the RESOLVER, not a statement about the domain — including a truncated
+ * response, where the records we CAN see are not proof that none others exist.
  */
 function isDefinitiveDnsAnswer(json) {
     if (!json || typeof json !== 'object' || typeof json.Status !== 'number') return false;
+    if (json.Truncated === true) return false;
     return json.Status === RCODE_NOERROR || json.Status === RCODE_NXDOMAIN;
 }
 

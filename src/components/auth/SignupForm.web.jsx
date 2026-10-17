@@ -40,9 +40,7 @@ export default function SignupForm({ onSignupSuccess, onLoginLink }) {
         lastName,
         setLastName,
         email,
-        setEmail,
-        setEmailError,
-        setEmailSuggestion,
+        handleEmailChange,
         password,
         setPassword,
         nativeLanguage,
@@ -119,15 +117,7 @@ export default function SignupForm({ onSignupSuccess, onLoginLink }) {
                         className="form-control"
                         id="email"
                         value={email}
-                        onChange={(e) => {
-                            // Clear a stale screen verdict as soon as the address
-                            // is edited — the rejection no longer describes what
-                            // is in the box, so it should not linger until the
-                            // next submit.
-                            setEmail(e.target.value);
-                            if (emailError) setEmailError('');
-                            if (emailSuggestion) setEmailSuggestion('');
-                        }}
+                        onChange={(e) => handleEmailChange(e.target.value)}
                         required
                     />
                 </div>
