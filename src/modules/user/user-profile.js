@@ -3,6 +3,48 @@
 import { syncUserMetaDataMutation, getCurrentUser } from '../api/api.js';
 import { appStore } from '../store/store.js';
 import { nextLessonCompletion } from './lesson-count-logic.js';
+import { toShortId } from '../utils/short-id.js';
+import {
+    profileNeedsRepair,
+    buildCompleteProfileRow,
+} from './profile-repair-logic.js';
+
+/** 24 bits of randomness, the same space the signup form draws from. */
+function newShareCode() {
+    return toShortId(Math.floor(Math.random() * 0xFFFFFF));
+}
+
+/**
+ * Repair a profile row that is missing or incomplete, instead of writing a
+ * fragment into it.
+ *
+ * Every write to `user_profiles` is an upsert, which PostgREST resolves to a
+ * bare INSERT when no row exists — so writing only `course_progress` against an
+ * account with no profile CREATED one with a NULL email and no share code. That
+ * is how the ghost rows in the database were produced. This turns such a write
+ * into a complete one.
+ *
+ * Detection is free: `useUserProfile`'s core-data fallback has no `share_code`,
+ * so the object already in hand says whether a repair is needed — no extra query
+ * on the normal path.
+ *
+ * migration 009 stops the state arising for new accounts; this repairs accounts
+ * already in it.
+ */
+export async function ensureCompleteProfileRow(userData) {
+    if (!profileNeedsRepair(userData)) return true;
+
+    console.warn('[user-profile] Profile row missing or incomplete — repairing it.');
+    const user = await getCurrentUser();
+    if (!user || !user.$id || user.$id === 'guest') return false;
+
+    const complete = buildCompleteProfileRow({ user, shareCode: newShareCode() });
+    if (!complete) return false;
+
+    await syncUserMetaDataMutation(complete, user.$id);
+    console.log(`[user-profile] Repaired profile row for ${user.$id}`);
+    return true;
+}
 
 /**
  * Syncs metadata to Appwrite. 
@@ -30,6 +72,12 @@ export async function saveCourseToUserProfile(courseId, userData) {
         return true;
     }
     try {
+        // Repair BEFORE writing progress. Without this the write below upserts
+        // `course_progress` alone, which fabricates a NULL-email row for any
+        // account whose profile is missing — the exact ghost row this screen was
+        // built to stop.
+        await ensureCompleteProfileRow(userData);
+
         let progressMap = {};
         if (userData?.course_progress) {
             try { progressMap = JSON.parse(userData.course_progress); } catch (e) { }
