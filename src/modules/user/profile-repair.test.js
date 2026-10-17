@@ -58,7 +58,7 @@ beforeEach(() => {
 
 describe('ensureCompleteProfileRow', () => {
     it('writes nothing when the row is already complete', async () => {
-        expect(await ensureCompleteProfileRow(healthyUserData)).toBeNull();
+        expect(await ensureCompleteProfileRow(healthyUserData)).toEqual({ confirmed: true, payload: null });
         expect(syncUserMetaDataMutation).not.toHaveBeenCalled();
         // The read is the only cost on this path.
         expect(getCurrentUserMock).not.toHaveBeenCalled();
@@ -74,7 +74,8 @@ describe('ensureCompleteProfileRow', () => {
         expect(row.email).toBe('jo@example.com');
         expect(row.share_code).toBeTruthy();
         expect(row.share_code.length).toBeGreaterThanOrEqual(4);
-        expect(result.share_code).toBe(row.share_code);
+        expect(result.confirmed).toBe(true);
+        expect(result.payload.share_code).toBe(row.share_code);
     });
 
     it('fills a fragment WITHOUT rotating an existing share code', async () => {
@@ -96,13 +97,14 @@ describe('ensureCompleteProfileRow', () => {
         // rewritten on every network blip.
         fetchIdentityMock.mockResolvedValue({ row: null, error: { message: 'PGRST301' } });
 
-        expect(await ensureCompleteProfileRow({ $id: 'u-1', email: 'jo@example.com' })).toBeNull();
+        expect(await ensureCompleteProfileRow({ $id: 'u-1', email: 'jo@example.com' }))
+            .toMatchObject({ confirmed: false, payload: null });
         expect(syncUserMetaDataMutation).not.toHaveBeenCalled();
     });
 
     it('merges a repaired share code into the store so this session can use it', async () => {
         fetchIdentityMock.mockResolvedValue({ row: null, error: null });
-        await ensureCompleteProfileRow({ $id: 'u-1' });
+        await ensureCompleteProfileRow({ $id: 'u-1', email: 'jo@example.com' });
 
         expect(setCourseDataSpy).toHaveBeenCalledTimes(1);
         const merged = setCourseDataSpy.mock.calls[0][0].userData;
@@ -111,7 +113,8 @@ describe('ensureCompleteProfileRow', () => {
     });
 
     it('writes nothing for a guest', async () => {
-        expect(await ensureCompleteProfileRow({ $id: 'guest' })).toBeNull();
+        expect(await ensureCompleteProfileRow({ $id: 'guest' }))
+            .toMatchObject({ confirmed: false, payload: null });
         expect(fetchIdentityMock).not.toHaveBeenCalled();
     });
 });
@@ -169,6 +172,39 @@ describe('saveCourseToUserProfile', () => {
 
         expect(result).toBeNull();
         expect(syncUserMetaDataMutation).not.toHaveBeenCalled();
+    });
+
+    it('keeps a ghost row from deadlocking: every bootstrap still makes progress', async () => {
+        // Regression: a pre-009 ghost row has a NULL share_code. When the repair
+        // refused to fill it, the row stayed "incomplete" forever, so the caller
+        // aborted EVERY later progress write and the account never got a share
+        // code. After one repair the row must be complete.
+        const ghostRow = {
+            id: 'u-1', email: null, first_name: null, last_name: null,
+            share_code: null, join_date: null, account_status: null, native_language: null,
+        };
+        fetchIdentityMock.mockResolvedValue({ row: ghostRow, error: null });
+
+        await saveCourseToUserProfile('model', { $id: 'u-1', email: 'jo@example.com' });
+
+        const repaired = writes()[0];
+        expect(repaired.share_code, 'the repair must fill the missing share code').toBeTruthy();
+        expect(repaired.email).toBe('jo@example.com');
+
+        // Bootstrap 2: the row is now complete, so the fast path confirms it and
+        // the progress write proceeds instead of being blocked forever.
+        syncUserMetaDataMutation.mockClear();
+        const completeNow = { ...ghostRow, ...repaired };
+        fetchIdentityMock.mockResolvedValue({ row: completeNow, error: null });
+
+        const second = await saveCourseToUserProfile('friend', {
+            $id: 'u-1', email: completeNow.email, share_code: completeNow.share_code,
+            join_date: completeNow.join_date, account_status: completeNow.account_status,
+        });
+
+        expect(second, 'later course bootstraps must not be blocked').toBe(true);
+        expect(writes()).toHaveLength(1);
+        expect(writes()[0].course_progress).toBeTruthy();
     });
 
     it('leaves guests and already-initialised courses alone', async () => {

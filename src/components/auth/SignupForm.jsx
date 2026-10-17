@@ -3,12 +3,13 @@ import { supabase } from '../../modules/api/supabase.js';
 import { queryClient } from '../../modules/api/api.js';
 import { appStore } from '../../modules/store/store.js';
 import { identifyUser, trackEvent } from '../../modules/utils/posthog.js';
-import { toShortId } from '../../modules/utils/short-id.js';
+
 import { sendWelcomeEmail } from '../../modules/user/email-confirmation.js';
 import { guestSignupLessonCredit } from '../../modules/user/lesson-count-logic.js';
 import { calculateCurrentStreak } from '../../modules/user/user-profile.js';
 import { flushPendingFriendCredits } from '../../modules/user/friend-credit-sync.js';
 import { verifyTurnstileToken } from '../../modules/auth/turnstile-logic.js';
+import { generateShareCode } from '../../modules/utils/short-id.js';
 import {
     checkEmailAddress,
     normalizeEmail,
@@ -136,7 +137,7 @@ export function useSignupForm({
                 console.error('[Signup] Failed to import collection module:', importError);
             }
 
-            const shareCode = toShortId(Math.floor(Math.random() * 0xFFFFFF));
+            const shareCode = generateShareCode();
             // A guest's completed lesson lives only in the store — there is no
             // row to write it to, and the bootstrap right after signup seeds the
             // store from that row. Credit the lesson on the success screen so the

@@ -19,3 +19,14 @@ function toShortId(num, minLength = 4) {
 }
 
 export { toShortId, ALPHABET };
+
+/**
+ * Generate a share code from the same 24-bit space the signup form uses.
+ *
+ * Lives here, beside toShortId, so the code space has a single definition — the
+ * signup form and the profile-repair path both draw from it, and two copies of
+ * the expression is how the space silently drifts apart.
+ */
+export function generateShareCode() {
+    return toShortId(Math.floor(Math.random() * 0xFFFFFF));
+}

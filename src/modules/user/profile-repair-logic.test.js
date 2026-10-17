@@ -106,7 +106,7 @@ describe('planProfileRepair', () => {
         };
 
         it('fills only the missing identity fields', () => {
-            const plan = planProfileRepair({ row: ghost, user: sessionUser });
+            const plan = planProfileRepair({ row: ghost, user: sessionUser, shareCode: 'newcode' });
             expect(plan.action).toBe('update');
             expect(plan.payload).toEqual({
                 id: 'u-1',
@@ -115,6 +115,7 @@ describe('planProfileRepair', () => {
                 first_name: 'Jo',
                 last_name: 'Kim',
                 native_language: 'fr',
+                share_code: 'newcode',
             });
         });
 
@@ -152,10 +153,31 @@ describe('planProfileRepair', () => {
             expect('english_level' in plan.payload).toBe(false);
         });
 
-        it('writes nothing when the only gap is a share code it refuses to invent', () => {
+        it('fills a NULL share code — there is nothing to protect', () => {
+            // Regression: refusing here left the target accounts permanently
+            // "incomplete", so the caller's guard blocked every future write and
+            // they never got a share code at all. The column is UNIQUE, so a NULL
+            // cannot hide a previously published code.
+            const onlyCodeMissing = { ...completeRow, share_code: null };
+            const plan = planProfileRepair({ row: onlyCodeMissing, user: sessionUser, shareCode: 'newcode' });
+            expect(plan.action).toBe('update');
+            expect(plan.payload).toEqual({ id: 'u-1', share_code: 'newcode' });
+        });
+
+        it('omits share_code entirely when the caller supplied none', () => {
             const onlyCodeMissing = { ...completeRow, share_code: null };
             expect(planProfileRepair({ row: onlyCodeMissing, user: sessionUser }))
                 .toEqual({ action: 'none' });
+        });
+
+        it('NEVER overwrites an existing share code, even when given a new one', () => {
+            const plan = planProfileRepair({
+                row: { ...completeRow, share_code: 'published', email: null },
+                user: sessionUser,
+                shareCode: 'newcode',
+            });
+            expect(plan.payload.share_code).toBeUndefined();
+            expect('share_code' in plan.payload).toBe(false);
         });
     });
 });

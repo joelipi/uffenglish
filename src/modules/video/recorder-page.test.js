@@ -1016,6 +1016,7 @@ describe('recorder auto-render — zero server changes', () => {
             'src/components/auth/SignupForm.guest-lesson-credit.test.jsx',
             'src/components/auth/signup-welcome-email-wiring.test.js',
             'src/modules/api/api.js',
+            'src/modules/utils/short-id.js',
             'src/modules/user/user-profile.js',
             'src/modules/user/profile-repair-logic.js',
             'src/modules/user/profile-repair-logic.test.js',
