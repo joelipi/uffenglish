@@ -147,6 +147,7 @@
     flex-wrap: nowrap;
     min-width: 0;
     margin-left: auto;
+    max-width: 50%;
 }
 
 .uff-navbar .form-select {
