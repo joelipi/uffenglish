@@ -346,7 +346,7 @@ export default function HomeScreen() {
             </div>
 
             {continueTarget && (
-                <div style={bottomBarStyle}>
+                <div style={bottomBarStyle} data-testid="home-continue-bar">
                     <button data-testid="home-continue" onClick={handleContinueNavigate} style={continueBtnStyle}
                             onMouseEnter={e => { e.currentTarget.style.opacity = '0.9'; e.currentTarget.style.transform = 'scale(1.02)'; }}
                             onMouseLeave={e => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.transform = 'scale(1)'; }}>
