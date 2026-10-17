@@ -20,7 +20,7 @@ export default function LoginRoute() {
                 <img
                     src={headerLogo}
                     alt="UFF"
-                    style={{ height: 'auto', width: 'auto', maxHeight: 40, maxWidth: '35vw', display: 'inline-block' }}
+                    style={{ height: 'auto', width: 'auto', maxHeight: 40, maxWidth: '50vw', display: 'inline-block' }}
                 />
             </header>
             <LoginForm
