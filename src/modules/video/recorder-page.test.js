@@ -1024,8 +1024,6 @@ describe('recorder auto-render — zero server changes', () => {
             // Home top bar: the logo must not push the bell out of the frame.
             'src/components/homescreen/HomeScreen.jsx',
             'tests/home-bell-desktop-fit.spec.js',
-            // Home Continue bar hidden for now (revisit later): style + its test.
-            'src/components/homescreen/HomeScreen.test.jsx',
             // Desktop frame regression: the landing page must not be clipped.
             'tests/landing-frame-desktop.spec.js',
         ];
