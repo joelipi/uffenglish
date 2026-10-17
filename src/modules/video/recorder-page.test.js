@@ -1005,6 +1005,7 @@ describe('recorder auto-render — zero server changes', () => {
             'functions/api/welcome-email.test.js',
             'functions/api/zoho-send.js',
             'wrangler.toml',
+            'src/assets/css/app.css',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);
