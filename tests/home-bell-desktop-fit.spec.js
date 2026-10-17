@@ -19,8 +19,9 @@ async function signIn(page) {
 }
 
 test.describe('HomeScreen bell fits the frame', () => {
-    // Short desktop window: the frame is the narrowest the app ever gets while
-    // still being wider than the phone layout (>=576px takes the 9:16 frame).
+    // Short desktop window: at >=576px the app switches to the 9:16 frame
+    // whose width is 9/16 of the (capped) viewport height, so a 600px-tall
+    // window yields the narrow frame where the logo used to win.
     test.use({ viewport: { width: 1280, height: 600 } });
 
     test('the notification bell stays inside the phone frame', async ({ page }) => {
