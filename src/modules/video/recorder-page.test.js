@@ -1024,6 +1024,31 @@ describe('recorder auto-render — zero server changes', () => {
             // Home top bar: the logo must not push the bell out of the frame.
             'src/components/homescreen/HomeScreen.jsx',
             'tests/home-bell-desktop-fit.spec.js',
+            // Story 070 (lazy signup): /signup redirects to /courses, every
+            // entry point into it goes to the course list, and the course list
+            // gains the signed-out notice. SignupForm.web.jsx is deliberately
+            // NOT here — the form itself is parked, untouched, and still tested
+            // by the specs 070 updates.
+            'src/modules/video/recorder-page.test.js',
+            'stories/070-lazy-signup-funnel/story.md',
+            'stories/071-real-404-page/story.md',
+            'AGENTS.md',
+            'src/components/courses/CourseListings.jsx',
+            'src/components/courses/CourseListings.test.jsx',
+            'src/components/courses/course-listings-source.test.js',
+            'src/components/modals/GuestLoginModal.web.jsx',
+            'src/components/profile/UserProfile.jsx',
+            'src/data/strings.js',
+            'src/data/strings-friend-practice.test.js',
+            'src/modules/courses/guest-viewer-logic.js',
+            'src/modules/courses/guest-viewer-logic.test.js',
+            'src/routes/LoginRoute.jsx',
+            'src/routes/SignupRoute.jsx',
+            'src/routes/SignupRoute.test.jsx',
+            'src/routes/home-navigation-wiring.test.js',
+            'src/routes/lazy-signup.test.js',
+            'src/routes/routes.test.js',
+            'tests/hide-signup-skip-button.spec.js',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);
