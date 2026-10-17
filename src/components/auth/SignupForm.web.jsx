@@ -70,7 +70,7 @@ export default function SignupForm({ onSignupSuccess, onLoginLink }) {
 
     return (
         <>
-            <h2 className="text-center mb-4" style={{ color: 'yellow' }}>
+            <h2 className="text-center mb-4" style={{ color: 'white' }}>
                 {Strings.get('auth_signup_title', lang)}
             </h2>
             {error && <div className="alert alert-danger" role="alert">{error}</div>}
