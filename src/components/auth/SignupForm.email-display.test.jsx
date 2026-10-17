@@ -40,7 +40,6 @@ const BASE_FORM = {
     lastName: 'Kim',
     setLastName: () => {},
     email: 'jo@example.com',
-    setEmail: () => {},
     handleEmailChange: () => {},
     password: 'password123',
     setPassword: () => {},
@@ -190,13 +189,24 @@ describe('SignupForm.web.jsx email screen display', () => {
         });
         appStore.setState({ guestNativeLanguage: 'es', userData: null });
 
-        const host2 = createRoot(container);
-        await act(async () => { host2.render(<SaveClips />); });
+        // Own container + root: `host` is already bound to `container`, so
+        // mounting a second root there would leak on a failed assertion.
+        const modalContainer = document.createElement('div');
+        document.body.appendChild(modalContainer);
+        const modalRoot = createRoot(modalContainer);
+        try {
+            await act(async () => { modalRoot.render(<SaveClips />); });
 
-        const modalAlert = container.querySelector('[data-testid="email-error"]');
-        expect(modalAlert, 'the modal renders no email verdict').not.toBeNull();
-        expect(modalAlert.textContent)
-            .toBe(Strings.get(emailValidationErrorKey('domain-not-found'), 'es'));
-        act(() => host2.unmount());
+            const modalAlert = modalContainer.querySelector('[data-testid="email-error"]');
+            expect(modalAlert, 'the modal renders no email verdict').not.toBeNull();
+            expect(modalAlert.textContent)
+                .toBe(Strings.get(emailValidationErrorKey('domain-not-found'), 'es'));
+            // Localized, not the English source string.
+            expect(modalAlert.textContent)
+                .not.toBe(Strings.get(emailValidationErrorKey('domain-not-found'), 'en'));
+        } finally {
+            act(() => modalRoot.unmount());
+            modalContainer.remove();
+        }
     });
 });

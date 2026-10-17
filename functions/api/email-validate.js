@@ -178,10 +178,9 @@ export function classifyDnsResult(dnsJson, { domain, addressRecords } = {}) {
 
     const { Status } = dnsJson;
 
-    // A truncated response is an uncertainty, not an answer: the records we can
-    // see are not proof that none others exist. Checked here as well as in the
-    // fallback, so the rule holds for the MX query too.
-    if (dnsJson.Truncated === true) {
+    // A truncated response is an uncertainty, not an answer. Checked here as
+    // well as in the fallback, via the same predicate.
+    if (isTruncatedAnswer(dnsJson)) {
         console.warn(`[email-validate] truncated DNS answer for ${domain} — allowing signup`);
         return { ok: true, reason: 'lookup-unavailable' };
     }
@@ -256,14 +255,22 @@ async function queryDns(domain, type) {
 }
 
 /**
+ * A truncated answer is an uncertainty, not an answer: the records we can see
+ * are not proof that none others exist. Single-sourced so the MX query and the
+ * A/AAAA fallback cannot drift apart on this rule.
+ */
+function isTruncatedAnswer(json) {
+    return !!json && typeof json === 'object' && json.Truncated === true;
+}
+
+/**
  * A DoH answer we can act on: NOERROR (the answer set is trustworthy) or
  * NXDOMAIN (definitively no such record). Anything else is an uncertainty about
- * the RESOLVER, not a statement about the domain — including a truncated
- * response, where the records we CAN see are not proof that none others exist.
+ * the RESOLVER, not a statement about the domain.
  */
 function isDefinitiveDnsAnswer(json) {
     if (!json || typeof json !== 'object' || typeof json.Status !== 'number') return false;
-    if (json.Truncated === true) return false;
+    if (isTruncatedAnswer(json)) return false;
     return json.Status === RCODE_NOERROR || json.Status === RCODE_NXDOMAIN;
 }
 
@@ -286,9 +293,9 @@ async function queryAddressRecords(domain) {
             // "no opinion" silently, which is the opposite of the contract.
             const why = !json || typeof json !== 'object'
                 ? 'unreadable answer'
-                : (json.Truncated === true
+                : (isTruncatedAnswer(json)
                     ? 'truncated answer'
-                    : `rcode ${json.Status}`);
+                    : (typeof json.Status === 'number' ? `rcode ${json.Status}` : 'unreadable answer'));
             console.warn(`[email-validate] ${type} lookup unusable for ${domain} (${why}) — allowing signup`);
             return null;
         }

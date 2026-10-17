@@ -40,6 +40,14 @@ vi.mock('../../modules/user/email-confirmation.js', () => ({
     sendWelcomeEmail: vi.fn(async () => ({ sent: true })),
 }));
 
+// The zero-cost email screen runs inside handleSubmit. Mocked so this spec
+// stays hermetic — unmocked it would attempt a real fetch and pass only because
+// the client wrapper fails OPEN, which is not what this test is about.
+vi.mock('../../modules/auth/email-validation-logic.js', () => ({
+    checkEmailAddress: vi.fn(async () => ({ valid: true, reason: 'ok', suggestion: '' })),
+    normalizeEmail: (raw) => (typeof raw === 'string' ? raw.trim().toLowerCase() : ''),
+}));
+
 import { useSignupForm } from './SignupForm.jsx';
 import { appStore } from '../../modules/store/store.js';
 import { nextLessonCompletion } from '../../modules/user/lesson-count-logic.js';
@@ -58,7 +66,7 @@ function Harness() {
         <div>
             {click('first', () => form.setFirstName('Jo'))}
             {click('last', () => form.setLastName('Kim'))}
-            {click('email', () => form.setEmail('jo@example.com'))}
+            {click('email', () => form.handleEmailChange('jo@example.com'))}
             {click('password', () => form.setPassword('password123'))}
             {click('submit', () => form.handleSubmit({ preventDefault() {} }))}
         </div>

@@ -86,6 +86,21 @@ afterEach(() => {
 
 // ------------------------------------------------------- classifyDnsResult (pure)
 describe('classifyDnsResult', () => {
+    it('treats a truncated answer as an uncertainty, not an empty one', () => {
+        // Records that are present are not proof that none others exist, so a
+        // truncated answer cannot decide "no MX" and must not become a
+        // no-mail-route rejection.
+        expect(classifyDnsResult({ Status: 0, Answer: [], Truncated: true }, { domain: 'x.test' }))
+            .toEqual({ ok: true, reason: 'lookup-unavailable' });
+        // Even with a real MX present, the answer is incomplete, so we have no
+        // business certifying it.
+        expect(classifyDnsResult({ ...MX_OK, Truncated: true }, { domain: 'x.test' }))
+            .toEqual({ ok: true, reason: 'lookup-unavailable' });
+        // A Null MX would otherwise be a rejection; truncation must win over it.
+        expect(classifyDnsResult({ ...MX_NULL, Truncated: true }, { domain: 'x.test' }))
+            .toEqual({ ok: true, reason: 'lookup-unavailable' });
+    });
+
     it('rejects a domain that does not exist (NXDOMAIN)', () => {
         expect(classifyDnsResult(NXDOMAIN, { domain: 'gone.test' }))
             .toEqual({ ok: false, reason: 'domain-not-found' });

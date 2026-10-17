@@ -28,6 +28,9 @@ const region = source.slice(start, end);
 
 const order = (token) => region.indexOf(token);
 
+const SRC_DIR = path.resolve(HERE, '../..');
+const COMPONENTS_DIR = path.join(SRC_DIR, 'components');
+
 /**
  * Every component that CALLS useSignupForm and renders a signup form.
  *
@@ -41,7 +44,6 @@ const order = (token) => region.indexOf(token);
  *    TODO is not mistaken for calling it.
  */
 function findSurfaces() {
-    const componentsDir = path.resolve(HERE, '..');
     const found = [];
     const walk = (dir) => {
         for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -54,12 +56,18 @@ function findSurfaces() {
             const text = readFileSync(full, 'utf8');
             const code = text.split('\n').map((l) => l.replace(/\/\/.*$/, '')).join('\n');
             const defines = /export\s+function\s+useSignupForm\b/.test(code);
-            if (!defines && /useSignupForm\s*\(/.test(code) && /<form\b/.test(text)) {
+            // A surface is identified by destructuring the hook's result. That
+            // alone excludes the `return null` native stub, whose only mention of
+            // the hook is inside a `//` comment and which the comment strip
+            // therefore removes — so no `<form` predicate is needed, and adding
+            // one would silently hide a legitimate surface that renders its form
+            // through a child component.
+            if (!defines && /\}\s*=\s*useSignupForm\s*\(/.test(code)) {
                 found.push({ name: entry.name, text });
             }
         }
     };
-    walk(componentsDir);
+    walk(COMPONENTS_DIR);
     return found;
 }
 
@@ -146,6 +154,36 @@ describe('signup email screen wiring', () => {
         expect(returnedNames).toContain('handleEmailChange');
     });
 
+    it('leaves no caller of the removed setEmail anywhere under src/', () => {
+        // Removing setEmail from the return silently broke two existing
+        // harnesses: `form.setEmail(...)` became `undefined`, React rethrew the
+        // TypeError out of the click handler, and — the dangerous part — the
+        // specs still reported PASS, so the email state was simply never set.
+        // findSurfaces skips test files, so nothing else here would notice.
+        const offenders = [];
+        const walk = (dir) => {
+            for (const entry of readdirSync(dir, { withFileTypes: true })) {
+                const full = path.join(dir, entry.name);
+                if (entry.isDirectory()) {
+                    walk(full);
+                    continue;
+                }
+                if (!/\.jsx?$/.test(entry.name)) continue;
+                // Comments are stripped so this file's own prose about the
+                // broken harnesses cannot match itself. Test files ARE scanned,
+                // since the two broken callers were harnesses.
+                const code = readFileSync(full, 'utf8')
+                    .split('\n').map((l) => l.replace(/\/\/.*$/, '')).join('\n');
+                if (new RegExp('\\.set' + 'Email\\s*\\(').test(code)) {
+                    offenders.push(path.relative(SRC_DIR, full));
+                }
+            }
+        };
+        walk(SRC_DIR);
+        expect(offenders, 'these call the removed bare address setter on a hook result')
+            .toEqual([]);
+    });
+
     it('routes every email input through handleEmailChange', () => {
         // The clearing is only reached if the input actually calls the hook.
         for (const { name, text } of findSurfaces()) {
@@ -159,15 +197,22 @@ describe('signup email screen wiring', () => {
         // `toContain('emailError')` is satisfied by the destructuring alone, so
         // deleting the alert while keeping the destructure would stay green.
         for (const { name, text } of findSurfaces()) {
-            const start = text.indexOf('{emailError &&');
-            expect(start, `${name} renders no emailError alert at all`).toBeGreaterThan(-1);
+            const blockStart = text.indexOf('{emailError &&');
+            expect(blockStart, `${name} renders no emailError alert at all`).toBeGreaterThan(-1);
 
             // Bound the slice at the next <form, i.e. the end of the alert block.
-            const end = text.indexOf('<form', start);
-            const block = text.slice(start, end === -1 ? text.length : end);
+            // Assert the bound exists: silently falling back to "the rest of the
+            // file" is the slice-to-EOF failure mode, where a footer alert or a
+            // stray import could satisfy the check.
+            const blockEnd = text.indexOf('<form', blockStart);
+            expect(blockEnd, `${name} alert block is not bounded by a form`).toBeGreaterThan(blockStart);
+            const block = text.slice(blockStart, blockEnd);
 
-            expect(block, `${name} alert has no alert role`).toContain('role="alert"');
-            expect(block, `${name} alert has no testid`).toContain('data-testid="email-error"');
+            // role and testid must belong to ONE element, not to two siblings.
+            const openTag = block.slice(0, block.indexOf('>'));
+            expect(openTag, `${name} alert element has no alert role`).toContain('role="alert"');
+            expect(openTag, `${name} alert element has no testid`)
+                .toContain('data-testid="email-error"');
             // The code must be resolved to copy INSIDE the alert, not merely
             // imported somewhere in the file.
             expect(block, `${name} alert does not resolve the code to copy`)
