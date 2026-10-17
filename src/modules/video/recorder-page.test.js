@@ -1049,6 +1049,8 @@ describe('recorder auto-render — zero server changes', () => {
             'src/routes/lazy-signup.test.js',
             'src/routes/routes.test.js',
             'tests/hide-signup-skip-button.spec.js',
+            // Desktop frame regression: the landing page must not be clipped.
+            'tests/landing-frame-desktop.spec.js',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);

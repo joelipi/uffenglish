@@ -2,11 +2,14 @@
 import { test, expect } from '@playwright/test';
 
 // HomeScreen's top bar is a `justify-content: space-between` flex row: hamburger,
-// logo, notification bell. The logo is a ~5.3:1 wordmark pinned to a 40px
-// height, so on a SHORT desktop viewport the 9:16 frame is narrow (9/16 of the
-// capped viewport height) and the unshrinkable logo pushed the bell past the
-// frame's right edge — `#root.video-frame` is `overflow: hidden`, so the bell
-// was clipped away entirely and simply vanished.
+// logo, notification bell. The logo is a ~5.3:1 wordmark, and on a SHORT desktop
+// window the 9:16 frame is only 9/16 of the viewport height, so the row runs out
+// of space. Two separate bugs lived here:
+//   1. the unshrinkable logo pushed the bell past the frame's right edge, where
+//      `#root.video-frame` (overflow: hidden) clipped it to nothing;
+//   2. capping only the logo's `maxWidth` while pinning `height` squeezed the
+//      wordmark out of proportion, so the logo has to be clamped on BOTH axes
+//      with `auto` width/height (which keeps the intrinsic ratio).
 
 /** Inject a signed-in viewer into the app's own query cache (see AGENTS.md). */
 async function signIn(page) {
@@ -19,10 +22,10 @@ async function signIn(page) {
 }
 
 test.describe('HomeScreen bell fits the frame', () => {
-    // Short desktop window: at >=576px the app switches to the 9:16 frame
-    // whose width is 9/16 of the (capped) viewport height, so a 600px-tall
-    // window yields the narrow frame where the logo used to win.
-    test.use({ viewport: { width: 1280, height: 600 } });
+    // 500px-tall desktop window: the 9:16 frame is ~281px wide, the narrowest
+    // the app gets on a non-phone viewport. 37.8 (hamburger) + 213 (logo) + 35
+    // (bell) does not fit, so the row has to actually give somewhere.
+    test.use({ viewport: { width: 1280, height: 500 } });
 
     test('the notification bell stays inside the phone frame', async ({ page }) => {
         await page.goto('/home');
@@ -35,12 +38,13 @@ test.describe('HomeScreen bell fits the frame', () => {
         const bellBox = await bell.boundingBox();
         expect(frame).not.toBeNull();
         expect(bellBox).not.toBeNull();
-        // Visible means fully inside the clipping frame, not just "has a box".
+        // "Visible" must mean fully inside the clipping frame, not merely that
+        // the element has a box (a clipped element still reports one).
         expect(bellBox.x).toBeGreaterThanOrEqual(frame.x - 1);
         expect(bellBox.x + bellBox.width).toBeLessThanOrEqual(frame.x + frame.width + 1);
 
-        // The top bar itself must not overflow: `scrollWidth` only exceeds
-        // `clientWidth` when a child is actually pushed past the row.
+        // The top bar must not overflow: scrollWidth only exceeds clientWidth
+        // when a child is actually pushed past the row's right edge.
         const overflow = await page.evaluate(() => {
             const bar = document.querySelector('[data-testid="home-logo"]')?.parentElement;
             return bar ? bar.scrollWidth - bar.clientWidth : null;
@@ -48,24 +52,28 @@ test.describe('HomeScreen bell fits the frame', () => {
         expect(overflow).toBe(0);
     });
 
-    test('the logo is the elastic child, so it shrinks before the bell does', async ({ page }) => {
+    test('the logo is the elastic child and keeps its intrinsic aspect ratio', async ({ page }) => {
         await page.goto('/home');
         await signIn(page);
 
         const logo = page.locator('[data-testid="home-logo"]');
-        const bell = page.locator('[data-testid="notification-bell"]');
-        await expect(bell).toBeVisible();
+        await expect(page.locator('[data-testid="notification-bell"]')).toBeVisible();
 
-        // On this ~287px-wide frame the natural 40px-high wordmark is ~213px
-        // wide, which does not leave room for the bell. The logo — the only
-        // elastic child — must therefore render narrower than its intrinsic
-        // size instead of pushing the bell out of the frame.
         const measured = await logo.evaluate((el) => {
-            const natural = (el.naturalWidth / el.naturalHeight) * 40; // 40px height
-            return { rendered: el.getBoundingClientRect().width, natural };
+            const naturalRatio = el.naturalWidth / el.naturalHeight;
+            const box = el.getBoundingClientRect();
+            return {
+                naturalWidthAtHeight40: (el.naturalWidth / el.naturalHeight) * 40,
+                renderedWidth: box.width,
+                ratioSkew: (box.width / box.height) / naturalRatio,
+            };
         });
         // More than a pixel of slack, so sub-pixel rounding of the unsqueezed
-        // wordmark (rendered 213.328 vs natural 213.333) cannot pass this.
-        expect(measured.rendered).toBeLessThan(measured.natural - 1);
+        // wordmark (213.328 rendered vs 213.333 natural) cannot pass this.
+        expect(measured.renderedWidth).toBeLessThan(measured.naturalWidthAtHeight40 - 1);
+        // A `maxWidth`-only clamp with a pinned `height` renders 124x40 here,
+        // i.e. a 1.4x skew; the logo must stay proportional to the source file.
+        expect(measured.ratioSkew).toBeGreaterThan(0.98);
+        expect(measured.ratioSkew).toBeLessThan(1.02);
     });
 });
