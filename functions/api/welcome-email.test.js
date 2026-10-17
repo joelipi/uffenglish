@@ -1,5 +1,5 @@
 // Unit tests for /api/welcome-email. `fetch` is stubbed — no real GoTrue,
-// PostgREST or Resend call is made. Also pins the non-blocking contract: a
+// PostgREST or Zoho CPaaS call is made. Also pins the non-blocking contract: a
 // provider or storage failure must still return 200 with sent:false so the
 // SPA's signup flow can never fail because of email.
 
@@ -26,7 +26,7 @@ function makeRequest({ jwt = 'jwt-123', origin = 'https://app.example', acceptLa
 
 function makeEnv(overrides = {}) {
     return {
-        RESEND_API_KEY: 're_test',
+        ZOHO_CPAAS_API_KEY: 're_test',
         EMAIL_FROM: 'UFF <welcome@uff.example>',
         SUPABASE_SERVICE_ROLE_KEY: 'service-key',
         ...overrides,
@@ -44,8 +44,8 @@ function installFetch({ userId = 'user-1', email = 'a@b.com', userMetadata = {},
         if (url.includes('/rest/v1/email_confirm_tokens')) {
             return { ok: storeOk, status: storeOk ? 201 : 500, json: async () => [] };
         }
-        if (url.includes('api.resend.com/emails')) {
-            return { ok: resendOk, status: resendOk ? 200 : 422, json: async () => ({ id: 'email-1' }) };
+        if (url.includes('cpaas.zoho.com/v1.1/email')) {
+            return { ok: resendOk, status: resendOk ? 200 : 422, json: async () => ({ data: [{ message: 'OK' }], message: 'OK' }) };
         }
         throw new Error(`unexpected fetch: ${url}`);
     });
@@ -100,9 +100,9 @@ describe('onRequestPost — welcome-email Function', () => {
         expect(fetchStub).toHaveBeenCalledTimes(1);
     });
 
-    it('is non-blocking: without RESEND_API_KEY it returns 200 sent:false and stores nothing', async () => {
+    it('is non-blocking: without ZOHO_CPAAS_API_KEY it returns 200 sent:false and stores nothing', async () => {
         const { fetchStub } = installFetch();
-        const res = await onRequestPost({ request: makeRequest(), env: makeEnv({ RESEND_API_KEY: undefined }) });
+        const res = await onRequestPost({ request: makeRequest(), env: makeEnv({ ZOHO_CPAAS_API_KEY: undefined }) });
         expect(res.status).toBe(200);
         expect(await res.json()).toMatchObject({ sent: false, reason: 'email-not-configured' });
         // Only the JWT verification call happened — no token row, no email.
@@ -134,38 +134,38 @@ describe('onRequestPost — welcome-email Function', () => {
         expect(row.token_hash).toMatch(/^[0-9a-f]{64}$/);
         expect(new Date(row.expires_at).getTime()).toBeGreaterThan(Date.now());
 
-        const resend = calls.find((c) => c.url.includes('api.resend.com/emails'));
-        expect(resend.options.headers.Authorization).toBe('Bearer re_test');
+        const resend = calls.find((c) => c.url.includes('cpaas.zoho.com/v1.1/email'));
+        expect(resend.options.headers.Authorization).toBe('Zoho-enczapikey re_test');
         const payload = JSON.parse(resend.options.body);
-        expect(payload.from).toBe('UFF <welcome@uff.example>');
-        expect(payload.to).toEqual(['a@b.com']);
+        expect(payload.from).toEqual({ address: 'welcome@uff.example', name: 'UFF' });
+        expect(payload.to).toEqual([{ email_address: { address: 'a@b.com' } }]);
 
         // The emailed token is the preimage of the stored hash.
-        const url = payload.text.match(/https:\/\/app\.example\/confirm-email\?token=[0-9a-f]{64}/)[0];
+        const url = payload.textbody.match(/https:\/\/app\.example\/confirm-email\?token=[0-9a-f]{64}/)[0];
         const raw = url.split('token=')[1];
         expect(await sha256Hex(raw)).toBe(row.token_hash);
         // The raw token must never be written to the database.
         expect(ins.options.body).not.toContain(raw);
         // The configured origin wins over the caller-supplied Origin header.
-        expect(payload.text).not.toContain('evil.example');
+        expect(payload.textbody).not.toContain('evil.example');
     });
 
     it('falls back to the request Origin when SITE_URL is unset', async () => {
         const { calls } = installFetch();
         await onRequestPost({ request: makeRequest({ origin: 'https://staging.example' }), env: makeEnv() });
-        const resend = calls.find((c) => c.url.includes('api.resend.com/emails'));
-        expect(JSON.parse(resend.options.body).text).toContain('https://staging.example/confirm-email?token=');
+        const resend = calls.find((c) => c.url.includes('cpaas.zoho.com/v1.1/email'));
+        expect(JSON.parse(resend.options.body).textbody).toContain('https://staging.example/confirm-email?token=');
     });
 
     const sentEmail = (calls) =>
-        JSON.parse(calls.find((c) => c.url.includes('api.resend.com/emails')).options.body);
+        JSON.parse(calls.find((c) => c.url.includes('cpaas.zoho.com/v1.1/email')).options.body);
 
     it('localizes the email to the user metadata native_language', async () => {
         const { calls } = installFetch({ userMetadata: { native_language: 'ES' } });
         await onRequestPost({ request: makeRequest(), env: makeEnv() });
         const payload = sentEmail(calls);
         expect(payload.subject).toBe('Confirma tu correo electrónico');
-        expect(payload.html).toContain('Confirmar mi correo');
+        expect(payload.htmlbody).toContain('Confirmar mi correo');
     });
 
     it('treats TW as non-simplified (Traditional) Chinese', async () => {
@@ -211,6 +211,6 @@ describe('onRequestPost — welcome-email Function', () => {
         const res = await onRequestPost({ request: makeRequest(), env: makeEnv() });
         expect(res.status).toBe(200);
         expect(await res.json()).toMatchObject({ sent: false, reason: 'store-failed' });
-        expect(calls.some((c) => c.url.includes('api.resend.com/emails'))).toBe(false);
+        expect(calls.some((c) => c.url.includes('cpaas.zoho.com/v1.1/email'))).toBe(false);
     });
 });

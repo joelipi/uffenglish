@@ -993,7 +993,18 @@ describe('recorder auto-render — zero server changes', () => {
             'scripts/lib/gemini.js',
             'scripts/lib/gemini.test.js',
             'scripts/translate-master-csv.mjs',
-
+            // Zoho CPaaS email migration.
+            '.env.example',
+            'docs/auth-emails.md',
+            'docs/email-confirmation.md',
+            'docs/email-setup.md',
+            'functions/api/auth-email-hook.js',
+            'functions/api/auth-email-hook.test.js',
+            'functions/api/resend-send.js',
+            'functions/api/welcome-email.js',
+            'functions/api/welcome-email.test.js',
+            'functions/api/zoho-send.js',
+            'wrangler.toml',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);
