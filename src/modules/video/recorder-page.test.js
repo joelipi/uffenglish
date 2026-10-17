@@ -1027,12 +1027,6 @@ describe('recorder auto-render — zero server changes', () => {
             // Home top bar: the logo must not push the bell out of the frame.
             'src/components/homescreen/HomeScreen.jsx',
             'tests/home-bell-desktop-fit.spec.js',
-            // Story 070 (lazy signup): /signup redirects to /courses, every
-            // entry point into it goes to the course list, and the course list
-            // gains the signed-out notice. SignupForm.web.jsx is deliberately
-            // NOT here — the form itself is parked, untouched, and still tested
-            // by the specs 070 updates.
-            'src/modules/video/recorder-page.test.js',
             'stories/070-lazy-signup-funnel/story.md',
             'stories/071-real-404-page/story.md',
             'AGENTS.md',

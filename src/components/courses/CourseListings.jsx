@@ -105,11 +105,10 @@ export default function CourseListings({ lang = 'en', courses, isLoading = false
             )}
 
             <div data-testid="friend-courses-scroll" style={scrollStyle}>
-                {/* While the profile query resolves, `isGuest` is false, so the
-                    banners stay hidden and the notice is suppressed too. Both
-                    PushNotificationsOptIn and PWAInstallBanner guard every
-                    `userId` use, so rendering them with `userId={undefined}`
-                    is safe (no early return needed). */}
+                {/* Renders immediately: `isGuest` is false while the profile query
+                    resolves, so the banners show right away, but each of them
+                    self-gates on `userId` internally and renders nothing for an
+                    unknown/anonymous viewer. */}
                 {!isGuest && (
                     <>
                         <PWAInstallBanner lang={lang} userId={userId} />
