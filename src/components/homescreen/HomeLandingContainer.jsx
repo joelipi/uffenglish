@@ -5,7 +5,6 @@ import { useAuthStatus, fetchUserByShareCode } from '../../modules/api/api.js';
 import Strings from '../../data/strings.js';
 import { useNativeLanguage } from '../../hooks/use-native-language.js';
 import {
-    GO_LESSON_PATH,
     normalizeShareCode,
     planShareCodeSubmit,
     shareCodeErrorStringKey,
@@ -49,7 +48,7 @@ export default function HomeLandingContainer() {
     }
 
     function handleNoCode() {
-        navigate(GO_LESSON_PATH);
+        navigate('/courses');
     }
 
     function handleInputChange() {
