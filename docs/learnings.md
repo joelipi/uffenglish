@@ -234,3 +234,19 @@
 **Takeaway**: After any subagent commits to the branch, never `--amend` the tip. To fix your own commit message, `git reset --soft <the commit before yours>` and recommit your files (leaving the reviewer's report to its own commit), or amend before the reviewer runs.
 
 ---
+
+## In vitest's jsdom env, `new URL(x, import.meta.url)` throws but `fileURLToPath(import.meta.url)` works
+**Date**: 2026-10-17
+**Area**: testing
+**What happened**: A source-guard test under `src/**` resolved a sibling file with `readFileSync(fileURLToPath(new URL('./Foo.jsx', import.meta.url)))` and failed with `TypeError: The URL must be of scheme file`. The same file worked when rewritten to the repo's existing convention, `path.dirname(fileURLToPath(import.meta.url))` + `path.join(HERE, 'Foo.jsx')`, which `src/modules/user/email-confirmation-migration.test.js` and `src/modules/video/recorder-page.test.js` already use.
+**Takeaway**: Under `vitest.config.js`'s `environment: 'jsdom'`, the global `URL` is jsdom's, so `new URL()` against `import.meta.url` can resolve to a non-`file:` URL. Use `path.dirname(fileURLToPath(import.meta.url))` in every `src/**` test that reads a sibling file — it is the established convention and works in both environments. Functions tests can use either, since they opt into `// @vitest-environment node`.
+
+---
+
+## `recorder-page.test.js` fails on ANY uncommitted file, including sandbox agent config
+**Date**: 2026-10-17
+**Area**: workflow
+**What happened**: `src/modules/video/recorder-page.test.js`'s "implementation diff touches only the allowlist" guard runs `git diff --name-only HEAD` plus `git status --porcelain`, so it reports failure for files that have nothing to do with the branch. In this sandbox four tracked `.opencode/agents/*.md` files are left modified (a model-routing override injected at session start), which made that one guard red on a fully green branch and cost a debugging detour each time it was seen.
+**Takeaway**: That guard is a worktree-hygiene check, not a branch check — commit your work first so `git diff HEAD` is empty, then `git stash push -- .opencode/` to confirm the real state and `git stash pop` immediately. Do **not** `git checkout` the `.opencode/` edits to make it pass: they are injected before the session starts and discarding them is discarding work you did not create. When attributing this failure, confirm with `git diff --name-only HEAD` that no story file is in the diff.
+
+---
