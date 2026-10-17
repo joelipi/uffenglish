@@ -54,7 +54,7 @@ describe('sign-up surfaces show legal links', () => {
     };
 
     describe('SaveClipsModal', () => {
-        it('shows the legal links after the form', () => {
+        it('does not render redundant legal links (covered by the consent disclaimer)', () => {
             appStore.setState({
                 saveClipsModalOpen: true,
                 pendingPublishLessonId: null,
@@ -65,47 +65,25 @@ describe('sign-up surfaces show legal links', () => {
 
             const modal = container.querySelector('#saveClipsModal');
             const links = modal.querySelector('[data-testid="legal-links"]');
-            expect(links).not.toBeNull();
-            expectPrivacyAndTerms(modal);
-
-            const form = modal.querySelector('form');
-            expect(form.contains(links)).toBe(true);
+            expect(links).toBeNull();
         });
     });
 
     describe('SaveClipsSignupForm', () => {
-        it('shows the legal links inside the form, above the submit button', () => {
+        it('does not render redundant legal links (covered by the consent disclaimer)', () => {
             render(SaveClipsSignupForm);
 
             const links = container.querySelector('[data-testid="legal-links"]');
-            expect(links).not.toBeNull();
-            expectPrivacyAndTerms();
-
-            const form = container.querySelector('form');
-            expect(form).not.toBeNull();
-            expect(form.contains(links)).toBe(true);
-
-            const button = form.querySelector('button[type="submit"]');
-            expect(button).not.toBeNull();
-            expect(comesAfter(links, button)).toBe(true);
+            expect(links).toBeNull();
         });
     });
 
     describe('SignupForm (/signup)', () => {
-        it('shows the legal links inside the form, above the submit button', () => {
+        it('does not render redundant legal links (covered by the consent disclaimer)', () => {
             render(SignupForm);
 
             const links = container.querySelector('[data-testid="legal-links"]');
-            expect(links).not.toBeNull();
-            expectPrivacyAndTerms();
-
-            const form = container.querySelector('form');
-            expect(form).not.toBeNull();
-            expect(form.contains(links)).toBe(true);
-
-            const button = form.querySelector('button[type="submit"]');
-            expect(button).not.toBeNull();
-            expect(comesAfter(links, button)).toBe(true);
+            expect(links).toBeNull();
         });
     });
 

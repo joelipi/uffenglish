@@ -15,7 +15,6 @@ import { useStore } from 'zustand';
 import { appStore } from '../../modules/store/store.js';
 import { useSignupForm } from '../auth/SignupForm.jsx';
 import Strings from '../../data/strings.js';
-import LegalLinks from '../legal/LegalLinks.jsx';
 import SignupConsent from '../legal/SignupConsent.jsx';
 
 export default function SaveClipsSignupForm({ onSignupSuccess, onLoginLink }) {
@@ -104,7 +103,6 @@ export default function SaveClipsSignupForm({ onSignupSuccess, onLoginLink }) {
                 </div>
 
                 <SignupConsent lang={lang} />
-                <LegalLinks lang={lang} />
 
                 <button type="submit" className="btn btn-primary w-100" disabled={loading}>
                     {loading

@@ -19,7 +19,7 @@ export default function AuthLayout() {
                     style={{ height: 'auto', width: 'auto', maxHeight: 40, maxWidth: '50vw', display: 'inline-block' }}
                 />
             </header>
-            <div style={{ minHeight: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem 1rem' }}>
+            <div style={{ minHeight: '100%', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '2rem 1rem 4rem' }}>
                 <div style={{
                     backgroundColor: '#1a3a5a',
                     padding: '2rem',

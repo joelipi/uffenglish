@@ -5,7 +5,6 @@ import { useSignupForm } from './SignupForm.jsx';
 import TurnstileCaptcha from './TurnstileCaptcha.web.jsx';
 import Strings from '../../data/strings.js';
 import { SIGNUP_LANGUAGES } from '../../data/languages.js';
-import LegalLinks from '../legal/LegalLinks.jsx';
 import SignupConsent from '../legal/SignupConsent.jsx';
 
 const ENGLISH_LEVELS = [
@@ -158,7 +157,6 @@ export default function SignupForm({ onSignupSuccess, onLoginLink }) {
                 </div>
 
                 <SignupConsent lang={lang} />
-                <LegalLinks lang={lang} />
 
                 <TurnstileCaptcha ref={turnstileRef} />
 
