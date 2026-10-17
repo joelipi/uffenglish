@@ -1635,6 +1635,46 @@ const strings = {
         hi: "ईमेल पता",
         bn: "ইমেইল ঠিকানা"
     },
+    'auth_email_error_required': {
+        en: "Please enter your email address.",
+        es: "Introduce tu correo electrónico.",
+        pt: "Digite seu endereço de e-mail.",
+        fr: "Veuillez saisir votre adresse e-mail.",
+        hi: "कृपया अपना ईमेल पता दर्ज करें।",
+        bn: "অনুগ্রহ করে আপনার ইমেইল ঠিকানা লিখুন।"
+    },
+    'auth_email_error_invalid': {
+        en: "That email address doesn't look right. Please check it and try again.",
+        es: "Ese correo electrónico no parece correcto. Compruébalo e inténtalo de nuevo.",
+        pt: "Esse endereço de e-mail não parece correto. Verifique e tente novamente.",
+        fr: "Cette adresse e-mail semble incorrecte. Vérifiez-la et réessayez.",
+        hi: "यह ईमेल पता सही नहीं लगता। कृपया इसे जाँचकर फिर से प्रयास करें।",
+        bn: "এই ইমেইল ঠিকানাটি সঠিক মনে হচ্ছে না। অনুগ্রহ করে যাচাই করে আবার চেষ্টা করুন।"
+    },
+    'auth_email_error_disposable': {
+        en: "Please use a permanent email address — temporary inboxes aren't allowed.",
+        es: "Usa una dirección de correo permanente: no se permiten buzones temporales.",
+        pt: "Use um endereço de e-mail permanente — caixas temporárias não são permitidas.",
+        fr: "Utilisez une adresse e-mail permanente — les boîtes jetables ne sont pas autorisées.",
+        hi: "कृपया स्थायी ईमेल पते का उपयोग करें — अस्थायी इनबॉक्स स्वीकार्य नहीं हैं।",
+        bn: "অনুগ্রহ করে একটি স্থায়ী ইমেইল ঠিকানা ব্যবহার করুন — অস্থায়ী ইনবক্স গ্রহণযোগ্য নয়।"
+    },
+    'auth_email_error_typo': {
+        en: "That email domain looks misspelled — did you mean {suggestion}?",
+        es: "Ese dominio de correo parece mal escrito: ¿quisiste decir {suggestion}?",
+        pt: "Esse domínio de e-mail parece escrito errado — você quis dizer {suggestion}?",
+        fr: "Ce domaine e-mail semble mal orthographié — vouliez-vous dire {suggestion} ?",
+        hi: "इस ईमेल डोमेन की वर्तनी गलत लगती है — क्या आपका मतलब {suggestion} है?",
+        bn: "এই ইমেইল ডোমেইনটি ভুল বানানের মনে হচ্ছে — আপনি কি {suggestion} বোঝাতে চেয়েছেন?"
+    },
+    'auth_email_error_no_mail': {
+        en: "That email domain can't receive mail. Please use a different address.",
+        es: "Ese dominio de correo no puede recibir mensajes. Usa otra dirección.",
+        pt: "Esse domínio de e-mail não consegue receber mensagens. Use outro endereço.",
+        fr: "Ce domaine e-mail ne peut pas recevoir de messages. Utilisez une autre adresse.",
+        hi: "यह ईमेल डोमेन संदेश प्राप्त नहीं कर सकता। कृपया कोई अन्य पता उपयोग करें।",
+        bn: "এই ইমেইল ডোমেইন বার্তা গ্রহণ করতে পারে না। অনুগ্রহ করে অন্য ঠিকানা ব্যবহার করুন।"
+    },
     'auth_password_label': {
         en: "Password",
         es: "Contraseña",
