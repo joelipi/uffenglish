@@ -432,6 +432,17 @@ describe('HomeScreen Continue button', () => {
         expect(resolverCalls.count).toBe(0);
         expect(container.querySelector('[data-testid="home-continue"]')).not.toBeNull();
     });
+
+    it('keeps the Continue bar hidden while we revisit it', async () => {
+        appStore.setState({ courseId: 'model', activeLessonId: 'm-g' });
+        await renderHome();
+        const bar = container.querySelector('[data-testid="home-continue-bar"]');
+        expect(bar).not.toBeNull();
+        // Intentionally hidden, not removed: story 061's target resolution
+        // stays wired, so re-showing the bar later is a style change.
+        expect(getComputedStyle(bar).display).toBe('none');
+        expect(container.querySelector('[data-testid="home-continue"]')).not.toBeNull();
+    });
 });
 
 describe('HomeScreen Continue wiring guards', () => {

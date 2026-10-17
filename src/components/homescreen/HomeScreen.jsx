@@ -208,7 +208,12 @@ export default function HomeScreen() {
         padding: '8px',
     };
 
+    // REVISIT LATER: the Continue bar is deliberately hidden for now — there is
+    // too much in the app to test right now, so we are taking this one out of
+    // the surface. `display: 'none'` keeps the target resolution (and its
+    // tests) wired up, so re-showing the bar later is a one-line style change.
     const bottomBarStyle = {
+        display: 'none',
         padding: '16px',
         borderTop: '1px solid #1a3a5a',
         backgroundColor: '#0b1a2a',
@@ -341,7 +346,7 @@ export default function HomeScreen() {
             </div>
 
             {continueTarget && (
-                <div style={bottomBarStyle}>
+                <div style={bottomBarStyle} data-testid="home-continue-bar">
                     <button data-testid="home-continue" onClick={handleContinueNavigate} style={continueBtnStyle}
                             onMouseEnter={e => { e.currentTarget.style.opacity = '0.9'; e.currentTarget.style.transform = 'scale(1.02)'; }}
                             onMouseLeave={e => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.transform = 'scale(1)'; }}>
