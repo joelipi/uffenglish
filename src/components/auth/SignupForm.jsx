@@ -9,6 +9,10 @@ import { guestSignupLessonCredit } from '../../modules/user/lesson-count-logic.j
 import { calculateCurrentStreak } from '../../modules/user/user-profile.js';
 import { flushPendingFriendCredits } from '../../modules/user/friend-credit-sync.js';
 import { verifyTurnstileToken } from '../../modules/auth/turnstile-logic.js';
+import {
+    checkEmailAddress,
+    normalizeEmail,
+} from '../../modules/auth/email-validation-logic.js';
 import defaultProfilePic from '../../assets/img/userprofile.png';
 
 /**
@@ -20,6 +24,13 @@ import defaultProfilePic from '../../assets/img/userprofile.png';
  * `getCaptchaToken` supplies a FRESH widget token at submit time — Turnstile
  * tokens are single-use and expire after ~5 minutes, so the form cannot capture
  * one at render and reuse it.
+ *
+ * This hook also runs the zero-cost email screen before any account is created.
+ * It returns `emailError` as a reason CODE plus `emailSuggestion`, never copy:
+ * the view resolves both through strings.js, because logic owns decisions and
+ * display owns language. `captcha: false` does NOT disable the email check —
+ * the screen is a data-quality gate, not a bot gate, so it applies to every
+ * signup surface including the modal.
  */
 export function useSignupForm({
     onSignupSuccess,
@@ -34,11 +45,15 @@ export function useSignupForm({
     const [nativeLanguage, setNativeLanguage] = useState(initialNativeLanguage);
     const [userLevel, setUserLevel] = useState('');
     const [error, setError] = useState('');
+    const [emailError, setEmailError] = useState('');
+    const [emailSuggestion, setEmailSuggestion] = useState('');
     const [loading, setLoading] = useState(false);
 
     async function handleSubmit(e) {
         e.preventDefault();
         setError('');
+        setEmailError('');
+        setEmailSuggestion('');
         setLoading(true);
 
         try {
@@ -56,6 +71,21 @@ export function useSignupForm({
                 if (!captchaVerified) {
                     throw new Error('Human verification failed. Please try again.');
                 }
+            }
+
+            // Zero-cost email screen, in front of the Supabase call and after
+            // the bot gate. The server (functions/api/email-validate.js) is
+            // authoritative — a browser-only check is bypassed by posting
+            // straight to Supabase — and it fails OPEN, so a lookup outage
+            // returns valid:true and lands here as a no-op rather than costing
+            // a signup. Only a definite verdict blocks, and then no account is
+            // created.
+            const emailVerdict = await checkEmailAddress(normalizeEmail(email));
+            if (!emailVerdict.valid) {
+                console.log(`[Signup] Email screen rejected the address (${emailVerdict.reason})`);
+                setEmailError(emailVerdict.reason);
+                setEmailSuggestion(emailVerdict.suggestion || '');
+                return;
             }
 
             const { data, error: signUpError } = await supabase.auth.signUp({
@@ -205,6 +235,8 @@ export function useSignupForm({
         userLevel,
         setUserLevel,
         error,
+        emailError,
+        emailSuggestion,
         loading,
         handleSubmit,
     };

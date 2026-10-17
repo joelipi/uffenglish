@@ -3,6 +3,7 @@ import { useStore } from 'zustand';
 import { appStore } from '../../modules/store/store.js';
 import { useSignupForm } from './SignupForm.jsx';
 import TurnstileCaptcha from './TurnstileCaptcha.web.jsx';
+import { emailValidationErrorKey } from '../../modules/auth/email-validation-logic.js';
 import Strings from '../../data/strings.js';
 import { SIGNUP_LANGUAGES } from '../../data/languages.js';
 import SignupConsent from '../legal/SignupConsent.jsx';
@@ -47,6 +48,8 @@ export default function SignupForm({ onSignupSuccess, onLoginLink }) {
         userLevel,
         setUserLevel,
         error,
+        emailError,
+        emailSuggestion,
         loading,
         handleSubmit,
     } = useSignupForm({
@@ -73,6 +76,14 @@ export default function SignupForm({ onSignupSuccess, onLoginLink }) {
                 {Strings.get('auth_signup_title', lang)}
             </h2>
             {error && <div className="alert alert-danger" role="alert">{error}</div>}
+            {/* The email screen hands back a reason CODE; this is where it
+                becomes language. Kept separate from `error` so a rejected
+                address never reads as a generic submit failure. */}
+            {emailError && (
+                <div className="alert alert-danger" role="alert" data-testid="email-error">
+                    {Strings.get(emailValidationErrorKey(emailError), lang, { suggestion: emailSuggestion })}
+                </div>
+            )}
 
             <form onSubmit={handleSubmit}>
                 <div className="row mb-3">

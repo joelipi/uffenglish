@@ -5,11 +5,12 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createRoot } from 'react-dom/client';
 import { act } from 'react';
 
-const { insertCalls, signUpSpy, verifySpy, tokenSpy } = vi.hoisted(() => ({
+const { insertCalls, signUpSpy, verifySpy, tokenSpy, emailSpy } = vi.hoisted(() => ({
     insertCalls: [],
     signUpSpy: vi.fn(),
     verifySpy: vi.fn(),
     tokenSpy: vi.fn(),
+    emailSpy: vi.fn(),
 }));
 
 vi.mock('../../modules/api/supabase.js', () => ({
@@ -36,6 +37,14 @@ vi.mock('../../modules/user/email-confirmation.js', () => ({
 
 vi.mock('../../modules/auth/turnstile-logic.js', () => ({
     verifyTurnstileToken: (...args) => verifySpy(...args),
+}));
+
+// The zero-cost email screen also runs inside handleSubmit. Without this mock
+// it would attempt a real fetch, so the order assertion below would race the
+// network. Its own behaviour is covered in SignupForm.email-validation.test.jsx.
+vi.mock('../../modules/auth/email-validation-logic.js', () => ({
+    checkEmailAddress: (...args) => emailSpy(...args),
+    normalizeEmail: (raw) => (typeof raw === 'string' ? raw.trim().toLowerCase() : ''),
 }));
 
 import { useSignupForm } from './SignupForm.jsx';
@@ -82,6 +91,7 @@ beforeEach(() => {
     });
     verifySpy.mockReset().mockResolvedValue(true);
     tokenSpy.mockReset().mockResolvedValue('cf-token-1');
+    emailSpy.mockReset().mockResolvedValue({ valid: true, reason: 'ok', suggestion: '' });
     appStore.setState({ pendingFriendCredits: [] });
     container = document.createElement('div');
     document.body.appendChild(container);
@@ -98,6 +108,7 @@ describe('useSignupForm captcha gate', () => {
         const order = [];
         tokenSpy.mockImplementation(async () => { order.push('token'); return 'cf-token-1'; });
         verifySpy.mockImplementation(async () => { order.push('verify'); return true; });
+        emailSpy.mockImplementation(async () => { order.push('email'); return { valid: true, reason: 'ok', suggestion: '' }; });
         signUpSpy.mockImplementation(async () => {
             order.push('signUp');
             return {
@@ -108,7 +119,9 @@ describe('useSignupForm captcha gate', () => {
 
         await submit({ captcha: true, getCaptchaToken: tokenSpy });
 
-        expect(order).toEqual(['token', 'verify', 'signUp']);
+        // Every gate precedes account creation: captcha token, captcha verify,
+        // then the email screen.
+        expect(order).toEqual(['token', 'verify', 'email', 'signUp']);
         expect(verifySpy).toHaveBeenCalledWith('cf-token-1');
         expect(insertCalls.length).toBe(1);
     });
