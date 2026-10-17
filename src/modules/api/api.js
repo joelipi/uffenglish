@@ -1,4 +1,4 @@
-import { getCurrentUser, logout, supabase } from './supabase.js';
+import { getCurrentUser, getCurrentSession, logout, supabase } from './supabase.js';
 import { getGeoInfo } from '../media/geo-service.js';
 import { upsertFriendLinkMap } from '../user/friend-lesson-link-logic.js';
 import { normalizeFriendIds } from '../user/friends-logic.js';
@@ -226,13 +226,27 @@ export async function signOut() {
 
 // ── React Query hooks ──────────────────────────────────────────────
 
+// "Am I signed in?" is a LOCAL question, so it must be answered locally.
+//
+// This used to call getCurrentUser(), which is `supabase.auth.getUser()` — a
+// network round-trip to the auth server that returns null when it FAILS, which
+// is indistinguishable from "there is no session". So any transient network or
+// auth-server hiccup reported a signed-in visitor as signed out. That was
+// reachable right after signup: the fire-and-forget geo/referrer collector
+// finishes ~1s later and calls invalidateUserAndAuthCache(), which invalidates
+// exactly this query, so the refetch races the first paint of the page the user
+// was just redirected to.
+//
+// supabase.auth.getSession() reads the persisted session from storage and does
+// not touch the network, so it cannot fail for reasons unrelated to auth state.
+// Use getCurrentUser() where the server's view of the user is actually needed.
 export function useAuthStatus() {
   return useQuery({
     queryKey: ['auth', 'status'],
     queryFn: async () => {
       try {
-        const user = await getCurrentUser();
-        return user !== null;
+        const session = await getCurrentSession();
+        return session !== null;
       } catch {
         return false;
       }

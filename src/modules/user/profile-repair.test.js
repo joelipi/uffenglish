@@ -12,6 +12,8 @@ let setCourseDataSpy = null;
 
 vi.mock('../api/api.js', () => ({
     syncUserMetaDataMutation: vi.fn(async () => {}),
+    getCurrentSession: vi.fn(async () => ({ access_token: 'test-token' })),
+    getCurrentSession: vi.fn(async () => ({ access_token: 'test-token' })),
     getCurrentUser: (...args) => getCurrentUserMock(...args),
     fetchProfileIdentityRow: (...args) => fetchIdentityMock(...args),
 }));

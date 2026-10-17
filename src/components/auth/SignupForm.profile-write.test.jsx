@@ -40,6 +40,7 @@ vi.mock('../../modules/api/supabase.js', () => ({
 vi.mock('../../modules/api/api.js', () => ({
     queryClient: { setQueryData: vi.fn(), invalidateQueries: vi.fn() },
     fetchGeoInfo: vi.fn(async () => ({ ip: '1.2.3.4' })),
+    getCurrentSession: vi.fn(async () => ({ access_token: 'test-token' })),
     getCurrentUser: vi.fn(async () => ({
         $id: 'u-1', email: 'jo@example.com', name: 'Jo Kim', $createdAt: '2026-10-17',
     })),
