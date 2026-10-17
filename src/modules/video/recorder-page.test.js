@@ -1009,6 +1009,8 @@ describe('recorder auto-render — zero server changes', () => {
             // Home top bar: the logo must not push the bell out of the frame.
             'src/components/homescreen/HomeScreen.jsx',
             'tests/home-bell-desktop-fit.spec.js',
+            // Desktop frame regression: the landing page must not be clipped.
+            'tests/landing-frame-desktop.spec.js',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);

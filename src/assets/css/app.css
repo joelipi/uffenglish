@@ -19,7 +19,13 @@
 *, *::before, *::after { box-sizing: border-box; }
 
 body { margin: 0; font-family: var(--font-body); font-size: 1rem; font-weight: 400; line-height: 1.5; color: #212529; background-color: #fff; -webkit-text-size-adjust: 100%; -moz-tab-size: 4; tab-size: 4; }
-.app-container { background-color: #000; }
+/* `background-image: none` is not cosmetic: index.html paints the preloader
+   gradient on `.app-container` for the very first frame, and setting only
+   `background-color` leaves that gradient image in place underneath. It is
+   invisible while `#root` covers the container, but any route that exposes the
+   container (a frame smaller than the viewport) shows a blue bar where the
+   black surround is meant to be. */
+.app-container { background-color: #000; background-image: none; }
 
 :root {
   --bs-body-color: #212529;
@@ -439,12 +445,21 @@ body { margin: 0; font-family: var(--font-body); font-size: 1rem; font-weight: 4
     container-name: player;
 }
 
-/* Tablet and up Breakpoint */
+/* Tablet and up Breakpoint.
+
+   The frame is EXACTLY the viewport height. Do not cap it (e.g. with a
+   `max-height: …vh`) to "leave screen real estate": every route inside the
+   frame is laid out against the viewport height — the landing page lifts the
+   frame to `height: 100dvh` with its own internal scroll (home-landing.css
+   `#root:has(> .uff-home-bs)`) — so a cap makes that shell taller than its
+   clipping frame. The bottom of the page is then cut off, the shell scrolls
+   behind the frame edge, and the `.app-container` (see above) shows through
+   as bars above and below. Oversized overlays are capped individually
+   instead (e.g. `#hint-hangman-card`). */
 @media (min-width: 576px) {
     .video-frame {
         height: 100vh;
         height: 100dvh;
-        max-height: 85vh;
         aspect-ratio: 9 / 16;
         width: auto;
         max-width: 100vw;

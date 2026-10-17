@@ -238,13 +238,17 @@ export default function HomeScreen() {
                     src={headerLogo}
                     alt={Strings.get('home_title', lang)}
                     data-testid="home-logo"
-                    // maxWidth/minWidth: the logo is a 5.3:1 wordmark at a fixed
-                    // 40px height, so on a narrow desktop frame (short window ->
-                    // frame width is 9/16 of the viewport height) it outgrew the
-                    // row and pushed the bell past the frame's right edge, where
-                    // #root.video-frame clips it to nothing. It is the only
-                    // elastic child, so it gives way instead.
-                    style={{ height: '40px', width: 'auto', maxWidth: '50%', minWidth: 0, display: 'block', filter: 'drop-shadow(0 1px 1.5px rgba(0,0,0,0.35))' }}
+                    // The logo is a ~5.3:1 wordmark. Pinning `height` and capping only
+                    // `maxWidth` would squeeze it out of proportion, so BOTH
+                    // dimensions are `auto` with a max on each: per CSS 2.1
+                    // §10.4 a replaced element's width/height auto box is sized
+                    // to the intrinsic ratio and then clamped by max-width /
+                    // max-height together, which keeps the wordmark undistorted.
+                    // It is the only elastic child of the row, so on a narrow
+                    // frame (short window -> frame width is 9/16 of the viewport
+                    // height) it gives way instead of pushing the bell past the
+                    // frame's right edge, where #root.video-frame clips it away.
+                    style={{ width: 'auto', height: 'auto', maxWidth: '50%', maxHeight: '40px', minWidth: 0, display: 'block', filter: 'drop-shadow(0 1px 1.5px rgba(0,0,0,0.35))' }}
                 />
                 <div style={{ flexShrink: 0 }}>
                     {isLoggedIn && viewerId && viewerId !== 'guest'
