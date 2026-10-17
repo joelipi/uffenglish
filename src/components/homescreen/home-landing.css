@@ -124,6 +124,7 @@
 .uff-home-bs img.uff-logo {
     height: 40px;
     width: auto;
+    max-width: 35vw;
     display: block;
     filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.35));
 }
@@ -162,6 +163,7 @@
     .uff-navbar .navbar-brand img,
     .uff-home-bs img.uff-logo {
         height: 32px;
+        max-width: 30vw;
     }
 }
 
