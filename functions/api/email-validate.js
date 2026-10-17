@@ -240,6 +240,9 @@ export function dohUrl(domain, type) {
 async function queryDns(domain, type) {
     try {
         const res = await fetch(dohUrl(domain, type), {
+            // Explicit: `fetch(url)` would default to GET, but an accidental POST
+            // would make every lookup fail open.
+            method: 'GET',
             headers: { accept: DOH_ACCEPT },
             signal: AbortSignal.timeout(DOH_TIMEOUT_MS),
         });

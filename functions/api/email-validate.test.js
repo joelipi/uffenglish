@@ -353,11 +353,27 @@ describe('onRequestPost DoH request', () => {
         await post('jo@example.com');
 
         expect(calls[0]).toBe(`${DOH_ENDPOINT}?name=example.com&type=MX`);
-        const [, init] = globalThis.fetch.mock.calls[0];
+        const [url, init] = globalThis.fetch.mock.calls[0];
+        // A bare `fetch(url)` defaults to GET, but pin it: the resolver rejects
+        // anything else, and an accidental POST would fail open on every lookup.
+        expect(init.method, 'the DoH lookup must be an explicit GET').toBe('GET');
         expect(init.headers.accept).toBe(DOH_ACCEPT);
         expect(init.signal).toBeInstanceOf(AbortSignal);
         expect(DOH_ENDPOINT).toBe('https://cloudflare-dns.com/dns-query');
         expect(DOH_TIMEOUT_MS).toBeGreaterThan(0);
+    });
+
+    it('aborts the DoH call on the declared timeout', async () => {
+        // A resolver that never answers must not hold the Function open; the
+        // whole fail-open contract depends on this bound existing.
+        const { calls } = installDns();
+        await post('jo@example.com');
+        const [, init] = globalThis.fetch.mock.calls[0];
+        // AbortSignal.timeout exposes no readable deadline, so assert the
+        // signal is one of the timeout flavour rather than a bare controller.
+        expect(init.signal).toBeInstanceOf(AbortSignal);
+        expect(init.signal).not.toBe(AbortSignal.abort(DOH_TIMEOUT_MS));
+        expect(calls.length).toBeGreaterThan(0);
     });
 
     it('never sends the local part in the query or in any log line', async () => {

@@ -275,6 +275,20 @@ describe('isDisposableDomain', () => {
         expect(isDisposableDomain('notmailinator.com')).toBe(false);
         expect(isDisposableDomain('mailinator.com.evil.test')).toBe(false);
     });
+
+    it('keeps the blocklist an offline Set in the source, never fetched', () => {
+        // Behavioural tests cannot tell a committed Set from any other
+        // structure, and the list must never be fetched at request time: a
+        // blocklist lookup that fails open would be worse than no check.
+        expect(SOURCE).toMatch(/DISPOSABLE_DOMAINS\s*=\s*new Set\(\[/);
+        expect(SOURCE).not.toMatch(/DISPOSABLE_DOMAINS\s*=\s*await/);
+        // The Set is populated inline, so it is a literal rather than a fetch.
+        const block = SOURCE.slice(
+            SOURCE.indexOf('const DISPOSABLE_DOMAINS'),
+            SOURCE.indexOf('];', SOURCE.indexOf('const DISPOSABLE_DOMAINS')));
+        expect(block.split('\n').filter((l) => l.includes("'")).length)
+            .toBeGreaterThan(10);
+    });
 });
 
 describe('suggestDomain', () => {
