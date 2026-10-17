@@ -203,9 +203,10 @@ The hook holds no user-facing text — it returns `emailError` (a reason code) a
 `emailSuggestion`, and the view turns them into a localized message. Logic owns
 decisions, display owns language.
 
-Both signup surfaces get the gate for free because `/signup` and
-`src/components/modals/SaveClipsSignupForm.jsx` share `useSignupForm` (the modal
-passes `captcha: false`, which does **not** disable the email check).
+As of story 070, `/signup` redirects to `/courses` and no longer renders a
+form, so the only reachable signup surface is
+`src/components/modals/SaveClipsSignupForm.jsx`, which passes `captcha: false`
+(the email check still runs; only the Turnstile gate is skipped).
 
 ## Testing locally
 

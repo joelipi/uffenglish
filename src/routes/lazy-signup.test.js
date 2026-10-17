@@ -112,6 +112,11 @@ describe('story 070 — no entry point reaches a signup form', () => {
         expect(end).toBeGreaterThan(at);
         const buttonBlock = guestModalSrc.slice(guestModalSrc.lastIndexOf('<Link', at), end);
         expect(buttonBlock).toContain('to={COURSES_PATH}');
+        // Closing the dialog on navigation is required: /courses is a PUBLIC
+        // route, so useGuestModalGuard will not close it for us the way it did
+        // for /signup (an AUTH route). Without this the modal stays open in the
+        // top layer and hides the signed-out notice.
+        expect(buttonBlock).toContain('setGuestModalOpen(false)');
         // The label is unchanged: "Sign Up" is the outcome /courses delivers.
         expect(buttonBlock).toContain("Strings.get('guest_modal_signup'");
     });

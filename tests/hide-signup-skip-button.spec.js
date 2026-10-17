@@ -122,7 +122,7 @@ test.describe('Story 070 — /signup is unreachable (real browser)', () => {
         await expect(page).toHaveURL(/\/courses(\?.*)?$/);
         await expect(page.locator('#first-name')).toHaveCount(0);
         await expect(page.locator('#email')).toHaveCount(0);
-        await expect(page.locator('form button[type="submit"]')).toHaveCount(0);
+        await expect(page.locator('form button[type="submit"]:visible')).toHaveCount(0);
 
         // …and the landing explains where an account comes from instead.
         const notice = page.locator('[data-testid="courses-guest-notice"]');

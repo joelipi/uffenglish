@@ -1,14 +1,20 @@
 # Cloudflare Turnstile signup gate
 
 Cloudflare Turnstile protects the **standalone `/signup` form** against bot
-account creation. This doc covers what is protected, why, and what has to be
-configured for it to work.
+account creation. As of story 070 that route redirects to `/courses` and no
+longer renders a form (see `stories/070-lazy-signup-funnel/story.md`), so the
+only reachable signup surface today is the success-step modal
+(`SaveClipsModal` → `SaveClipsSignupForm`), which runs with `captcha: false`
+for lifecycle reasons documented in `SaveClipsSignupForm.jsx`. The Turnstile
+work for a form inside an already-open `<dialog>` is the documented follow-up.
+This doc covers what was protected, why, and what has to be configured for it
+to work if the route is reopened.
 
-## What is protected
+## What is (was) protected
 
 | Surface | Path | Turnstile |
 | --- | --- | --- |
-| Signup page | `/signup` (also reached via `/signup?redirect=…`) | **protected** |
+| Signup page | `/signup` (now redirects to `/courses`) | **protected (route closed)** |
 | Success-step modal | `SaveClipsModal` → `SaveClipsSignupForm` | **not protected** |
 
 Both forms share `useSignupForm` (`src/components/auth/SignupForm.jsx`), so the

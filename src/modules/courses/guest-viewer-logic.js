@@ -16,14 +16,14 @@ export const COURSES_PATH = '/courses';
  * True when `userId` is the anonymous placeholder rather than a real viewer.
  *
  * `isResolving` matters, and is why this takes an options bag: while the profile
- * query is in flight the viewer is UNKNOWN, not anonymous. The container passes
- * `undefined` for both states, so treating a missing id as a guest told a
- * signed-in user cold-loading `/courses` (a bookmark, or the notice's own
- * sign-in link after a reload) that they were "not signed in" — and withheld
- * the install banner from them at the same time. An unknown viewer is therefore
- * NOT a guest; the notice waits for the query to settle. A *settled* missing id
- * still counts as a guest, so a caller that has no loading state to report
- * keeps the old behaviour.
+ * query is in flight OR has errored, the viewer is UNKNOWN, not anonymous. The
+ * container passes `undefined` for both states, so treating a missing id as a
+ * guest told a signed-in user cold-loading `/courses` (a bookmark, or the
+ * notice's own sign-in link after a reload) that they were "not signed in" — and
+ * withheld the install banner from them at the same time. An unknown viewer is
+ * therefore NOT a guest; the notice waits for the query to settle. A *settled*
+ * missing id still counts as a guest, so a caller that has no loading state to
+ * report keeps the old behaviour.
  */
 export function isGuestViewer(userId, { isResolving = false } = {}) {
     if (userId) return userId === 'guest';

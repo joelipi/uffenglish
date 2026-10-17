@@ -235,7 +235,10 @@ export default function GuestLoginModal() {
                                         to={COURSES_PATH}
                                         id="guestSignupBtn"
                                         className="btn btn-secondary"
-                                        onClick={() => trackEvent('guest_modal_action', { action: 'signup' })}
+                                        onClick={() => {
+                                            trackEvent('guest_modal_action', { action: 'signup' });
+                                            appStore.getState().setGuestModalOpen(false);
+                                        }}
                                     >
                                         <i className="bi bi-person-plus-fill me-1"></i>
                                         <span id="guestSignupBtnText">

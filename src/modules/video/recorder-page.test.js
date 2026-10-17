@@ -962,6 +962,8 @@ describe('recorder auto-render — zero server changes', () => {
             'scripts/lib/gemini.js',
             'scripts/lib/gemini.test.js',
             'docs/product.md',
+            'docs/turnstile-signup-gate.md',
+            'docs/email-validation.md',
             'stories/066-recorder-auto-render-lessons/story.md',
             // Story 068 (title pill + social publish).
             'stories/068-title-pill-social-publish/story.md',

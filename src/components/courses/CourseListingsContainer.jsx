@@ -16,7 +16,7 @@ import CourseListings from './CourseListings.jsx';
 export default function CourseListingsContainer() {
     const navigate = useNavigate();
     const lang = useNativeLanguage();
-    const { data: profile, isLoading: isProfileResolving } = useUserProfile();
+    const { data: profile, isLoading: isProfileResolving, isError: isProfileError } = useUserProfile();
 
     const { data: courses, isLoading, isError } = useQuery({
         queryKey: ['friend-courses'],
@@ -34,7 +34,7 @@ export default function CourseListingsContainer() {
             isLoading={isLoading}
             isError={isError}
             userId={profile?.$id}
-            isResolving={isProfileResolving}
+            isResolving={isProfileResolving || isProfileError}
             onBack={() => navigate('/')}
         />
     );
