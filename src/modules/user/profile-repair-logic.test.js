@@ -119,7 +119,9 @@ describe('planProfileRepair', () => {
             });
         });
 
-        it('NEVER includes share_code — rotating one breaks links already published', () => {
+        it('omits share_code when the caller supplies none', () => {
+            // Distinct from the rotation guard below: here the row has no code and
+            // no candidate was offered, so nothing can be filled.
             const plan = planProfileRepair({ row: ghost, user: sessionUser });
             expect('share_code' in plan.payload).toBe(false);
         });
@@ -135,7 +137,7 @@ describe('planProfileRepair', () => {
                 first_name: 'Real',
                 last_name: 'Name',
             };
-            // Only account_status is missing here -> nothing to fill.
+            // Nothing is missing here: a complete row must never be rewritten.
             expect(planProfileRepair({ row: partial, user: sessionUser })).toEqual({ action: 'none' });
 
             const missingStatus = { ...partial, account_status: null };
@@ -170,7 +172,10 @@ describe('planProfileRepair', () => {
                 .toEqual({ action: 'none' });
         });
 
-        it('NEVER overwrites an existing share code, even when given a new one', () => {
+        it('NEVER overwrites an existing share code — the rotation guard', () => {
+            // The real rotation guard: a code already published to R2 and printed
+            // in share links must survive a repair untouched, even when the
+            // caller supplies a replacement.
             const plan = planProfileRepair({
                 row: { ...completeRow, share_code: 'published', email: null },
                 user: sessionUser,

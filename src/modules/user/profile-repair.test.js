@@ -2,11 +2,13 @@
 // into a permanent ghost row, and must never destroy a healthy one.
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-const { getCurrentUserMock, fetchIdentityMock, setCourseDataSpy } = vi.hoisted(() => ({
+const { getCurrentUserMock, fetchIdentityMock } = vi.hoisted(() => ({
     getCurrentUserMock: vi.fn(),
     fetchIdentityMock: vi.fn(),
-    setCourseDataSpy: vi.fn(),
 }));
+// A real spy, created once. Overwriting the action on the Zustand state object
+// would mutate it permanently for the rest of the file.
+let setCourseDataSpy = null;
 
 vi.mock('../api/api.js', () => ({
     syncUserMetaDataMutation: vi.fn(async () => {}),
@@ -47,21 +49,70 @@ beforeEach(() => {
     syncUserMetaDataMutation.mockClear().mockResolvedValue(undefined);
     getCurrentUserMock.mockReset().mockResolvedValue(sessionUser);
     fetchIdentityMock.mockReset().mockResolvedValue({ row: completeRow, error: null });
-    setCourseDataSpy.mockClear();
     appStore.setState({
         pendingFriendCredits: [],
         userData: { $id: 'u-1', email: 'jo@example.com', share_code: 'abcd' },
     });
-    // Spy on setCourseData so we can see the store merge without a React render.
-    appStore.getState().setCourseData = setCourseDataSpy;
+    // Spy rather than assign: actions live on the Zustand state object, so
+    // overwriting one would mutate it permanently for the rest of the file.
+    if (setCourseDataSpy) setCourseDataSpy.mockClear();
+    else setCourseDataSpy = vi.spyOn(appStore.getState(), 'setCourseData').mockImplementation(() => {});
 });
 
 describe('ensureCompleteProfileRow', () => {
-    it('writes nothing when the row is already complete', async () => {
-        expect(await ensureCompleteProfileRow(healthyUserData)).toEqual({ confirmed: true, payload: null });
+    it('writes nothing when the row is already complete, without even reading', async () => {
+        // The fast path must skip the round-trip: saveCourseToUserProfile runs
+        // ahead of the preloader on every course boot. Asserting the read is NOT
+        // made is the only thing guarding that.
+        const result = await ensureCompleteProfileRow(healthyUserData);
+        expect(result).toEqual({ confirmed: true, payload: null });
         expect(syncUserMetaDataMutation).not.toHaveBeenCalled();
-        // The read is the only cost on this path.
+        expect(fetchIdentityMock, 'the fast path must not hit the network').not.toHaveBeenCalled();
         expect(getCurrentUserMock).not.toHaveBeenCalled();
+    });
+
+    it('takes the READ path for the core-data fallback, even though it has an email', async () => {
+        // The fast path's safety rests on this: useUserProfile's fallback carries
+        // email + join_date but never share_code or account_status, so it can
+        // never be mistaken for a complete row. If those keys were ever added to
+        // the fallback, this is the test that catches it.
+        await ensureCompleteProfileRow({
+            $id: 'u-1',
+            email: 'jo@example.com',
+            display_name: 'Jo Kim',
+            join_date: '2026-10-17T00:00:00Z',
+            auth_method: 'supabase',
+            profilePictureUrl: 'pic.png',
+        });
+        expect(fetchIdentityMock, 'a fallback-shaped object must trigger the explicit read')
+            .toHaveBeenCalledTimes(1);
+    });
+
+    it('refuses to fill a row from a DIFFERENT session user', async () => {
+        // Cross-user data: the id to repair comes from userData, the identity
+        // fields from a later session read.
+        fetchIdentityMock.mockResolvedValue({ row: null, error: null });
+        getCurrentUserMock.mockResolvedValue({ ...sessionUser, $id: 'someone-else' });
+
+        const result = await ensureCompleteProfileRow({ $id: 'u-1', email: 'jo@example.com' });
+
+        expect(result).toMatchObject({ confirmed: false, reason: 'session-mismatch' });
+        expect(syncUserMetaDataMutation).not.toHaveBeenCalled();
+    });
+
+    it('heals a stale session when the read confirms a complete row', async () => {
+        // userData was the core-data fallback (its own query failed earlier), but
+        // the explicit read now proves the row is complete — so the session must
+        // learn the share code rather than emit undefined share links.
+        fetchIdentityMock.mockResolvedValue({ row: { ...completeRow, id: 'u-1' }, error: null });
+
+        const result = await ensureCompleteProfileRow({ $id: 'u-1', email: 'jo@example.com' });
+
+        expect(result).toMatchObject({ confirmed: true, payload: null });
+        expect(setCourseDataSpy).toHaveBeenCalledTimes(1);
+        expect(setCourseDataSpy.mock.calls[0][0].userData.share_code).toBe('abcd');
+        // Nothing written — this was a read, not a repair.
+        expect(syncUserMetaDataMutation).not.toHaveBeenCalled();
     });
 
     it('inserts a complete row when none exists, and assigns a share code', async () => {

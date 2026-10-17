@@ -60,7 +60,16 @@ export async function ensureCompleteProfileRow(userData) {
     if (!userId || userId === 'guest') return { confirmed: false, payload: null, reason: 'guest' };
 
     // Fast path: a positive complete signal, which the core-data fallback can
-    // never produce. Safe to trust, and avoids a round-trip on the hot path.
+    // never produce. The safety rests on an INVARIANT about the producers, not
+    // on profileIsIncomplete itself (which is merely "not provably incomplete"
+    // for anything that is not a row):
+    //   - useUserProfile's core-data fallback carries email + join_date but
+    //     NEVER share_code or account_status;
+    //   - the guest object is rejected above by its $id;
+    //   - mergeRepairedProfileIntoStore only adds these after a real write.
+    // So nothing can look complete unless a row (or a repair of one) supplied
+    // it. Do not add these keys to a fallback object — that would make this fast
+    // path confirm a row no write ever created.
     if (!profileIsIncomplete(userData)) return { confirmed: true, payload: null };
 
     const { row, error } = await fetchProfileIdentityRow(userId);
@@ -69,11 +78,30 @@ export async function ensureCompleteProfileRow(userData) {
         console.warn('[user-profile] Profile read failed — skipping repair:', error?.message || error);
         return { confirmed: false, payload: null, reason: 'read-failed' };
     }
-    if (row && !profileIsIncomplete(row)) return { confirmed: true, payload: null };
+    if (row && !profileIsIncomplete(row)) {
+        // Confirmed complete, but the object handed in was the core-data
+        // fallback (its own query failed at a different moment), so this session
+        // still does not know the share code. Merge it rather than leave share
+        // links emitting undefined until the next reload.
+        mergeRepairedProfileIntoStore({
+            id: row.id || userId,
+            ...(row.share_code && { share_code: row.share_code }),
+            ...(row.join_date && { join_date: row.join_date }),
+            ...(row.account_status && { account_status: row.account_status }),
+        });
+        return { confirmed: true, payload: null };
+    }
 
     const user = await getCurrentUser();
     if (!user || !user.$id || user.$id === 'guest') {
         return { confirmed: false, payload: null, reason: 'no-session' };
+    }
+    // The id to repair came from userData, while the email/name/timestamp used to
+    // fill it come from this later session read. If the session changed
+    // underneath us, filling one account's row from another would write a user's
+    // address onto someone else's profile.
+    if (user.$id !== userId) {
+        return { confirmed: false, payload: null, reason: 'session-mismatch' };
     }
 
     // A candidate share code is generated up front and usually discarded: the
