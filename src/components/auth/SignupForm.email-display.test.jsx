@@ -102,6 +102,30 @@ describe('SignupForm.web.jsx email screen display', () => {
             Strings.get(emailValidationErrorKey('domain-not-found'), 'en'));
     });
 
+    // Every code in every non-English locale. Only domain-not-found was checked
+    // across locales before, so a dropped es value on any other new key would
+    // have gone unnoticed.
+    it.each([
+        ['empty', 'auth_email_error_required'],
+        ['syntax', 'auth_email_error_invalid'],
+        ['domain', 'auth_email_error_invalid'],
+        ['too-long', 'auth_email_error_invalid'],
+        ['disposable', 'auth_email_error_disposable'],
+        ['typo', 'auth_email_error_typo'],
+        ['domain-not-found', 'auth_email_error_no_mail'],
+        ['null-mx', 'auth_email_error_no_mail'],
+        ['no-mail-route', 'auth_email_error_no_mail'],
+        ['something-unmapped', 'auth_email_error_invalid'],
+    ])('renders %s localized, not English, in every UI language', async (code, key) => {
+        for (const lang of ['es', 'pt', 'fr', 'hi', 'bn']) {
+            await render({ lang, emailError: code, emailSuggestion: 'gmail.com' });
+            expect(alert().textContent, `${code}/${lang}`).toBe(
+                Strings.get(key, lang, { suggestion: 'gmail.com' }));
+            expect(alert().textContent, `${code}/${lang} fell back to English`)
+                .not.toBe(Strings.get(key, 'en', { suggestion: 'gmail.com' }));
+        }
+    });
+
     it.each([
         ['empty', 'auth_email_error_required', ''],
         ['syntax', 'auth_email_error_invalid', ''],

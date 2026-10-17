@@ -32,16 +32,18 @@ const SRC_DIR = path.resolve(HERE, '../..');
 const COMPONENTS_DIR = path.join(SRC_DIR, 'components');
 
 /**
- * Every component that CALLS useSignupForm and renders a signup form.
+ * Every component that CALLS useSignupForm.
  *
  * Discovered rather than listed, so a new signup surface cannot silently skip
  * the verdict guards below. Two filters, both semantic rather than hardcoded:
- *  - test files are excluded, since their harnesses call the hook too;
- *  - a real surface must render a <form>, which excludes the `return null`
- *    native stub (it only names the hook in a comment, and the repo treats
- *    unwired native files as reference rather than a live surface);
- *  - line comments are stripped for the call check, so naming the hook in a
- *    TODO is not mistaken for calling it.
+ *  - the file that DEFINES the hook is excluded;
+ *  - line comments are stripped, so naming the hook in a TODO (as the
+ *    `return null` native stub does) is not mistaken for calling it.
+ *
+ * The call is matched in ANY shape (`const form = useSignupForm(...)` as well
+ * as a destructuring). The guards below then require each discovered surface to
+ * be a destructuring, so an unfamiliar shape fails loudly instead of vanishing
+ * from the scan.
  */
 function findSurfaces() {
     const found = [];
@@ -53,17 +55,11 @@ function findSurfaces() {
                 continue;
             }
             if (!/\.jsx?$/.test(entry.name) || /\.test\.jsx?$/.test(entry.name)) continue;
-            const text = readFileSync(full, 'utf8');
-            const code = text.split('\n').map((l) => l.replace(/\/\/.*$/, '')).join('\n');
+            const code = readFileSync(full, 'utf8')
+                .split('\n').map((l) => l.replace(/\/\/.*$/, '')).join('\n');
             const defines = /export\s+function\s+useSignupForm\b/.test(code);
-            // A surface is identified by destructuring the hook's result. That
-            // alone excludes the `return null` native stub, whose only mention of
-            // the hook is inside a `//` comment and which the comment strip
-            // therefore removes — so no `<form` predicate is needed, and adding
-            // one would silently hide a legitimate surface that renders its form
-            // through a child component.
-            if (!defines && /\}\s*=\s*useSignupForm\s*\(/.test(code)) {
-                found.push({ name: entry.name, text });
+            if (!defines && /useSignupForm\s*\(/.test(code)) {
+                found.push({ name: entry.name, text: readFileSync(full, 'utf8') });
             }
         }
     };
@@ -161,6 +157,7 @@ describe('signup email screen wiring', () => {
         // specs still reported PASS, so the email state was simply never set.
         // findSurfaces skips test files, so nothing else here would notice.
         const offenders = [];
+        let scanned = 0;
         const walk = (dir) => {
             for (const entry of readdirSync(dir, { withFileTypes: true })) {
                 const full = path.join(dir, entry.name);
@@ -169,6 +166,7 @@ describe('signup email screen wiring', () => {
                     continue;
                 }
                 if (!/\.jsx?$/.test(entry.name)) continue;
+                scanned += 1;
                 // Comments are stripped so this file's own prose about the
                 // broken harnesses cannot match itself. Test files ARE scanned,
                 // since the two broken callers were harnesses.
@@ -180,6 +178,10 @@ describe('signup email screen wiring', () => {
             }
         };
         walk(SRC_DIR);
+        // An empty offender list is equally true over zero files, so pin that
+        // the walk actually saw the source tree.
+        expect(scanned, 'the scan walked too few files to mean anything')
+            .toBeGreaterThan(20);
         expect(offenders, 'these call the removed bare address setter on a hook result')
             .toEqual([]);
     });
@@ -209,7 +211,9 @@ describe('signup email screen wiring', () => {
             const block = text.slice(blockStart, blockEnd);
 
             // role and testid must belong to ONE element, not to two siblings.
-            const openTag = block.slice(0, block.indexOf('>'));
+            const tagEnd = block.indexOf('>');
+            expect(tagEnd, `${name} alert has no opening tag`).toBeGreaterThan(0);
+            const openTag = block.slice(0, tagEnd);
             expect(openTag, `${name} alert element has no alert role`).toContain('role="alert"');
             expect(openTag, `${name} alert element has no testid`)
                 .toContain('data-testid="email-error"');
