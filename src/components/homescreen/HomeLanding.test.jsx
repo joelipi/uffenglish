@@ -411,7 +411,7 @@ describe('HomeLanding', () => {
         expect(section.className).toContain('uff-showcase-gradient');
         const icons = q('any-device-icons');
         expect(icons).not.toBeNull();
-        for (const name of ['android', 'ios', 'windows', 'mac', 'linux', 'chromebook']) {
+        for (const name of ['smartphone', 'laptop', 'tablet']) {
             const icon = q(`any-device-icon-${name}`);
             expect(icon).not.toBeNull();
             expect(icon.querySelector('i.bi')).not.toBeNull();

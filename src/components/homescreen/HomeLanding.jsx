@@ -40,18 +40,12 @@ const HOW_IT_WORKS_ROWS = [
 // the exact meaning — no visible captions are rendered (the set has no
 // generic Linux or Chromebook marks, so the Ubuntu and Google marks stand
 // in).
-// Device logos for the "any device" section, above the section text. Glyphs
-// are the closest Bootstrap Icons brand marks; the accessible name carries
-// the exact meaning — no visible captions are rendered (the set has no
-// generic Linux or Chromebook marks, so the Ubuntu and Google marks stand
-// in).
+// Device icons for the "anywhere" section — form factor only.
+// Premise: app runs anywhere a browser does; 3 devices cover the spectrum.
 const DEVICE_ICONS = [
-    { icon: 'bi-android2', label: 'Android' },
-    { icon: 'bi-apple', label: 'iOS' },
-    { icon: 'bi-windows', label: 'Windows' },
-    { icon: 'bi-command', label: 'Mac' },
-    { icon: 'bi-ubuntu', label: 'Linux' },
-    { icon: 'bi-google', label: 'Chromebook' },
+    { icon: 'bi-phone', label: 'Smartphone' },
+    { icon: 'bi-laptop', label: 'Laptop' },
+    { icon: 'bi-tablet', label: 'Tablet' },
 ];
 
 // The share-code entry card, rendered twice: in the hero and repeated at the
