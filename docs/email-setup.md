@@ -19,30 +19,30 @@ the operational checklist.
 | Welcome/confirm email sender | `functions/api/welcome-email.js` |
 | Supabase auth-email hook (reset, email change) | `functions/api/auth-email-hook.js` |
 | Webhook signature verification | `functions/api/standard-webhook.js` |
-| Shared Resend send | `functions/api/resend-send.js` |
+| Shared Zoho CPaaS send | `functions/api/zoho-send.js` |
 | Localized copy builders | `src/modules/user/{welcome,auth}-email-content.js` |
 | Email copy (28 languages) | `src/data/strings.js` (`email_welcome_*`, `auth_email_*`) |
 | Confirm landing page | `/confirm-email` route |
 | DB migration (confirmation flag + tokens) | `supabase/migrations/006_add_email_confirmation.sql` |
 
-**Left to do (this guide):** Resend account + verified domain, Cloudflare Pages
+**Left to do (this guide):** Zoho CPaaS account + verified sender, Cloudflare Pages
 secrets, Supabase dashboard config (redirect URLs + Send Email Hook), and a
 verification pass.
 
-**Two independent email paths** (both send through Resend, so all transactional
+**Two independent email paths** (both send through Zoho CPaaS, so all transactional
 mail is one system):
 
 1. **Welcome email** — triggered by `SignupForm` → `/api/welcome-email`. Needs
-   `RESEND_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, migration 006.
+   `ZOHO_CPAAS_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, migration 006.
 2. **Supabase auth emails** — password reset, email change, etc. GoTrue calls
-   `/api/auth-email-hook` once the hook is enabled. Needs `RESEND_API_KEY`,
+   `/api/auth-email-hook` once the hook is enabled. Needs `ZOHO_CPAAS_API_KEY`,
    `SEND_EMAIL_HOOK_SECRET`, and the hook configured.
 
 ---
 
 ## Prerequisites
 
-- Access to the **Resend** account for `ultrafastfluency.com`.
+- Access to the **Zoho CPaaS** account for `ultrafastfluency.com`.
 - Access to **Cloudflare Pages** → project `uffenglish` → Settings → Environment
   variables.
 - Access to the **Supabase** dashboard for project `jbrbmbmupjfangqvaevx`.
@@ -50,22 +50,22 @@ mail is one system):
 
 ---
 
-## Part 1 — Resend (sender domain + API key)
+## Part 1 — Zoho CPaaS (sender domain + API key)
 
-1. Create/log in to [resend.com](https://resend.com).
-2. **Domains → Add domain** → `ultrafastfluency.com`.
-3. Add the DNS records Resend shows (all at your DNS provider):
+1. Create/log in to [Zoho CPaaS](https://cpaas.zoho.com) (formerly ZeptoMail).
+2. **Mail Agents → Add domain** → `ultrafastfluency.com` (or use the default
+   Zoho sender domain while testing).
+3. Add the DNS records Zoho shows (all at your DNS provider):
    - an **SPF** `TXT` record,
    - one or more **DKIM** `CNAME`/`TXT` records,
    - optionally a **DMARC** `TXT` record (`_dmarc`) — recommended for
      deliverability (Gmail/Yahoo bulk-sender rules).
 4. Wait until the domain shows **Verified** (minutes to a few hours for DNS).
-5. **API Keys → Create API key** → permission **Sending access** → copy the
-   `re_...` value (shown once). This becomes `RESEND_API_KEY`.
+5. **SMTP/API → Generate API key** → copy the `Zoho-enczapikey …` value (shown
+   once). This becomes `ZOHO_CPAAS_API_KEY`.
 
-> The default sender `onboarding@resend.dev` only delivers to the Resend account
-> owner's own address — do not rely on it. `EMAIL_FROM` must be on the verified
-> domain (it already is: `welcome@ultrafastfluency.com`).
+> `EMAIL_FROM` must be on the verified sender domain (it already is:
+> `welcome@ultrafastfluency.com`).
 
 ---
 
@@ -78,7 +78,7 @@ Set them for **Production** (and **Preview** if you want staging email).
 
 | Name | Value |
 | --- | --- |
-| `RESEND_API_KEY` | the `re_...` key from Part 1 |
+| `ZOHO_CPAAS_API_KEY` | the API key from Part 1 |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Settings → API → the `service_role` secret (legacy JWT `eyJ...` or new secret key `sb_secret_...`) |
 | `SEND_EMAIL_HOOK_SECRET` | generated in Part 3 step 4 (`v1,whsec_...`) — set this **before** enabling the hook |
 
@@ -123,7 +123,7 @@ SITE_URL     = "https://ultrafastfluency.com"
    `email_changed_notification` in English; recovery + email change are
    localized).
 
-> **Order matters.** Set `RESEND_API_KEY` and `SEND_EMAIL_HOOK_SECRET` in Pages
+> **Order matters.** Set `ZOHO_CPAAS_API_KEY` and `SEND_EMAIL_HOOK_SECRET` in Pages
 > **before** enabling the hook. Once it is on, *every* auth email goes through
 > `/api/auth-email-hook`; if the secrets are missing the endpoint returns `500`
 > and the user gets no email.
@@ -194,7 +194,7 @@ curl -sS -o /dev/null -w '%{http_code}\n' -X POST \
       opens `/reset-password`; set a new password; log in with it.
 - [ ] **Email change** (optional) — Profile → change email → the confirmation
       arrives at the **new** address.
-- [ ] **Resend logs** — Resend → **Logs/Emails** shows the sends (delivered, not
+- [ ] **Zoho CPaaS logs** — Zoho CPaaS → **Logs/Emails** shows the sends (delivered, not
       bounced). Check the first few are not landing in spam.
 - [ ] **Not the Supabase sender** — the reset email's From is your domain, not
       `noreply@mail.app.supabase.io`. If it is still the Supabase sender, the
@@ -225,7 +225,7 @@ See [`deploy-environments.md`](deploy-environments.md).
 - **Auth emails:** disable **Authentication → Hooks → Send Email**. GoTrue
   reverts to Supabase's default sender (rate-limited, unlocalized). Rotate the
   hook secret if it may have leaked.
-- **Welcome email:** unset `RESEND_API_KEY`. The endpoint then returns
+- **Welcome email:** unset `ZOHO_CPAAS_API_KEY`. The endpoint then returns
   `200 { sent:false }` and does nothing — **signup is never affected** (it is
   fire-and-forget by design).
 - Both paths fail independently; disabling one does not affect the other.
@@ -239,9 +239,9 @@ See [`deploy-environments.md`](deploy-environments.md).
 | Reset email still comes from Supabase / "email rate limit exceeded" | Send Email Hook not enabled | Part 3 step 4 |
 | No auth email at all; Supabase hook logs show a failure | Hook secret mismatch or endpoint down | Re-copy `SEND_EMAIL_HOOK_SECRET`; check the deploy |
 | Hook returns **401** | Signature verification failed (wrong secret, or a proxy altered the body) | Re-paste the secret; ensure nothing rewrites the request body |
-| Hook returns **500** | `RESEND_API_KEY` unset in Pages | Part 2 |
-| Hook returns **502** | Resend rejected the send (unverified domain, bad `EMAIL_FROM`, rate limit) | Check Resend → Logs; verify the domain (Part 1) |
-| Welcome email not sent (signup still fine) | `RESEND_API_KEY` / `SUPABASE_SERVICE_ROLE_KEY` unset, or migration 006 not applied | Parts 2 + 4 |
+| Hook returns **500** | `ZOHO_CPAAS_API_KEY` unset in Pages | Part 2 |
+| Hook returns **502** | Zoho CPaaS rejected the send (unverified domain, bad `EMAIL_FROM`, rate limit) | Check Zoho CPaaS → Logs; verify the domain (Part 1) |
+| Welcome email not sent (signup still fine) | `ZOHO_CPAAS_API_KEY` / `SUPABASE_SERVICE_ROLE_KEY` unset, or migration 006 not applied | Parts 2 + 4 |
 | Confirm link says "invalid or has expired" | Token already used, older than 7 days, or wrong project | Re-request; check the token table |
 | Emails land in spam | SPF/DKIM/DMARC incomplete or domain not warmed up | Finish Part 1 DNS; warm up slowly |
 
@@ -249,7 +249,7 @@ See [`deploy-environments.md`](deploy-environments.md).
 
 ## Security notes
 
-- `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY` and `SEND_EMAIL_HOOK_SECRET` are
+- `SUPABASE_SERVICE_ROLE_KEY`, `ZOHO_CPAAS_API_KEY` and `SEND_EMAIL_HOOK_SECRET` are
   **server-only** (Pages secrets). Never reference them under `src/` or ship them
   to the client.
 - The auth hook endpoint is public but requires a valid `standardwebhooks`
