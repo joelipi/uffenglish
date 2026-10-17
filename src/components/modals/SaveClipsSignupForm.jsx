@@ -8,8 +8,13 @@
 // native <dialog> that is CLOSED until the guest presses the create-video
 // button, and the Turnstile script (async defer, loaded once for the whole SPA)
 // has already finished its render pass by then — a widget mounted into a closed
-// dialog gets no challenge and no token. The standalone /signup route is the
-// protected surface; this modal stays on the plain Supabase path.
+// dialog gets no challenge and no token.
+//
+// Story 070 closed the standalone /signup route (it redirects to /courses), so
+// this is the ONLY reachable signup surface and it runs without a bot gate. That
+// is deliberate and currently time-boxed: adding Turnstile to a form inside an
+// already-open <dialog> is the documented follow-up story, and the first barrier
+// on this path is the friend lesson's camera/mic requirement.
 import React from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store/store.js';

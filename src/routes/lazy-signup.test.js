@@ -14,7 +14,7 @@
 // Every guard asserts on raw source, scoped to a named block and bounded at a
 // real marker — never whole-file `toContain`, which a comment can satisfy.
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { strings } from '../data/strings.js';
@@ -22,9 +22,16 @@ import { strings } from '../data/strings.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const read = (...rel) => readFileSync(path.join(__dirname, ...rel), 'utf8');
 
+const SRC_ROOT = path.join(__dirname, '..');
 const guestModalSrc = read('..', 'components', 'modals', 'GuestLoginModal.web.jsx');
 const loginRouteSrc = read('LoginRoute.jsx');
 const userProfileSrc = read('..', 'components', 'profile', 'UserProfile.jsx');
+
+const ENTRY_POINTS = [
+    ['GuestLoginModal.web.jsx', guestModalSrc],
+    ['LoginRoute.jsx', loginRouteSrc],
+    ['UserProfile.jsx', userProfileSrc],
+];
 
 const LOCALES = ['en', 'es', 'pt', 'fr', 'hi', 'bn'];
 
@@ -32,17 +39,68 @@ const LOCALES = ['en', 'es', 'pt', 'fr', 'hi', 'bn'];
 const COURSE_COPY_KEYS = ['courses_guest_notice_title', 'courses_guest_notice_body', 'friend_courses_step_1'];
 
 /**
- * Every href/to that points at the closed route in a given source file.
- * Scoped to the links themselves (a `to="..."`/`href="..."` attribute value or
- * a navigate argument), so a prose mention of the route in a comment cannot
- * satisfy or fail this.
+ * Every link target in `src` that names the closed route.
+ *
+ * The first version of this matcher only understood QUOTED attribute values
+ * (`to="/signup"`), so it could never fire: every entry point targets a JSX
+ * expression, including the pre-story form
+ * `to={`/signup?redirect=${encodeURIComponent(currentUrl)}`}`. A guard that
+ * cannot fail for the very regression it exists to catch is worse than none
+ * (AGENTS.md). It now matches the WHOLE assignment — quoted, braced, or a
+ * `navigate(...)` argument — and tests the matched text for the token, so a
+ * template placeholder's `}` cannot hide the path and a variable target that
+ * resolves elsewhere is not mistaken for one.
  */
+const TARGET_ASSIGNMENT = /(?:^|[\s{(])(?:to|href)\s*=\s*(?:"[^"]*"|'[^']*'|\{[^}]*\})/gm;
+const NAVIGATE_CALL = /navigate\(\s*(?:"[^"]*"|'[^']*'|\{[^}]*\})/g;
+
 function signupLinkTargets(src) {
     return [
-        ...[...src.matchAll(/(?:to|href)\s*=\s*["'`]([^"'`]*)["'`]/g)].map((m) => m[1]),
-        ...[...src.matchAll(/navigate\(\s*[`'"]([^`'"]*)[`'"]\s*\)/g)].map((m) => m[1]),
+        ...[...src.matchAll(TARGET_ASSIGNMENT)].map((m) => m[0]),
+        ...[...src.matchAll(NAVIGATE_CALL)].map((m) => m[0]),
     ].filter((target) => target.includes('/signup'));
 }
+
+/**
+ * Every non-test source file under `src/`, DISCOVERED rather than listed.
+ *
+ * The entry points used to be a hardcoded three; a fourth signup CTA added
+ * later would have escaped them silently. Walking the tree makes a new consumer
+ * fail this guard instead (AGENTS.md).
+ */
+function discoverSourceFiles(dir = SRC_ROOT) {
+    const found = [];
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        if (entry.name === 'node_modules') continue;
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) found.push(...discoverSourceFiles(full));
+        else if (/\.(jsx?|mjs)$/.test(entry.name) && !/\.test\./.test(entry.name)) found.push(full);
+    }
+    return found;
+}
+
+describe('story 070 — the signup-target matcher can see what it must catch', () => {
+    it('sees the JSX template-literal target the entry points actually used', () => {
+        // The literal pre-story form: this is the regression the guard exists
+        // for, and the quoted-only matcher could not see it.
+        const historic = 'to={`/signup?redirect=${encodeURIComponent(currentUrl)}`}';
+        expect(signupLinkTargets(historic)).toHaveLength(1);
+    });
+
+    it('sees quoted targets and navigate() calls', () => {
+        expect(signupLinkTargets('<Link to="/signup">Back</Link>')).toHaveLength(1);
+        expect(signupLinkTargets("<Link to='/signup?x=1'>Back</Link>")).toHaveLength(1);
+        expect(signupLinkTargets("navigate('/signup')")).toHaveLength(1);
+    });
+
+    it('ignores a target that is a variable, and prose about the route', () => {
+        // Neither is a link to the closed route; a matcher that flagged them
+        // would have to be suppressed, which is how guards rot.
+        expect(signupLinkTargets('to={COURSES_PATH}')).toEqual([]);
+        expect(signupLinkTargets('onClick={() => navigate(COURSES_PATH)}')).toEqual([]);
+        expect(signupLinkTargets('// the standalone /signup form is closed')).toEqual([]);
+    });
+});
 
 describe('story 070 — no entry point reaches a signup form', () => {
     it('the guest modal account CTA goes to the course list', () => {
@@ -73,14 +131,23 @@ describe('story 070 — no entry point reaches a signup form', () => {
         expect(block).toContain('to={COURSES_PATH}');
     });
 
-    it('no href, Link target or navigate() in any entry point names /signup', () => {
-        for (const [name, src] of [
-            ['GuestLoginModal.web.jsx', guestModalSrc],
-            ['LoginRoute.jsx', loginRouteSrc],
-            ['UserProfile.jsx', userProfileSrc],
-        ]) {
-            expect(signupLinkTargets(src), `${name} still links to a signup form`).toEqual([]);
+    it('no link target in ANY source file names /signup, not just these three', () => {
+        const files = discoverSourceFiles();
+        const names = files.map((file) => path.relative(SRC_ROOT, file));
+        // The walk must really find the tree and the known entry points: an
+        // empty or partial discovery would leave the assertion below green
+        // while guarding nothing (AGENTS.md — discover the inputs).
+        expect(files.length).toBeGreaterThan(50);
+        for (const [name] of ENTRY_POINTS) {
+            expect(names.some((candidate) => candidate.endsWith(name)), `${name} missing from the walk`).toBe(true);
         }
+        const offenders = files
+            .map((file) => [
+                path.relative(SRC_ROOT, file),
+                signupLinkTargets(readFileSync(file, 'utf8')),
+            ])
+            .filter(([, targets]) => targets.length > 0);
+        expect(offenders).toEqual([]);
     });
 
     it('still lets an existing user reach the sign-in form', () => {
@@ -133,6 +200,16 @@ describe('story 070 — the course list says where the account comes from', () =
             for (const lang of LOCALES) {
                 expect(strings[key][lang], `${key}.${lang}`).toBeTruthy();
             }
+        }
+    });
+
+    it('localizes the notice sign-in label in every locale', () => {
+        // The label is the reused `sign_in` copy, and its pt entry was missing —
+        // the most prominent button of the new notice fell back to English for
+        // Portuguese learners. Asserted on the RAW table, so a fallback cannot
+        // satisfy it (AGENTS.md).
+        for (const lang of LOCALES) {
+            expect(strings.sign_in[lang], `sign_in.${lang}`).toBeTruthy();
         }
     });
 

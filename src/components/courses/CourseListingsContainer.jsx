@@ -11,11 +11,12 @@ import CourseListings from './CourseListings.jsx';
 // to friend courses, and hands the list to the presentational view. Configs are
 // cached for the session (`staleTime: Infinity`). Also resolves the viewer id
 // so the view can show the install banner / notification prompt to signed-in
-// users (guests see neither).
+// users (guests see neither), and reports whether that profile query is still
+// in flight so the view does not call an unknown viewer a guest.
 export default function CourseListingsContainer() {
     const navigate = useNavigate();
     const lang = useNativeLanguage();
-    const { data: profile } = useUserProfile();
+    const { data: profile, isLoading: isProfileResolving } = useUserProfile();
 
     const { data: courses, isLoading, isError } = useQuery({
         queryKey: ['friend-courses'],
@@ -33,6 +34,7 @@ export default function CourseListingsContainer() {
             isLoading={isLoading}
             isError={isError}
             userId={profile?.$id}
+            isResolving={isProfileResolving}
             onBack={() => navigate('/')}
         />
     );

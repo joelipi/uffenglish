@@ -33,6 +33,17 @@ describe('SignupRoute (closed)', () => {
 
     /** Mount /signup next to a probe route that records the location it lands on. */
     function mountAt(path) {
+        // A second `createRoot` on the same container logs a React error, which
+        // this repo treats as a failure, and the `?redirect=` case mounts twice.
+        // Tear the previous host down and start from a fresh one.
+        if (root) {
+            act(() => root.unmount());
+            root = null;
+        }
+        container.remove();
+        container = document.createElement('div');
+        document.body.appendChild(container);
+
         function Probe() {
             landedAt = useLocation().pathname;
             return null;

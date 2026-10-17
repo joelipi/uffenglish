@@ -213,20 +213,25 @@ describe('CourseListings signed-out notice', () => {
         expect(container.querySelector('[data-testid="courses-guest-signin"]')).toBeNull();
     });
 
-    it('shows for the shared guest sentinel AND while the profile is still loading', () => {
-        // `userId` resolves undefined before the profile query settles; the
-        // container has nothing else to go on, so it must count as a guest.
-        for (const userId of ['guest', undefined, null]) {
-            const localContainer = document.createElement('div');
-            document.body.appendChild(localContainer);
-            const localRoot = render(localContainer, { courses: COURSES, userId });
-            try {
-                expect(localContainer.querySelector('[data-testid="courses-guest-notice"]')).not.toBeNull();
-            } finally {
-                act(() => localRoot.unmount());
-                localContainer.remove();
-            }
+    it('waits for the profile query: unknown viewer is not a guest, sentinel is', () => {
+        // `userId` is undefined *while the profile query loads*, which is NOT
+        // the same as being a guest — a signed-in user cold-loading the page
+        // must not be told they are not signed in (story 070 review). Once the
+        // query settles the anonymous visitor carries the 'guest' sentinel and
+        // the notice appears.
+        const resolvingContainer = document.createElement('div');
+        document.body.appendChild(resolvingContainer);
+        const resolvingRoot = render(resolvingContainer, { courses: COURSES, userId: undefined, isResolving: true });
+        try {
+            expect(resolvingContainer.querySelector('[data-testid="courses-guest-notice"]')).toBeNull();
+            expect(resolvingContainer.querySelector('[data-testid="pwa-install-banner"]')).toBeNull();
+        } finally {
+            act(() => resolvingRoot.unmount());
+            resolvingContainer.remove();
         }
+
+        root = render(container, { courses: COURSES, userId: 'guest' });
+        expect(container.querySelector('[data-testid="courses-guest-notice"]')).not.toBeNull();
     });
 
     it('sits above the scroll region rather than inside it', () => {

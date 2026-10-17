@@ -5,6 +5,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createRoot } from 'react-dom/client';
 import { act } from 'react';
+import { waitForSignupChain } from './signup-chain-wait.js';
 
 const { insertCalls, signUpSpy, verifySpy, tokenSpy, emailSpy } = vi.hoisted(() => ({
     insertCalls: [],
@@ -89,24 +90,14 @@ async function submit(options, email) {
                 .dispatchEvent(new MouseEvent('click', { bubbles: true }));
         });
     }
-    // Wait for the real completion signal instead of sleeping a fixed 50ms.
-    // The chain is async (captcha -> email gate -> signUp -> profile write) and
-    // `loading` stays true across all of it, clearing only in handleSubmit's
-    // `finally`. A fixed sleep is a timing assumption: it held when this file
-    // ran alone, but under the full suite's load the post-signUp profile write
-    // had not landed yet, so the insert-call-count assertions failed
-    // intermittently (story 070's added test files shifted the worker
-    // scheduling and exposed it).
-    //
     // Both conditions are required. `emailSpy` proves the submit got past the
     // captcha gate, so `loading` cannot be read as 'false' in the gap between
     // the click dispatch and the submit starting; `loading === 'false'` then
-    // proves the whole chain finished. Each poll still flushes React through
-    // act, exactly as the single sleep did.
-    for (let poll = 0; poll < 200; poll += 1) {
-        if (emailSpy.mock.calls.length > 0 && read('loading') === 'false') break;
-        await act(async () => { await new Promise((r) => setTimeout(r, 5)); });
-    }
+    // proves the whole chain finished.
+    await waitForSignupChain(
+        () => emailSpy.mock.calls.length > 0 && read('loading') === 'false',
+        { maxPolls: 200 },
+    );
 }
 
 const read = (id) => container.querySelector(`[data-testid="${id}"]`).textContent;

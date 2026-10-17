@@ -4,6 +4,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createRoot } from 'react-dom/client';
 import { act } from 'react';
+import { waitForSignupChain } from './signup-chain-wait.js';
 
 // Tracks every insert, tagged with the table it targeted.
 const { insertCalls, setQueryDataSpy, recordFriendCompletionSpy } = vi.hoisted(() => ({
@@ -93,21 +94,10 @@ async function submitSignup() {
         });
     }
     // The submit handler is fully async (auth + profile insert); let its
-    // microtasks drain before asserting on what it wrote.
-    // Wait for the real completion signal instead of sleeping a fixed 50ms.
-    // handleSubmit sets loading true before its first await and clears it only in
-    // its finally, so loading === 'false' IS the end-of-chain condition. A fixed
-    // sleep is a timing assumption: it holds when the file runs alone but not
-    // under the full suite's load, where the post-signUp profile write had not
-    // landed yet and the call-count assertions failed intermittently. The empty
-    // act first flushes setLoading(true) so the loop cannot read 'false' in the
-    // gap between the click dispatch and the chain starting. Every poll still
-    // flushes React through act, exactly as the single sleep did.
-    await act(async () => {});
-    for (let poll = 0; poll < 400; poll += 1) {
-        if (read('loading') === 'false') break;
-        await act(async () => { await new Promise((r) => setTimeout(r, 5)); });
-    }
+    // microtasks drain before asserting on what it wrote. `loading` clearing is
+    // the end-of-chain signal; the helper throws rather than falling through, so
+    // a hung chain fails here instead of vacuously passing an empty-insert check.
+    await waitForSignupChain(() => read('loading') === 'false');
 }
 
 // The signup profile row is identified by the form data; other inserts in the

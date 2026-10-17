@@ -889,6 +889,7 @@ const strings = {
     'sign_in': {
         en: "Sign In",
         es: "Iniciar sesión",
+        pt: "Entrar",
         fr: "Se connecter",
         hi: "साइन इन",
         bn: "সাইন ইন"

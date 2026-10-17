@@ -8,11 +8,24 @@ describe('isGuestViewer', () => {
         expect(isGuestViewer('guest')).toBe(true);
     });
 
-    it('treats a missing id as anonymous while the profile query loads', () => {
+    it('treats a missing id as anonymous once the profile query has settled', () => {
+        // A settled query always yields the sentinel or a real id, so a bare
+        // missing id means "no loading state to report" — the old behaviour.
         expect(isGuestViewer(undefined)).toBe(true);
         expect(isGuestViewer(null)).toBe(true);
         expect(isGuestViewer('')).toBe(true);
         expect(isGuestViewer(0)).toBe(true);
+    });
+
+    it('does NOT call an unknown viewer a guest while the profile query loads', () => {
+        // Story 070 review: a signed-in user cold-loading /courses must not be
+        // told "You're not signed in". An unresolved profile is unknown, not
+        // anonymous.
+        expect(isGuestViewer(undefined, { isResolving: true })).toBe(false);
+        expect(isGuestViewer(null, { isResolving: true })).toBe(false);
+        // The sentinel is a positive answer, so resolving cannot overturn it.
+        expect(isGuestViewer('guest', { isResolving: true })).toBe(true);
+        expect(isGuestViewer('user-1', { isResolving: true })).toBe(false);
     });
 
     it('treats any real id as signed in', () => {
@@ -25,12 +38,25 @@ describe('isGuestViewer', () => {
         expect(isGuestViewer(' guest')).toBe(false);
     });
 
-    it('is the exact complement of the signed-in banner gate', () => {
-        // The install banner and notification prompt render for signed-in
-        // viewers only; deriving both from one predicate means they can never
-        // disagree about who is a guest.
-        for (const id of ['guest', undefined, null, '', 'user-1', 'Guest']) {
-            expect(isGuestViewer(id)).toBe(!(id && id !== 'guest'));
+    it('pairs the notice and the signed-in banners on one predicate', () => {
+        // `CourseListings` renders the notice for `isGuest` and the
+        // install/notification banners for `!isGuest`, so exactly one of the two
+        // blocks renders for any viewer. The expectations are a table, not a
+        // re-evaluation of the implementation, so this can fail.
+        const cases = [
+            ['guest', true],
+            ['user-1', false],
+            // Near-misses on the sentinel are real ids, or a real user silently
+            // gets the guest notice.
+            ['Guest', false],
+            ['guests', false],
+            // Settled with no id reported: the old "no loading state" contract.
+            [undefined, true],
+        ];
+        for (const [id, expectedGuest] of cases) {
+            const isGuest = isGuestViewer(id);
+            expect(isGuest, `isGuestViewer(${String(id)})`).toBe(expectedGuest);
+            expect(!isGuest, 'the signed-in banner gate').toBe(!expectedGuest);
         }
     });
 });

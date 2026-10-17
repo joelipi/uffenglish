@@ -82,6 +82,18 @@ describe('routes.jsx homepage split', () => {
             expect(signupRouteSrc).not.toMatch(/<SignupForm[\s/>]/);
             expect(signupRouteSrc).toMatch(/return\s*<Navigate\b/);
         });
+
+        // Moved here from `home-navigation-wiring.test.js`, which was the third
+        // home for the same three facts (AGENTS.md: one guard, one place).
+        it('redirects to the course list and no longer honours ?redirect=', () => {
+            const signupRouteSrc = readFileSync(path.join(__dirname, 'SignupRoute.jsx'), 'utf8');
+            expect(signupRouteSrc).toContain('COURSES_PATH');
+            expect(signupRouteSrc).toContain('<Navigate to={COURSES_PATH} replace />');
+            // The param the entry points used to append is no longer read, so a
+            // stale deep link cannot steer the redirect anywhere else.
+            expect(signupRouteSrc).not.toContain('useSearchParams');
+            expect(signupRouteSrc).not.toContain("searchParams.get('redirect')");
+        });
     });
 
     it('sends the LessonError Go Home link to the dashboard at /home', () => {

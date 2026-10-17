@@ -31,11 +31,17 @@ describe('CourseListings notice placement', () => {
         // The gate that opens the scroll region and the one that closes it.
         const openAt = src.indexOf('<div data-testid="friend-courses-scroll"');
         expect(openAt).toBeGreaterThan(-1);
-        // Bound the slice at the component's final closing `);` rather than EOF:
-        // a function appended later would otherwise join the slice (AGENTS.md).
-        const closeAt = src.indexOf('\n        </div>', openAt);
+        // Bound the slice at the end of the returned JSX (`    );` closing the
+        // return), not at an indentation-specific `</div>` and never at EOF: a
+        // nested closing tag would end the slice early, and a function appended
+        // later would otherwise join it (AGENTS.md).
+        const closeAt = src.indexOf('\n    );\n}', openAt);
         expect(closeAt).toBeGreaterThan(openAt);
         const scrollBlock = src.slice(openAt, closeAt);
+        // Prove the slice really spans the scroll region. Without this, a bound
+        // that landed on the opening tag would leave an empty slice and the two
+        // `not.toContain` assertions below would pass vacuously.
+        expect(scrollBlock).toContain('FriendCoursesView');
         expect(scrollBlock).not.toContain('courses-guest-notice');
         expect(scrollBlock).not.toContain('courses-guest-signin');
     });
@@ -45,7 +51,11 @@ describe('CourseListings notice placement', () => {
         // One predicate, two gates: `isGuest` for the notice, `!isGuest` for the
         // install/notification banners. A second inline sentinel would let the
         // two disagree about who is a guest.
-        expect(src).toContain('const isGuest = isGuestViewer(userId);');
+        expect(src).toMatch(/const isGuest = isGuestViewer\(userId, \{ isResolving \}\);/);
+        // The loading state is threaded through, so an unknown viewer is not
+        // mistaken for a guest while the profile query is in flight.
+        expect(src).toMatch(/isResolving = false/);
+        expect(src).toMatch(/isGuestViewer\(userId, \{ isResolving \}\)/);
         expect(src).toMatch(/\{isGuest && \(\s*<div data-testid="courses-guest-notice"/);
         expect(src).toMatch(/\{!isGuest && \(\s*<>/);
         // The raw sentinel is not re-typed here — it lives in the logic module.

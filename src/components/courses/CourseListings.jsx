@@ -12,9 +12,13 @@ import { isGuestViewer, buildCoursesSignInHref } from '../../modules/courses/gue
 //
 // This page serves both audiences: signed-in users get the install banner and
 // the notification prompt, guests get the signed-out notice. Both gates read
-// `isGuestViewer` so they can never disagree about who is signed in.
-export default function CourseListings({ lang = 'en', courses, isLoading = false, isError = false, userId = null, onBack }) {
-    const isGuest = isGuestViewer(userId);
+// `isGuestViewer` so they can never disagree about who is signed in, and both
+// wait for the profile query (`isResolving`) before claiming either.
+export default function CourseListings({ lang = 'en', courses, isLoading = false, isError = false, userId = null, isResolving = false, onBack }) {
+    // `isResolving` is the profile query still loading: the viewer is unknown,
+    // so neither the guest notice nor the signed-in banners render yet. Gating
+    // both off one predicate keeps them from disagreeing about who is here.
+    const isGuest = isGuestViewer(userId, { isResolving });
     const containerStyle = {
         height: '100dvh',
         display: 'flex',
@@ -101,6 +105,11 @@ export default function CourseListings({ lang = 'en', courses, isLoading = false
             )}
 
             <div data-testid="friend-courses-scroll" style={scrollStyle}>
+                {/* While the profile query resolves, `isGuest` is false, so the
+                    banners stay hidden and the notice is suppressed too. Both
+                    PushNotificationsOptIn and PWAInstallBanner guard every
+                    `userId` use, so rendering them with `userId={undefined}`
+                    is safe (no early return needed). */}
                 {!isGuest && (
                     <>
                         <PWAInstallBanner lang={lang} userId={userId} />
