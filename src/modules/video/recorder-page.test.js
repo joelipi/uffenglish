@@ -1006,6 +1006,9 @@ describe('recorder auto-render — zero server changes', () => {
             'functions/api/zoho-send.js',
             'wrangler.toml',
             'src/assets/css/app.css',
+            // Home top bar: the logo must not push the bell out of the frame.
+            'src/components/homescreen/HomeScreen.jsx',
+            'tests/home-bell-desktop-fit.spec.js',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);

@@ -238,11 +238,19 @@ export default function HomeScreen() {
                     src={headerLogo}
                     alt={Strings.get('home_title', lang)}
                     data-testid="home-logo"
-                    style={{ height: '40px', width: 'auto', display: 'block', filter: 'drop-shadow(0 1px 1.5px rgba(0,0,0,0.35))' }}
+                    // maxWidth/minWidth: the logo is a 5.3:1 wordmark at a fixed
+                    // 40px height, so on a narrow desktop frame (short window ->
+                    // frame width is 9/16 of the viewport height) it outgrew the
+                    // row and pushed the bell past the frame's right edge, where
+                    // #root.video-frame clips it to nothing. It is the only
+                    // elastic child, so it gives way instead.
+                    style={{ height: '40px', width: 'auto', maxWidth: '50%', minWidth: 0, display: 'block', filter: 'drop-shadow(0 1px 1.5px rgba(0,0,0,0.35))' }}
                 />
-                {isLoggedIn && viewerId && viewerId !== 'guest'
-                    ? <NotificationsBell userId={viewerId} lang={lang} />
-                    : <div style={{ width: '44px' }} />}
+                <div style={{ flexShrink: 0 }}>
+                    {isLoggedIn && viewerId && viewerId !== 'guest'
+                        ? <NotificationsBell userId={viewerId} lang={lang} />
+                        : <div style={{ width: '44px' }} />}
+                </div>
             </div>
 
             {menuOpen && (
