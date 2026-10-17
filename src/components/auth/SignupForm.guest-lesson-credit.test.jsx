@@ -75,9 +75,14 @@ function Harness() {
             {click('email', () => form.handleEmailChange('jo@example.com'))}
             {click('password', () => form.setPassword('password123'))}
             {click('submit', () => form.handleSubmit({ preventDefault() {} }))}
+            {/* handleSubmit holds loading true across the whole async chain and
+                clears it only in its finally: the real end-of-chain signal. */}
+            <div data-testid="loading">{String(form.loading)}</div>
         </div>
     );
 }
+
+const read = (id) => container.querySelector(`[data-testid="${id}"]`).textContent;
 
 async function submitSignup() {
     await act(async () => { host.render(<Harness />); });
@@ -89,7 +94,20 @@ async function submitSignup() {
     }
     // The submit handler is fully async (auth + profile insert); let its
     // microtasks drain before asserting on what it wrote.
-    await act(async () => { await new Promise((r) => setTimeout(r, 50)); });
+    // Wait for the real completion signal instead of sleeping a fixed 50ms.
+    // handleSubmit sets loading true before its first await and clears it only in
+    // its finally, so loading === 'false' IS the end-of-chain condition. A fixed
+    // sleep is a timing assumption: it holds when the file runs alone but not
+    // under the full suite's load, where the post-signUp profile write had not
+    // landed yet and the call-count assertions failed intermittently. The empty
+    // act first flushes setLoading(true) so the loop cannot read 'false' in the
+    // gap between the click dispatch and the chain starting. Every poll still
+    // flushes React through act, exactly as the single sleep did.
+    await act(async () => {});
+    for (let poll = 0; poll < 400; poll += 1) {
+        if (read('loading') === 'false') break;
+        await act(async () => { await new Promise((r) => setTimeout(r, 5)); });
+    }
 }
 
 // The signup profile row is identified by the form data; other inserts in the
