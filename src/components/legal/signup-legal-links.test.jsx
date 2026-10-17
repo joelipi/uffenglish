@@ -69,12 +69,12 @@ describe('sign-up surfaces show legal links', () => {
             expectPrivacyAndTerms(modal);
 
             const form = modal.querySelector('form');
-            expect(comesAfter(form, links)).toBe(true);
+            expect(form.contains(links)).toBe(true);
         });
     });
 
     describe('SaveClipsSignupForm', () => {
-        it('shows the legal links after the form', () => {
+        it('shows the legal links inside the form, above the submit button', () => {
             render(SaveClipsSignupForm);
 
             const links = container.querySelector('[data-testid="legal-links"]');
@@ -82,22 +82,17 @@ describe('sign-up surfaces show legal links', () => {
             expectPrivacyAndTerms();
 
             const form = container.querySelector('form');
-            expect(comesAfter(form, links)).toBe(true);
-        });
+            expect(form).not.toBeNull();
+            expect(form.contains(links)).toBe(true);
 
-        it('shows the links on initial render and outside the form', () => {
-            render(SaveClipsSignupForm);
-
-            const links = container.querySelector('[data-testid="legal-links"]');
-            expect(links).not.toBeNull();
-
-            const form = container.querySelector('form');
-            expect(form.contains(links)).toBe(false);
+            const button = form.querySelector('button[type="submit"]');
+            expect(button).not.toBeNull();
+            expect(comesAfter(links, button)).toBe(true);
         });
     });
 
     describe('SignupForm (/signup)', () => {
-        it('shows the legal links after the form', () => {
+        it('shows the legal links inside the form, above the submit button', () => {
             render(SignupForm);
 
             const links = container.querySelector('[data-testid="legal-links"]');
@@ -105,7 +100,12 @@ describe('sign-up surfaces show legal links', () => {
             expectPrivacyAndTerms();
 
             const form = container.querySelector('form');
-            expect(comesAfter(form, links)).toBe(true);
+            expect(form).not.toBeNull();
+            expect(form.contains(links)).toBe(true);
+
+            const button = form.querySelector('button[type="submit"]');
+            expect(button).not.toBeNull();
+            expect(comesAfter(links, button)).toBe(true);
         });
     });
 

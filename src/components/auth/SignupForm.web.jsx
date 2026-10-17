@@ -157,6 +157,9 @@ export default function SignupForm({ onSignupSuccess, onLoginLink }) {
                     </select>
                 </div>
 
+                <SignupConsent lang={lang} />
+                <LegalLinks lang={lang} />
+
                 <TurnstileCaptcha ref={turnstileRef} />
 
                 <button type="submit" className="btn btn-primary w-100" disabled={loading}>
@@ -164,13 +167,9 @@ export default function SignupForm({ onSignupSuccess, onLoginLink }) {
                 </button>
             </form>
 
-            <SignupConsent lang={lang} />
-
             <div className="text-center mt-3">
                 <p>{Strings.get('auth_already_account', lang)} <a className="auth-link" href="#" onClick={(e) => { e.preventDefault(); onLoginLink?.(); }}>{Strings.get('auth_log_in_link', lang)}</a></p>
             </div>
-
-            <LegalLinks lang={lang} />
         </>
     );
 }

@@ -12,13 +12,13 @@ import { Link } from 'react-router-dom';
 import Strings from '../../data/strings.js';
 
 export default function SignupConsent({ lang = 'en' }) {
-    const linkStyle = { color: '#adb5bd', textDecoration: 'underline' };
+    const linkStyle = { color: '#ffffff', textDecoration: 'underline' };
 
     return (
         <p
             data-testid="signup-consent"
             className="text-center mt-3"
-            style={{ fontSize: '12px', color: '#adb5bd' }}
+            style={{ fontSize: '12px', color: '#ffffff' }}
         >
             {Strings.get('signup_consent_prefix', lang)}{' '}
             <Link to="/terms" target="_blank" rel="noopener noreferrer" style={linkStyle}>

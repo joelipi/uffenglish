@@ -17,9 +17,9 @@ export default function LegalLinks({ lang = 'en' }) {
         gap: '6px',
         marginTop: '12px',
         fontSize: '12px',
-        color: '#adb5bd',
+        color: '#ffffff',
     };
-    const linkStyle = { color: '#adb5bd', textDecoration: 'underline' };
+    const linkStyle = { color: '#ffffff', textDecoration: 'underline' };
 
     return (
         <div data-testid="legal-links" style={containerStyle}>

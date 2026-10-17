@@ -103,14 +103,15 @@ export default function SaveClipsSignupForm({ onSignupSuccess, onLoginLink }) {
                     />
                 </div>
 
+                <SignupConsent lang={lang} />
+                <LegalLinks lang={lang} />
+
                 <button type="submit" className="btn btn-primary w-100" disabled={loading}>
                     {loading
                         ? Strings.get('auth_creating_account', lang)
                         : Strings.get('save_clips_signup_cta', lang)}
                 </button>
             </form>
-
-            <SignupConsent lang={lang} />
 
             <div className="text-center mt-3">
                 <p className="mb-0">
@@ -125,8 +126,6 @@ export default function SaveClipsSignupForm({ onSignupSuccess, onLoginLink }) {
                     </a>
                 </p>
             </div>
-
-            <LegalLinks lang={lang} />
         </>
     );
 }

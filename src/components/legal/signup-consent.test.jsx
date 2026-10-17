@@ -74,7 +74,7 @@ describe('signup consent boilerplate', () => {
     it.each([
         ['SignupForm (/signup)', SignupForm],
         ['SaveClipsSignupForm (save-clips modal)', SaveClipsSignupForm],
-    ])('%s shows the consent after the form and outside it', (_name, Component) => {
+    ])('%s shows the consent inside the form, above the submit button', (_name, Component) => {
         render(React.createElement(Component));
 
         const consent = container.querySelector('[data-testid="signup-consent"]');
@@ -82,8 +82,11 @@ describe('signup consent boilerplate', () => {
 
         const form = container.querySelector('form');
         expect(form).not.toBeNull();
-        expect(form.contains(consent)).toBe(false);
-        expect(comesAfter(form, consent)).toBe(true);
+        expect(form.contains(consent)).toBe(true);
+
+        const button = form.querySelector('button[type="submit"]');
+        expect(button).not.toBeNull();
+        expect(comesAfter(consent, button)).toBe(true);
 
         expect([...consent.querySelectorAll('a')].map((a) => a.getAttribute('href')))
             .toEqual(['/terms', '/privacy']);
