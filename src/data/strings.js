@@ -1440,13 +1440,17 @@ const strings = {
         hi: "अपने दोस्तों के साथ करने के लिए एक बातचीत चुनें और उनके साथ मुफ़्त अंग्रेज़ी का अभ्यास करें।",
         bn: "আপনার বন্ধুদের সাথে করার জন্য একটি কথোপকথন বেছে নিন এবং তাদের সাথে বিনামূল্যে ইংরেজি চর্চা করুন।"
     },
+    // Story 070: signup is lazy — the account is created at the end of the first
+    // lesson. The under-five-minutes promise stays, because that is what makes
+    // deferring the account unalarming; the second sentence names the outcome
+    // so nobody finishes the lesson expecting a form that is not there.
     'friend_courses_step_1': {
-        en: "Complete the first mini lesson in under five minutes.",
-        es: "Completa la primera mini lección en menos de cinco minutos.",
-        pt: "Complete a primeira mini lição em menos de cinco minutos.",
-        fr: "Terminez la première mini-leçon en moins de cinq minutes.",
-        hi: "पहला मिनी पाठ पाँच मिनट से कम समय में पूरा करें।",
-        bn: "পাঁচ মিনিটের কম সময়ে প্রথম মিনি পাঠ সম্পন্ন করুন।"
+        en: "Complete the first mini lesson in under five minutes. You'll create your free account at the end.",
+        es: "Completa la primera mini lección en menos de cinco minutos. Al final crearás tu cuenta gratuita.",
+        pt: "Complete a primeira mini lição em menos de cinco minutos. No final você criará sua conta gratuita.",
+        fr: "Terminez la première mini-leçon en moins de cinq minutes. Vous créerez votre compte gratuit à la fin.",
+        hi: "पहला मिनी पाठ पाँच मिनट से कम समय में पूरा करें। अंत में आपका मुफ़्त खाता बन जाएगा।",
+        bn: "পাঁচ মিনিটের কম সময়ে প্রথম মিনি পাঠ সম্পন্ন করুন। শেষে আপনার বিনামূল্যে অ্যাকাউন্ট তৈরি হবে।"
     },
     'friend_courses_step_2': {
         en: "Share your special link with friends, family, and colleagues so that they can reply to you and continue the conversation.",
@@ -1455,6 +1459,26 @@ const strings = {
         fr: "Partagez votre lien spécial avec vos amis, votre famille et vos collègues pour qu'ils puissent vous répondre et poursuivre la conversation.",
         hi: "अपना विशेष लिंक दोस्तों, परिवार और सहकर्मियों के साथ साझा करें ताकि वे आपको जवाब दे सकें और बातचीत जारी रख सकें।",
         bn: "আপনার বিশেষ লিঙ্ক বন্ধু, পরিবার ও সহকর্মীদের সাথে শেয়ার করুন যাতে তারা আপনাকে উত্তর দিতে পারে এবং কথোপকথন চালিয়ে যেতে পারে।"
+    },
+    // Story 070: the signed-out notice at the top of /courses. Shown to guests
+    // only, so it says where they are (not signed in), how to get the account
+    // (finish the lesson), and how to sign in if they already have one. The
+    // sign-in link reuses the existing `sign_in` copy rather than a new string.
+    'courses_guest_notice_title': {
+        en: "You're not signed in",
+        es: "No has iniciado sesión",
+        pt: "Você não está com a sessão iniciada",
+        fr: "Vous n'êtes pas connecté",
+        hi: "आप साइन इन नहीं हैं",
+        bn: "আপনি সাইন ইন করেননি"
+    },
+    'courses_guest_notice_body': {
+        en: "New here? Complete a mini lesson in under five minutes and create your free account at the end.",
+        es: "¿Eres nuevo? Completa una mini lección en menos de cinco minutos y crea tu cuenta gratuita al final.",
+        pt: "Novo por aqui? Complete uma mini lição em menos de cinco minutos e crie sua conta gratuita no final.",
+        fr: "Nouveau ici ? Terminez une mini-leçon en moins de cinq minutes et créez votre compte gratuit à la fin.",
+        hi: "नए हैं? पाँच मिनट से कम समय में एक मिनी पाठ पूरा करें और अंत में अपना मुफ़्त खाता बनाएँ।",
+        bn: "নতুন? পাঁচ মিনিটের কম সময়ে একটি মিনি পাঠ সম্পন্ন করুন এবং শেষে আপনার বিনামূল্যে অ্যাকাউন্ট তৈরি করুন।"
     },
     'friend_courses_empty': {
         en: "No friend courses are available right now. Please check back soon.",

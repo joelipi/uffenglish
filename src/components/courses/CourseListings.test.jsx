@@ -47,7 +47,9 @@ describe('CourseListings', () => {
         expect(steps.tagName).toBe('OL');
         const items = Array.from(steps.children);
         expect(items).toHaveLength(2);
-        expect(items[0].textContent).toBe('Complete the first mini lesson in under five minutes.');
+        expect(items[0].textContent).toBe(
+            "Complete the first mini lesson in under five minutes. You'll create your free account at the end."
+        );
         expect(items[1].textContent).toBe(
             'Share your special link with friends, family, and colleagues so that they can reply to you and continue the conversation.'
         );
@@ -161,6 +163,104 @@ describe('CourseListings', () => {
         expect(dropdown).not.toBeNull();
         expect(dropdown.textContent).toContain('Ask questions');
         expect(dropdown.textContent).toContain('Park');
+    });
+});
+
+// Story 070: the signed-out notice that tells a guest where an account comes
+// from now that the standalone signup page is closed.
+describe('CourseListings signed-out notice', () => {
+    let container;
+    let root;
+
+    beforeEach(() => {
+        container = document.createElement('div');
+        document.body.appendChild(container);
+    });
+
+    afterEach(() => {
+        if (root) act(() => root.unmount());
+        container.remove();
+        root = null;
+        container = null;
+    });
+
+    it('tells a guest they are not signed in and how to get an account', () => {
+        root = render(container, { courses: COURSES, userId: 'guest' });
+
+        const notice = container.querySelector('[data-testid="courses-guest-notice"]');
+        expect(notice).not.toBeNull();
+        expect(notice.textContent).toContain("You're not signed in");
+        expect(notice.textContent).toContain(
+            'New here? Complete a mini lesson in under five minutes and create your free account at the end.'
+        );
+    });
+
+    it('offers a sign-in link that returns the visitor to /courses', () => {
+        root = render(container, { courses: COURSES, userId: 'guest' });
+
+        const link = container.querySelector('[data-testid="courses-guest-signin"]');
+        expect(link).not.toBeNull();
+        expect(link.tagName).toBe('A');
+        expect(link.getAttribute('href')).toBe('/login?redirect=%2Fcourses');
+        // The label reuses the existing auth copy rather than a new string.
+        expect(link.textContent).toBe('Sign In');
+    });
+
+    it('is hidden for a signed-in viewer', () => {
+        root = render(container, { courses: COURSES, userId: 'user-1' });
+
+        expect(container.querySelector('[data-testid="courses-guest-notice"]')).toBeNull();
+        expect(container.querySelector('[data-testid="courses-guest-signin"]')).toBeNull();
+    });
+
+    it('shows for the shared guest sentinel AND while the profile is still loading', () => {
+        // `userId` resolves undefined before the profile query settles; the
+        // container has nothing else to go on, so it must count as a guest.
+        for (const userId of ['guest', undefined, null]) {
+            const localContainer = document.createElement('div');
+            document.body.appendChild(localContainer);
+            const localRoot = render(localContainer, { courses: COURSES, userId });
+            try {
+                expect(localContainer.querySelector('[data-testid="courses-guest-notice"]')).not.toBeNull();
+            } finally {
+                act(() => localRoot.unmount());
+                localContainer.remove();
+            }
+        }
+    });
+
+    it('sits above the scroll region rather than inside it', () => {
+        root = render(container, { courses: COURSES, userId: 'guest' });
+
+        const notice = container.querySelector('[data-testid="courses-guest-notice"]');
+        const scroll = container.querySelector('[data-testid="friend-courses-scroll"]');
+        // Same shell as the header: a sibling of the scroller, not a child.
+        expect(scroll.contains(notice)).toBe(false);
+        expect(notice.parentElement).toBe(scroll.parentElement);
+        const order = Array.from(notice.parentElement.children);
+        expect(order.indexOf(notice)).toBeLessThan(order.indexOf(scroll));
+        // The course list still scrolls inside the region below it.
+        expect(scroll.contains(container.querySelector('[data-testid="friend-courses-heading"]'))).toBe(true);
+    });
+
+    it('is not nested inside the signed-in-only install/notification banners', () => {
+        root = render(container, { courses: COURSES, userId: 'guest' });
+
+        // A guest must see the notice but neither of these, so the two blocks
+        // cannot be ancestors of one another.
+        const scroll = container.querySelector('[data-testid="friend-courses-scroll"]');
+        const notice = container.querySelector('[data-testid="courses-guest-notice"]');
+        expect(scroll.contains(notice)).toBe(false);
+        expect(container.querySelector('[data-testid="pwa-install-banner"]')).toBeNull();
+    });
+
+    it('localizes the notice and the step copy together', () => {
+        root = render(container, { courses: COURSES, userId: 'guest', lang: 'hi' });
+
+        const notice = container.querySelector('[data-testid="courses-guest-notice"]');
+        expect(notice.textContent).toContain('आप साइन इन नहीं हैं');
+        expect(container.querySelector('[data-testid="friend-courses-steps"]').textContent)
+            .toContain('अंत में आपका मुफ़्त खाता बन जाएगा');
     });
 });
 

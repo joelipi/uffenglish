@@ -3,12 +3,18 @@ import Strings from '../../data/strings.js';
 import FriendCoursesView from './FriendCoursesView.jsx';
 import PWAInstallBanner from '../pwa/PWAInstallBanner.web.jsx';
 import PushNotificationsOptIn from '../notifications/PushNotificationsOptIn.web.jsx';
+import { isGuestViewer, buildCoursesSignInHref } from '../../modules/courses/guest-viewer-logic.js';
 
 // Public course-listings page (`/courses`). Purely presentational; the
 // container loads the friend courses. Uses plain `<a href>` (not `<Link>`) for
 // the course cards so full-page navigation needs no Router context, matching
 // the profile page's anchors.
+//
+// This page serves both audiences: signed-in users get the install banner and
+// the notification prompt, guests get the signed-out notice. Both gates read
+// `isGuestViewer` so they can never disagree about who is signed in.
 export default function CourseListings({ lang = 'en', courses, isLoading = false, isError = false, userId = null, onBack }) {
+    const isGuest = isGuestViewer(userId);
     const containerStyle = {
         height: '100dvh',
         display: 'flex',
@@ -39,6 +45,30 @@ export default function CourseListings({ lang = 'en', courses, isLoading = false
         paddingBottom: '40px',
     };
 
+    // flexShrink: 0 so the notice holds its place instead of being squeezed to
+    // nothing by the flexible scroll region below it.
+    const noticeStyle = {
+        flexShrink: 0,
+        padding: '14px 16px',
+        borderBottom: '1px solid #1a3a5a',
+        backgroundColor: '#12283d',
+    };
+
+    const noticeTitleStyle = { fontWeight: 600, marginBottom: '4px' };
+
+    const noticeBodyStyle = { fontSize: '14px', opacity: 0.85, marginBottom: '10px', lineHeight: 1.5 };
+
+    const noticeLinkStyle = {
+        display: 'inline-block',
+        padding: '8px 16px',
+        borderRadius: '8px',
+        backgroundColor: '#3a8fd5',
+        color: 'white',
+        textDecoration: 'none',
+        fontSize: '14px',
+        fontWeight: 600,
+    };
+
     return (
         <div style={containerStyle}>
             <div style={headerStyle}>
@@ -53,8 +83,25 @@ export default function CourseListings({ lang = 'en', courses, isLoading = false
                 <span style={{ fontSize: '18px', fontWeight: 600 }}>{Strings.get('home_courses', lang)}</span>
             </div>
 
+            {/* Signed-out notice (story 070). Sits OUTSIDE the scroll region so
+                it does not scroll away, and OUTSIDE the signed-in-only banner
+                block below: a guest sees neither of those but must see this. */}
+            {isGuest && (
+                <div data-testid="courses-guest-notice" style={noticeStyle}>
+                    <div style={noticeTitleStyle}>{Strings.get('courses_guest_notice_title', lang)}</div>
+                    <div style={noticeBodyStyle}>{Strings.get('courses_guest_notice_body', lang)}</div>
+                    <a
+                        data-testid="courses-guest-signin"
+                        href={buildCoursesSignInHref()}
+                        style={noticeLinkStyle}
+                    >
+                        {Strings.get('sign_in', lang)}
+                    </a>
+                </div>
+            )}
+
             <div data-testid="friend-courses-scroll" style={scrollStyle}>
-                {userId && userId !== 'guest' && (
+                {!isGuest && (
                     <>
                         <PWAInstallBanner lang={lang} userId={userId} />
                         <PushNotificationsOptIn lang={lang} variant="prompt" userId={userId} />

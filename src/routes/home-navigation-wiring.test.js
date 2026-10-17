@@ -17,15 +17,37 @@ const userProfile = read('../components/profile/UserProfile.jsx');
 const publicProfile = read('../components/profile/PublicProfile.jsx');
 const notificationsSpec = read('../../tests/notifications.spec.js');
 
-describe('LoginRoute / SignupRoute post-auth redirect', () => {
+describe('LoginRoute post-auth redirect', () => {
     it('defaults the redirect to /home', () => {
         expect(loginRoute).toContain("searchParams.get('redirect') || '/home'");
-        expect(signupRoute).toContain("searchParams.get('redirect') || '/home'");
     });
 
     it('no longer defaults the redirect to /', () => {
         expect(loginRoute).not.toContain("searchParams.get('redirect') || '/'");
-        expect(signupRoute).not.toContain("searchParams.get('redirect') || '/'");
+    });
+});
+
+// Story 070 closed the standalone signup page. SignupRoute no longer reads
+// `?redirect=` at all — it always sends the visitor to /courses, where a new
+// learner completes a lesson and the account is created at the end. These
+// assertions replace the old `SignupRoute || '/home'` default checks, which no
+// longer describe what the component does.
+describe('SignupRoute is closed and redirects to the course list', () => {
+    it('always redirects to /courses regardless of a ?redirect= param', () => {
+        expect(signupRoute).toContain('COURSES_PATH');
+        expect(signupRoute).toContain('<Navigate to={COURSES_PATH} replace />');
+        // No longer consults the search params it used to forward.
+        expect(signupRoute).not.toContain('useSearchParams');
+        expect(signupRoute).not.toContain("searchParams.get('redirect')");
+    });
+
+    it('no longer imports or renders SignupForm (reached via the success modal instead)', () => {
+        // Anchored to the import statement and the JSX element, NOT a bare
+        // `not.toContain('SignupForm')`: the file's own comment explains where
+        // SignupForm went, so a whole-file search is satisfied by prose about
+        // the change (AGENTS.md — a guard must be able to fail).
+        expect(signupRoute).not.toMatch(/^import\s+SignupForm\b/m);
+        expect(signupRoute).not.toMatch(/<SignupForm[\s/>]/);
     });
 });
 

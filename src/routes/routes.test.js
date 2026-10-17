@@ -48,6 +48,42 @@ describe('routes.jsx homepage split', () => {
         expect(src).toContain("{ path: '*', element: <Navigate to=\"/\" replace /> }");
     });
 
+    // Story 070 closed the standalone signup page by redirecting it, NOT by
+    // deleting it: this is an experiment with a plausible near-term reversal,
+    // so the route and its component must stay resident and testable.
+    describe('story 070 — /signup stays declared, only its reachability changed', () => {
+        it('still imports SignupRoute and still mounts it at /signup', () => {
+            expect(src).toMatch(/^import SignupRoute from '\.\/SignupRoute\.jsx';$/m);
+            expect(src).toContain("{ path: '/signup', element: <AuthLayout />, children: [{ index: true, element: <SignupRoute /> }] }");
+        });
+
+        it('declares /signup before the /:shareCode catch-all', () => {
+            // Declared after, `signup` is read as a share code and the redirect
+            // never runs. The paren-qualified call token is searched, not a bare
+            // `/signup`, so a comment naming the route cannot satisfy this.
+            const signupAt = src.indexOf("path: '/signup'");
+            const shareCodeAt = src.indexOf("path: '/:shareCode'");
+            expect(signupAt).toBeGreaterThan(-1);
+            expect(shareCodeAt).toBeGreaterThan(signupAt);
+        });
+
+        it('does not reach AuthLayout/SignupRoute at /signup, and SignupRoute no longer renders the form', () => {
+            // The route keeps its AuthLayout wrapper but the child redirects, so
+            // no signup form is reachable at /signup. Asserted on the component,
+            // because a route-level check alone cannot see a form rendered by a
+            // child element.
+            //
+            // The import and the element are matched with line anchors rather
+            // than a bare `not.toContain('SignupForm')`: SignupRoute's own
+            // comment explains where SignupForm went, so an unanchored search
+            // would be satisfied by prose about the change (AGENTS.md).
+            const signupRouteSrc = readFileSync(path.join(__dirname, 'SignupRoute.jsx'), 'utf8');
+            expect(signupRouteSrc).not.toMatch(/^import\s+SignupForm\b/m);
+            expect(signupRouteSrc).not.toMatch(/<SignupForm[\s/>]/);
+            expect(signupRouteSrc).toMatch(/return\s*<Navigate\b/);
+        });
+    });
+
     it('sends the LessonError Go Home link to the dashboard at /home', () => {
         const errorAt = src.indexOf('function LessonError()');
         const errorBlock = src.slice(errorAt, src.indexOf('export const routes', errorAt));

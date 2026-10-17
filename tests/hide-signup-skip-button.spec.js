@@ -6,10 +6,19 @@
 //   1. Real-app modal: open SaveClipsModal and assert the "Not now" button is
 //      present in the DOM but not visible, while the signup/login actions
 //      remain; measure the real name/email inputs for alignment.
-//   2. Real-app standalone signup page: navigate to /signup and measure the
-//      real name/email inputs.
+//   2. Story 070 — the standalone signup page is closed, so /signup redirects to
+//      the course list in a real browser and shows no form.
 //   3. Source guards: the CSS rules exist, and the real component files still
 //      carry the grid classes / button element the tests depend on.
+//
+// On the removed standalone-page geometry tests: story 070 made /signup
+// unreachable, so there is no longer a real page to measure. The contract they
+// protected — "the signup form's name fields are grid-aligned with the email
+// field" — is still measured in a real browser above, on the modal form, which
+// is now the only reachable signup form; and the standalone form's classes are
+// still pinned by the source guards at the bottom of this file. Measuring
+// geometry on a page that is deliberately closed would assert that the closure
+// does not work.
 import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -104,43 +113,29 @@ test.describe('Story 034 — pre-video signup modal (real component)', () => {
     });
 });
 
-test.describe('Story 034 — standalone signup page (real component)', () => {
-    test('real name fields align with the email field at >=768px', async ({ page }) => {
-        await page.setViewportSize({ width: 900, height: 900 });
+// Story 070 — the standalone signup page is closed by redirect, not deleted.
+test.describe('Story 070 — /signup is unreachable (real browser)', () => {
+    test('redirects to the course list and renders no signup form', async ({ page }) => {
         await page.goto(SIGNUP_URL);
-        await expect(page.locator('#first-name')).toBeVisible();
 
-        const first = await edges(page, '#first-name');
-        const last = await edges(page, '#last-name');
-        const email = await edges(page, '#email');
+        // A stale ?redirect= link must land on the funnel, never on a form.
+        await expect(page).toHaveURL(/\/courses(\?.*)?$/);
+        await expect(page.locator('#first-name')).toHaveCount(0);
+        await expect(page.locator('#email')).toHaveCount(0);
+        await expect(page.locator('form button[type="submit"]')).toHaveCount(0);
 
-        expect(Math.abs(first.left - email.left)).toBeLessThanOrEqual(1);
-        expect(Math.abs(last.right - email.right)).toBeLessThanOrEqual(1);
-        expect(Math.abs(first.width - last.width)).toBeLessThanOrEqual(1);
-        // mt-md-0 cancels mt-3 so both name inputs sit on the same row.
-        expect(Math.abs(first.top - last.top)).toBeLessThanOrEqual(1);
+        // …and the landing explains where an account comes from instead.
+        const notice = page.locator('[data-testid="courses-guest-notice"]');
+        await expect(notice).toBeVisible();
+        await expect(notice).toContainText('not signed in');
+        await expect(page.locator('[data-testid="courses-guest-signin"]'))
+            .toHaveAttribute('href', '/login?redirect=%2Fcourses');
     });
 
-    test('real name fields stack full-width below 768px with a top margin on the last name', async ({ page }) => {
-        await page.setViewportSize({ width: 375, height: 800 });
-        await page.goto(SIGNUP_URL);
-        await expect(page.locator('#first-name')).toBeVisible();
-
-        const first = await edges(page, '#first-name');
-        const last = await edges(page, '#last-name');
-        const email = await edges(page, '#email');
-
-        // Stacked: last name is below the first name.
-        expect(last.top).toBeGreaterThan(first.top + 1);
-        // Full width: each name input spans the same width as the email input.
-        expect(Math.abs(first.width - email.width)).toBeLessThanOrEqual(1);
-        expect(Math.abs(last.width - email.width)).toBeLessThanOrEqual(1);
-        // mt-3 applies below 768px.
-        const marginTop = await page.locator('#last-name').evaluate((el) => {
-            const col = el.closest('.col-md-6');
-            return parseFloat(getComputedStyle(col).marginTop);
-        });
-        expect(marginTop).toBeGreaterThan(0);
+    test('a stale /signup?redirect=… deep link also lands on the funnel', async ({ page }) => {
+        await page.goto('/signup?redirect=%2Fhome');
+        await expect(page).toHaveURL(/\/courses(\?.*)?$/);
+        await expect(page.locator('#first-name')).toHaveCount(0);
     });
 });
 

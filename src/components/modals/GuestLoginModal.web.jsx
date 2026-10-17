@@ -9,7 +9,9 @@
  *      "My language is not listed. Continue without translations." for the
  *      single non-translation exit. UI re-translates as the dropdown changes.
  *   2. 'login-choice'     — Log In / Sign Up / Continue as Guest,
- *      localized using the language chosen in step 1.
+ *      localized using the language chosen in step 1. Since story 070 the
+ *      Sign Up action goes to /courses, not to a signup form: the account is
+ *      created at the end of the first lesson.
  */
 
 import React, { useEffect, useRef, useMemo, useState, useCallback } from 'react';
@@ -23,6 +25,7 @@ import {
     resolveInitialGuestSelection,
 } from '../../modules/user/guest-modal-logic.js';
 import { trackEvent } from '../../modules/utils/posthog.js';
+import { COURSES_PATH } from '../../modules/courses/guest-viewer-logic.js';
 import LegalLinks from '../legal/LegalLinks.jsx';
 
 /** Map language code to the native name (first part of the label). */
@@ -223,8 +226,13 @@ export default function GuestLoginModal() {
                                             {Strings.get('guest_modal_login', step2Lang) || "Log In"}
                                         </span>
                                     </Link>
+                                    {/* Story 070: signup is closed. This is the modal's
+                                        account CTA, so it sends the visitor to the course
+                                        list, where a new learner completes a lesson and the
+                                        account is created at the end. The label is unchanged —
+                                        "Sign Up" is the outcome that page delivers. */}
                                     <Link
-                                        to={`/signup?redirect=${encodeURIComponent(currentUrl)}`}
+                                        to={COURSES_PATH}
                                         id="guestSignupBtn"
                                         className="btn btn-secondary"
                                         onClick={() => trackEvent('guest_modal_action', { action: 'signup' })}
