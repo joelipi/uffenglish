@@ -1006,7 +1006,7 @@ describe('recorder auto-render — zero server changes', () => {
             'functions/api/zoho-send.js',
             'wrangler.toml',
             'src/assets/css/app.css',
-            // Signup profile-write race (geo upsert vs signup insert) + the
+// Signup profile-write race (geo upsert vs signup insert) + the
             // non-destructive repair for rows that are missing an identity.
             'supabase/migrations/009_create_profile_on_signup.sql',
             'src/components/auth/SignupForm.jsx',
@@ -1021,6 +1021,9 @@ describe('recorder auto-render — zero server changes', () => {
             'src/modules/user/profile-repair-logic.js',
             'src/modules/user/profile-repair-logic.test.js',
             'src/modules/user/profile-repair.test.js',
+            // Home top bar: the logo must not push the bell out of the frame.
+            'src/components/homescreen/HomeScreen.jsx',
+            'tests/home-bell-desktop-fit.spec.js',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);
