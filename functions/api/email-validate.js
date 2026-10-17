@@ -47,9 +47,10 @@
 //
 // Response shape is always 200 { valid, reason, suggestion } for a verdict;
 // 400 { valid: false, reason: 'bad-request' } is reserved for a malformed
-// request. There is no per-IP throttle: the domain cache below bounds the cost
-// of abuse, and the endpoint reveals nothing beyond "can this domain receive
-// mail", which the DNS already tells anyone.
+// request. There is no per-IP throttle: the domain cache reduces amplification
+// for REPEATED domains only (a caller cycling unique domains still costs one or
+// two subrequests each), and the endpoint reveals nothing beyond "can this
+// domain receive mail", which the DNS already tells anyone.
 
 import {
     normalizeEmail,
@@ -96,9 +97,11 @@ const DNS_TYPES = { MX: 'MX', A: 'A', AAAA: 'AAAA' };
  * Isolate-local domain -> DNS verdict cache.
  *
  * Per-isolate and best-effort: Cloudflare runs many isolates, so this lowers
- * cost rather than guaranteeing one lookup per domain. It exists because a
- * public endpoint doing a DoH subrequest per request is a cheap amplification
- * vector, and because a signup burst on one domain should cost one query.
+ * cost rather than guaranteeing one lookup per domain. Its real value is
+ * reducing amplification for REPEATED domains — a caller cycling unique domains
+ * still costs one (or two) outbound subrequests each, and concurrent first-hits
+ * on one domain are not coalesced. Local stages (syntax, disposable, typo) run
+ * before the cache and are free anyway.
  *
  * Only deterministic verdicts are cached. A 'lookup-unavailable' is an
  * infrastructure fault, and caching one would turn a momentary resolver problem
@@ -214,10 +217,22 @@ export function classifyDnsResult(dnsJson, { domain, addressRecords } = {}) {
     return { ok: false, reason: 'no-mail-route' };
 }
 
+/**
+ * Build the DoH URL for one query.
+ *
+ * Exported so the encoding can be unit-tested with a name that actually needs
+ * it. `encodeURIComponent` is what stops a domain containing `&`, `#` or `?`
+ * from appending or overriding query parameters — the resolver is a fixed
+ * origin, so an unescaped name would let a caller steer the lookup.
+ */
+export function dohUrl(domain, type) {
+    return `${DOH_ENDPOINT}?name=${encodeURIComponent(domain)}&type=${type}`;
+}
+
 /** One DoH query. Never throws — a transport fault becomes a null answer. */
 async function queryDns(domain, type) {
     try {
-        const res = await fetch(`${DOH_ENDPOINT}?name=${encodeURIComponent(domain)}&type=${type}`, {
+        const res = await fetch(dohUrl(domain, type), {
             headers: { accept: DOH_ACCEPT },
             signal: AbortSignal.timeout(DOH_TIMEOUT_MS),
         });
@@ -232,11 +247,40 @@ async function queryDns(domain, type) {
     }
 }
 
-/** A/AAAA answers for the implicit-MX fallback, or null on a transport fault. */
+/**
+ * A DoH answer we can act on: NOERROR (the answer set is trustworthy) or
+ * NXDOMAIN (definitively no such record). Any other rcode — SERVFAIL, REFUSED,
+ * a truncation flag — is an uncertainty about the RESOLVER, not a statement
+ * about the domain.
+ */
+function isDefinitiveDnsAnswer(json) {
+    if (!json || typeof json !== 'object' || typeof json.Status !== 'number') return false;
+    return json.Status === RCODE_NOERROR || json.Status === RCODE_NXDOMAIN;
+}
+
+/**
+ * A/AAAA answers for the implicit-MX fallback, or null when we have no opinion.
+ *
+ * Returning [] means "looked up properly, there is no address record" and leads
+ * to a `no-mail-route` rejection; returning null means "could not find out" and
+ * leads to fail-open. The distinction matters: a SERVFAIL body is a truthy
+ * object, so a naive `json.Answer ?? []` would read a resolver fault as "this
+ * domain has no address" and reject — then cache — a deliverable address for
+ * the full TTL. That is exactly the outcome the fail-open contract forbids.
+ */
 async function queryAddressRecords(domain) {
     for (const type of [DNS_TYPES.A, DNS_TYPES.AAAA]) {
         const json = await queryDns(domain, type);
-        if (!json) return null;
+        if (!isDefinitiveDnsAnswer(json)) {
+            // Every uncertainty is logged so the volume of no-op lookups stays
+            // visible in the Pages logs. Without this the fallback would return
+            // "no opinion" silently, which is the opposite of the contract.
+            const why = json && typeof json === 'object' && typeof json.Status === 'number'
+                ? `rcode ${json.Status}`
+                : 'unreadable answer';
+            console.warn(`[email-validate] ${type} lookup unusable for ${domain} (${why}) — allowing signup`);
+            return null;
+        }
         const answers = Array.isArray(json.Answer) ? json.Answer : [];
         const records = answers
             .filter((a) => a && (Number(a.type) === 1 || Number(a.type) === 28))
@@ -259,8 +303,8 @@ async function resolveDomain(domain) {
 
     if (verdict.reason === NEEDS_ADDRESS_LOOKUP) {
         const addressRecords = await queryAddressRecords(domain);
-        // A transport fault on the fallback leaves us with no opinion, so fail
-        // open rather than reject a domain we never finished checking.
+        // An unanswerable fallback leaves us with no opinion, so fail open
+        // rather than reject a domain we never finished checking.
         if (addressRecords === null) {
             verdict = { ok: true, reason: 'lookup-unavailable' };
         } else {

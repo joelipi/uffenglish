@@ -73,6 +73,12 @@ export function useSignupForm({
                 }
             }
 
+            // One canonical identity for the whole submit: the address that is SCREENED
+            // is the address that is CREATED. GoTrue normalizes server-side too,
+            // but normalizing here keeps the screen, the profile row and the
+            // login lookup agreeing even if that ever changes.
+            const signupEmail = normalizeEmail(email);
+
             // Zero-cost email screen, in front of the Supabase call and after
             // the bot gate. The server (functions/api/email-validate.js) is
             // authoritative — a browser-only check is bypassed by posting
@@ -80,7 +86,7 @@ export function useSignupForm({
             // returns valid:true and lands here as a no-op rather than costing
             // a signup. Only a definite verdict blocks, and then no account is
             // created.
-            const emailVerdict = await checkEmailAddress(normalizeEmail(email));
+            const emailVerdict = await checkEmailAddress(signupEmail);
             if (!emailVerdict.valid) {
                 console.log(`[Signup] Email screen rejected the address (${emailVerdict.reason})`);
                 setEmailError(emailVerdict.reason);
@@ -89,7 +95,7 @@ export function useSignupForm({
             }
 
             const { data, error: signUpError } = await supabase.auth.signUp({
-                email,
+                email: signupEmail,
                 password,
                 // native_language rides on user_metadata so the welcome email can
                 // be localized without an extra profile query at send time.
@@ -128,7 +134,7 @@ export function useSignupForm({
                 : [];
             const { error: insertError } = await supabase.from('user_profiles').insert({
                 id: user.id,
-                email: email,
+                email: signupEmail,
                 first_name: firstName.trim(),
                 last_name: lastName.trim(),
                 join_date: new Date().toISOString(),
@@ -161,7 +167,7 @@ export function useSignupForm({
             queryClient.setQueryData(['auth', 'status'], true);
             const profile = {
                 $id: user.id,
-                email: email,
+                email: signupEmail,
                 display_name: fullName,
                 join_date: user.created_at,
                 auth_method: 'supabase',

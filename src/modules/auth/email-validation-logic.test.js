@@ -2,6 +2,9 @@
 // disposable/typo screening, the never-throwing client wrapper and the reason
 // code -> strings.js key mapping. The DNS half is functions/api/email-validate.test.js.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import {
     EMAIL_VALIDATE_PATH,
@@ -20,6 +23,12 @@ import {
 
 import { strings } from '../../data/strings.js';
 
+// Raw source, read once: several guards below assert on its exact text.
+const SOURCE = readFileSync(
+    path.join(path.dirname(fileURLToPath(import.meta.url)), 'email-validation-logic.js'),
+    'utf8',
+);
+
 let warnSpy;
 let errorSpy;
 
@@ -37,6 +46,47 @@ function jsonFetch(body, { ok = true, status = 200 } = {}) {
     return vi.fn(async () => ({ ok, status, json: async () => body }));
 }
 
+/**
+ * Blank out comments while preserving every offset, so an index found in the
+ * stripped text still points at the same character in the original. Quote-aware
+ * so a "//" inside a string is not mistaken for a comment.
+ */
+function stripComments(src) {
+    let out = '';
+    let i = 0;
+    let quote = null;
+    while (i < src.length) {
+        const ch = src[i];
+        if (quote) {
+            out += ch;
+            if (ch === '\\') { out += src[i + 1] ?? ''; i += 2; continue; }
+            if (ch === quote) quote = null;
+            i += 1;
+            continue;
+        }
+        if (ch === "'" || ch === '"' || ch === '`') { quote = ch; out += ch; i += 1; continue; }
+        if (ch === '/' && src[i + 1] === '/') {
+            let end = src.indexOf('\n', i);
+            if (end === -1) end = src.length;
+            out += ' '.repeat(end - i);
+            i = end;
+            continue;
+        }
+        if (ch === '/' && src[i + 1] === '*') {
+            const close = src.indexOf('*/', i + 2);
+            const end = close === -1 ? src.length : close + 2;
+            out += src.slice(i, end).replace(/[^\n]/g, ' ');
+            i = end;
+            continue;
+        }
+        out += ch;
+        i += 1;
+    }
+    return out;
+}
+
+const CODE = stripComments(SOURCE);
+
 describe('module surface and purity', () => {
     it('exports every documented name', () => {
         expect(EMAIL_VALIDATE_PATH).toBe('/api/email-validate');
@@ -46,6 +96,54 @@ describe('module surface and purity', () => {
         for (const fn of [normalizeEmail, extractDomain, validateEmailSyntax, isDisposableDomain,
             suggestDomain, checkEmailAddress, emailValidationErrorKey]) {
             expect(typeof fn).toBe('function');
+        }
+    });
+
+    // The Functions bundle imports this module, so it has to stay loadable
+    // outside a browser and free of any framework. Asserted on RAW source: the
+    // header comment discusses React, the DOM and Supabase by name, so a naive
+    // toContain over the whole file could never fail.
+    it('imports no framework, DOM or Supabase', () => {
+        const imports = [...SOURCE.matchAll(/^\s*import\s.*?from\s+['"]([^'"]+)['"]/gm)]
+            .map((m) => m[1]);
+        expect(imports, 'the module should have no imports at all').toEqual([]);
+    });
+
+    it('references no bare browser or Supabase global in executable code', () => {
+        for (const banned of ['window', 'document', 'navigator', 'React', 'useState', 'supabase']) {
+            expect(CODE, `bare "${banned}" must not appear in executable code`)
+                .not.toMatch(new RegExp(`\\b${banned}\\b`));
+        }
+    });
+
+    it('reads fetch only inside checkEmailAddress', () => {
+        const start = SOURCE.indexOf('export async function checkEmailAddress(');
+        const end = SOURCE.indexOf('\nexport function emailValidationErrorKey(');
+        expect(start, 'checkEmailAddress not found').toBeGreaterThan(-1);
+        expect(end, 'end boundary not found').toBeGreaterThan(start);
+
+        // \b boundaries keep doFetch and fetchImpl out of the count.
+        const refs = [...CODE.matchAll(/\bfetch\b/g)].map((m) => m.index);
+        expect(refs.length, 'no fetch reference found — the guard would be vacuous')
+            .toBeGreaterThan(0);
+        for (const at of refs) {
+            expect(at, 'fetch is referenced outside checkEmailAddress')
+                .toBeGreaterThanOrEqual(start);
+            expect(at, 'fetch is referenced outside checkEmailAddress').toBeLessThan(end);
+        }
+    });
+
+    it('has no module-level side effects', () => {
+        // Only column-0 lines are top level; anything indented is inside a
+        // declaration. A bare call at column 0 would execute on import, which
+        // the Functions bundle must never do.
+        const topLevel = CODE.split('\n').filter((l) => l.length > 0 && !/^\s/.test(l));
+        expect(topLevel.length, 'the slice looks wrong — guard would be vacuous')
+            .toBeGreaterThan(5);
+        const allowed = /^(export\s+)?(default\s+)?(async\s+)?function\b|^(export\s+)?(const|let|var)\b|^import\b|^[)\]}]/;
+        for (const line of topLevel) {
+            expect(line, `possible module-level side effect: ${line.trim()}`)
+                .toMatch(allowed);
         }
     });
 });
@@ -116,6 +214,23 @@ describe('validateEmailSyntax', () => {
         expect(reasonOf('jo@example.com.')).toBe('domain');
         expect(reasonOf('jo@example.c0m')).toBe('domain');
         expect(reasonOf('jo@example.123')).toBe('domain');
+    });
+
+    it('accepts punycode TLDs, which is how IDN domains arrive in ASCII form', () => {
+        // .xn--p1ai is .рф and .xn--fiqs8s is .中国. These deliver normally;
+        // rejecting them would be a deterministic false rejection of a working
+        // signup.
+        expect(validateEmailSyntax('jo@example.xn--p1ai')).toEqual({ valid: true, reason: 'ok' });
+        expect(validateEmailSyntax('jo@example.xn--fiqs8s')).toEqual({ valid: true, reason: 'ok' });
+        expect(validateEmailSyntax('jo@sub.example.xn--p1ai')).toEqual({ valid: true, reason: 'ok' });
+    });
+
+    it('still rejects a TLD that is neither alphabetic nor punycode', () => {
+        expect(reasonOf('jo@example.c0m')).toBe('domain');
+        expect(reasonOf('jo@example.123')).toBe('domain');
+        expect(reasonOf('jo@example.-')).toBe('domain');
+        expect(reasonOf('jo@example.xn-')).toBe('domain');
+        expect(reasonOf('jo@example.xn--')).toBe('domain');
     });
 
     it('accepts the addresses this app and its suites actually use', () => {
@@ -300,6 +415,33 @@ describe('emailValidationErrorKey', () => {
             for (const lang of ['en', 'es', 'pt', 'fr', 'hi', 'bn']) {
                 expect(strings[key][lang], `${key}.${lang} is empty`).toBeTruthy();
             }
+        }
+    });
+
+    it('gives every new signup-screen key real copy in all six locales', () => {
+        // The generic hi/bn script sweep in strings.test.js would not catch a
+        // dropped es/pt/fr, so assert the raw table for these five keys.
+        const keys = ['auth_email_error_required', 'auth_email_error_invalid',
+            'auth_email_error_disposable', 'auth_email_error_typo', 'auth_email_error_no_mail'];
+        for (const key of keys) {
+            expect(strings[key], `${key} is not in the table`).toBeDefined();
+            for (const lang of ['en', 'es', 'pt', 'fr', 'hi', 'bn']) {
+                const value = strings[key][lang];
+                expect(typeof value, `${key}.${lang} is not a string`).toBe('string');
+                expect(value.trim().length, `${key}.${lang} is empty`).toBeGreaterThan(0);
+            }
+            // A locale that silently fell back to English would defeat the point.
+            expect(strings[key].es).not.toBe(strings[key].en);
+            expect(strings[key].pt).not.toBe(strings[key].en);
+            expect(strings[key].fr).not.toBe(strings[key].en);
+        }
+    });
+
+    it('keeps {suggestion} in every locale of the typo message', () => {
+        // Dropping the token from one translation would render "did you mean ?".
+        for (const lang of ['en', 'es', 'pt', 'fr', 'hi', 'bn']) {
+            expect(strings.auth_email_error_typo[lang], `typo.${lang} lost the placeholder`)
+                .toContain('{suggestion}');
         }
     });
 });

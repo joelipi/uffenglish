@@ -17,6 +17,7 @@ import {
     DOH_ENDPOINT,
     DOH_ACCEPT,
     DOH_TIMEOUT_MS,
+    dohUrl,
     NEEDS_ADDRESS_LOOKUP,
     EMAIL_VALIDATE_BODY_MAX_BYTES,
     EMAIL_VALIDATE_CACHE_TTL_MS,
@@ -264,12 +265,15 @@ describe('onRequestPost DNS verdicts', () => {
             });
             expect(await (await post('jo@flaky.test')).json())
                 .toEqual({ valid: true, reason: 'lookup-unavailable', suggestion: '' });
+            // The volume of no-op lookups has to be visible in the Pages logs.
+            expect(warnSpy).toHaveBeenCalled();
         });
 
         it('when the resolver answers an HTTP error', async () => {
             vi.spyOn(globalThis, 'fetch').mockResolvedValue({ ok: false, status: 503 });
             expect(await (await post('jo@flaky.test')).json())
                 .toEqual({ valid: true, reason: 'lookup-unavailable', suggestion: '' });
+            expect(warnSpy).toHaveBeenCalled();
         });
 
         it('on the A/AAAA fallback, so an unexamined MX-less domain is allowed', async () => {
@@ -283,6 +287,43 @@ describe('onRequestPost DNS verdicts', () => {
             expect(await (await post('jo@web.test')).json())
                 .toEqual({ valid: true, reason: 'lookup-unavailable', suggestion: '' });
             expect(warnSpy).toHaveBeenCalled();
+        });
+
+        // Regression: a SERVFAIL body is a TRUTHY object, so reading
+        // `json.Answer ?? []` treated a resolver fault as "this domain has no
+        // address record" — rejecting, and then caching for 10 minutes, a
+        // perfectly deliverable MX-less domain. The transport-throw case above
+        // passed all along and hid this.
+        it.each([
+            ['SERVFAIL on both A and AAAA', SERVFAIL],
+            ['a malformed body on A', null],
+            ['a truncated/unknown rcode on A', { Status: 2, Answer: [] }],
+        ])('on the A/AAAA fallback: %s', async (_label, brokenAnswer) => {
+            vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
+                const type = /type=([A-Z]+)/.exec(String(url))?.[1];
+                if (type === 'MX') return { ok: true, status: 200, json: async () => MX_NONE };
+                return { ok: true, status: 200, json: async () => brokenAnswer };
+            });
+            expect(await (await post('jo@web.test')).json())
+                .toEqual({ valid: true, reason: 'lookup-unavailable', suggestion: '' });
+            expect(warnSpy).toHaveBeenCalled();
+        });
+
+        it('and never caches a fallback fault as a rejection', async () => {
+            // A rejection written to the cache would keep blocking this domain
+            // for the whole TTL after a single bad resolver moment.
+            let answers = SERVFAIL;
+            vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
+                const type = /type=([A-Z]+)/.exec(String(url))?.[1];
+                if (type === 'MX') return { ok: true, status: 200, json: async () => MX_NONE };
+                return { ok: true, status: 200, json: async () => answers };
+            });
+
+            expect((await (await post('jo@web.test')).json()).reason).toBe('lookup-unavailable');
+            // The resolver recovers — the domain has an address record.
+            answers = A_OK;
+            expect(await (await post('kim@web.test')).json())
+                .toEqual({ valid: true, reason: 'ok', suggestion: '' });
         });
     });
 });
@@ -311,12 +352,24 @@ describe('onRequestPost DoH request', () => {
         for (const line of logged) expect(line).not.toContain('quintinlocalpart');
     });
 
-    it('percent-encodes the domain it queries', async () => {
-        // A wildcard DNS name is syntactically a domain but must not break the
-        // query string.
+    it('percent-encodes the queried name so it cannot steer the query', () => {
+        // A domain made only of safe characters needs no escaping, so it proves
+        // nothing. These names carry the characters that would otherwise start a
+        // new query parameter or truncate the path.
+        expect(dohUrl('evil.test&type=ANY', 'MX'))
+            .toBe(`${DOH_ENDPOINT}?name=evil.test%26type%3DANY&type=MX`);
+        expect(dohUrl('a b.test', 'MX')).toBe(`${DOH_ENDPOINT}?name=a%20b.test&type=MX`);
+        expect(dohUrl('frag#ment.test', 'MX')).toBe(`${DOH_ENDPOINT}?name=frag%23ment.test&type=MX`);
+        // The type itself is never taken from user input, so it stays literal.
+        expect(dohUrl('plain.test', 'AAAA')).toBe(`${DOH_ENDPOINT}?name=plain.test&type=AAAA`);
+        // And a plain name still round-trips unchanged.
+        expect(dohUrl('example.com', 'MX')).toBe(`${DOH_ENDPOINT}?name=example.com&type=MX`);
+    });
+
+    it('queries the domain from the address, encoded, with the expected type', async () => {
         const { calls } = installDns();
         await post('jo@sub.example.com');
-        expect(calls[0]).toContain('name=sub.example.com');
+        expect(calls[0]).toBe(`${DOH_ENDPOINT}?name=sub.example.com&type=MX`);
     });
 
     describe('non-ASCII domains are not looked up', () => {

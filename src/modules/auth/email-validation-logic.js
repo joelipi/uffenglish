@@ -93,7 +93,7 @@ export function extractDomain(email) {
  *   empty    -> blank input
  *   too-long -> over the 254-character cap
  *   syntax   -> whitespace, not exactly one '@', or an empty local part
- *   domain   -> a malformed domain label or a non-alphabetic TLD
+ *   domain   -> a malformed domain label or an unusable TLD
  *   valid    -> everything else
  *
  * Deliberately permissive about characters we cannot judge offline: there are
@@ -115,11 +115,19 @@ export function validateEmailSyntax(email) {
     if (local.length === 0) return { valid: false, reason: 'syntax' };
 
     // A domain must have at least one dot, no empty label (which is what a
-    // leading, trailing or doubled dot produces) and an alphabetic TLD.
+    // leading, trailing or doubled dot produces) and a usable TLD.
+    //
+    // The TLD may be alphabetic OR punycode (`xn--…`, e.g. `.xn--p1ai` for .рф).
+    // Punycode is how internationalized domains are written in DNS and in the
+    // ASCII-only form a browser hands us, and such addresses deliver normally —
+    // rejecting them would be a deterministic false rejection of a working
+    // signup, which is precisely what this function must never do. Digits and
+    // bare hyphens stay rejected so `example.123` and `example.-` still fail.
     const labels = domain.split('.');
     if (labels.length < 2) return { valid: false, reason: 'domain' };
     if (labels.some((label) => label.length === 0)) return { valid: false, reason: 'domain' };
-    if (!/^[a-z]{2,}$/.test(labels[labels.length - 1])) return { valid: false, reason: 'domain' };
+    const tld = labels[labels.length - 1];
+    if (!/^(?:[a-z]{2,}|xn--[a-z0-9-]{2,})$/.test(tld)) return { valid: false, reason: 'domain' };
 
     return { valid: true, reason: 'ok' };
 }
