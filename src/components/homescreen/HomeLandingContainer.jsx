@@ -9,6 +9,7 @@ import {
     planShareCodeSubmit,
     shareCodeErrorStringKey,
 } from '../../modules/user/share-code-entry-logic.js';
+import { COURSE_LISTINGS_PATH } from '../../modules/courses/friend-courses-logic.js';
 import { buildShowcaseVideos } from '../../modules/video/showcase-videos.js';
 import HomeLanding from './HomeLanding.jsx';
 
@@ -48,7 +49,7 @@ export default function HomeLandingContainer() {
     }
 
     function handleNoCode() {
-        navigate('/courses');
+        navigate(COURSE_LISTINGS_PATH);
     }
 
     function handleInputChange() {

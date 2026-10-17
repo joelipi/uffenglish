@@ -2,8 +2,6 @@
 // Pure decision logic for the public homepage's friend share-code entry.
 // Kept free of React, the store, the DOM, and Supabase so it is unit-testable.
 
-export const GO_LESSON_PATH = '/course/wouldrather/lesson/a';
-
 const ERROR_KEYS = {
     empty: 'home_landing_code_required',
     not_found: 'home_landing_code_not_found',
