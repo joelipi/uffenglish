@@ -157,3 +157,36 @@ describe('story 070 — the course list says where the account comes from', () =
         }
     });
 });
+
+describe('story 070 — the funnel is documented', () => {
+    const productSrc = read('..', '..', 'docs', 'product.md');
+
+    it('records the funnel, its deliberate limits and the closed route in product.md', () => {
+        const at = productSrc.indexOf('Lazy signup');
+        expect(at).toBeGreaterThan(-1);
+        // Bound the slice at the next bullet, not EOF.
+        const end = productSrc.indexOf('\n- ', at + 1);
+        expect(end).toBeGreaterThan(at);
+        const entry = productSrc.slice(at, end);
+        // What the funnel is.
+        expect(entry).toContain('created at the end of the first lesson');
+        expect(entry).toContain('`/signup` redirects to `/courses`');
+        // That nothing was deleted, because the change is reversible.
+        expect(entry).toContain('Nothing is deleted');
+        // The honest limits, so the doc cannot be read as "spam is solved".
+        expect(entry).toContain('--use-fake-device-for-media-stream');
+        expect(entry).toContain('not a measurement');
+        expect(entry).toContain('captcha: false');
+    });
+
+    it('does not claim signup is impossible to automate', () => {
+        // A guard on the wording, because "spam eliminated" is the exact claim
+        // this story is not entitled to make. Deliberately broad: it must catch
+        // a bare "spam eliminated" as well as "spam is now prevented", because
+        // a narrower pattern here would only pass by accident.
+        const at = productSrc.indexOf('Lazy signup');
+        const end = productSrc.indexOf('\n- ', at + 1);
+        const entry = productSrc.slice(at, end);
+        expect(entry).not.toMatch(/\bspam\b[^.]*\b(eliminat|stop|prevent|block|impossible)/i);
+    });
+});
