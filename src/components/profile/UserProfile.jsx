@@ -7,7 +7,7 @@ import Strings from '../../data/strings.js';
 import { useNativeLanguage } from '../../hooks/use-native-language.js';
 import defaultProfilePic from '../../assets/img/userprofile.png';
 import { trackEvent } from '../../modules/utils/posthog.js';
-import { COURSES_PATH } from '../../modules/courses/guest-viewer-logic.js';
+import { COURSE_LISTINGS_PATH } from '../../modules/courses/friend-courses-logic.js';
 import { useAvatarUpload } from '../../modules/avatar/use-avatar-upload.js';
 import AvatarCropper from '../widgets/AvatarCropper.jsx';
 import PWAInstallBanner from '../pwa/PWAInstallBanner.web.jsx';
@@ -375,7 +375,7 @@ export default function UserProfile() {
                             {/* Story 070: signup is closed, so the guest
                                 profile's account CTA goes to the course list where the
                                 lesson creates the account at its end. */}
-                            <Link to={COURSES_PATH} style={{ ...btnPrimaryStyle, textDecoration: 'none', textAlign: 'center', display: 'block' }}>
+                            <Link to={COURSE_LISTINGS_PATH} style={{ ...btnPrimaryStyle, textDecoration: 'none', textAlign: 'center', display: 'block' }}>
                                 {Strings.get('guest_modal_signup', lang)}
                             </Link>
                             <Link to="/login" style={{ ...btnPrimaryStyle, textDecoration: 'none', textAlign: 'center', display: 'block' }}>

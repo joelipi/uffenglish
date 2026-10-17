@@ -1,5 +1,5 @@
 import { Navigate } from 'react-router-dom';
-import { COURSES_PATH } from '../modules/courses/guest-viewer-logic.js';
+import { COURSE_LISTINGS_PATH } from '../modules/courses/friend-courses-logic.js';
 
 // Story 070 — the standalone signup page is CLOSED, not deleted.
 //
@@ -15,5 +15,5 @@ import { COURSES_PATH } from '../modules/courses/guest-viewer-logic.js';
 // `SignupForm` here again and honour the `?redirect=` search param the entry
 // points used to pass — nothing else needs restoring.
 export default function SignupRoute() {
-    return <Navigate to={COURSES_PATH} replace />;
+    return <Navigate to={COURSE_LISTINGS_PATH} replace />;
 }

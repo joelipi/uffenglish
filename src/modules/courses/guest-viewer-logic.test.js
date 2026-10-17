@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { COURSES_PATH, isGuestViewer, buildCoursesSignInHref } from './guest-viewer-logic.js';
+import { COURSE_LISTINGS_PATH } from '../courses/friend-courses-logic.js';
+import { isGuestViewer, buildCoursesSignInHref } from './guest-viewer-logic.js';
 
 describe('isGuestViewer', () => {
     it('treats the shared "guest" sentinel as anonymous', () => {
@@ -71,14 +72,14 @@ describe('buildCoursesSignInHref', () => {
         const href = buildCoursesSignInHref();
         const params = new URLSearchParams(href.slice(href.indexOf('?')));
         expect(params.get('redirect')).toBe('/courses');
-        expect(params.get('redirect')).toBe(COURSES_PATH);
+        expect(params.get('redirect')).toBe(COURSE_LISTINGS_PATH);
     });
 });
 
-describe('COURSES_PATH', () => {
+describe('COURSE_LISTINGS_PATH', () => {
     it('is the path CoursesRoute is registered at', () => {
         // Single source for both the notice's sign-in link and the /signup
         // redirect, so the two can never drift apart.
-        expect(COURSES_PATH).toBe('/courses');
+        expect(COURSE_LISTINGS_PATH).toBe('/courses');
     });
 });

@@ -1,3 +1,5 @@
+import { COURSE_LISTINGS_PATH } from './friend-courses-logic.js';
+
 // Story 070 — lazy signup. The two pure rules the `/courses` page needs to tell
 // a guest how to get an account. They live here, not in the component, so they
 // are unit-testable without rendering (AGENTS.md: logic lives in modules,
@@ -8,12 +10,13 @@
 // already gated the install/notification banners on that exact value; reusing
 // it is the point, because a second sentinel would show the guest notice to
 // signed-in users (or hide it from guests).
+//
+// The `/courses` path itself is NOT redefined here: `friend-courses-logic.js`
+// already owns `COURSE_LISTINGS_PATH` ("single source for the path so the
+// profile's expired-state link and the route table cannot drift"). Re-defining
+// it would split the source of truth the repo deliberately centralised.
 
-/** Where a visitor who wants an account starts: the friend course list. */
-export const COURSES_PATH = '/courses';
-
-/**
- * True when `userId` is the anonymous placeholder rather than a real viewer.
+/** True when `userId` is the anonymous placeholder rather than a real viewer.
  *
  * `isResolving` matters, and is why this takes an options bag: while the profile
  * query is in flight OR has errored, the viewer is UNKNOWN, not anonymous. The
@@ -38,5 +41,5 @@ export function isGuestViewer(userId, { isResolving = false } = {}) {
  * is the pattern every entry point uses) would not survive a naive split.
  */
 export function buildCoursesSignInHref() {
-    return `/login?redirect=${encodeURIComponent(COURSES_PATH)}`;
+    return `/login?redirect=${encodeURIComponent(COURSE_LISTINGS_PATH)}`;
 }

@@ -25,7 +25,7 @@ import {
     resolveInitialGuestSelection,
 } from '../../modules/user/guest-modal-logic.js';
 import { trackEvent } from '../../modules/utils/posthog.js';
-import { COURSES_PATH } from '../../modules/courses/guest-viewer-logic.js';
+import { COURSE_LISTINGS_PATH } from '../../modules/courses/friend-courses-logic.js';
 import LegalLinks from '../legal/LegalLinks.jsx';
 
 /** Map language code to the native name (first part of the label). */
@@ -232,7 +232,7 @@ export default function GuestLoginModal() {
                                         account is created at the end. The label is unchanged —
                                         "Sign Up" is the outcome that page delivers. */}
                                     <Link
-                                        to={COURSES_PATH}
+                                        to={COURSE_LISTINGS_PATH}
                                         id="guestSignupBtn"
                                         className="btn btn-secondary"
                                         onClick={() => {

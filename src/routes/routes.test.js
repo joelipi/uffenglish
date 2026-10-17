@@ -87,8 +87,8 @@ describe('routes.jsx homepage split', () => {
         // home for the same three facts (AGENTS.md: one guard, one place).
         it('redirects to the course list and no longer honours ?redirect=', () => {
             const signupRouteSrc = readFileSync(path.join(__dirname, 'SignupRoute.jsx'), 'utf8');
-            expect(signupRouteSrc).toContain('COURSES_PATH');
-            expect(signupRouteSrc).toContain('<Navigate to={COURSES_PATH} replace />');
+            expect(signupRouteSrc).toContain('COURSE_LISTINGS_PATH');
+            expect(signupRouteSrc).toContain('<Navigate to={COURSE_LISTINGS_PATH} replace />');
             // The param the entry points used to append is no longer read, so a
             // stale deep link cannot steer the redirect anywhere else.
             expect(signupRouteSrc).not.toContain('useSearchParams');

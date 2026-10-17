@@ -96,8 +96,8 @@ describe('story 070 — the signup-target matcher can see what it must catch', (
     it('ignores a target that is a variable, and prose about the route', () => {
         // Neither is a link to the closed route; a matcher that flagged them
         // would have to be suppressed, which is how guards rot.
-        expect(signupLinkTargets('to={COURSES_PATH}')).toEqual([]);
-        expect(signupLinkTargets('onClick={() => navigate(COURSES_PATH)}')).toEqual([]);
+        expect(signupLinkTargets('to={COURSE_LISTINGS_PATH}')).toEqual([]);
+        expect(signupLinkTargets('onClick={() => navigate(COURSE_LISTINGS_PATH)}')).toEqual([]);
         expect(signupLinkTargets('// the standalone /signup form is closed')).toEqual([]);
     });
 });
@@ -111,7 +111,7 @@ describe('story 070 — no entry point reaches a signup form', () => {
         expect(at).toBeGreaterThan(-1);
         expect(end).toBeGreaterThan(at);
         const buttonBlock = guestModalSrc.slice(guestModalSrc.lastIndexOf('<Link', at), end);
-        expect(buttonBlock).toContain('to={COURSES_PATH}');
+        expect(buttonBlock).toContain('to={COURSE_LISTINGS_PATH}');
         // Closing the dialog on navigation is required: /courses is a PUBLIC
         // route, so useGuestModalGuard will not close it for us the way it did
         // for /signup (an AUTH route). Without this the modal stays open in the
@@ -125,7 +125,7 @@ describe('story 070 — no entry point reaches a signup form', () => {
         const at = loginRouteSrc.indexOf('onSignupLink=');
         expect(at).toBeGreaterThan(-1);
         const block = loginRouteSrc.slice(at, loginRouteSrc.indexOf('onForgotPassword=', at));
-        expect(block).toContain('navigate(COURSES_PATH)');
+        expect(block).toContain('navigate(COURSE_LISTINGS_PATH)');
     });
 
     it('the guest profile account CTA goes to the course list, not to /signup', () => {
@@ -133,7 +133,7 @@ describe('story 070 — no entry point reaches a signup form', () => {
         expect(at).toBeGreaterThan(-1);
         const linkAt = userProfileSrc.lastIndexOf('<Link', at);
         const block = userProfileSrc.slice(linkAt, userProfileSrc.indexOf('</Link>', at));
-        expect(block).toContain('to={COURSES_PATH}');
+        expect(block).toContain('to={COURSE_LISTINGS_PATH}');
     });
 
     it('no link target in ANY source file names /signup, not just these three', () => {
