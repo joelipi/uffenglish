@@ -6,9 +6,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createRoot } from 'react-dom/client';
 import { act } from 'react';
 
-const { insertCalls, upsertOpts, signUpSpy, verifySpy, tokenSpy, emailSpy } = vi.hoisted(() => ({
+const { insertCalls, signUpSpy, verifySpy, tokenSpy, emailSpy } = vi.hoisted(() => ({
     insertCalls: [],
-    upsertOpts: [],
     signUpSpy: vi.fn(),
     verifySpy: vi.fn(),
     tokenSpy: vi.fn(),
@@ -21,8 +20,7 @@ vi.mock('../../modules/api/supabase.js', () => ({
             signUp: (...args) => signUpSpy(...args),
         },
         from: () => ({
-            upsert: (row, opts) => {
-                upsertOpts.push(opts);
+            upsert: (row) => {
                 insertCalls.push(row);
                 return Promise.resolve({ error: null });
             },
@@ -101,7 +99,6 @@ let container;
 
 beforeEach(() => {
     insertCalls.length = 0;
-    upsertOpts.length = 0;
     signUpSpy.mockReset().mockResolvedValue({
         data: { user: { id: 'new-user-1', email: 'jo@example.com', created_at: '2026-10-10' } },
         error: null,

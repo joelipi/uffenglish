@@ -40,6 +40,11 @@ vi.mock('../../modules/api/supabase.js', () => ({
 vi.mock('../../modules/api/api.js', () => ({
     queryClient: { setQueryData: vi.fn(), invalidateQueries: vi.fn() },
     fetchGeoInfo: vi.fn(async () => ({ ip: '1.2.3.4' })),
+    getCurrentSession: vi.fn(async () => ({ access_token: 'test-token' })),
+    getCurrentUser: vi.fn(async () => ({
+        $id: 'u-1', email: 'jo@example.com', name: 'Jo Kim', $createdAt: '2026-10-17',
+    })),
+    syncUserMetaDataMutation: vi.fn(async () => {}),
 }));
 
 vi.mock('../../modules/user/email-confirmation.js', () => ({
@@ -70,9 +75,12 @@ function Harness() {
             {click('email', () => form.handleEmailChange('  Jo@Example.COM '))}
             {click('password', () => form.setPassword('password123'))}
             {click('submit', () => form.handleSubmit({ preventDefault() {} }))}
+            <div data-testid="error">{form.error}</div>
         </div>
     );
 }
+
+const errorText = () => container.querySelector('[data-testid="error"]').textContent;
 
 async function submit() {
     await act(async () => { host.render(<Harness />); });
@@ -130,9 +138,11 @@ describe('signup profile write', () => {
         expect(row.share_code).toBeTruthy();
     });
 
-    it('does not report signup failure when the write succeeds', async () => {
+    it('reports no error when the profile write succeeds', async () => {
+        // Assert the real outcome: no failure surfaced to the user. An earlier
+        // version asserted an empty local array, which could never fail and was
+        // not connected to anything the hook produced.
         await submit();
-        const errors = [];
-        expect(errors).toEqual([]);
+        expect(errorText(), 'signup surfaced an error').toBe('');
     });
 });

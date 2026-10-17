@@ -1006,6 +1006,21 @@ describe('recorder auto-render — zero server changes', () => {
             'functions/api/zoho-send.js',
             'wrangler.toml',
             'src/assets/css/app.css',
+// Signup profile-write race (geo upsert vs signup insert) + the
+            // non-destructive repair for rows that are missing an identity.
+            'supabase/migrations/009_create_profile_on_signup.sql',
+            'src/components/auth/SignupForm.jsx',
+            'src/components/auth/SignupForm.profile-write.test.jsx',
+            'src/components/auth/SignupForm.turnstile.test.jsx',
+            'src/components/auth/SignupForm.email-validation.test.jsx',
+            'src/components/auth/SignupForm.guest-lesson-credit.test.jsx',
+            'src/components/auth/signup-welcome-email-wiring.test.js',
+            'src/modules/api/api.js',
+            'src/modules/utils/short-id.js',
+            'src/modules/user/user-profile.js',
+            'src/modules/user/profile-repair-logic.js',
+            'src/modules/user/profile-repair-logic.test.js',
+            'src/modules/user/profile-repair.test.js',
             // Home top bar: the logo must not push the bell out of the frame.
             'src/components/homescreen/HomeScreen.jsx',
             'tests/home-bell-desktop-fit.spec.js',
