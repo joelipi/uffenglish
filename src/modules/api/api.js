@@ -179,6 +179,29 @@ export function invalidateUserAndAuthCache() {
   queryClient.invalidateQueries({ queryKey: ['auth', 'status'] });
 }
 
+/**
+ * Read the identity columns of a profile row, distinguishing "no row" from
+ * "the read failed".
+ *
+ * `useUserProfile` cannot do this: its catch block wraps the whole select and
+ * falls back to a core-data object, so a transient network, timeout or RLS
+ * error returns an object that is INDISTINGUISHABLE from a missing row. Deciding
+ * to write a repair from that object would overwrite a healthy profile whenever
+ * the network hiccuped. `maybeSingle()` returns null only when there is genuinely
+ * no row, and surfaces real errors.
+ *
+ * Returns `{ row, error }`; `row` is null when absent, `error` set on failure.
+ */
+export async function fetchProfileIdentityRow(userId) {
+  if (!userId) return { row: null, error: null };
+  const { data, error } = await supabase
+    .from('user_profiles')
+    .select('id,email,first_name,last_name,share_code,join_date,account_status,native_language')
+    .eq('id', userId)
+    .maybeSingle();
+  return { row: data ?? null, error: error ?? null };
+}
+
 export async function syncUserMetaDataMutation(metaToUpdate, userId) {
   try {
     console.log('[syncUserMetaData] Updating profile metadata...', { userId, metaToUpdate });

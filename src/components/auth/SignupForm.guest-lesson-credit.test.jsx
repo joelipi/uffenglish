@@ -6,9 +6,8 @@ import { createRoot } from 'react-dom/client';
 import { act } from 'react';
 
 // Tracks every insert, tagged with the table it targeted.
-const { insertCalls, upsertOpts, setQueryDataSpy, recordFriendCompletionSpy } = vi.hoisted(() => ({
+const { insertCalls, setQueryDataSpy, recordFriendCompletionSpy } = vi.hoisted(() => ({
     insertCalls: [],
-    upsertOpts: [],
     setQueryDataSpy: vi.fn(),
     recordFriendCompletionSpy: vi.fn(async () => ({ recorded: true })),
 }));
@@ -25,8 +24,7 @@ vi.mock('../../modules/api/supabase.js', () => ({
             // useSignupForm writes the profile with upsert (it must be
             // idempotent — the geo collector writes the same row), so record
             // there. insert stays stubbed for any other caller.
-            upsert: (row, opts) => {
-                upsertOpts.push(opts);
+            upsert: (row) => {
                 insertCalls.push({ table, row });
                 return Promise.resolve({ error: null });
             },

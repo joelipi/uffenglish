@@ -1,74 +1,58 @@
 // Pure rules for repairing an incomplete user_profiles row.
+//
+// The contract that matters: a repair may only FILL absent fields. It must never
+// clear a streak, null a self-reported level, or rotate a published share code.
 import { describe, it, expect } from 'vitest';
 
 import {
     PROFILE_IDENTITY_FIELDS,
-    profileNeedsRepair,
+    profileIsIncomplete,
     splitFullName,
-    buildCompleteProfileRow,
-    mergeProfileRow,
+    planProfileRepair,
 } from './profile-repair-logic.js';
 
-// What useUserProfile hands back for each state (api.js).
-const coreDataFallback = {           // row missing -> the "core data" branch
+const sessionUser = {
     $id: 'u-1',
     email: 'jo@example.com',
-    display_name: 'Jo Kim',
-    join_date: '2026-10-17T00:00:00Z',
-    auth_method: 'supabase',
-    profilePictureUrl: 'pic.png',
+    name: 'Jo Kim',
+    $createdAt: '2026-10-17T00:00:00Z',
+    user_metadata: { native_language: 'fr' },
 };
-const realRow = {                    // a genuine row
-    $id: 'u-1',
+
+const completeRow = {
+    id: 'u-1',
     email: 'jo@example.com',
-    display_name: 'Jo Kim',
-    join_date: '2026-10-17T00:00:00Z',
-    share_code: 'abcd',
-    account_status: 'active',
     first_name: 'Jo',
     last_name: 'Kim',
+    share_code: 'abcd',
+    join_date: '2026-10-17T00:00:00Z',
+    account_status: 'active',
+    native_language: 'fr',
 };
 
-describe('profileNeedsRepair', () => {
-    it('flags the core-data fallback that useUserProfile returns for a missing row', () => {
-        expect(profileNeedsRepair(coreDataFallback)).toBe(true);
+describe('profileIsIncomplete', () => {
+    it('is false for a complete row and for no row', () => {
+        expect(profileIsIncomplete(completeRow)).toBe(false);
+        expect(profileIsIncomplete(null)).toBe(false);
     });
 
-    it('does not flag a genuine row', () => {
-        expect(profileNeedsRepair(realRow)).toBe(false);
-    });
-
-    it('accepts the camelCase aliases fromDbRow provides', () => {
-        expect(profileNeedsRepair({ ...realRow, share_code: undefined, shareCode: 'wxyz' })).toBe(false);
-        expect(profileNeedsRepair({ ...realRow, join_date: undefined, joinDate: '2026-10-17' })).toBe(false);
-    });
-
-    it('flags a fragment that is missing any identity field', () => {
+    it('is true when any identity column is absent or NULL', () => {
         for (const field of PROFILE_IDENTITY_FIELDS) {
-            const row = { ...realRow, [field]: null };
-            expect(profileNeedsRepair(row), `a row without ${field} must be repaired`).toBe(true);
+            expect(profileIsIncomplete({ ...completeRow, [field]: null }),
+                `a row with a NULL ${field} is a fragment`).toBe(true);
+            expect(profileIsIncomplete({ ...completeRow, [field]: '' }),
+                `a row with an empty ${field} is a fragment`).toBe(true);
         }
-    });
-
-    it('never treats a guest or an absent user as repairable', () => {
-        // There is no account to repair for these, and writing one is what
-        // created ghost rows in the first place.
-        expect(profileNeedsRepair(null)).toBe(false);
-        expect(profileNeedsRepair(undefined)).toBe(false);
-        expect(profileNeedsRepair({})).toBe(false);
-        expect(profileNeedsRepair('nope')).toBe(false);
-        expect(profileNeedsRepair({ ...coreDataFallback, $id: 'guest' })).toBe(false);
-        expect(profileNeedsRepair({ ...coreDataFallback, $id: undefined })).toBe(false);
     });
 });
 
 describe('splitFullName', () => {
-    it('splits on the first space, like migration 009 does', () => {
+    it('splits on the first whitespace run, like migration 009 splits on a space', () => {
         expect(splitFullName('Ada Lovelace')).toEqual({ firstName: 'Ada', lastName: 'Lovelace' });
         expect(splitFullName('Ada Byron Lovelace')).toEqual({ firstName: 'Ada', lastName: 'Byron Lovelace' });
     });
 
-    it('handles a single name and odd whitespace', () => {
+    it('handles a single name, stray whitespace and non-strings', () => {
         expect(splitFullName('Prince')).toEqual({ firstName: 'Prince', lastName: '' });
         expect(splitFullName('  Jo   Kim  ')).toEqual({ firstName: 'Jo', lastName: 'Kim' });
         expect(splitFullName('')).toEqual({ firstName: '', lastName: '' });
@@ -76,57 +60,102 @@ describe('splitFullName', () => {
     });
 });
 
-describe('buildCompleteProfileRow', () => {
-    it('produces a row with every identity field populated', () => {
-        const row = buildCompleteProfileRow({
-            user: { $id: 'u-1', email: 'jo@example.com', name: 'Jo Kim', $createdAt: '2026-10-17T00:00:00Z', native_language: 'fr' },
-            shareCode: 'abcd',
+describe('planProfileRepair', () => {
+    it('does nothing for a guest or an absent user', () => {
+        expect(planProfileRepair({ row: null, user: null })).toEqual({ action: 'none' });
+        expect(planProfileRepair({ row: null, user: { $id: 'guest' } })).toEqual({ action: 'none' });
+        expect(planProfileRepair()).toEqual({ action: 'none' });
+    });
+
+    it('does nothing when the row is already complete', () => {
+        expect(planProfileRepair({ row: completeRow, user: sessionUser })).toEqual({ action: 'none' });
+    });
+
+    describe('when no row exists', () => {
+        it('plans a full insert', () => {
+            const plan = planProfileRepair({ row: null, user: sessionUser });
+            expect(plan.action).toBe('insert');
+            expect(plan.payload).toMatchObject({
+                id: 'u-1',
+                email: 'jo@example.com',
+                first_name: 'Jo',
+                last_name: 'Kim',
+                account_status: 'active',
+                native_language: 'fr',
+            });
+            // Null until the caller assigns one; there is no existing code to protect.
+            expect(plan.payload.share_code).toBeNull();
         });
-        for (const field of PROFILE_IDENTITY_FIELDS) {
-            expect(row[field], `${field} must be set on a repaired row`).toBeTruthy();
-        }
-        expect(row).toMatchObject({
+
+        it('never invents an english level', () => {
+            const plan = planProfileRepair({ row: null, user: sessionUser });
+            expect('english_level' in plan.payload).toBe(false);
+        });
+    });
+
+    describe('when a fragment row exists', () => {
+        const ghost = {
             id: 'u-1',
-            email: 'jo@example.com',
-            first_name: 'Jo',
-            last_name: 'Kim',
-            native_language: 'fr',
+            email: null,
+            first_name: null,
+            last_name: null,
+            share_code: null,
+            join_date: null,
             account_status: 'active',
-            share_code: 'abcd',
+            native_language: null,
+        };
+
+        it('fills only the missing identity fields', () => {
+            const plan = planProfileRepair({ row: ghost, user: sessionUser });
+            expect(plan.action).toBe('update');
+            expect(plan.payload).toEqual({
+                id: 'u-1',
+                email: 'jo@example.com',
+                join_date: '2026-10-17T00:00:00Z',
+                first_name: 'Jo',
+                last_name: 'Kim',
+                native_language: 'fr',
+            });
         });
-    });
 
-    it('reads native_language from user metadata when the session user lacks it', () => {
-        const row = buildCompleteProfileRow({
-            user: { $id: 'u-1', email: 'jo@example.com', user_metadata: { full_name: 'Jo Kim', native_language: 'bn' } },
-            shareCode: 'abcd',
+        it('NEVER includes share_code — rotating one breaks links already published', () => {
+            const plan = planProfileRepair({ row: ghost, user: sessionUser });
+            expect('share_code' in plan.payload).toBe(false);
         });
-        expect(row.native_language).toBe('bn');
-        expect(row.first_name).toBe('Jo');
-    });
 
-    it('leaves english_level null rather than guessing a level', () => {
-        // Guessing 'A0' would overwrite a real self-reported level on the next
-        // profile write.
-        const row = buildCompleteProfileRow({ user: { $id: 'u-1', email: 'a@b.com' }, shareCode: 'abcd' });
-        expect(row.english_level).toBeNull();
-    });
+        it('NEVER overwrites fields the row already has', () => {
+            const partial = {
+                id: 'u-1',
+                email: 'real@example.com',
+                share_code: 'keepme',
+                join_date: '2026-01-01T00:00:00Z',
+                account_status: 'active',
+                native_language: 'bn',
+                first_name: 'Real',
+                last_name: 'Name',
+            };
+            // Only account_status is missing here -> nothing to fill.
+            expect(planProfileRepair({ row: partial, user: sessionUser })).toEqual({ action: 'none' });
 
-    it('returns null without a user, so nothing is ever written for a guest', () => {
-        expect(buildCompleteProfileRow()).toBeNull();
-        expect(buildCompleteProfileRow({ user: null })).toBeNull();
-        expect(buildCompleteProfileRow({ user: {} })).toBeNull();
-    });
-});
+            const missingStatus = { ...partial, account_status: null };
+            const plan = planProfileRepair({ row: missingStatus, user: sessionUser });
+            expect(plan.payload).toEqual({ id: 'u-1', account_status: 'active' });
+            expect(plan.payload.email).toBeUndefined();
+            expect(plan.payload.share_code).toBeUndefined();
+            expect(plan.payload.first_name).toBeUndefined();
+        });
 
-describe('mergeProfileRow', () => {
-    it('lets the complete row win, so a repair is not undone by the incremental write', () => {
-        expect(mergeProfileRow({ email: 'a@b.com', share_code: 'abcd' }, { course_progress: '{}' }))
-            .toEqual({ course_progress: '{}', email: 'a@b.com', share_code: 'abcd' });
-    });
+        it('does not clobber completed_dates or english_level, which are not in the payload', () => {
+            const withProgress = { ...ghost, completed_dates: ['2026-10-01'], english_level: 'B1' };
+            const plan = planProfileRepair({ row: withProgress, user: sessionUser });
+            expect('completed_dates' in plan.payload).toBe(false);
+            expect('english_level' in plan.payload).toBe(false);
+        });
 
-    it('passes through when either side is absent', () => {
-        expect(mergeProfileRow(null, { course_progress: '{}' })).toEqual({ course_progress: '{}' });
-        expect(mergeProfileRow({ email: 'a@b.com' }, null)).toEqual({ email: 'a@b.com' });
+        it('writes nothing when the only gap is a share code it refuses to invent', () => {
+            const onlyCodeMissing = { ...completeRow, share_code: null };
+            expect(planProfileRepair({ row: onlyCodeMissing, user: sessionUser }))
+                .toEqual({ action: 'none' });
+        });
     });
 });

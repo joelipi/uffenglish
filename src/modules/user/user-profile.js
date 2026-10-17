@@ -1,17 +1,46 @@
 // modules/user-profile.js
 // IMPORTANT! THIS SCRIPT USES VERSION 24 OF THE APPWRITE SDK, WHICH HAS MANY BREAKING CHANGES FROM EARLIER VERSIONS. DO NOT USE THE SYNTAX OR METHODS OF EARLIER VERSIONS WITHOUT CHECKING THEY ARE STILL VALID IN VERSION 24.
-import { syncUserMetaDataMutation, getCurrentUser } from '../api/api.js';
+import { syncUserMetaDataMutation, getCurrentUser, fetchProfileIdentityRow } from '../api/api.js';
 import { appStore } from '../store/store.js';
 import { nextLessonCompletion } from './lesson-count-logic.js';
 import { toShortId } from '../utils/short-id.js';
-import {
-    profileNeedsRepair,
-    buildCompleteProfileRow,
-} from './profile-repair-logic.js';
+import { profileIsIncomplete, planProfileRepair } from './profile-repair-logic.js';
 
 /** 24 bits of randomness, the same space the signup form draws from. */
 function newShareCode() {
     return toShortId(Math.floor(Math.random() * 0xFFFFFF));
+}
+
+/**
+ * True when the profile object in hand is already complete, so no repair is
+ * needed. Only a POSITIVE confirmation lets a progress write proceed on its own.
+ */
+function hasCompleteProfileRow(userData) {
+    return Boolean(userData?.share_code || userData?.shareCode)
+        && Boolean(userData?.email)
+        && Boolean(userData?.join_date || userData?.joinDate)
+        && Boolean(userData?.account_status);
+}
+
+/**
+ * Fold a freshly written profile payload into the store's copy of the user, so
+ * the rest of this session sees the share code the repair just generated.
+ * Share links read `userData.shareCode`, and the bootstrap only seeds the store
+ * once (its `initStarted` guard), so without this a repaired account would emit
+ * `undefined` in share URLs and R2 keys until a full page reload.
+ */
+function mergeRepairedProfileIntoStore(payload) {
+    const current = appStore.getState().userData;
+    if (!current || current.$id !== payload.id) return;
+    appStore.getState().setCourseData({
+        userData: {
+            ...current,
+            ...(payload.email && { email: payload.email }),
+            ...(payload.share_code && { share_code: payload.share_code, shareCode: payload.share_code }),
+            ...(payload.join_date && { join_date: payload.join_date }),
+            ...(payload.account_status && { account_status: payload.account_status }),
+        },
+    });
 }
 
 /**
@@ -21,29 +50,53 @@ function newShareCode() {
  * Every write to `user_profiles` is an upsert, which PostgREST resolves to a
  * bare INSERT when no row exists — so writing only `course_progress` against an
  * account with no profile CREATED one with a NULL email and no share code. That
- * is how the ghost rows in the database were produced. This turns such a write
- * into a complete one.
+ * is how the ghost rows in the database were produced.
  *
- * Detection is free: `useUserProfile`'s core-data fallback has no `share_code`,
- * so the object already in hand says whether a repair is needed — no extra query
- * on the normal path.
+ * This NEVER destroys data. It fills only fields that are absent, never rotates
+ * an existing share code (links are already published to R2 and printed), and
+ * never invents an english level (that would overwrite a real answer).
+ * profile-repair-logic.js owns those rules as pure functions.
  *
- * migration 009 stops the state arising for new accounts; this repairs accounts
- * already in it.
+ * Detection uses an explicit `maybeSingle()` read rather than the shape of the
+ * object handed in: `useUserProfile` returns its core-data fallback both when the
+ * row is missing AND when the read fails, so inferring from that object would
+ * repair a healthy profile on every transient network error.
+ *
+ * Returns the payload it wrote (or null), so the caller can merge it into the
+ * store — the session's copy of the profile was read before this repair and so
+ * would otherwise never learn about a share code generated here.
  */
 export async function ensureCompleteProfileRow(userData) {
-    if (!profileNeedsRepair(userData)) return true;
+    const userId = userData?.$id;
+    if (!userId || userId === 'guest') return null;
 
-    console.warn('[user-profile] Profile row missing or incomplete — repairing it.');
+    const { row, error } = await fetchProfileIdentityRow(userId);
+    // A failed read is not evidence of a missing row: do nothing, do not guess.
+    if (error) {
+        console.warn('[user-profile] Profile read failed — skipping repair:', error?.message || error);
+        return null;
+    }
+    if (row && !profileIsIncomplete(row)) return null;
+
     const user = await getCurrentUser();
-    if (!user || !user.$id || user.$id === 'guest') return false;
+    if (!user || !user.$id || user.$id === 'guest') return null;
 
-    const complete = buildCompleteProfileRow({ user, shareCode: newShareCode() });
-    if (!complete) return false;
+    const plan = planProfileRepair({ row, user });
+    if (plan.action === 'none') return null;
 
-    await syncUserMetaDataMutation(complete, user.$id);
-    console.log(`[user-profile] Repaired profile row for ${user.$id}`);
-    return true;
+    if (plan.action === 'insert') {
+        // Nothing exists, so this is the only place a share code is invented.
+        plan.payload.share_code = newShareCode();
+        await syncUserMetaDataMutation(plan.payload, userId);
+        console.log(`[user-profile] Created the missing profile row for ${userId}`);
+        mergeRepairedProfileIntoStore(plan.payload);
+        return plan.payload;
+    }
+
+    await syncUserMetaDataMutation(plan.payload, userId);
+    console.log(`[user-profile] Repaired profile row for ${userId} (${Object.keys(plan.payload).length - 1} field(s))`);
+    mergeRepairedProfileIntoStore(plan.payload);
+    return plan.payload;
 }
 
 /**
@@ -74,9 +127,22 @@ export async function saveCourseToUserProfile(courseId, userData) {
     try {
         // Repair BEFORE writing progress. Without this the write below upserts
         // `course_progress` alone, which fabricates a NULL-email row for any
-        // account whose profile is missing — the exact ghost row this screen was
-        // built to stop.
-        await ensureCompleteProfileRow(userData);
+        // account whose profile is missing — the exact ghost row this exists to
+        // prevent. A failed repair aborts the progress write, because that write
+        // is the one that would create the fragment.
+        let repaired = null;
+        try {
+            repaired = await ensureCompleteProfileRow(userData);
+        } catch (repairError) {
+            console.error('[user-profile] Profile repair failed — skipping progress write:', repairError);
+            return null;
+        }
+        if (!repaired && !hasCompleteProfileRow(userData)) {
+            // We could not confirm the row exists, and writing progress is what
+            // would create a fragment. Stop rather than deepen it.
+            console.warn('[user-profile] Profile row unconfirmed — skipping progress write.');
+            return null;
+        }
 
         let progressMap = {};
         if (userData?.course_progress) {
