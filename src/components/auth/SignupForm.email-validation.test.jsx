@@ -60,7 +60,7 @@ function Harness({ options, email = 'jo@example.com' }) {
         <div>
             {click('first', () => form.setFirstName('Jo'))}
             {click('last', () => form.setLastName('Kim'))}
-            {click('email', () => form.setEmail(email))}
+            {click('email', () => form.handleEmailChange(email))}
             {click('password', () => form.setPassword('password123'))}
             {click('submit', () => form.handleSubmit({ preventDefault() {} }))}
             <div data-testid="error">{form.error}</div>

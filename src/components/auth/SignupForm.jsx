@@ -56,6 +56,14 @@ export function useSignupForm({
      * a stale verdict invalidates is logic, not rendering — and because two
      * views (the standalone form and the save-clips modal) share this hook and
      * must recover identically.
+     *
+     * `setEmail` is deliberately NOT exported: a view could then write the
+     * address without clearing the verdict, and the stale alert would return
+     * with no visible cause. Only this function may change the address.
+     *
+     * Only the email verdict is invalidated. A generic `error` (e.g. Supabase
+     * reporting the address is already registered) is left alone, because
+     * editing the field is not evidence that a non-email failure went away.
      */
     function handleEmailChange(value) {
         setEmail(value);
@@ -247,7 +255,6 @@ export function useSignupForm({
         lastName,
         setLastName,
         email,
-        setEmail,
         handleEmailChange,
         password,
         setPassword,

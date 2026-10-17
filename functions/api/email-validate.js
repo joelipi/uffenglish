@@ -178,6 +178,14 @@ export function classifyDnsResult(dnsJson, { domain, addressRecords } = {}) {
 
     const { Status } = dnsJson;
 
+    // A truncated response is an uncertainty, not an answer: the records we can
+    // see are not proof that none others exist. Checked here as well as in the
+    // fallback, so the rule holds for the MX query too.
+    if (dnsJson.Truncated === true) {
+        console.warn(`[email-validate] truncated DNS answer for ${domain} — allowing signup`);
+        return { ok: true, reason: 'lookup-unavailable' };
+    }
+
     if (Status === RCODE_NXDOMAIN) {
         console.log(`[email-validate] ${domain} does not exist`);
         return { ok: false, reason: 'domain-not-found' };
@@ -276,9 +284,11 @@ async function queryAddressRecords(domain) {
             // Every uncertainty is logged so the volume of no-op lookups stays
             // visible in the Pages logs. Without this the fallback would return
             // "no opinion" silently, which is the opposite of the contract.
-            const why = json && typeof json === 'object' && typeof json.Status === 'number'
-                ? `rcode ${json.Status}`
-                : 'unreadable answer';
+            const why = !json || typeof json !== 'object'
+                ? 'unreadable answer'
+                : (json.Truncated === true
+                    ? 'truncated answer'
+                    : `rcode ${json.Status}`);
             console.warn(`[email-validate] ${type} lookup unusable for ${domain} (${why}) — allowing signup`);
             return null;
         }

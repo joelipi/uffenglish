@@ -14,7 +14,7 @@
 //  - index-order assertions on paren-qualified call tokens, so a comment
 //    naming the function cannot satisfy the search.
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -27,6 +27,41 @@ const end = source.indexOf('\n    return {');
 const region = source.slice(start, end);
 
 const order = (token) => region.indexOf(token);
+
+/**
+ * Every component that CALLS useSignupForm and renders a signup form.
+ *
+ * Discovered rather than listed, so a new signup surface cannot silently skip
+ * the verdict guards below. Two filters, both semantic rather than hardcoded:
+ *  - test files are excluded, since their harnesses call the hook too;
+ *  - a real surface must render a <form>, which excludes the `return null`
+ *    native stub (it only names the hook in a comment, and the repo treats
+ *    unwired native files as reference rather than a live surface);
+ *  - line comments are stripped for the call check, so naming the hook in a
+ *    TODO is not mistaken for calling it.
+ */
+function findSurfaces() {
+    const componentsDir = path.resolve(HERE, '..');
+    const found = [];
+    const walk = (dir) => {
+        for (const entry of readdirSync(dir, { withFileTypes: true })) {
+            const full = path.join(dir, entry.name);
+            if (entry.isDirectory()) {
+                walk(full);
+                continue;
+            }
+            if (!/\.jsx?$/.test(entry.name) || /\.test\.jsx?$/.test(entry.name)) continue;
+            const text = readFileSync(full, 'utf8');
+            const code = text.split('\n').map((l) => l.replace(/\/\/.*$/, '')).join('\n');
+            const defines = /export\s+function\s+useSignupForm\b/.test(code);
+            if (!defines && /useSignupForm\s*\(/.test(code) && /<form\b/.test(text)) {
+                found.push({ name: entry.name, text });
+            }
+        }
+    };
+    walk(componentsDir);
+    return found;
+}
 
 describe('signup email screen wiring', () => {
     it('locates handleSubmit and its bounded return block', () => {
@@ -79,43 +114,72 @@ describe('signup email screen wiring', () => {
         expect(returnBlock).not.toMatch(/auth_email_error_/);
     });
 
-    it('returns every name the view destructures', () => {
+    it('returns every name each useSignupForm surface destructures', () => {
         // A view that destructures a key the hook does not return gets
-        // `undefined` — silently green until a user types. This compares the two
+        // `undefined` — silently green until a user types. Compare the two
         // lists exactly rather than grepping for one substring.
-        const view = readFileSync(path.join(HERE, 'SignupForm.web.jsx'), 'utf8');
-        const modal = readFileSync(
-            path.join(HERE, '../../components/modals/SaveClipsSignupForm.jsx'), 'utf8');
-
         const hookReturned = /return\s*\{([\s\S]*?)\n {4}\};\n\}/.exec(source);
         expect(hookReturned, 'could not find the hook return block').toBeTruthy();
         const returnedNames = hookReturned[1].split(',').map((s) => s.trim()).filter(Boolean);
         expect(returnedNames.length, 'the slice looks wrong — guard would be vacuous')
             .toBeGreaterThan(5);
 
-        for (const [label, sourceText] of [['SignupForm.web.jsx', view], ['SaveClipsSignupForm.jsx', modal]]) {
-            const destructured = /const\s*\{([\s\S]*?)\}\s*=\s*useSignupForm/.exec(sourceText);
-            expect(destructured, `could not find the useSignupForm destructuring in ${label}`)
+        for (const { name, text } of findSurfaces()) {
+            const destructured = /const\s*\{([\s\S]*?)\}\s*=\s*useSignupForm/.exec(text);
+            expect(destructured, `could not find the useSignupForm destructuring in ${name}`)
                 .toBeTruthy();
-            for (const name of destructured[1].split(',').map((s) => s.trim()).filter(Boolean)) {
-                expect(returnedNames, `${label} destructures "${name}", which useSignupForm does not return`)
-                    .toContain(name);
+            for (const key of destructured[1].split(',').map((s) => s.trim()).filter(Boolean)) {
+                expect(returnedNames, `${name} destructures "${key}", which useSignupForm does not return`)
+                    .toContain(key);
             }
         }
     });
 
-    it('surfaces the verdict on both signup surfaces', () => {
-        // The screen runs on every useSignupForm caller. A surface that renders
-        // no alert makes a rejected address look like a dead submit button.
-        for (const [label, rel] of [
-            ['SignupForm.web.jsx', './SignupForm.web.jsx'],
-            ['SaveClipsSignupForm.jsx', '../../components/modals/SaveClipsSignupForm.jsx'],
-        ]) {
-            const text = readFileSync(path.join(HERE, rel), 'utf8');
-            expect(text, `${label} renders no email verdict`).toContain('emailError');
-            expect(text, `${label} does not resolve the code to copy`)
-                .toContain('emailValidationErrorKey');
+    it('does not export a bare address setter that would bypass the clearing', () => {
+        // handleEmailChange clears the stale verdict; setEmail would not. With
+        // setEmail exported, a view could write the address through it and the
+        // stale alert would return with no visible cause.
+        const hookReturned = /return\s*\{([\s\S]*?)\n {4}\};\n\}/.exec(source);
+        const returnedNames = hookReturned[1].split(',').map((s) => s.trim());
+        expect(returnedNames, 'setEmail would let a view bypass the clearing')
+            .not.toContain('setEmail');
+        expect(returnedNames).toContain('handleEmailChange');
+    });
+
+    it('routes every email input through handleEmailChange', () => {
+        // The clearing is only reached if the input actually calls the hook.
+        for (const { name, text } of findSurfaces()) {
+            expect(text, `${name} does not route its email input through handleEmailChange`)
+                .toMatch(/onChange=\{\(e\)\s*=>\s*handleEmailChange\(e\.target\.value\)\}/);
         }
+    });
+
+    it('renders the resolved verdict on every surface', () => {
+        // Scoped to the alert block, not a whole-file token search: a bare
+        // `toContain('emailError')` is satisfied by the destructuring alone, so
+        // deleting the alert while keeping the destructure would stay green.
+        for (const { name, text } of findSurfaces()) {
+            const start = text.indexOf('{emailError &&');
+            expect(start, `${name} renders no emailError alert at all`).toBeGreaterThan(-1);
+
+            // Bound the slice at the next <form, i.e. the end of the alert block.
+            const end = text.indexOf('<form', start);
+            const block = text.slice(start, end === -1 ? text.length : end);
+
+            expect(block, `${name} alert has no alert role`).toContain('role="alert"');
+            expect(block, `${name} alert has no testid`).toContain('data-testid="email-error"');
+            // The code must be resolved to copy INSIDE the alert, not merely
+            // imported somewhere in the file.
+            expect(block, `${name} alert does not resolve the code to copy`)
+                .toMatch(/Strings\.get\(\s*emailValidationErrorKey\(emailError\)/);
+        }
+    });
+
+    it('finds every useSignupForm surface, so a new one cannot skip the gate', () => {
+        // Guards that enumerate files only check the files they name. This
+        // discovers them, so adding a third signup surface fails here.
+        expect(findSurfaces().map((s) => s.name).sort())
+            .toEqual(['SaveClipsSignupForm.jsx', 'SignupForm.web.jsx']);
     });
 
     it('imports the screen from the shared logic module', () => {

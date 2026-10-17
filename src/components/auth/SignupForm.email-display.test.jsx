@@ -177,25 +177,26 @@ describe('SignupForm.web.jsx email screen display', () => {
         expect(changes).toEqual(['jo@gmail.com']);
     });
 
-    it('does not reference any setter the hook does not return', () => {
-        // The guard that was missing: destructuring a non-existent key is
-        // silent until the user types, so the view may only take functions the
-        // hook actually returns.
-        const HERE = path.dirname(fileURLToPath(import.meta.url));
-        const view = readFileSync(path.join(HERE, 'SignupForm.web.jsx'), 'utf8');
-        const hook = readFileSync(path.join(HERE, 'SignupForm.jsx'), 'utf8');
+    it('renders the same resolved copy on the save-clips modal', async () => {
+        // The modal shares the hook, so a rejected address there used to
+        // re-enable the button with no message at all. Asserted behaviourally
+        // because a token check cannot tell an alert apart from a destructuring.
+        // (The structural side of this lives in signup-email-check-wiring.test.js,
+        // which also covers the modal; this is the behavioural side.)
+        const { default: SaveClips } = await import('../modals/SaveClipsSignupForm.jsx');
+        signupFormMock.mockReturnValue({
+            ...BASE_FORM,
+            emailError: 'domain-not-found',
+        });
+        appStore.setState({ guestNativeLanguage: 'es', userData: null });
 
-        const destructured = /const\s*\{([\s\S]*?)\}\s*=\s*useSignupForm/.exec(view);
-        expect(destructured, 'could not find the useSignupForm destructuring').toBeTruthy();
-        const returned = /return\s*\{([\s\S]*?)\n {4}\};\n\}/.exec(hook);
-        expect(returned, 'could not find the hook return block').toBeTruthy();
+        const host2 = createRoot(container);
+        await act(async () => { host2.render(<SaveClips />); });
 
-        const returnedNames = returned[1].split(',').map((s) => s.trim()).filter(Boolean);
-        expect(returnedNames.length, 'the slice looks wrong — guard would be vacuous')
-            .toBeGreaterThan(5);
-        for (const name of destructured[1].split(',').map((s) => s.trim()).filter(Boolean)) {
-            expect(returnedNames, `the view destructures "${name}" but the hook does not return it`)
-                .toContain(name);
-        }
+        const modalAlert = container.querySelector('[data-testid="email-error"]');
+        expect(modalAlert, 'the modal renders no email verdict').not.toBeNull();
+        expect(modalAlert.textContent)
+            .toBe(Strings.get(emailValidationErrorKey('domain-not-found'), 'es'));
+        act(() => host2.unmount());
     });
 });
