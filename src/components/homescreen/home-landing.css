@@ -122,8 +122,9 @@
 
 .uff-navbar .navbar-brand img,
 .uff-home-bs img.uff-logo {
-    height: 40px;
+    height: auto;
     width: auto;
+    max-height: 40px;
     max-width: 35vw;
     display: block;
     filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.35));
@@ -162,7 +163,7 @@
 @media (max-width: 400px) {
     .uff-navbar .navbar-brand img,
     .uff-home-bs img.uff-logo {
-        height: 32px;
+        max-height: 32px;
         max-width: 30vw;
     }
 }
