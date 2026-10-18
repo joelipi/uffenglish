@@ -1050,10 +1050,6 @@ def create_overlay_html(row, video_width, video_height):
     title_max_height = max(12, _title_height_cap)
     footer_size = max(9, int(video_height * 0.018))
     aside_size = max(9, int(video_height * 0.02))
-    # Phrase overlay: same left-anchored callout as <aside>, but larger and
-    # vertically centered, so the spoken phrase reads at a glance on the web.
-    phrase_size = max(12, int(video_height * 0.04))
-    phrase_size = max(phrase_size, aside_size * 2)
     mark_size = max(10, int(video_height * 0.03))
 
     font_variable_path = f"file:///{os.path.abspath(os.path.join(FONT_DIRECTORY, FONT_FILE_VARIABLE)).replace(chr(92), '/')}"
@@ -1187,30 +1183,6 @@ aside {{
     overflow: hidden;
 }}
 
-/* Phrase overlay: the spoken phrase as a left-anchored callout, larger font
-   and vertically centered (mirror of <aside> but centered on the frame). */
-aside.phrase-overlay {{
-    position: fixed;
-    top: {video_height * 0.5}px;
-    left: {video_width * 0.02}px;
-    transform: translateY(-50%);
-    max-width: {video_width * 0.60}px;
-    max-height: {video_height * 0.60}px;
-    background: rgba(255, 255, 255, 0.85);
-    color: #111111;
-    font-family: '{SUBTITLE_FONT}', sans-serif;
-    font-size: {phrase_size}px;
-    font-weight: 700;
-    line-height: 1.4;
-    text-align: left;
-    -webkit-text-stroke: 0;
-    text-shadow: none;
-    padding: {phrase_size * 0.5}px {phrase_size * 0.6}px;
-    border-radius: {phrase_size * 0.8}px;
-    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.25);
-    overflow: hidden;
-}}
-
 /* <strong> is used for highlighting (in the callout box and subtitles).
    Overrides the inherited subtitle text-shadow/stroke so the highlight reads
    as clean dark text on yellow. */
@@ -1233,7 +1205,6 @@ strong {{
 
 <div class="subtitle">{row["subtitle_text"]}</div>
 
-{f'<aside class="phrase-overlay">{row.get("phrase", "")}</aside>' if row.get("phrase") else ""}
 
 <script>
     // Fit a block's font to its band: start at the minimum and grow to the
@@ -1276,18 +1247,54 @@ strong {{
             el.style.fontSize = size + 'px';
         }}
     }});
-    // Phrase overlay: shrink from its (larger) base size so long phrases fit.
-    document.querySelectorAll('aside.phrase-overlay').forEach(function (el) {{
-        var size = {phrase_size};
-        el.style.fontSize = size + 'px';
-        while (size > 10 && (el.scrollHeight > el.clientHeight || el.scrollWidth > el.clientWidth)) {{
-            size -= 1;
-            el.style.fontSize = size + 'px';
-        }}
-    }});
     fitToBand(document.querySelector('.subtitle'), {body_min}, {body_max});
 </script>
 
+</body></html>"""
+
+
+def create_phrase_overlay_html(row, video_width, video_height):
+    """Burned-in overlay containing ONLY the spoken phrase.
+
+    Left-anchored (same column as the ``<aside>`` callout), larger font than
+    the aside and vertically centered, so the phrase reads at a glance on the
+    web. Used for the per-take web videos served to the app; the full-overlay
+    intermediates (title/subtitle/footer/aside) are kept for concatenation.
+    """
+    phrase = (row.get('phrase') if hasattr(row, 'get') else None) or ''
+    phrase = str(phrase).strip()
+    aside_size = max(9, int(video_height * 0.02))
+    phrase_size = max(12, int(video_height * 0.04))
+    phrase_size = max(phrase_size, aside_size * 2)
+    horizontal_margin = video_width * 0.02
+    font_variable_path = f"file:///{os.path.abspath(os.path.join(FONT_DIRECTORY, FONT_FILE_VARIABLE)).replace(chr(92), '/')}"
+    return f"""<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
+@font-face{{font-family:'{SUBTITLE_FONT}';src:url('{f"file:///{os.path.abspath(os.path.join(FONT_DIRECTORY, FONT_FILE_VARIABLE)).replace(chr(92), '/')}" }') format('truetype');}}
+*{{margin:0;padding:0;box-sizing:border-box}}
+html, body{{background:transparent!important; width:{video_width}px; height:{video_height}px; overflow:hidden;}}
+aside.phrase-overlay {{
+    position: fixed;
+    top: {video_height * 0.5}px;
+    left: {video_width * 0.02}px;
+    transform: translateY(-50%);
+    max-width: {video_width * 0.60}px;
+    max-height: {video_height * 0.60}px;
+    background: rgba(255, 255, 255, 0.85);
+    color: #111111;
+    font-family: '{SUBTITLE_FONT}', sans-serif;
+    font-size: {phrase_size}px;
+    font-weight: 700;
+    line-height: 1.4;
+    text-align: left;
+    -webkit-text-stroke: 0;
+    text-shadow: none;
+    padding: {phrase_size * 0.5}px {phrase_size * 0.6}px;
+    border-radius: {phrase_size * 0.8}px;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+}}
+</style></head><body>
+{f'<aside class="phrase-overlay">{phrase}</aside>' if phrase else ''}
 </body></html>"""
 
 
@@ -1349,6 +1356,8 @@ def process_single_video(row):
     foreground_clip = None
     image_overlay_clip = None
     final_composited_clip = None
+    phrase_composited_clip = None
+    phrase_overlay_path = None
     try:
         base_filename = safe_get_value(row, 'filename')
         if not base_filename:
@@ -1418,8 +1427,39 @@ def process_single_video(row):
         final_composited_clip = add_background_sound(final_composited_clip, safe_get_value(row, 'bgSound'))
         final_composited_clip = add_ending_sound(final_composited_clip, safe_get_value(row, 'endSoundEffect'))
 
-        # Render once to output/social (high quality) and derive output/web.
-        render_profiles(final_composited_clip, output_filename, fps=base_video_clip.fps)
+        # Full-overlay master -> output/social (used for concatenation into finals).
+        final_composited_clip.write_videofile(social_path(output_filename), **social_write_kwargs(fps=base_video_clip.fps))
+
+        # Phrase-only web video: same base effects, but ONLY the phrase overlay,
+        # web-optimized, written to output/web under the same filename. Does not
+        # touch the full-overlay social intermediate used for concatenation.
+        phrase = safe_get_value(row, 'phrase')
+        if phrase:
+            safe_name = base_filename.replace(VIDEO_EXTENSION, '').replace('.', '_')
+            phrase_overlay_path = os.path.join(OVERLAYS_TEMP_DIRECTORY, f"phrase_overlay_{safe_name}.png")
+            hti2 = Html2Image(size=(video_width, video_height), output_path=OVERLAYS_TEMP_DIRECTORY,
+                              custom_flags=chrome_flags(os.environ))
+            hti2.screenshot(html_str=create_phrase_overlay_html(row, video_width, video_height),
+                            save_as=os.path.basename(phrase_overlay_path))
+            phrase_clips = [clip_for_effects]
+            if os.path.exists(phrase_overlay_path):
+                phrase_clips.append(ImageClip(phrase_overlay_path, duration=clip_for_effects.duration).with_opacity(1.0))
+            if len(phrase_clips) > 1:
+                phrase_composited_clip = CompositeVideoClip(phrase_clips, size=(video_width, video_height))
+            else:
+                phrase_composited_clip = clip_for_effects
+            phrase_composited_clip = add_background_sound(phrase_composited_clip, safe_get_value(row, 'bgSound'))
+            phrase_composited_clip = add_ending_sound(phrase_composited_clip, safe_get_value(row, 'endSoundEffect'))
+            temp_name = f".phrase_{output_filename}"
+            phrase_composited_clip.write_videofile(social_path(temp_name), **social_write_kwargs(fps=base_video_clip.fps))
+            write_web_from_master(social_path(temp_name), web_path(output_filename))
+            try:
+                os.remove(social_path(temp_name))
+            except Exception:
+                pass
+        else:
+            # No phrase: fall back to transcoding the full social master to web.
+            write_web_from_master(social_path(output_filename), web_path(output_filename))
         return True
     except Exception as e:
         print(f"❌ Error during processing {base_filename}: {str(e)}")
@@ -1429,9 +1469,15 @@ def process_single_video(row):
         if foreground_clip: foreground_clip.close()
         if image_overlay_clip: image_overlay_clip.close()
         if final_composited_clip: final_composited_clip.close()
+        if phrase_composited_clip: phrase_composited_clip.close()
         if overlay_path and os.path.exists(overlay_path):
             try:
                 os.remove(overlay_path)
+            except Exception:
+                pass
+        if phrase_overlay_path and os.path.exists(phrase_overlay_path):
+            try:
+                os.remove(phrase_overlay_path)
             except Exception:
                 pass
 
