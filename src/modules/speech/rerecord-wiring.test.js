@@ -31,11 +31,20 @@ const sliceBetween = (text, startMarker, endMarker) => {
     return text.slice(start, end);
 };
 
-// The next statement in `processTranscript` after both closures below. A real
-// marker rather than EOF, so a function appended later cannot join the slice.
-const NEXT_STATEMENT = 'const timerInterval = setInterval';
-const restartRegion = () => sliceBetween(ORCH, 'const restartTakeAfterReject = () => {', NEXT_STATEMENT);
-const rejectRegion = () => sliceBetween(ORCH, 'const rejectTranscript = () => {', NEXT_STATEMENT);
+// Each region ends at the next declaration in `processTranscript`, never at
+// EOF, so a closure appended later cannot join a slice and satisfy its
+// assertions. `restartRegion` stops at the sibling closure rather than
+// `timerInterval` so it can never span `rejectTranscript` either.
+const restartRegion = () => sliceBetween(
+    ORCH,
+    'const restartTakeAfterReject = () => {',
+    'const rejectTranscript = () => {'
+);
+const rejectRegion = () => sliceBetween(
+    ORCH,
+    'const rejectTranscript = () => {',
+    'const timerInterval = setInterval'
+);
 
 describe('re-record wiring guard', () => {
     it('imports the pure decision and its enum from ./rerecord-logic.js', () => {
