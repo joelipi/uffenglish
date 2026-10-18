@@ -2,25 +2,22 @@
 
 ## Context
 
-A friend's `friendClosedResponse` clip (a UGC mp4 served from R2 under `/videos/…`) plays silently for roughly its first second when it auto-plays at the start of the step. Scrubbing the player back to 0:00 and pressing play makes the audio come through for the whole clip, so the bytes are intact — the loss is a playback-start problem, not a missing-audio problem.
+The video that plays during a `friendClosedResponse` step (a system/teacher clip uploaded to R2 as a normal high-quality mp4, referenced by `simpleVideoUrl`) is silent for roughly its first second when it auto-plays at the start of the step. The same file plays with full audio when scrubbed back to 0:00 and replayed, so the bytes are intact — the loss is a playback-start problem, not a missing-audio problem.
 
-Recent work on the 9:16 portrait capture (story 072) gated `MediaRecorder.start()` on the composite painting its first real frame (`startDeferredSpeechCamRecording` now awaits `framesDrawn > 0`, up to a 2 s timeout). That delay happens *after* `canvas.captureStream()` created the video track, so the recorded container ends up with a non-zero first-sample composition time / edit list that shifts the audio track by the gating delay (~1 s on a cold camera). Browsers honour that edit list on the initial play and skip the first second of audio; seeking to 0 resets the decoder and plays the full track — exactly the observed "scrub to the beginning fixes it" behaviour. The friend's clip is a `simpleVideoUrl` UGC mp4, so it is played by `SimpleVideoPlayer`, whose autoplay path never re-seeks to 0.
+The clip's container carries a non-zero initial audio composition time (an edit list / `ctts` offset, common in mp4s produced by ffmpeg and honoured inconsistently by browsers): on the initial auto-play the browser starts decoding at the container's media timeline origin and skips the offset window of audio, while seeking to 0:00 resets the decoder and plays the full track — exactly the observed "scrub to the beginning fixes it" behaviour. `SimpleVideoPlayer`'s autoplay path never re-seeks to 0 before `play()`, so the offset survives into playback. (This is not a recording-side issue: the clip is a pre-uploaded teacher video, not a `MediaRecorder` take.)
 
 ## Out of Scope
 
-- Re-transcoding or re-publishing clips already on R2 (they expire on the 48 h UGC TTL; new clips are fixed at capture time going forward).
-- Changing the 9:16 composite / freeze-detection work from story 072 (the gate stays; only its playback consequence is mitigated).
+- Re-encoding or re-uploading the teacher clip (the code-side seek covers it; asset-level normalization is a manual `scripts/optimize-videos.mjs` run if desired).
+- Changing the 9:16 composite / freeze-detection work from story 072 (unrelated; recording format is untouched).
 - InteractiveVideoPlayer scoring logic or subtitle reveal timing.
-
 ## Implementation approach
 
-Two complementary fixes:
+**Playback-side:** before calling `play()` in the autoplay paths of `SimpleVideoPlayer`, `InteractiveVideoPlayer` and `PlaybackVideo`, reset `video.currentTime = 0` (mirroring the existing `replay()` helper that seeks to 0 then plays after a short delay) so the browser decodes from the true start instead of honouring the container's initial offset. This is exactly the operation the user performs manually by scrubbing to 0:00, and it repairs every clip — including ones already on R2 — without re-encoding.
 
-1. **Playback-side (immediate, covers every clip including already-published ones):** before calling `play()` in the autoplay paths of `SimpleVideoPlayer`, `InteractiveVideoPlayer` and `PlaybackVideo`, reset `video.currentTime = 0` (and, where the player already has a seeked-based replay helper, mirror that pattern) so the browser decodes from the true start instead of honouring the container's initial offset. This is the same operation the user performs manually by scrubbing to 0:00.
-2. **Capture-side (prevents recurrence):** stop preferring `video/mp4` on Windows in `startSpeechCamRecording` — record `video/webm` there too, matching iOS. WebM has no edit-list priming delay, so newly recorded clips (friend answers included) play cleanly from 0:00. R2 publish already transcodes webm → mp4 via `transcodeToMp4`, so the published friend clip stays mp4; only the local recording/playback format changes. Keep the mp4 fast-path available for platforms that cannot record webm.
+As a belt-and-braces measure for the uploaded asset, the clip should also be (re)processed through `scripts/optimize-videos.mjs` (`+faststart`, `make_zero` timestamp normalization) so the edit list is removed at source; but the code fix alone is sufficient and is what the ACs verify.
 
-The gating from story 072 stays in place for freeze prevention; the timestamp offset it can introduce is neutralised at playback by (1).
-
+Capture-side / recording changes are explicitly out of scope: this clip is a pre-uploaded teacher video, not a `MediaRecorder` take, and story 072's gating is unrelated.
 ## Tasks
 
 ### Task 1 - Reset playback position before autoplay
@@ -35,17 +32,7 @@ The gating from story 072 stays in place for freeze prevention; the timestamp of
 - A clip whose container carries a non-zero initial audio offset is auto-played
   - → audio is audible from the first frame (no ~1 s silent gap)
 
-### Task 2 - Record webm on Windows (no mp4 edit-list delay)
-
-- `startSpeechCamRecording` runs on Windows
-  - → `mimeType` resolves to a `video/webm…` type, never `video/mp4…`
-  - → a source guard asserts `mp4Preferred` is `false` (or the mp4 branch is removed) on Windows
-- `startSpeechCamRecording` runs on a platform without webm support
-  - → falls back to `video/mp4` only when no webm type is supported
-- R2 publish of a webm recording
-  - → still produces an mp4 via `transcodeToMp4` (unchanged)
-
-### Task 3 - Regression guards
+### Task 2 - Regression guards
 
 - `src/modules/speech/portrait-capture-guards.test.js` (or a new `silent-playback-guards.test.js`)
   - → asserts the autoplay `tryPlay` blocks reset `currentTime` to 0 in both player components
@@ -58,13 +45,13 @@ N/A — no new dependencies or services.
 
 ## Technical Context
 
-- `SimpleVideoPlayer.web.jsx` / `InteractiveVideoPlayer.web.jsx`: `tryPlay` inside the `useLayoutEffect` autoplay effect.
+- `SimpleVideoPlayer.web.jsx`: `tryPlay` inside the `useLayoutEffect` autoplay effect (readyState ≥ 2 and `canplay` branches).
+- `InteractiveVideoPlayer.web.jsx`: `tryPlay` inside the `useLayoutEffect` autoplay effect.
 - `PlaybackVideo.jsx`: `handleLoadedMetadata` autoplay branch.
-- `src/modules/speech/speech.web.js`: `startSpeechCamRecording`, `mp4Preferred`.
-- Tests: `src/modules/speech/portrait-capture-guards.test.js`, player component tests.
+- Tests: player component tests / source guards beside each component.
 
 ## Notes
 
-- The playback-side seek is the fix that helps clips already on R2; the capture-side change only affects recordings made after deploy.
-- Do not remove the story-072 gating; it prevents frozen first frames. The seek neutralises its timestamp side-effect at playback.
+- The seek is the fix that helps clips already on R2; no re-encode or re-publish is required.
 - Keep `crossOrigin="anonymous"` and existing preload behaviour unchanged.
+- Do not change the uploaded file's codec or remux settings in code; asset-level normalization (if desired) is a manual `scripts/optimize-videos.mjs` run.
