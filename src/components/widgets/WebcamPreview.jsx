@@ -1,6 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useStore } from 'zustand';
 import { appStore, getWebcamStream } from '../../modules/store/store.js';
+import { getCueText } from '../../modules/utils/utils.js';
+import { getBilingual } from '../../data/strings.js';
+import { useNativeLanguage } from '../../hooks/use-native-language.js';
 
 export default function WebcamPreview() {
     // Subscribe to the key counter (bumped by setWebcamStream) for reactivity,
@@ -8,6 +11,10 @@ export default function WebcamPreview() {
     const webcamStreamKey = useStore(appStore, (state) => state._webcamStreamKey);
     const mediaState = useStore(appStore, (state) => state.mediaState);
     const recordingCountdown = useStore(appStore, (state) => state.recordingCountdown);
+    const configData = useStore(appStore, (state) => state.configData);
+    const currentLessonIndex = useStore(appStore, (state) => state.currentLessonIndex);
+    const currentStepIndex = useStore(appStore, (state) => state.currentStepIndex);
+    const lang = useNativeLanguage();
     const videoRef = useRef(null);
     const wrapperRef = useRef(null);
     const prevShow = useRef(false);
@@ -23,6 +30,16 @@ export default function WebcamPreview() {
     // (mediaState === 'webcamOrAvatar'). During normal video playback
     // (simpleVideo/interactiveVideo) the preview stays a small PiP, not full-screen.
     const fullScreen = show && mediaState === 'webcamOrAvatar';
+
+    // Friend-closed-response steps show the phrase (English only) as subtitles
+    // overlaid on the camera preview while recording, plus a "speak slowly and
+    // carefully" legend above them.
+    const currentStep = configData?.lessons?.[currentLessonIndex]?.steps?.[currentStepIndex] || null;
+    const isFriendClosedResponse = currentStep?.responseType === 'friendClosedResponse';
+    const phraseText = isFriendClosedResponse ? getCueText(currentStep?.cue) : '';
+    const legendBilingual = isFriendClosedResponse
+        ? getBilingual('speak_slowly_and_carefully', lang)
+        : null;
 
     useEffect(() => {
         if (fullScreen) {
@@ -86,6 +103,27 @@ export default function WebcamPreview() {
                     }}
                 >
                     {recordingCountdown}
+                </div>
+            )}
+            {isFriendClosedResponse && phraseText && (
+                <div
+                    data-testid="recording-phrase-subtitles"
+                    className="recording-phrase-overlay"
+                >
+                    {legendBilingual && (
+                        <div className="recording-phrase-legend">
+                            {legendBilingual.localized ? (
+                                <>
+                                    {legendBilingual.english}
+                                    <br />
+                                    <span lang={legendBilingual.lang}>{legendBilingual.localized}</span>
+                                </>
+                            ) : (
+                                legendBilingual.english
+                            )}
+                        </div>
+                    )}
+                    <div className="recording-phrase-text">{phraseText}</div>
                 </div>
             )}
         </div>
