@@ -192,7 +192,7 @@ describe('speech orchestrator — hesitation timer gating', () => {
     it('starts the 100 ms hesitation timer by default', async () => {
         const orchestrator = makeOrchestrator();
         const p = orchestrator.toggleSpeechRecognition(baseParams({}));
-        await vi.advanceTimersByTimeAsync(4000);
+        await vi.advanceTimersByTimeAsync(3000);
         await p;
         expect(orchestrator.listeningState.hesitationTimer).not.toBeNull();
     });
@@ -200,8 +200,53 @@ describe('speech orchestrator — hesitation timer gating', () => {
     it('does not start the timer when trackHesitation is false', async () => {
         const orchestrator = makeOrchestrator();
         const p = orchestrator.toggleSpeechRecognition({ ...baseParams({}), trackHesitation: false });
-        await vi.advanceTimersByTimeAsync(4000);
+        await vi.advanceTimersByTimeAsync(3000);
         await p;
         expect(orchestrator.listeningState.hesitationTimer).toBeNull();
+    });
+});
+
+describe('speech orchestrator — 3-2-1 pre-roll', () => {
+    beforeEach(() => {
+        vi.useFakeTimers();
+        appStore.setState({
+            isWhisperReady: true,
+            isWhisperEngineFailed: false,
+            userData: { native_language: 'en' },
+        });
+    });
+
+    afterEach(() => {
+        vi.clearAllTimers();
+        vi.useRealTimers();
+    });
+
+    it('counts 3, 2, 1 and never sets the removed "mic" value', async () => {
+        const orchestrator = makeOrchestrator();
+        const seen = [];
+        let last = null;
+        appStore.getState().setRecordingCountdown(null);
+        const unsubscribe = appStore.subscribe((s) => {
+            const c = s.recordingCountdown;
+            // Only record transitions; the store emits repeatedly while a value
+            // is held, so dedupe consecutive duplicates.
+            if (c !== null && c !== last) { seen.push(c); last = c; }
+        });
+
+        const p = orchestrator.toggleSpeechRecognition(baseParams({}));
+        await vi.advanceTimersByTimeAsync(3000);
+        await p;
+        unsubscribe();
+
+        expect(seen).toEqual([3, 2, 1]);
+        expect(seen).not.toContain('mic');
+    });
+
+    it('clears the countdown to null before the take starts', async () => {
+        const orchestrator = makeOrchestrator();
+        const p = orchestrator.toggleSpeechRecognition(baseParams({}));
+        await vi.advanceTimersByTimeAsync(3000);
+        await p;
+        expect(appStore.getState().recordingCountdown).toBeNull();
     });
 });

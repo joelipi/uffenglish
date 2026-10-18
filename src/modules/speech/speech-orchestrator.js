@@ -321,13 +321,14 @@ export function createSpeechOrchestrator({
                     if (uiHooks?.onRecordingStart) uiHooks.onRecordingStart(userData);
                     if (uiHooks?.onRecordingActive) uiHooks.onRecordingActive(button);
 
-                    // 3-2-1 countdown before recording.
+                    // 3-2-1 countdown before recording. The existing localized
+                    // mic+Speak overlay (MicStatusText `speak-now`) is suppressed
+                    // while `recordingCountdown` is set, so it only appears once
+                    // the last number has left the screen.
                     for (const n of [3, 2, 1]) {
                         appStore.getState().setRecordingCountdown(n);
                         await new Promise((r) => setTimeout(r, 1000));
                     }
-                    appStore.getState().setRecordingCountdown('mic');
-                    await new Promise((r) => setTimeout(r, 500));
                     appStore.getState().setRecordingCountdown(null);
 
                     // Wait for the composite to paint at least one frame before

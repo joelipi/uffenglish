@@ -108,7 +108,7 @@ export const appStore = createStore(
             pendingLessonNavigation: null,
             pauseAllVideosTrigger: 0,
             pendingVideoPlayType: null,  // 'interactive' | 'simple' | 'success' | null
-            recordingCountdown: null,    // null | 3 | 2 | 1 | 'mic' — drives the recording countdown overlay
+            recordingCountdown: null,    // null | 3 | 2 | 1 — 3-2-1 pre-roll overlay; 'mic' is NOT a value
 
 // --- Session-scoped State (not persisted, reset per lesson) ---
             isAudioEnabled: false,

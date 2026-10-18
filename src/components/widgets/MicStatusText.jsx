@@ -65,6 +65,11 @@ function renderBilingual(bilingual) {
 export default function SystemMessageOverlay() {
     const systemMessage = useStore(appStore, (state) => state.systemMessage);
     const systemMessageText = useStore(appStore, (state) => state.systemMessageText);
+    // During the 3-2-1 pre-roll the countdown owns the screen; the speak-now
+    // mic + localized "SPEAK." overlay is held back until it reaches null.
+    const recordingCountdown = useStore(appStore, (state) => state.recordingCountdown);
+
+    if (recordingCountdown !== null) return null;
 
     if (systemMessage) {
         const { type, text, bilingual } = systemMessage;
