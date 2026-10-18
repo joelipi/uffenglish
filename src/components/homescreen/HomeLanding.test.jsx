@@ -352,12 +352,12 @@ describe('HomeLanding', () => {
         const select = q('landing-language-select');
         expect(select.tagName).toBe('SELECT');
         const options = Array.from(select.querySelectorAll('option'));
-        expect(options.map((o) => o.value)).toEqual(['EN', 'ES', 'PT', 'FR', 'HI', 'BN']);
+        expect(options.map((o) => o.value)).toEqual(['EN', 'ES', 'FR', 'PT', 'HI', 'BN']);
         expect(options.map((o) => o.textContent)).toEqual([
             'English',
             'Español',
-            'Português',
             'Français',
+            'Português',
             'हिन्दी',
             'বাংলা',
         ]);
