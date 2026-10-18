@@ -112,6 +112,13 @@ export async function ensureCompleteProfileRow(userData) {
     const candidateShareCode = needsShareCode ? await mintShareCode() : null;
 
     const plan = planProfileRepair({ row, user, shareCode: candidateShareCode });
+    // If the row only lacks a share code and the RPC was unreachable, plan
+    // would be 'none' (no field to fill). Force a write with a null code so
+    // the DB trigger mints one instead of leaving the row incomplete forever.
+    if (needsShareCode && plan.action === 'none') {
+        plan.action = 'update';
+        plan.payload = { id: row?.id || user.$id, share_code: null };
+    }
     if (plan.action === 'none') return { confirmed: true, payload: null };
 
     await syncUserMetaDataMutation(plan.payload, userId);

@@ -50,7 +50,7 @@ end;
 $$;
 
 revoke all on function public.generate_share_code() from public;
-grant execute on function public.generate_share_code() to authenticated, service_role, anon;
+grant execute on function public.generate_share_code() to authenticated, service_role;
 
 create or replace function public.fill_share_code()
 returns trigger
@@ -82,9 +82,6 @@ begin
   return NEW;
 end;
 $$;
-
-revoke all on function public.fill_share_code() from public;
-grant execute on function public.fill_share_code() to authenticated, service_role, anon;
 
 drop trigger if exists trg_fill_share_code on public.user_profiles;
 create trigger trg_fill_share_code

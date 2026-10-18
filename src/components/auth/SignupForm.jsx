@@ -185,7 +185,24 @@ export function useSignupForm({
                     ? { lessons_completed: lessonCredit.lessonsCompleted, counted_lessons: lessonCredit.countedLessons }
                     : {}),
             }, { onConflict: 'id' });
-            const shareCode = mintedCode || generateShareCode();
+            let shareCode = mintedCode;
+            if (!shareCode) {
+                try {
+                    const { data: row } = await supabase.from('user_profiles')
+                        .select('share_code').eq('id', user.id).maybeSingle();
+                    if (row?.share_code) shareCode = row.share_code;
+                } catch (readErr) {
+                    console.warn('[Signup] could not read back share_code:', readErr?.message || readErr);
+                }
+            }
+            if (!shareCode) {
+                shareCode = generateShareCode();
+                try {
+                    await supabase.from('user_profiles').update({ share_code: shareCode }).eq('id', user.id);
+                } catch (writeErr) {
+                    console.warn('[Signup] fallback share_code write failed:', writeErr?.message || writeErr);
+                }
+            }
             if (insertError) {
                 console.error('[Signup] Failed to create profile row:', insertError);
                 throw insertError;
