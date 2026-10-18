@@ -2,11 +2,10 @@
 //
 // The authoritative generator is the Postgres function `generate_share_code()`
 // (see supabase/migrations/010_short_share_codes.sql), which filters reserved
-// words and checks the unique constraint. This helper calls it and falls back to
-// the local generator in src/modules/utils/short-id.js when the RPC is
-// unreachable, so signup and profile repair never block on a network blip.
+// words and checks the unique constraint. This helper calls it; on failure it
+// returns null so the DB trigger can mint instead (no client-side fallback).
 import { supabase } from '../api/supabase.js';
-import { generateShareCode, isShareCodeSegment, GENERATED_CODE_LENGTH } from './short-id.js';
+import { isShareCodeSegment, GENERATED_CODE_LENGTH } from './short-id.js';
 
 export async function mintShareCode() {
     try {

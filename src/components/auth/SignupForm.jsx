@@ -185,6 +185,11 @@ export function useSignupForm({
                     ? { lessons_completed: lessonCredit.lessonsCompleted, counted_lessons: lessonCredit.countedLessons }
                     : {}),
             }, { onConflict: 'id' });
+            if (insertError) {
+                console.error('[Signup] Failed to create profile row:', insertError);
+                throw insertError;
+            }
+
             let shareCode = mintedCode;
             if (!shareCode) {
                 try {
@@ -202,10 +207,6 @@ export function useSignupForm({
                 } catch (writeErr) {
                     console.warn('[Signup] fallback share_code write failed:', writeErr?.message || writeErr);
                 }
-            }
-            if (insertError) {
-                console.error('[Signup] Failed to create profile row:', insertError);
-                throw insertError;
             }
 
             identifyUser(user.id, {

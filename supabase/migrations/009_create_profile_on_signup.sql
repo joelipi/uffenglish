@@ -18,8 +18,8 @@
 -- The client is still the source of truth for the fields only it knows:
 -- `useSignupForm` writes `english_level`, `share_code` and the guest-lesson
 -- credit with an `upsert(..., { onConflict: 'id' })`, which now UPDATEs this
--- row rather than colliding with it. `share_code` is deliberately left NULL
--- here so the app's generated code is the only one ever used (the column is
+-- row rather than colliding with it. `share_code` is filled by the 010 trigger (fill_share_code) on this insert,
+-- so the row is never left without a code even if the client never writes one (the column is
 -- UNIQUE, and Postgres permits many NULLs).
 --
 -- Idempotent: re-applying is harmless, and `on conflict do nothing` means an
