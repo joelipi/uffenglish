@@ -301,8 +301,8 @@ describe('buildBranchChoiceView', () => {
         // The short label fits on its own, but the long sibling forces the whole
         // step to English-only so the buttons stay consistent.
         expect(view.choices.map((c) => c.label.showEnglish)).toEqual([true, true]);
-        expect(view.choices[0].label.localized).toBeNull();
-        expect(view.choices[1].label.localized).toBeNull();
+        expect(view.choices[0].label.localized).toBe('Sí');
+        expect(view.choices[1].label.localized).toBe(overCapText().es);
     });
 
     it('keeps English-only on a button that has no translation even when a sibling is over the cap', () => {
@@ -318,7 +318,7 @@ describe('buildBranchChoiceView', () => {
             english: 'No', localized: null, lang: 'es', showEnglish: true,
         });
         expect(view.choices[1].label.showEnglish).toBe(true);
-        expect(view.choices[1].label.localized).toBeNull();
+        expect(view.choices[1].label.localized).toBe(overCapText().es);
     });
 
     it('sets showContinue when no valid choices resolve', () => {
@@ -379,7 +379,7 @@ describe('buildBranchChoiceView (nested)', () => {
         expect(view.choices[0].label.showEnglish).toBe(true);
         // Nested row: the over-cap sibling forces English-only for the level.
         expect(view.choices[0].children.map((c) => c.label.showEnglish)).toEqual([true, true]);
-        expect(view.choices[0].children[0].label.localized).toBeNull();
+        expect(view.choices[0].children[0].label.localized).toBe(overCapText().es);
     });
 
     it('sets showContinue when no valid node resolves', () => {

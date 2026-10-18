@@ -145,25 +145,10 @@ export function formatBranchChoiceLabel(text, lang, showBoth) {
     return { english, localized: null, lang, showEnglish: true };
 }
 
-// The char cap is a level-level, all-or-nothing decision. A button drops its
-// localized line only when ANY button visible at that level exceeds the cap: if
-// any label's combined English + translation length exceeds
-// BRANCH_LABEL_CHAR_CAP, the whole visible column shows English only; otherwise
-// every button shows both lines. Deciding per level (not per step) keeps the
-// visible buttons consistent while allowing a deep level with short labels to
-// keep its localized text.
-function stepShowsBoth(nodes, lang) {
-    return nodes.every(({ text }) => {
-        const { english, localized, shouldShowLocalized } = formatBilingualText(text, lang);
-        if (!shouldShowLocalized) return true;
-        return english.length + localized.length <= BRANCH_LABEL_CHAR_CAP;
-    });
-}
-
 // Maps resolved nodes to render-ready choices, recursively. The English
 // decision is made once per level and applied to every label at that level.
 function buildLevel(nodes, lang) {
-    const showBoth = stepShowsBoth(nodes, lang);
+    const showBoth = true;
     return nodes.map((node, index) => {
         const label = formatBranchChoiceLabel(node.text, lang, showBoth);
         if (node.children) return { key: index, label, children: buildLevel(node.children, lang) };
