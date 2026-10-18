@@ -281,7 +281,10 @@ describe('saveCourseToUserProfile', () => {
         const result = await ensureCompleteProfileRow({ $id: 'u-1', email: 'jo@example.com' });
 
         expect(result.confirmed).toBe(true);
-        expect(writes()[0]).toEqual({ id: 'u-1' }); // omits share_code so the trigger fills it
+        // The forced update must carry a non-conflict column so PostgREST
+        // emits DO UPDATE SET (a bare { id } becomes DO NOTHING) and the
+        // trigger's UPDATE branch fills the NULL share code.
+        expect(writes()[0]).toEqual({ id: 'u-1', account_status: 'active' });
         expect(fetchIdentityMock).toHaveBeenCalledTimes(2);
         const merged = setCourseDataSpy.mock.calls
             .map((c) => c[0].userData)

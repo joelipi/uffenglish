@@ -117,10 +117,15 @@ export async function ensureCompleteProfileRow(userData) {
     const plan = planProfileRepair({ row, user, shareCode: candidateShareCode });
     if (needsShareCode && !candidateShareCode && plan.action === 'none') {
         plan.action = 'update';
-        // Omit share_code entirely: the trigger fills a NULL column on UPDATE,
-        // and an existing code is preserved (sending null would let the upsert's
-        // excluded value overwrite it).
-        plan.payload = { id: row?.id || user.$id };
+        // The trigger fills a NULL share_code on UPDATE, but PostgREST only
+        // emits DO UPDATE SET for payload columns other than the conflict
+        // target — a bare { id } would become DO NOTHING. Re-send a real
+        // identity column (same value) so the UPDATE fires and the trigger
+        // mints the code.
+        plan.payload = {
+            id: row?.id || user.$id,
+            account_status: row?.account_status || 'active',
+        };
     }
     if (plan.action === 'none') return { confirmed: true, payload: null };
 
