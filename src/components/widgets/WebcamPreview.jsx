@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useStore } from 'zustand';
 import { appStore, getWebcamStream } from '../../modules/store/store.js';
-import { getCueText } from '../../modules/utils/utils.js';
 import { getBilingual } from '../../data/strings.js';
 import { useNativeLanguage } from '../../hooks/use-native-language.js';
+import { getRecordingPhraseOverlay } from '../../modules/video/recording-subtitle-logic.js';
 
 export default function WebcamPreview() {
     // Subscribe to the key counter (bumped by setWebcamStream) for reactivity,
@@ -35,8 +35,9 @@ export default function WebcamPreview() {
     // overlaid on the camera preview while recording, plus a "speak slowly and
     // carefully" legend above them.
     const currentStep = configData?.lessons?.[currentLessonIndex]?.steps?.[currentStepIndex] || null;
-    const isFriendClosedResponse = currentStep?.responseType === 'friendClosedResponse';
-    const phraseText = isFriendClosedResponse ? getCueText(currentStep?.cue) : '';
+    const recordingOverlay = getRecordingPhraseOverlay(currentStep);
+    const isFriendClosedResponse = !!recordingOverlay;
+    const phraseText = recordingOverlay ? recordingOverlay.phrase : '';
     const legendBilingual = isFriendClosedResponse
         ? getBilingual('speak_slowly_and_carefully', lang)
         : null;
