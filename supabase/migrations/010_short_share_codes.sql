@@ -69,7 +69,7 @@ begin
 end;
 $$;
 
-revoke all on function public.validate_share_code() from public, anon, authenticated;
+revoke all on function public.validate_share_code(text) from public, anon, authenticated;
 
 create or replace function public.fill_share_code()
 returns trigger
