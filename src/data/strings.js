@@ -2349,7 +2349,7 @@ const strings = {
     },
     // Branching step: heading over the multiple-choice buttons.
     'video_choose_how_respond': {
-        en: "Choose how you will respond.",
+        en: "Choose what you will say.",
         es: "Elige cómo vas a responder.",
         pt: "Escolha como você vai responder.",
         fr: "Choisissez comment vous allez répondre.",

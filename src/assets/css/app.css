@@ -771,14 +771,16 @@ body { margin: 0; font-family: var(--font-body); font-size: 1rem; font-weight: 4
     flex-direction: column;
     align-items: stretch;
     justify-content: flex-end;
-    flex: 2 1 0;
+    flex: 0 0 auto;
     min-width: 0;
-    min-height: min-content;
+    min-height: 0;
     width: 100%;
     gap: 4px;
     /* The button area is the only scrollable region: when the buttons do not
-       fit, the scrollbar stays visible so it is obvious more choices exist. */
-    max-height: 42vh;
+       fit, the scrollbar stays visible so it is obvious more choices exist.
+       50vh leaves room for the top headline and the bottom Replay/Tutorial
+       footer while still fitting several long options. */
+    max-height: 50vh;
     overflow-y: scroll;
     overflow-x: hidden;
     scrollbar-width: thin;
@@ -805,6 +807,7 @@ body { margin: 0; font-family: var(--font-body); font-size: 1rem; font-weight: 4
 .branch-choice-btn {
     width: 100%;
     padding: 8px 10px;
+    font-size: 1.1rem;
     border-radius: 8px;
     background: var(--uff-btn-bg);
     border: var(--uff-btn-border);
@@ -840,6 +843,7 @@ body { margin: 0; font-family: var(--font-body); font-size: 1rem; font-weight: 4
     display: block;
     font-weight: 500;
     opacity: 0.85;
+    margin-top: 2px;
 }
 /* A GROUP button (one that reveals a deeper row of choices) gets a chevron on
    the right. The label stays centred like a leaf button so the two remain

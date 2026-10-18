@@ -172,7 +172,7 @@ describe('StepLoader, strings and styles', () => {
         const col = cssBlock(css, '.branch-choice-col {');
         expect(col).toContain('display: flex');
         expect(col).toContain('flex-direction: column');
-        expect(col).toContain('flex: 2 1 0');
+        expect(col).toContain('flex: 0 0 auto');
         expect(col).toContain('justify-content: flex-end');
 
         const btn = cssBlock(css, '.branch-choice-btn {');
@@ -220,7 +220,7 @@ describe('StepLoader, strings and styles', () => {
     });
 
     it('ships the branch heading copy in English and Spanish', () => {
-        expect(getBilingual('video_choose_how_respond', 'en').english).toBe('Choose how you will respond.');
+        expect(getBilingual('video_choose_how_respond', 'en').english).toBe('Choose what you will say.');
         expect(getBilingual('video_choose_how_respond', 'es').localized).toBeTruthy();
     });
 
