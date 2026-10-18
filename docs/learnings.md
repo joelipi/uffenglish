@@ -250,3 +250,11 @@
 **Takeaway**: That guard is a worktree-hygiene check, not a branch check — commit your work first so `git diff HEAD` is empty, then `git stash push -- .opencode/` to confirm the real state and `git stash pop` immediately. Do **not** `git checkout` the `.opencode/` edits to make it pass: they are injected before the session starts and discarding them is discarding work you did not create. When attributing this failure, confirm with `git diff --name-only HEAD` that no story file is in the diff. Adding your changed path to the guard's allowlist is *not* the fix for a dirty worktree: the list only matters while files are uncommitted, so the entry is dead once you commit and it permanently widens a guard that can then never flag that path again — commit, re-run, and leave the list alone.
 
 ---
+
+## A share-code shape gate must update the Playwright fixture codes used as path segments
+**Date**: 2026-10-18
+**Area**: testing | routing
+**What happened**: Story 071 made `/:shareCode` render the 404 page unless the segment matches `isShareCodeSegment` (generator `ALPHABET`, 4–5 chars). The full vitest suite and the new routing tests were green, but the code reviewer caught that two currently-running Playwright specs open `page.goto(\`/${SHARE_CODE}\`)` with fixtures `friendtest1` (10 chars, contains `1`) and `owner1` (6 chars, contains `1`), so both now land on the 404 and their `await expect(page.getByText('User not found')).toBeVisible()` never resolves. The unit fixtures elsewhere (`owner1`/`viewer1` in query keys, `?shareCode=` query params) are unaffected — only the path segment is shape-checked.
+**Takeaway**: When narrowing what a route accepts, grep `tests/**` for the fixture value used as a path segment, not just for the fixture name: a code used in a query param or a query key is fine, but the same literal in `page.goto('/<code>')` must satisfy the new predicate. Run the affected spec (`npx playwright test tests/<spec>.js`) after the unit suite, because the guard only fails at page load.
+
+---
