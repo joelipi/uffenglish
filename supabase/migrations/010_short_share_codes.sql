@@ -5,7 +5,9 @@
 -- (every lowercase letter except `l`, plus every digit). The generator skips
 -- reserved words (offensive terms, slurs, and a few confusable dictionary
 -- words) and any code already present in user_profiles, so collisions and
--- offensive codes are impossible in practice.
+-- reserved codes are avoided in practice. Rows created without the client
+-- (trigger fallback) still go through this function; client-side fallbacks
+-- that bypass the RPC may mint a reserved word, but those are rare.
 --
 -- The client no longer mints codes: it calls generate_share_code() and writes
 -- the returned value. The trigger below is the backstop for rows created

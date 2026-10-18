@@ -15,16 +15,18 @@ import { createRoot } from 'react-dom/client';
 import { act } from 'react';
 import { waitForSignupChain } from './signup-chain-wait.js';
 
-const { insertCalls, upsertOpts, signUpSpy, emailSpy } = vi.hoisted(() => ({
+const { insertCalls, upsertOpts, signUpSpy, emailSpy, rpcSpy } = vi.hoisted(() => ({
     insertCalls: [],
     upsertOpts: [],
     signUpSpy: vi.fn(),
     emailSpy: vi.fn(async () => ({ valid: true, reason: 'ok', suggestion: '' })),
+    rpcSpy: vi.fn(async () => ({ data: 'zzzzz', error: null })),
 }));
 
 vi.mock('../../modules/api/supabase.js', () => ({
     supabase: {
         auth: { signUp: (...args) => signUpSpy(...args) },
+        rpc: (...args) => rpcSpy(...args),
         from: () => ({
             upsert: (row, opts) => {
                 upsertOpts.push(opts);
@@ -115,6 +117,7 @@ beforeEach(() => {
         error: null,
     });
     emailSpy.mockReset().mockResolvedValue({ valid: true, reason: 'ok', suggestion: '' });
+    rpcSpy.mockReset().mockResolvedValue({ data: 'zzzzz', error: null });
     appStore.setState({ pendingFriendCredits: [] });
     container = document.createElement('div');
     document.body.appendChild(container);
@@ -147,7 +150,7 @@ describe('signup profile write', () => {
         expect(row.join_date).toBeTruthy();
         // A row without a share code can never be reached by share link, which
         // is exactly how the ghost rows were spotted.
-        expect(row.share_code).toBeTruthy();
+        expect(row.share_code).toBe('zzzzz'); // minted server-side via generate_share_code()
     });
 
     it('reports no error when the profile write succeeds', async () => {
