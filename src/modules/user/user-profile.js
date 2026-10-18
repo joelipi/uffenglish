@@ -1,10 +1,9 @@
 // modules/user-profile.js
 // IMPORTANT! THIS SCRIPT USES VERSION 24 OF THE APPWRITE SDK, WHICH HAS MANY BREAKING CHANGES FROM EARLIER VERSIONS. DO NOT USE THE SYNTAX OR METHODS OF EARLIER VERSIONS WITHOUT CHECKING THEY ARE STILL VALID IN VERSION 24.
 import { syncUserMetaDataMutation, getCurrentUser, fetchProfileIdentityRow } from '../api/api.js';
-import { supabase } from '../api/supabase.js';
 import { appStore } from '../store/store.js';
 import { nextLessonCompletion } from './lesson-count-logic.js';
-import { generateShareCode } from '../utils/short-id.js';
+import { mintShareCode } from '../utils/share-code-mint.js';
 import { profileIsIncomplete, planProfileRepair } from './profile-repair-logic.js';
 
 /**
@@ -106,19 +105,11 @@ export async function ensureCompleteProfileRow(userData) {
     }
 
     // A candidate share code is generated up front and usually discarded: the
-    // plan includes it only when the row has none to protect. Mint it on the
-    // server so it is checked against the reserved list and the unique
-    // constraint; fall back to the local generator if the RPC is unreachable.
-    let candidateShareCode = null;
-    try {
-        const { data: minted, error: mintError } = await supabase.rpc('generate_share_code');
-        if (mintError) throw mintError;
-        if (typeof minted === 'string' && minted.length === 5) candidateShareCode = minted;
-    } catch (mintErr) {
-        console.warn('[user-profile] generate_share_code RPC failed, falling back to local mint:', mintErr?.message || mintErr);
-        candidateShareCode = generateShareCode();
-    }
-    if (!candidateShareCode) candidateShareCode = generateShareCode();
+    // plan includes it only when the row has none to protect. Mint it only when
+    // the row actually lacks a share code, and do it on the server so it is
+    // checked against the reserved list and the unique constraint.
+    const needsShareCode = !row || !row.share_code;
+    const candidateShareCode = needsShareCode ? await mintShareCode() : null;
 
     const plan = planProfileRepair({ row, user, shareCode: candidateShareCode });
     if (plan.action === 'none') return { confirmed: true, payload: null };

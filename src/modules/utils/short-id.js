@@ -11,8 +11,9 @@ const SHARE_CODE_MIN_LENGTH = 4;
 const SHARE_CODE_MAX_LENGTH = 5;
 const GENERATED_CODE_LENGTH = 5;
 
-// 35^5 ≈ 52.5M possible five-character codes.
-const SHARE_CODE_SPACE = 35 ** 5;
+// 35^5 possible five-character codes, derived from the alphabet so the two
+// cannot drift apart.
+const SHARE_CODE_SPACE = BASE ** GENERATED_CODE_LENGTH;
 
 function toShortId(num, minLength = GENERATED_CODE_LENGTH) {
   const n = typeof num === 'string' ? parseInt(num, 10) : num;
@@ -30,8 +31,6 @@ function toShortId(num, minLength = GENERATED_CODE_LENGTH) {
 
   return str.padStart(minLength, ALPHABET[0]);
 }
-
-const SHORT_ID_MAX_LENGTH = toShortId(SHARE_CODE_SPACE - 1).length;
 
 /**
  * Normalize a share-code segment for lookup.
@@ -75,18 +74,8 @@ function isShareCodeSegment(value) {
   return true;
 }
 
-export {
-  toShortId,
-  ALPHABET,
-  SHARE_CODE_MIN_LENGTH,
-  SHARE_CODE_MAX_LENGTH,
-  GENERATED_CODE_LENGTH,
-  normalizeShareCodeSegment,
-  isShareCodeSegment,
-};
-
 /**
- * Generate a share code from the 35^5 code space.
+ * Generate a share code from the code space.
  *
  * Client-side fallback only. The authoritative generator is the Postgres
  * function `generate_share_code()` (see supabase/migrations), which also
@@ -97,3 +86,13 @@ export {
 export function generateShareCode() {
   return toShortId(Math.floor(Math.random() * SHARE_CODE_SPACE));
 }
+
+export {
+  toShortId,
+  ALPHABET,
+  SHARE_CODE_MIN_LENGTH,
+  SHARE_CODE_MAX_LENGTH,
+  GENERATED_CODE_LENGTH,
+  normalizeShareCodeSegment,
+  isShareCodeSegment,
+};

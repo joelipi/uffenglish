@@ -75,5 +75,5 @@ create trigger trg_fill_share_code
   before insert or update on public.user_profiles
   for each row
   execute function public.fill_share_code();
-EOF
-echo written
+
+alter table public.reserved_share_codes enable row level security;

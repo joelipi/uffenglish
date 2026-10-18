@@ -139,6 +139,10 @@ describe('isShareCodeSegment', () => {
         expect(body).toContain('SHARE_CODE_MAX_LENGTH');
         expect(body).not.toMatch(/\[a-z0-9\]/);
 
+        // The space and the bounds are derived from the alphabet, not literals.
+        expect(SHARE_CODE_SPACE).toBe(ALPHABET.length ** GENERATED_CODE_LENGTH);
+        expect(toShortId(SHARE_CODE_SPACE - 1).length).toBe(SHARE_CODE_MAX_LENGTH);
+
         for (const char of ALPHABET) {
             expect(isShareCodeSegment(char + 'a'.repeat(SHARE_CODE_MIN_LENGTH - 1))).toBe(true);
         }

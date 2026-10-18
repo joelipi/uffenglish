@@ -9,7 +9,7 @@ import { guestSignupLessonCredit } from '../../modules/user/lesson-count-logic.j
 import { calculateCurrentStreak } from '../../modules/user/user-profile.js';
 import { flushPendingFriendCredits } from '../../modules/user/friend-credit-sync.js';
 import { verifyTurnstileToken } from '../../modules/auth/turnstile-logic.js';
-import { generateShareCode } from '../../modules/utils/short-id.js';
+import { mintShareCode } from '../../modules/utils/share-code-mint.js';
 import {
     checkEmailAddress,
     normalizeEmail,
@@ -137,17 +137,7 @@ export function useSignupForm({
                 console.error('[Signup] Failed to import collection module:', importError);
             }
 
-            // Mint the code server-side so it is checked against the reserved
-            // list and the unique constraint (no client-side duplicates).
-            let shareCode = null;
-            try {
-                const { data: minted, error: mintError } = await supabase.rpc('generate_share_code');
-                if (mintError) throw mintError;
-                if (typeof minted === 'string' && minted.length === 5) shareCode = minted;
-            } catch (mintErr) {
-                console.warn('[Signup] generate_share_code RPC failed, falling back to local mint:', mintErr?.message || mintErr);
-            }
-            if (!shareCode) shareCode = generateShareCode();
+            const shareCode = await mintShareCode();
             // A guest's completed lesson lives only in the store — there is no
             // row to write it to, and the bootstrap right after signup seeds the
             // store from that row. Credit the lesson on the success screen so the

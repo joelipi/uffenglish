@@ -18,6 +18,12 @@ vi.mock('../api/api.js', () => ({
     fetchProfileIdentityRow: (...args) => fetchIdentityMock(...args),
 }));
 
+vi.mock('../api/supabase.js', () => ({
+    supabase: {
+        rpc: vi.fn(async () => ({ data: 'zzzzz', error: null })),
+    },
+}));
+
 import { syncUserMetaDataMutation } from '../api/api.js';
 import { saveCourseToUserProfile, ensureCompleteProfileRow } from './user-profile.js';
 import { appStore } from '../store/store.js';
