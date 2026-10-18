@@ -13,45 +13,32 @@ The clip's container carries a non-zero initial audio composition time (an edit 
 - InteractiveVideoPlayer scoring logic or subtitle reveal timing.
 ## Implementation approach
 
-**Playback-side:** before calling `play()` in the autoplay paths of `SimpleVideoPlayer`, `InteractiveVideoPlayer` and `PlaybackVideo`, reset `video.currentTime = 0` (mirroring the existing `replay()` helper that seeks to 0 then plays after a short delay) so the browser decodes from the true start instead of honouring the container's initial offset. This is exactly the operation the user performs manually by scrubbing to 0:00, and it repairs every clip — including ones already on R2 — without re-encoding.
+**Playback-side, SimpleVideoPlayer only:** before calling `play()` in the autoplay paths of `SimpleVideoPlayer`, reset `video.currentTime = 0` so the browser decodes from the true start instead of honouring the container's initial edit-list offset. This is exactly the operation the user performs manually by scrubbing to 0:00, and it repairs every clip — including ones already on R2 — without re-encoding. No other player, no recording-format, and no asset changes.## Tasks
 
-As a belt-and-braces measure for the uploaded asset, the clip should also be (re)processed through `scripts/optimize-videos.mjs` (`+faststart`, `make_zero` timestamp normalization) so the edit list is removed at source; but the code fix alone is sufficient and is what the ACs verify.
-
-Capture-side / recording changes are explicitly out of scope: this clip is a pre-uploaded teacher video, not a `MediaRecorder` take, and story 072's gating is unrelated.
-## Tasks
-
-### Task 1 - Reset playback position before autoplay
+### Task 1 - Reset playback position before autoplay (SimpleVideoPlayer only)
 
 - `SimpleVideoPlayer` auto-play path runs (readyState ≥ 2 or `canplay` fires) + `tryPlay` invoked
   - → `video.currentTime` is set to `0` before `video.play()` is called
   - → a source guard asserts `video.currentTime = 0` appears inside `tryPlay`
-- `InteractiveVideoPlayer` auto-play path runs + `tryPlay` invoked
-  - → `video.currentTime` is set to `0` before `video.play()` is called
-- `PlaybackVideo` auto-plays a recording blob
-  - → `video.currentTime` is set to `0` before `video.play()` is called
-- A clip whose container carries a non-zero initial audio offset is auto-played
+- A `friendClosedResponse` clip whose container carries a non-zero initial audio offset is auto-played by `SimpleVideoPlayer`
   - → audio is audible from the first frame (no ~1 s silent gap)
+### Task 2 - Regression guard (source)
 
-### Task 2 - Regression guards
-
-- `src/modules/speech/portrait-capture-guards.test.js` (or a new `silent-playback-guards.test.js`)
-  - → asserts the autoplay `tryPlay` blocks reset `currentTime` to 0 in both player components
-  - → asserts `mp4Preferred` does not include Windows
-  - → all existing speech + player tests still pass
-
+- A new `src/components/SimpleVideoPlayer-currentTime-guard.test.jsx` (or a sibling guard beside the component)
+  - → reads `SimpleVideoPlayer.web.jsx` raw source
+  - → asserts `video.currentTime = 0` (or `video.currentTime=0`) appears inside the `tryPlay` function body
+  - → fails if the seek is removed from `tryPlay`
 ## Bootstrap
 
 N/A — no new dependencies or services.
 
 ## Technical Context
 
-- `SimpleVideoPlayer.web.jsx`: `tryPlay` inside the `useLayoutEffect` autoplay effect (readyState ≥ 2 and `canplay` branches).
-- `InteractiveVideoPlayer.web.jsx`: `tryPlay` inside the `useLayoutEffect` autoplay effect.
-- `PlaybackVideo.jsx`: `handleLoadedMetadata` autoplay branch.
-- Tests: player component tests / source guards beside each component.
+- `SimpleVideoPlayer.web.jsx`: `tryPlay` inside the `useLayoutEffect` autoplay effect (readyState ≥ 2 and `canplay` branches). `replay()` already seeks to 0 then plays after 50 ms — mirror that pattern.
+- Tests: a source guard beside the component.
 
 ## Notes
 
 - The seek is the fix that helps clips already on R2; no re-encode or re-publish is required.
 - Keep `crossOrigin="anonymous"` and existing preload behaviour unchanged.
-- Do not change the uploaded file's codec or remux settings in code; asset-level normalization (if desired) is a manual `scripts/optimize-videos.mjs` run.
+- Only `SimpleVideoPlayer.web.jsx` is touched; no other player or recording code.
