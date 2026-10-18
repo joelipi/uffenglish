@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { GUEST_LANGUAGES, PROFILE_LANGUAGES, SIGNUP_LANGUAGES, HOME_LANGUAGES, LOCALE_MAP } from './languages.js';
+import { sortLanguagesByEndonym, endonymFor } from './language-order.js';
 
 const LISTS = { GUEST_LANGUAGES, PROFILE_LANGUAGES, SIGNUP_LANGUAGES };
 
@@ -44,8 +45,8 @@ describe('language selection lists', () => {
 });
 
 describe('HOME_LANGUAGES', () => {
-    it('lists the six homepage languages in order, English first', () => {
-        expect(HOME_LANGUAGES.map((l) => l.value)).toEqual(['EN', 'ES', 'PT', 'FR', 'HI', 'BN']);
+    it('lists the six homepage languages in endonym order, English first', () => {
+        expect(HOME_LANGUAGES.map((l) => l.value)).toEqual(['EN', 'ES', 'FR', 'PT', 'HI', 'BN']);
     });
 
     it('includes English (unlike GUEST_LANGUAGES)', () => {
@@ -64,13 +65,53 @@ describe('HOME_LANGUAGES', () => {
         expect(HOME_LANGUAGES.map((l) => l.label)).toEqual([
             'English',
             'Español',
-            'Português',
             'Français',
+            'Português',
             'हिन्दी',
             'বাংলা',
         ]);
         for (const l of HOME_LANGUAGES) {
             expect(l.label, `English gloss for ${l.value}`).not.toContain('(');
+        }
+    });
+});
+
+// The menus are all read by learners looking for their own language, so they are
+// ordered by the shared convention (endonym, Unicode default collation — see
+// language-order.js) rather than by whatever order the entries were typed in.
+describe('menu order', () => {
+    const ALL_LISTS = { ...LISTS, HOME_LANGUAGES };
+
+    it.each(Object.keys(ALL_LISTS))('%s is in the conventional endonym order', (name) => {
+        expect(ALL_LISTS[name].map((l) => l.value)).toEqual(
+            sortLanguagesByEndonym(ALL_LISTS[name]).map((l) => l.value),
+        );
+    });
+
+    // Pinned orders: the exact sequence a learner sees in each dropdown. The
+    // guest modal and the signup form are the two that were visibly unordered.
+    it.each([
+        ['GUEST_LANGUAGES', GUEST_LANGUAGES, 'DE ES FR IT NL PL PT SV VI TR RU AR HI BN TH KO ZH JA'],
+        ['SIGNUP_LANGUAGES', SIGNUP_LANGUAGES, 'DE EN ES FR PT HI BN KO'],
+        ['PROFILE_LANGUAGES', PROFILE_LANGUAGES, 'CS DA DE EN ES FR IT HU NL NB PL PT RO FI SV VI TR EL RU UK AR HI BN TH KO ZH JA'],
+    ])('%s lists its languages in order', (_name, list, expected) => {
+        expect(list.map((l) => l.value).join(' ')).toBe(expected);
+    });
+
+    it('groups every non-Latin language into a single trailing block', () => {
+        // The bug this fixes: Hindi sat between Arabic and Bengali in a list
+        // whose Latin names were in no order at all. Each script now forms one
+        // contiguous block, so a learner can scan straight to their script and
+        // then to their language inside it.
+        const isLatin = (code) => /^\p{Script=Latin}([\p{Script=Latin}\s])*$/u.test(endonymFor(code));
+        for (const [name, list] of Object.entries(ALL_LISTS)) {
+            const scripts = list.map(({ value }) => (isLatin(value) ? 'latin' : 'other'));
+            // A block starts wherever the script differs from the previous entry;
+            // if a script ever reappeared, there would be more blocks than
+            // distinct scripts.
+            const blocks = scripts.filter((s, i) => s !== scripts[i - 1]);
+            expect(blocks, `${name} interleaves scripts: ${scripts.join(',')}`)
+                .toEqual([...new Set(scripts)]);
         }
     });
 });
