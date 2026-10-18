@@ -12,7 +12,11 @@ export default function WebcamPreview() {
     const prevShow = useRef(false);
     const [takeover, setTakeover] = useState(false);
 
-    const show = !!getWebcamStream() && (mediaState === 'webcamOrAvatar' || mediaState === 'simpleVideo' || mediaState === 'interactiveVideo');
+    // Only show during full-screen takeover (recording/answering + first-response
+    // intro). The small corner PiP during simpleVideo/interactiveVideo playback
+    // was a distraction and competed with the lesson video for the user-activation
+    // window, muting the lesson video's unmuted play() (story 072 follow-up).
+    const show = !!getWebcamStream() && mediaState === 'webcamOrAvatar';
 
     // Full-screen takeover only during the recording/answering phase
     // (mediaState === 'webcamOrAvatar'). During normal video playback
