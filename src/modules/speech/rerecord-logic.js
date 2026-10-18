@@ -30,9 +30,8 @@ export const RERECORD_DECISIONS = {
 // mic) nor while the mutex is held. They become reachable if a future UI keeps
 // the mic mounted behind the review overlay.
 //
-// Returns the decision alone. A separate `restart` boolean would be a second
-// source of truth that a future decision could contradict; callers compare
-// against RERECORD_DECISIONS.restart.
+// Returns the decision alone: callers compare against RERECORD_DECISIONS.restart
+// rather than reading a boolean, so there is only ever one thing to keep in sync.
 export function decideRerecordAction({ listeningActive = false, transitioning = false } = {}) {
     if (listeningActive) return RERECORD_DECISIONS.alreadyRecording;
     if (transitioning) return RERECORD_DECISIONS.transitioning;

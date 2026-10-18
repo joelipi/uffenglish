@@ -47,17 +47,21 @@ On a refusal the learner is **not** stranded: `onTranscriptRejected` has already
 ### Task 1 - Pure decision for the re-record restart
 
 - `listeningActive: false` + `transitioning: false` + reject pressed
-  - → `decideRerecordAction` returns `{ restart: true, decision: 'restart' }`
+  - → `decideRerecordAction` returns `RERECORD_DECISIONS.restart`
 - `listeningActive: true` + reject pressed
-  - → returns `restart: false` with decision `already-recording`
+  - → returns `RERECORD_DECISIONS.alreadyRecording`
   - → the mic path is not re-entered (no `startSpeechCamRecording` call)
+  - → the learner is not stranded: `onTranscriptRejected` has already put the app in `recording/answering`, so the mic button stays mounted
 - `transitioning: true` + reject pressed
-  - → returns `restart: false` with decision `transitioning`
+  - → returns `RERECORD_DECISIONS.transitioning`
   - → the mic path is not re-entered
+  - → the learner is not stranded (same reason)
 - both gates held at once
-  - → returns `already-recording` (the actionable reason wins over the mutex one, since a rolling take would be *aborted* by the re-entry)
+  - → returns `RERECORD_DECISIONS.alreadyRecording` (the actionable reason wins over the mutex one, since a rolling take would be *aborted* by the re-entry)
 - `decideRerecordAction()` called with no argument
-  - → returns `{ restart: true, decision: 'restart' }` (both flags default to `false`)
+  - → returns `RERECORD_DECISIONS.restart` (both flags default to `false`)
+- the restart proceeds
+  - → `[Speech] Re-record pressed — restarting the take immediately` is logged (AGENTS.md: a significant event logs on success)
 
 ### Task 2 - Re-record restarts the take through the first-tap path
 
