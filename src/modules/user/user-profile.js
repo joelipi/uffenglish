@@ -107,8 +107,7 @@ export async function ensureCompleteProfileRow(userData) {
     // A candidate share code is generated up front and usually discarded: the
     // plan includes it only when the row has none to protect. Mint it on the
     // server so it is checked against the reserved list and the unique
-    // constraint; if minting fails, report the row unconfirmed rather than
-    // claiming a successful repair.
+    // constraint; if minting fails, rely on the DB trigger and read it back.
     const needsShareCode = !row || !row.share_code;
     const candidateShareCode = needsShareCode ? await mintShareCode() : null;
     if (needsShareCode && !candidateShareCode) {
@@ -130,15 +129,19 @@ export async function ensureCompleteProfileRow(userData) {
     mergeRepairedProfileIntoStore(plan.payload);
     // When the code came from the DB trigger (RPC unreachable), read it back
     // so this session can use it.
+    let confirmed = true;
     if (needsShareCode && !candidateShareCode) {
         const { row: freshRow, error: freshErr } = await fetchProfileIdentityRow(userId);
         if (freshErr) {
             console.warn('[user-profile] could not read back share_code:', freshErr?.message || freshErr);
+            confirmed = false;
         } else if (freshRow?.share_code) {
             mergeRepairedProfileIntoStore({ id: userId, share_code: freshRow.share_code });
+        } else {
+            confirmed = false;
         }
     }
-    return { confirmed: true, payload: plan.payload };
+    return { confirmed, payload: plan.payload };
 }
 
 /**
