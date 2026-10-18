@@ -34,7 +34,7 @@ On the first response the Whisper engine is still loading, so `speech-orchestrat
 
 On every later response Whisper is warm, so the abort never fires, and the composite is rebuilt at step load with **seconds** of settling time before `recorder.start()`. That timing difference is the one thing we can point at; everything else is a hypothesis.
 
-**Device scope (new data):** the freeze reproduced on **1 of 3 Android test devices**; iOS and Windows never showed it. This is consistent with the mid-flow rebuild being the trigger — the rebuild timing interacts with device-specific camera frame delivery (a race that varies by Android camera driver). It also means the freeze is **not** universal on Android, so the fix must be robust to camera timing variation, not just "make it work on the failing device." It rules out mechanisms that would be universal on Android (the detached canvas, a systematic autoplay policy). It does not rule out encoder/memory pressure — that is also device-specific.
+**Device scope (new data):** the freeze reproduced on **1 of 3 Android test devices**; iOS and Windows never showed it. This is consistent with the mid-flow rebuild being the trigger — the rebuild timing interacts with device-specific camera frame delivery (a race that varies by Android camera driver). It also means the freeze is **not** universal on Android, so the fix must be robust to camera timing variation, not just "make it work on the failing device." It rules out mechanisms that would be universal on Android (a systematic autoplay policy). It does not rule out encoder/memory pressure — that is also device-specific.
 
 ### What we do NOT know
 
@@ -107,9 +107,7 @@ otherwise                                      → false
 
 ### Phase 1 — Ship now (provably safe, no behaviour guesswork)
 
-**A. Append the composite canvas to the DOM.** `speech.web.js:98` creates `canvas` but never appends it — the only capture canvas in the repo that isn't (`video-processor.web.js:203`, `:1394` both append, with a comment that a detached canvas yields a blank track). One line, zero risk, consistency with the codebase's own documented rule.
-
-**B. Replace `ctx.drawImage` with `paintCompositeFrame`.** The swallowing lives in the pure module and is tested with fakes. The rAF/setInterval callback becomes:
+**A. Replace `ctx.drawImage` with `paintCompositeFrame`.** The swallowing lives in the pure module and is tested with fakes. The setInterval callback becomes:
 
 ```js
 function tick() {
@@ -123,9 +121,9 @@ function tick() {
 
 **The no-throw invariant:** nothing in `tick()` may throw. `paintCompositeFrame` swallows draw failures; `compositeCropRect` returns `null` instead of throwing; `video.currentTime` is a read-only property that doesn't throw. This invariant must hold for the entire callback body, not just the draw call — if it breaks, the loop dies.
 
-**C. Exempt the never-started abort from the Android release.** `speech.web.js:369-375`: replace `if (!keepStreamAlive || isAndroid)` with `if (shouldForceReleaseComposite({ isAndroid, keepStreamAlive, recordingStarted: speechCamRecorder.state !== 'inactive' }))`. The `recordingStarted` check happens **before** `speechCamRecorder = null`. This kills the mid-flow teardown + second `getUserMedia` that makes take 1 different from takes 2+.
+**B. Exempt the never-started abort from the Android release.** `speech.web.js:369-375`: replace `if (!keepStreamAlive || isAndroid)` with `if (shouldForceReleaseComposite({ isAndroid, keepStreamAlive, recordingStarted: speechCamRecorder.state !== 'inactive' }))`. The `recordingStarted` check happens **before** `speechCamRecorder = null`. This kills the mid-flow teardown + second `getUserMedia` that makes take 1 different from takes 2+.
 
-**D. Frozen-take detection (logging + telemetry only).** `startDeferredSpeechCamRecording()` creates a reporter whose sinks are `console.error`, `trackEvent` and nothing user-facing:
+**C. Frozen-take detection (logging + telemetry only).** `startDeferredSpeechCamRecording()` creates a reporter whose sinks are `console.error`, `trackEvent` and nothing user-facing:
 
 ```js
 const reporter = createFreezeReporter({
@@ -143,7 +141,7 @@ reporter.start();
 
 On the first freeze: `console.error('[Recording] take produced no camera frames — the clip will be frozen', { framesDrawn, sourceAdvances, elapsedMs })` + `trackEvent('camera_frozen', { lessonId, stepIndex, responseType, elapsedMs })`. No user-facing banner yet.
 
-**E. Fake-media Playwright regression guard.** Add `--use-fake-device-for-media-stream` to the Playwright launch args (or a dedicated project). Write a spec that drives a friend lesson, lets the composite paint, and asserts the recorded blob contains **more than one distinct video frame** and that no `camera_frozen` event fires. This is the only test that could have caught the original bug.
+**D. Fake-media Playwright regression guard.** Add `--use-fake-device-for-media-stream` to the Playwright launch args (or a dedicated project). Write a spec that drives a friend lesson, lets the composite paint, and asserts the recorded blob contains **more than one distinct video frame** and that no `camera_frozen` event fires. This is the only test that could have caught the original bug.
 
 ### Phase 2 — After field logs (conditional)
 
@@ -191,7 +189,6 @@ Rewrite `createPortraitCaptureStream` in `src/modules/speech/speech.web.js`. Ext
 New/changed guards on `createPortraitCaptureStream` body (sliced with `functionBody`):
 
 - contains `resolveCompositeDimensions(` and `compositeCropRect(` and `paintCompositeFrame(` and `createLivenessCounter(` and `createFreezeReporter(`
-- contains `document.body.appendChild(canvas)` (the detached-canvas fix)
 - contains `rawStream.getAudioTracks()` (audio passthrough preserved)
 - does **not** contain `ctx.drawImage(` (the draw moved into `paintCompositeFrame`)
 - `compositeCropRect(` index < `paintCompositeFrame(` index
@@ -249,8 +246,7 @@ Browser APIs, all already used by this repo:
 - **The diagnosis is right; the mechanism is a guess.** The frozen live preview plus intact audio pins the fault to the composite beyond reasonable doubt, but we cannot distinguish a stalled source, a persistent `drawImage` throw, encoder pressure or Chrome's change-detection from the outside. Phase 1 fixes the two structural defects we can prove (the throw and the mid-flow rebuild) and instruments everything else.
 - **The rAF rewrite is Phase 2, not Phase 1.** `setInterval` does not die on a throw (it keeps firing, just never painting), so Phase 1's swallowing is what fixes mechanism (d). Switching schedulers introduces new fragility (a throw kills the rAF chain permanently) and is only justified if telemetry shows source stalls. The no-throw invariant must hold for the **entire** callback body, not just the draw call — this is the guard that matters, and it is stronger than "no `try` block".
 - **`getContext('2d')` returning `null`** is handled as a logged no-op rather than a throw. It does not throw, so a null-check suffices; the no-throw invariant covers it.
-- **The detached canvas fix is consistency, not a proven cause.** The codebase's own comments (`video-processor.web.js:200-202`, `:1390-1392`) state a detached canvas yields a blank track, but they scope it to iOS Safari, and the composite never runs on iOS. It is a free hardening that removes an asymmetry; it is not the explanation. The device-specificity of the bug (1 of 3 Androids) makes it even less likely to be the cause — a detached canvas would affect all devices uniformly.
-- **Device scope.** The freeze reproduced on 1 of 3 Android test devices; iOS and Windows never showed it. This is consistent with the mid-flow rebuild being the trigger (the rebuild timing interacts with device-specific camera frame delivery). It rules out universal mechanisms (detached canvas, systematic autoplay policy). It does not rule out encoder/memory pressure, which is also device-specific. The fake-media Playwright guard cannot reproduce the device-specific camera race; field telemetry is the only confirmation.
+- **Device scope.** The freeze reproduced on 1 of 3 Android test devices; iOS and Windows never showed it. This is consistent with the mid-flow rebuild being the trigger (the rebuild timing interacts with device-specific camera frame delivery). It rules out universal mechanisms (a systematic autoplay policy). It does not rule out encoder/memory pressure, which is also device-specific. The fake-media Playwright guard cannot reproduce the device-specific camera race; field telemetry is the only confirmation.
 - **Do not "fix" this by loosening the Android release rule.** `docs/learnings.md:158` records that a 1080×1920 canvas plus a software encode OOM'd low-memory Android devices while Whisper was resident. `shouldForceReleaseComposite` keeps that release for every take that actually recorded and exempts only the abort where nothing was ever encoded.
 - **The `error_camera_frozen` copy is deferred.** Phase 1 ships logging + telemetry only. User-facing copy follows the field data; if it is eventually added, it needs all six locales (`en`/`es`/`pt`/`fr`/`hi`/`bn`) and a native-speaker review.
 - **`getTargetDimensions` keeps its current behaviour.** Only the two recap call sites would move in Phase 2, and only if the probe log justifies it.
