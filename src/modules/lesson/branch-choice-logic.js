@@ -128,14 +128,21 @@ export function resolveNextStepIndex(step, currentStepIndex) {
  * @param {boolean} showEnglish level-level decision from `buildBranchChoiceView`
  * @returns {{ english: string, localized: string|null, lang: string, showEnglish: boolean }}
  */
-export function formatBranchChoiceLabel(text, lang, showEnglish) {
+export function formatBranchChoiceLabel(text, lang, showBoth) {
     const { english, localized, shouldShowLocalized } = formatBilingualText(text, lang);
 
+    // English is the default: it is always rendered. The localized line is
+    // added only when there is room for both (showBoth); otherwise the button
+    // shows English only, never the localized language on its own.
     if (!shouldShowLocalized) {
         return { english, localized: null, lang, showEnglish: true };
     }
 
-    return { english, localized, lang, showEnglish };
+    if (showBoth) {
+        return { english, localized, lang, showEnglish: true };
+    }
+
+    return { english, localized: null, lang, showEnglish: true };
 }
 
 // The char cap is a level-level, all-or-nothing decision. A button drops its
@@ -144,7 +151,7 @@ export function formatBranchChoiceLabel(text, lang, showEnglish) {
 // the whole visible column shows translation-only; otherwise every button shows
 // both lines. Deciding per level (not per step) keeps the visible buttons
 // consistent while allowing a deep level with short labels to keep its English.
-function stepShowsEnglish(nodes, lang) {
+function stepShowsBoth(nodes, lang) {
     return nodes.every(({ text }) => {
         const { english, localized, shouldShowLocalized } = formatBilingualText(text, lang);
         if (!shouldShowLocalized) return true;
@@ -155,9 +162,9 @@ function stepShowsEnglish(nodes, lang) {
 // Maps resolved nodes to render-ready choices, recursively. The English
 // decision is made once per level and applied to every label at that level.
 function buildLevel(nodes, lang) {
-    const showEnglish = stepShowsEnglish(nodes, lang);
+    const showBoth = stepShowsBoth(nodes, lang);
     return nodes.map((node, index) => {
-        const label = formatBranchChoiceLabel(node.text, lang, showEnglish);
+        const label = formatBranchChoiceLabel(node.text, lang, showBoth);
         if (node.children) return { key: index, label, children: buildLevel(node.children, lang) };
         return { key: index, label, targetIndex: node.targetIndex };
     });

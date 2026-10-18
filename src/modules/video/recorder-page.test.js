@@ -1010,6 +1010,11 @@ describe('recorder auto-render — zero server changes', () => {
             'functions/api/zoho-send.js',
             'wrangler.toml',
             'src/assets/css/app.css',
+            // Branching step button sizing/layout (this change).
+            'src/components/widgets/BranchChoiceButtons.jsx',
+            'src/modules/lesson/branch-choice-logic.js',
+            'src/modules/lesson/branch-choice-logic.test.js',
+            'src/modules/lesson/branch-choice-wiring.test.js',
 // Signup profile-write race (geo upsert vs signup insert) + the
             // non-destructive repair for rows that are missing an identity.
             'supabase/migrations/009_create_profile_on_signup.sql',

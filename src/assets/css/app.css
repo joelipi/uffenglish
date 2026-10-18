@@ -754,12 +754,15 @@ body { margin: 0; font-family: var(--font-body); font-size: 1rem; font-weight: 4
     justify-content: flex-end;
 }
 
-/* Branching multiple-choice decision row: Replay (left), a vertical stack of
-   text buttons (center, wider), Watch Tutorial (right). */
+/* Branching multiple-choice decision row: a full-width, scrollable stack of
+   text buttons on top, with the Replay / Watch Tutorial buttons in a footer
+   row beneath them so the buttons can use the whole screen width while leaving
+   room for the corner controls. */
 .branch-choice-row {
     display: flex;
-    justify-content: space-around;
-    align-items: flex-end;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: stretch;
     width: 100%;
     gap: 8px;
 }
@@ -770,7 +773,37 @@ body { margin: 0; font-family: var(--font-body); font-size: 1rem; font-weight: 4
     justify-content: flex-end;
     flex: 2 1 0;
     min-width: 0;
+    width: 100%;
+    gap: 4px;
+    /* The button area is the only scrollable region: when the buttons do not
+       fit, the scrollbar stays visible so it is obvious more choices exist. */
+    max-height: 42vh;
+    overflow-y: scroll;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.6) transparent;
+}
+.branch-choice-col::-webkit-scrollbar {
+    width: 8px;
+}
+.branch-choice-col::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: 4px;
+}
+.branch-choice-col::-webkit-scrollbar-track {
+    background: transparent;
+}
+.branch-choice-buttons {
+    /* Full-width button stack. */
+    width: 100%;
+}
+.branch-choice-footer {
+    display: flex;
+    justify-content: space-around;
+    align-items: flex-end;
+    width: 100%;
     gap: 8px;
+    margin-top: 8px;
 }
 .branch-choice-btn {
     width: 100%;
@@ -1250,7 +1283,7 @@ body { margin: 0; font-family: var(--font-body); font-size: 1rem; font-weight: 4
    headline's new home. */
 .ivp-overlay.ivp-overlay-branch {
     align-items: flex-start;
-    padding-top: 24vh;
+    padding-top: 20vh;
     padding-bottom: 45vh;
 }
 .ivp-overlay.ivp-overlay-branch .ivp-overlay-content {

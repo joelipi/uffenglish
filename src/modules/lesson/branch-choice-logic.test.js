@@ -216,9 +216,9 @@ describe('formatBranchChoiceLabel', () => {
         });
     });
 
-    it('honors the step-level showEnglish decision (translation only)', () => {
+    it('honors the step-level decision (English only when no room for both)', () => {
         expect(formatBranchChoiceLabel({ en: 'Yes', es: 'Sí' }, 'es', false)).toEqual({
-            english: 'Yes', localized: 'Sí', lang: 'es', showEnglish: false,
+            english: 'Yes', localized: null, lang: 'es', showEnglish: true,
         });
     });
 
@@ -289,7 +289,7 @@ describe('buildBranchChoiceView', () => {
         expect(view.choices.map((c) => c.label.showEnglish)).toEqual([true, true]);
     });
 
-    it('drops English from every button when any label is over the cap', () => {
+    it('drops the localized line from every button when any label is over the cap', () => {
         const mixedStep = {
             responseType: 'branching',
             chooseStep: [
@@ -299,10 +299,10 @@ describe('buildBranchChoiceView', () => {
         };
         const view = buildBranchChoiceView({ step: mixedStep, currentStepIndex: 0, stepCount: 4, lang: 'es' });
         // The short label fits on its own, but the long sibling forces the whole
-        // step to translation-only so the buttons stay consistent.
-        expect(view.choices.map((c) => c.label.showEnglish)).toEqual([false, false]);
-        expect(view.choices[0].label.localized).toBe('Sí');
-        expect(view.choices[1].label.localized).toBe(overCapText().es);
+        // step to English-only so the buttons stay consistent.
+        expect(view.choices.map((c) => c.label.showEnglish)).toEqual([true, true]);
+        expect(view.choices[0].label.localized).toBeNull();
+        expect(view.choices[1].label.localized).toBeNull();
     });
 
     it('keeps English-only on a button that has no translation even when a sibling is over the cap', () => {
@@ -317,7 +317,8 @@ describe('buildBranchChoiceView', () => {
         expect(view.choices[0].label).toEqual({
             english: 'No', localized: null, lang: 'es', showEnglish: true,
         });
-        expect(view.choices[1].label.showEnglish).toBe(false);
+        expect(view.choices[1].label.showEnglish).toBe(true);
+        expect(view.choices[1].label.localized).toBeNull();
     });
 
     it('sets showContinue when no valid choices resolve', () => {
@@ -376,9 +377,9 @@ describe('buildBranchChoiceView (nested)', () => {
         const view = buildBranchChoiceView({ step, currentStepIndex: 0, stepCount: 4, lang: 'es' });
         // Root row: the group label is short, so it keeps both lines.
         expect(view.choices[0].label.showEnglish).toBe(true);
-        // Nested row: the over-cap sibling forces translation-only for the level.
-        expect(view.choices[0].children.map((c) => c.label.showEnglish)).toEqual([false, false]);
-        expect(view.choices[0].children[0].label.localized).toBe(overCapText().es);
+        // Nested row: the over-cap sibling forces English-only for the level.
+        expect(view.choices[0].children.map((c) => c.label.showEnglish)).toEqual([true, true]);
+        expect(view.choices[0].children[0].label.localized).toBeNull();
     });
 
     it('sets showContinue when no valid node resolves', () => {

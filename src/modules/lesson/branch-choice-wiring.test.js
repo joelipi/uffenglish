@@ -165,8 +165,8 @@ describe('StepLoader, strings and styles', () => {
         const css = read('src/assets/css/app.css');
         const row = cssBlock(css, '.branch-choice-row {');
         expect(row).toContain('display: flex');
-        expect(row).toContain('justify-content: space-around');
-        expect(row).toContain('align-items: flex-end');
+        expect(row).toContain('justify-content: space-between');
+        expect(row).toContain('align-items: stretch');
         expect(row).toContain('width: 100%');
 
         const col = cssBlock(css, '.branch-choice-col {');
@@ -206,7 +206,7 @@ describe('StepLoader, strings and styles', () => {
         // 24vh clears the blurred video-header band (the top ~18.5% of the
         // frame — see .video-header-blur); the choice buttons never rise higher
         // than 60% from the bottom, so the headline has room between the two.
-        expect(overlay).toMatch(/padding-top:\s*24vh/);
+        expect(overlay).toMatch(/padding-top:\s*20vh/);
         expect(overlay).toMatch(/padding-bottom:\s*45vh/);
         // The content is clamped so a long headline/translation cannot spill
         // into the reserved bottom band.

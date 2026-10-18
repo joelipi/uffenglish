@@ -34,13 +34,7 @@ export default function BranchChoiceButtons({ view, onChoose, onChooseGroup, onB
     return (
         <>
             <div className="branch-choice-row">
-                <ChoiceColumn label={getBilingual('video_replay', labelLang)}>
-                    <button className="btn call-btn" id="branchReplayBtn" aria-label="Replay Video" onClick={() => onReplay()}>
-                        <i className="bi bi-arrow-repeat"></i>
-                    </button>
-                </ChoiceColumn>
-
-                <div className="branch-choice-col">
+                <div className="branch-choice-col branch-choice-buttons">
                     {view?.canGoBack && (
                         <button className="btn branch-choice-btn branch-choice-back-btn" id="branchBackBtn" onClick={() => onBack()}>
                             <i className="bi bi-arrow-left"></i>
@@ -87,11 +81,19 @@ export default function BranchChoiceButtons({ view, onChoose, onChooseGroup, onB
                     })}
                 </div>
 
-                <ChoiceColumn label={getBilingual('watch_tutorial', labelLang)}>
-                    <button className="btn call-btn" id="branchTutorialBtn" aria-label="Watch Tutorial" onClick={handleTutorial}>
-                        <i className="bi bi-book-fill"></i>
-                    </button>
-                </ChoiceColumn>
+                <div className="branch-choice-footer">
+                    <ChoiceColumn label={getBilingual('video_replay', labelLang)}>
+                        <button className="btn call-btn" id="branchReplayBtn" aria-label="Replay Video" onClick={() => onReplay()}>
+                            <i className="bi bi-arrow-repeat"></i>
+                        </button>
+                    </ChoiceColumn>
+
+                    <ChoiceColumn label={getBilingual('watch_tutorial', labelLang)}>
+                        <button className="btn call-btn" id="branchTutorialBtn" aria-label="Watch Tutorial" onClick={handleTutorial}>
+                            <i className="bi bi-book-fill"></i>
+                        </button>
+                    </ChoiceColumn>
+                </div>
             </div>
 
             {showTutorial && (
