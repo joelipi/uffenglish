@@ -273,6 +273,7 @@ export default function SimpleVideoPlayer() {
 
         const tryPlay = () => {
             const video = videoRef.current;
+            if (!video) return;
             console.log('[SimpleVideo] tryPlay called. readyState:', video.readyState, 'paused:', video.paused, 'src:', video.src?.slice(-40));
             // Reset to the true start before playing: a container with a non-zero
             // initial audio composition time (edit list) otherwise skips the
@@ -395,7 +396,7 @@ export default function SimpleVideoPlayer() {
     return (
         <div className="ivp-main-wrapper position-absolute top-0 start-0 w-100 h-100" onClick={handleClick} style={{ visibility: loaded ? 'visible' : 'hidden' }}>
             <div className="ivp-video-wrapper">
-                <video ref={videoRef} className="ivp-video" playsInline disableRemotePlayback preload="metadata" crossOrigin="anonymous"
+                <video ref={videoRef} className="ivp-video" playsInline disableRemotePlayback preload="metadata"
                     src={config?.videoUrl}
                     poster={poster}
                     {...(isAndroid ? { 'data-ambient': 'true' } : {})}
