@@ -47,7 +47,7 @@ begin
 end;
 $$;
 
-revoke all on function public.generate_share_code() from public;
+revoke all on function public.generate_share_code() from public, anon;
 grant execute on function public.generate_share_code() to authenticated, service_role;
 
 create or replace function public.validate_share_code(code text)
@@ -69,8 +69,7 @@ begin
 end;
 $$;
 
-revoke all on function public.validate_share_code() from public;
-grant execute on function public.validate_share_code() to authenticated, service_role;
+revoke all on function public.validate_share_code() from public, anon, authenticated;
 
 create or replace function public.fill_share_code()
 returns trigger

@@ -33,11 +33,6 @@ vi.mock('../../modules/api/supabase.js', () => ({
                 insertCalls.push(row);
                 return Promise.resolve({ error: null });
             },
-            select: () => ({
-                eq: () => ({
-                    maybeSingle: async () => ({ data: { share_code: 'trig01' }, error: null }),
-                }),
-            }),
             insert: (row) => {
                 insertCalls.push(row);
                 return Promise.resolve({ error: null });
@@ -166,9 +161,10 @@ describe('signup profile write', () => {
         expect(errorText(), 'signup surfaced an error').toBe('');
     });
 
-    it('uses the trigger-minted code when the RPC is unavailable', async () => {
+    it('omits share_code so the DB trigger mints it when the RPC is unavailable', async () => {
         rpcSpy.mockReset().mockResolvedValue({ data: null, error: new Error('down') });
         await submit();
         expect(errorText(), 'signup surfaced an error').toBe('');
+        expect(insertCalls[0].share_code, 'client must not invent a code').toBeUndefined();
     });
 });

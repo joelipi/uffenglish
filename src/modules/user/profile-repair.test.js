@@ -25,6 +25,7 @@ vi.mock('../api/supabase.js', () => ({
 }));
 
 import { syncUserMetaDataMutation } from '../api/api.js';
+import { supabase } from '../api/supabase.js';
 import { saveCourseToUserProfile, ensureCompleteProfileRow } from './user-profile.js';
 import { appStore } from '../store/store.js';
 
@@ -57,6 +58,7 @@ beforeEach(() => {
     syncUserMetaDataMutation.mockClear().mockResolvedValue(undefined);
     getCurrentUserMock.mockReset().mockResolvedValue(sessionUser);
     fetchIdentityMock.mockReset().mockResolvedValue({ row: completeRow, error: null });
+    supabase.rpc.mockReset().mockResolvedValue({ data: 'zzzzz', error: null });
     appStore.setState({
         pendingFriendCredits: [],
         userData: { $id: 'u-1', email: 'jo@example.com', share_code: 'abcd' },
@@ -264,6 +266,27 @@ describe('saveCourseToUserProfile', () => {
         expect(second, 'later course bootstraps must not be blocked').toBe(true);
         expect(writes()).toHaveLength(1);
         expect(writes()[0].course_progress).toBeTruthy();
+    });
+
+    it('falls back to the DB trigger when the mint RPC fails', async () => {
+        // Row is complete except for a NULL share code. RPC fails, so the
+        // repair must force a write with share_code: null (the trigger's fill
+        // signal) and read the generated code back.
+        const codeMissing = { ...completeRow, share_code: null };
+        fetchIdentityMock
+            .mockResolvedValueOnce({ row: codeMissing, error: null }) // identity read
+            .mockResolvedValueOnce({ row: { ...codeMissing, share_code: 'trg01' }, error: null }); // read-back
+        supabase.rpc.mockResolvedValue({ data: null, error: new Error('down') });
+
+        const result = await ensureCompleteProfileRow({ $id: 'u-1', email: 'jo@example.com' });
+
+        expect(result.confirmed).toBe(true);
+        expect(writes()[0]).toMatchObject({ id: 'u-1', share_code: null });
+        expect(fetchIdentityMock).toHaveBeenCalledTimes(2);
+        const merged = setCourseDataSpy.mock.calls
+            .map((c) => c[0].userData)
+            .find((u) => u && u.share_code === 'trg01');
+        expect(merged, 'the read-back code must reach the store').toBeTruthy();
     });
 
     it('leaves guests and already-initialised courses alone', async () => {
