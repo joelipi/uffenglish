@@ -1050,6 +1050,7 @@ describe('recorder auto-render — zero server changes', () => {
             'tests/hide-signup-skip-button.spec.js',
             // Desktop frame regression: the landing page must not be clipped.
             'tests/landing-frame-desktop.spec.js',
+'src/components/LessonContainer.jsx',
             // Story 072 (frozen speech capture): the 9:16 camera composite, the
             // frozen-take detector, and the 3-2-1 pre-roll countdown that holds
             // back the localized speak overlay.

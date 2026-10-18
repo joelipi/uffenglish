@@ -273,7 +273,13 @@ export default function SimpleVideoPlayer() {
 
         const tryPlay = () => {
             const video = videoRef.current;
+            if (!video) return;
             console.log('[SimpleVideo] tryPlay called. readyState:', video.readyState, 'paused:', video.paused, 'src:', video.src?.slice(-40));
+            // Reset to the true start before playing: a container with a non-zero
+            // initial audio composition time (edit list) otherwise skips the
+            // first ~1 s of audio on the initial auto-play (scrubbing to 0:00
+            // already worked because it reset the decoder). Story 073.
+            video.currentTime = 0;
             const p = video.play();
             if (p !== undefined) {
                 p.then(() => {
@@ -283,6 +289,7 @@ export default function SimpleVideoPlayer() {
                 }).catch(() => {
                     console.log('[SimpleVideo] Unmuted autoplay blocked — retrying muted.');
                     video.muted = true;
+                    video.currentTime = 0;
                     video.play().then(() => {
                         console.log('[SimpleVideo] Muted autoplay succeeded — unmuting in 100ms.');
                         setAutoplayPending(false);
