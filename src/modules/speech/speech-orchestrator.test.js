@@ -413,47 +413,48 @@ describe('speech orchestrator — re-record is a single press', () => {
         expect(deps.updateSpeechRecording).toHaveBeenCalledTimes(1); // the reject's write only
     });
 
-    it('logs success on the restart and refuses each gate without stranding the learner', async () => {
+    it('logs success when the take restarts', async () => {
         const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
         try {
-            // A successful restart logs the success path (AGENTS.md: a
-            // significant event logs on success, not only on failure).
-            const ok = makeRecordingOrchestrator();
-            const okHooks = reviewHooks();
-            await runTakeToReview(ok.orchestrator, baseParams(okHooks));
-            okHooks.onReviewStart.mock.calls[0][3]();
+            const { orchestrator } = makeRecordingOrchestrator();
+            const hooks = reviewHooks();
+            await runTakeToReview(orchestrator, baseParams(hooks));
+            hooks.onReviewStart.mock.calls[0][3]();
+            // AGENTS.md: a significant event logs on success, not only on failure.
             expect(logSpy.mock.calls.some((c) => String(c[0]).includes('Re-record pressed — restarting the take immediately'))).toBe(true);
-
-            // A refusal leaves the mic button mounted: onTranscriptRejected has
-            // already moved the app to `recording/answering`, which renders it.
-            for (const [label, arrange] of [
-                ['rolling take', (o) => {
-                    const p = o.toggleSpeechRecognition(baseParams(reviewHooks()));
-                    return vi.advanceTimersByTimeAsync(3000).then(() => p);
-                }],
-                ['held lock', (o) => {
-                    o.listeningState.transitioning = true;
-                    return Promise.resolve();
-                }],
-            ]) {
-                const blocked = makeRecordingOrchestrator();
-                const hooks = reviewHooks();
-                await runTakeToReview(blocked.orchestrator, baseParams(hooks));
-                await arrange(blocked.orchestrator);
-                // The ✕ must not start *another* take on top of whatever the
-                // arrangement already left rolling.
-                const takesBefore = blocked.deps.startDeferredSpeechCamRecording.mock.calls.length;
-
-                hooks.onReviewStart.mock.calls[0][3]();
-                await vi.advanceTimersByTimeAsync(10);
-
-                expect(blocked.deps.startDeferredSpeechCamRecording, label).toHaveBeenCalledTimes(takesBefore);
-                // Not stranded: still on the recording screen with the mic mounted.
-                expect(appStore.getState().appPhase, label).toBe('recording/answering');
-                expect(appStore.getState().bottomState, label).toBe('micActiveOrAnswerInput');
-            }
         } finally {
             logSpy.mockRestore();
+        }
+    });
+
+    it('leaves the mic button mounted when a gate refuses the restart', async () => {
+        // Each gate separately, so a failure names which one regressed. A
+        // refusal must not strand the learner: onTranscriptRejected has already
+        // moved the app to `recording/answering`, which mounts the mic button.
+        for (const [label, arrange] of [
+            ['rolling take', (o) => {
+                const p = o.toggleSpeechRecognition(baseParams(reviewHooks()));
+                return vi.advanceTimersByTimeAsync(3000).then(() => p);
+            }],
+            ['held lock', (o) => {
+                o.listeningState.transitioning = true;
+                return Promise.resolve();
+            }],
+        ]) {
+            const blocked = makeRecordingOrchestrator();
+            const hooks = reviewHooks();
+            await runTakeToReview(blocked.orchestrator, baseParams(hooks));
+            await arrange(blocked.orchestrator);
+            // The ✕ must not start *another* take on top of whatever the
+            // arrangement already left rolling.
+            const takesBefore = blocked.deps.startDeferredSpeechCamRecording.mock.calls.length;
+
+            hooks.onReviewStart.mock.calls[0][3]();
+            await vi.advanceTimersByTimeAsync(10);
+
+            expect(blocked.deps.startDeferredSpeechCamRecording, label).toHaveBeenCalledTimes(takesBefore);
+            expect(appStore.getState().appPhase, label).toBe('recording/answering');
+            expect(appStore.getState().bottomState, label).toBe('micActiveOrAnswerInput');
         }
     });
 

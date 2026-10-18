@@ -27,11 +27,4 @@ describe('decideRerecordAction', () => {
         expect(decideRerecordAction({ listeningActive: true, transitioning: true }))
             .toBe(RERECORD_DECISIONS.alreadyRecording);
     });
-
-    it('returns only known decisions, so a caller can compare against the enum', () => {
-        for (const flags of [{}, { listeningActive: true }, { transitioning: true },
-            { listeningActive: true, transitioning: true }]) {
-            expect(Object.values(RERECORD_DECISIONS)).toContain(decideRerecordAction(flags));
-        }
-    });
 });
