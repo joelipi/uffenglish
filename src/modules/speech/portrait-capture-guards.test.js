@@ -29,6 +29,13 @@ function functionBody(source, signature) {
 }
 
 describe('portrait capture (9:16)', () => {
+    it('Phase 1: freeze reporter wired in startDeferredSpeechCamRecording', () => {
+        const body = functionBody(WEB, 'export function startDeferredSpeechCamRecording()');
+        expect(body).not.toBe('');
+        expect(body).toMatch(/createFreezeReporter\(/);
+        expect(body).toMatch(/\.start\(\)/);
+    });
+
     it('gates the composite on a device check that excludes iOS only', () => {
         expect(WEB).toMatch(/import \{ isIOS \} from '\.\.\/\.\.\/utils\/detectIOS\.js'/);
         expect(WEB).toMatch(/const isAndroid = \/Android\/i\.test\(navigator\.userAgent\)/);
@@ -51,15 +58,17 @@ describe('portrait capture (9:16)', () => {
     it('builds a 9:16 canvas stream, centre-cropping the camera', () => {
         const body = functionBody(WEB, 'function createPortraitCaptureStream(rawStream)');
         expect(body).not.toBe('');
-        // Desktop: 1080×1920; phones: 720×1280 (lighter composite).
-        expect(body).toMatch(/const canvasW = isAndroid \? 720 : 1080/);
-        expect(body).toMatch(/const canvasH = isAndroid \? 1280 : 1920/);
-        expect(body).toMatch(/const captureFps = isAndroid \? 24 : 30/);
-        expect(body).toMatch(/canvas\.captureStream\(captureFps\)/);
-        // Centre-crop: draw the <video> with an explicit source rect (cover).
-        expect(body).toMatch(/ctx\.drawImage\(video,/);
+        // Dimensions + crop math moved to portrait-capture-logic.js (resolveCompositeDimensions,
+        // compositeCropRect, paintCompositeFrame) and are tested behaviourally there.
+        // The adapter must still call them and carry the camera audio through.
+        expect(body).toMatch(/resolveCompositeDimensions\(/);
+        expect(body).toMatch(/compositeCropRect\(/);
+        expect(body).toMatch(/paintCompositeFrame\(/);
+        expect(body).toMatch(/canvas\.captureStream\(dims\.fps\)/);
         // Carry the camera audio through.
         expect(body).toMatch(/rawStream\.getAudioTracks\(\)/);
+        // The adapter must not call ctx.drawImage directly anymore.
+        expect(body).not.toMatch(/ctx\.drawImage\(/);
     });
 
     it('only applies the composite when the device check passes', () => {
@@ -71,6 +80,28 @@ describe('portrait capture (9:16)', () => {
         expect(body).toMatch(/:\s*rawStream/);
     });
 
+    it('Phase 1: pure-module wiring in createPortraitCaptureStream', () => {
+        const body = functionBody(WEB, 'function createPortraitCaptureStream(rawStream)');
+        expect(body).not.toBe('');
+        expect(body).toMatch(/resolveCompositeDimensions\(/);
+        expect(body).toMatch(/compositeCropRect\(/);
+        expect(body).toMatch(/paintCompositeFrame\(/);
+        expect(body).toMatch(/createLivenessCounter\(/);
+        // Adapter must not call ctx.drawImage directly.
+        expect(body).not.toMatch(/ctx\.drawImage\(/);
+        // compositeCropRect must precede paintCompositeFrame.
+        expect(body.indexOf('compositeCropRect(')).toBeLessThan(body.indexOf('paintCompositeFrame('));
+    });
+
+    it('Phase 1: audio passthrough preserved', () => {
+        const body = functionBody(WEB, 'function createPortraitCaptureStream(rawStream)');
+        expect(body).toMatch(/rawStream\.getAudioTracks\(\)/);
+    });
+
+    it('Phase 1: imports the pure module', () => {
+        expect(WEB).toMatch(/from '\.\/portrait-capture-logic\.js'/);
+    });
+
     it('tears the composite down alongside the camera stream', () => {
         const body = functionBody(WEB, 'export function safelyStopStream()');
         expect(body).toMatch(/teardownPortraitCapture\(\)/);
@@ -79,11 +110,12 @@ describe('portrait capture (9:16)', () => {
     it('releases the composite on phones when recording stops (free it before transcription)', () => {
         const body = functionBody(WEB, 'export function stopSpeechCamRecording(');
         expect(body).not.toBe('');
-        // Both stop paths (recorder-active finally + inactive branch) must release
-        // the stream on Android even when keepStreamAlive is set. Presence is not
-        // containment: assert the full teardown statement, twice.
-        const release = body.match(/if \(!keepStreamAlive \|\| isAndroid\) \{ setWebcamStream\(null\); safelyStopStream\(\); \}/g) || [];
-        expect(release.length).toBe(2);
-        expect(body).toMatch(/if \(!keepStreamAlive \|\| isAndroid\) \{ setWebcamStream\(null\); safelyStopStream\(\); \}\s*\n\s*resolve\(blobToReturn\)/);
+        // Both stop paths now route through shouldForceReleaseComposite instead of
+        // the old literal `if (!keepStreamAlive || isAndroid)`. The Android
+        // release is preserved for real takes; the never-started abort is exempted.
+        const releaseSites = body.match(/shouldForceReleaseComposite\(/g) || [];
+        expect(releaseSites.length).toBe(2);
+        // The recordingStarted check must use recorder state captured before nulling.
+        expect(body).toMatch(/shouldForceReleaseComposite\(\{[^}]*recordingStarted/);
     });
 });

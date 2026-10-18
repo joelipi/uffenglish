@@ -6,6 +6,17 @@ import { appStore, setWebcamStream } from '../store/store.js';
 import { DEFAULT_USER_AVATAR_URL } from '../user/tutor-config.js';
 import { generateThumbFromBlob } from '../video/thumbnail.js';
 import { isIOS } from '../../utils/detectIOS.js';
+import {
+    resolveCompositeDimensions,
+    compositeCropRect,
+    paintCompositeFrame,
+    createLivenessCounter,
+    shouldForceReleaseComposite,
+    createFreezeReporter,
+} from './portrait-capture-logic.js';
+import Strings from '../../data/strings.js';
+import { getAppLanguage } from '../bilingual/config-normalizer.js';
+import { trackEvent } from '../utils/posthog.js';
 
 export const isWindows = navigator.platform.indexOf('Win') > -1;
 // Android is detected so the 9:16 canvas composite can be built LIGHTER on
@@ -45,6 +56,10 @@ let isPlaceholderStream = false;
 let compositeRawStream = null;
 let compositeVideoEl = null;
 let compositeDrawTimer = null;
+let compositeLiveness = null;
+let compositeFreezeReporter = null;
+let compositeLastSourceTime = 0;
+let compositeMeta = { lessonId: null, stepIndex: null, responseType: null };
 
 let recognition = null;
 let recognitionTimeout = null;
@@ -92,12 +107,10 @@ export function safelyStopStream() {
  * ~3× less encoder load. Desktops keep the full 1080×1920 @ 30 fps.
  */
 function createPortraitCaptureStream(rawStream) {
-    const canvasW = isAndroid ? 720 : 1080;
-    const canvasH = isAndroid ? 1280 : 1920;
-    const captureFps = isAndroid ? 24 : 30;
+    const dims = resolveCompositeDimensions({ isAndroid });
     const canvas = document.createElement('canvas');
-    canvas.width = canvasW;
-    canvas.height = canvasH;
+    canvas.width = dims.width;
+    canvas.height = dims.height;
     const ctx = canvas.getContext('2d');
 
     // Hidden element playing the raw camera stream; we sample it into the canvas.
@@ -113,27 +126,22 @@ function createPortraitCaptureStream(rawStream) {
     video.srcObject = rawStream;
     video.play().catch((e) => console.warn('[Speech] portrait-capture playback failed:', e));
 
+    compositeLiveness = createLivenessCounter();
+    compositeLastSourceTime = 0;
+
     function draw() {
-        const vw = video.videoWidth;
-        const vh = video.videoHeight;
-        if (!vw || !vh) return; // metadata not ready yet
-        const canvasAspect = canvas.width / canvas.height;
-        const videoAspect = vw / vh;
-        let sx, sy, sw, sh;
-        if (videoAspect > canvasAspect) {
-            // Wider than 9:16 → keep full height, crop the sides.
-            sh = vh;
-            sw = vh * canvasAspect;
-            sx = (vw - sw) / 2;
-            sy = 0;
-        } else {
-            // Taller than 9:16 → keep full width, crop top/bottom.
-            sw = vw;
-            sh = vw / canvasAspect;
-            sx = 0;
-            sy = (vh - sh) / 2;
+        const rect = compositeCropRect({
+            videoWidth: video.videoWidth,
+            videoHeight: video.videoHeight,
+            canvasWidth: canvas.width,
+            canvasHeight: canvas.height,
+        });
+        paintCompositeFrame({ ctx, video, rect, canvasWidth: canvas.width, canvasHeight: canvas.height });
+        if (rect !== null) compositeLiveness.recordPaint();
+        if (video.currentTime > compositeLastSourceTime) {
+            compositeLiveness.recordSourceAdvance();
+            compositeLastSourceTime = video.currentTime;
         }
-        ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
     }
 
     // The caller (`ensureSpeechCamStream`) only builds this when
@@ -141,10 +149,10 @@ function createPortraitCaptureStream(rawStream) {
     draw();
     compositeRawStream = rawStream;
     compositeVideoEl = video;
-    compositeDrawTimer = setInterval(draw, 1000 / captureFps);
+    compositeDrawTimer = setInterval(draw, 1000 / dims.fps);
 
     return new MediaStream([
-        ...canvas.captureStream(captureFps).getVideoTracks(),
+        ...canvas.captureStream(dims.fps).getVideoTracks(),
         ...rawStream.getAudioTracks(),
     ]);
 }
@@ -153,6 +161,14 @@ function teardownPortraitCapture() {
     if (compositeDrawTimer) {
         clearInterval(compositeDrawTimer);
         compositeDrawTimer = null;
+    }
+    if (compositeLiveness) {
+        compositeLiveness.reset();
+        compositeLiveness = null;
+    }
+    if (compositeFreezeReporter) {
+        compositeFreezeReporter.reset();
+        compositeFreezeReporter = null;
     }
     if (compositeVideoEl) {
         try { compositeVideoEl.pause(); } catch (e) { /* ignore */ }
@@ -310,6 +326,36 @@ export async function startSpeechCamRecording(micStatusText, userData, { deferSt
 export function startDeferredSpeechCamRecording() {
     if (speechCamRecorder && speechCamRecorder.state === 'inactive') {
         speechCamRecorder.start();
+        // Frozen-take detection: report once if the composite stops producing
+        // frames. Sinks are logging + telemetry only (no user-facing copy in
+        // Phase 1). Meta is derived from appStore at tick time.
+        if (compositeLiveness) {
+            compositeFreezeReporter = createFreezeReporter({
+                snapshotCounter: () => compositeLiveness.snapshot(),
+                nowMs: () => performance.now(),
+                getMeta: () => {
+                    const state = appStore.getState();
+                    const lesson = state.configData?.lessons?.[state.currentLessonIndex];
+                    const step = lesson?.steps?.[state.currentStepIndex];
+                    return {
+                        lessonId: lesson?.lessonId || null,
+                        stepIndex: state.currentStepIndex ?? null,
+                        responseType: step?.responseType || null,
+                    };
+                },
+                getMessage: () => Strings.get('error_camera_frozen', getAppLanguage()),
+                onConsoleError: (msg, detail) => console.error(msg, detail),
+                onTrackEvent: (name, props) => trackEvent(name, props),
+                onUserMessage: () => { /* Phase 2: user-facing banner */ },
+            });
+            compositeFreezeReporter.start();
+            // Tick at 1 Hz.
+            const tickTimer = setInterval(() => {
+                if (compositeFreezeReporter) compositeFreezeReporter.tick();
+            }, 1000);
+            // Store the timer so stopSpeechCamRecording can clear it.
+            compositeFreezeReporter._tickTimer = tickTimer;
+        }
     }
 }
 
@@ -360,7 +406,16 @@ export function stopSpeechCamRecording({ download = true, persist = false, meta 
                         // Clear the array safely after processing
                         speechCamChunks = [];
 
-                        if (!keepStreamAlive || isAndroid) { setWebcamStream(null); safelyStopStream(); }
+                        // Clear frozen-take reporter + tick timer.
+                        if (compositeFreezeReporter && compositeFreezeReporter._tickTimer) {
+                            clearInterval(compositeFreezeReporter._tickTimer);
+                            compositeFreezeReporter._tickTimer = null;
+                        }
+                        if (compositeFreezeReporter) {
+                            compositeFreezeReporter.reset();
+                            compositeFreezeReporter = null;
+                        }
+                        if (shouldForceReleaseComposite({ isAndroid, keepStreamAlive, recordingStarted: true })) { setWebcamStream(null); safelyStopStream(); }
                         resolve(blobToReturn);
                     }
                 };
@@ -369,13 +424,27 @@ export function stopSpeechCamRecording({ download = true, persist = false, meta 
         } else {
             speechCamRecorder = null;
             speechCamChunks = [];
-            if (!keepStreamAlive || isAndroid) { setWebcamStream(null); safelyStopStream(); }
+            // Clear frozen-take reporter + tick timer.
+            if (compositeFreezeReporter && compositeFreezeReporter._tickTimer) {
+                clearInterval(compositeFreezeReporter._tickTimer);
+                compositeFreezeReporter._tickTimer = null;
+            }
+            if (compositeFreezeReporter) {
+                compositeFreezeReporter.reset();
+                compositeFreezeReporter = null;
+            }
+            if (shouldForceReleaseComposite({ isAndroid, keepStreamAlive, recordingStarted: false })) { setWebcamStream(null); safelyStopStream(); }
             else setWebcamStream(null);
             return Promise.resolve(null);
         }
     } catch (err) {
         speechCamRecorder = null;
         speechCamChunks = [];
+        if (compositeFreezeReporter && compositeFreezeReporter._tickTimer) {
+            clearInterval(compositeFreezeReporter._tickTimer);
+            compositeFreezeReporter._tickTimer = null;
+        }
+        compositeFreezeReporter = null;
         setWebcamStream(null); safelyStopStream();
         return Promise.resolve(null);
     }
