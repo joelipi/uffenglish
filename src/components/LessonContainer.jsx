@@ -113,12 +113,22 @@ export default function LessonContainer() {
     }, []);
 
     const onLoadNextLesson = useCallback(() => {
+        // Terminal lesson (no onward lesson in the chain): the final Continue
+        // button on the success screen has nowhere to advance to, so send the
+        // learner to the courses page instead of leaving them stranded.
+        const currentLesson = configData?.lessons?.[currentLessonIndex];
+        // Only a loaded lesson that explicitly has no onward lesson is terminal.
+        // (A missing lesson/config must not be treated as terminal.)
+        if (currentLesson && currentLesson.nextLessonId == null) {
+            navigate('/courses');
+            return;
+        }
         const currentStep = getCurrentStep();
         if (!currentStep) return;
         const stepDeps = buildStepDeps();
         if (!stepDeps) return;
         loadNextStepImpl(currentStep, null, stepDeps);
-    }, [getCurrentStep, buildStepDeps]);
+    }, [configData, currentLessonIndex, getCurrentStep, buildStepDeps, navigate]);
 
     // Branching: derive the render-ready view in the pure module, then delegate
     // the three actions. No offset math or label choice happens in this file.
