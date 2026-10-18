@@ -19,3 +19,4 @@ export async function mintShareCode() {
     }
     return generateShareCode();
 }
+

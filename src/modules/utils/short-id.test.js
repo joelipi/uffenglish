@@ -59,7 +59,6 @@ describe('toShortId', () => {
     it('exports ALPHABET with expected length and chars', () => {
         expect(ALPHABET.length).toBe(35);
         expect(ALPHABET).toBe('abcdefghijkmnopqrstuvwxyz0123456789');
-        // only `l` is excluded; `o`, `0` and `1` are kept
         expect(ALPHABET.includes('l')).toBe(false);
         expect(ALPHABET.includes('o')).toBe(true);
         expect(ALPHABET.includes('0')).toBe(true);
@@ -128,6 +127,19 @@ describe('isShareCodeSegment', () => {
         }
     });
 
+    it('keeps the Postgres generator in step with ALPHABET', () => {
+        const migPath = path.join(
+            path.dirname(fileURLToPath(import.meta.url)),
+            '..', '..', '..', 'supabase', 'migrations', '010_short_share_codes.sql',
+        );
+        const sql = readFileSync(migPath, 'utf8');
+        const m = sql.match(/alphabet text := '([^']+)';/);
+        expect(m, 'alphabet declaration not found').not.toBeNull();
+        expect(m[1]).toBe(ALPHABET);
+        expect(sql).toContain('for i in 1..5 loop');
+        expect(sql).toContain('floor(random() * length(alphabet))');
+    });
+
     it('derives its shape from ALPHABET and the code-length bounds', () => {
         const fnAt = source.indexOf('function isShareCodeSegment');
         const fnEnd = source.indexOf('\nexport function generateShareCode', fnAt);
@@ -140,14 +152,12 @@ describe('isShareCodeSegment', () => {
         expect(body).toContain('SHARE_CODE_MAX_LENGTH');
         expect(body).not.toMatch(/\[a-z0-9\]/);
 
-        // The space and the bounds are derived from the alphabet, not literals.
         expect(SHARE_CODE_SPACE).toBe(ALPHABET.length ** GENERATED_CODE_LENGTH);
         expect(toShortId(SHARE_CODE_SPACE - 1).length).toBe(SHARE_CODE_MAX_LENGTH);
 
         for (const char of ALPHABET) {
             expect(isShareCodeSegment(char + 'a'.repeat(SHARE_CODE_MIN_LENGTH - 1))).toBe(true);
         }
-        // `l` is the only excluded letter
         expect(isShareCodeSegment('l' + 'a'.repeat(SHARE_CODE_MIN_LENGTH - 1))).toBe(false);
     });
 });
