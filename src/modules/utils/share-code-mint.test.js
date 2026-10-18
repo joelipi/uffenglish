@@ -8,6 +8,7 @@ vi.mock('../api/supabase.js', () => ({
 
 import { mintShareCode } from './share-code-mint.js';
 import { isShareCodeSegment } from './short-id.js';
+import { RESERVED_SHARE_CODES } from './reserved-share-codes.js';
 
 describe('mintShareCode', () => {
     beforeEach(() => rpcSpy.mockReset());
@@ -23,13 +24,16 @@ describe('mintShareCode', () => {
         await expect(mintShareCode()).resolves.toBe('abcde');
     });
 
-    it('returns null when the RPC errors', async () => {
+    it('falls back to a reserved-filtered local code when the RPC errors', async () => {
         rpcSpy.mockResolvedValue({ data: null, error: new Error('boom') });
-        await expect(mintShareCode()).resolves.toBeNull();
+        const code = await mintShareCode();
+        expect(isShareCodeSegment(code)).toBe(true);
+        expect(RESERVED_SHARE_CODES.has(code)).toBe(false);
     });
 
-    it('returns null when the RPC returns a non-code value', async () => {
+    it('falls back when the RPC returns a non-code value', async () => {
         rpcSpy.mockResolvedValue({ data: 'ab-cd', error: null });
-        await expect(mintShareCode()).resolves.toBeNull();
+        const code = await mintShareCode();
+        expect(isShareCodeSegment(code)).toBe(true);
     });
 });

@@ -173,7 +173,7 @@ describe('isShareCodeSegment', () => {
 
     it('derives its shape from ALPHABET and the code-length bounds', () => {
         const fnAt = source.indexOf('function isShareCodeSegment');
-        const fnEnd = source.indexOf('\nexport {', fnAt);
+        const fnEnd = source.indexOf('\nexport function generateShareCode', fnAt);
         expect(fnAt).toBeGreaterThan(-1);
         expect(fnEnd).toBeGreaterThan(fnAt);
         const body = source.slice(fnAt, fnEnd);

@@ -10,7 +10,6 @@ import { calculateCurrentStreak } from '../../modules/user/user-profile.js';
 import { flushPendingFriendCredits } from '../../modules/user/friend-credit-sync.js';
 import { verifyTurnstileToken } from '../../modules/auth/turnstile-logic.js';
 import { mintShareCode } from '../../modules/utils/share-code-mint.js';
-import { generateShareCode } from '../../modules/utils/short-id.js';
 import {
     checkEmailAddress,
     normalizeEmail,
@@ -155,10 +154,7 @@ export function useSignupForm({
             const signupDates = lessonCredit.creditLesson
                 ? [new Date().toLocaleDateString('en-CA')]
                 : [];
-            const mintedCode = await mintShareCode();
-            // If the RPC was unreachable, fall back to the reserved-filtered
-            // local generator so the row and session still have a usable code.
-            const shareCode = mintedCode || generateShareCode();
+            const shareCode = await mintShareCode();
 
             // UPSERT, not insert. The fire-and-forget geo/referrer collection above
             // (collect-signup-data.js) also writes this row, via
@@ -212,7 +208,8 @@ export function useSignupForm({
                 display_name: fullName,
                 join_date: user.created_at,
                 auth_method: 'supabase',
-                ...(shareCode ? { shareCode, share_code: shareCode } : {}),
+                shareCode,
+                share_code: shareCode,
                 firstName: firstName.trim(),
                 lastName: lastName.trim(),
                 native_language: nativeLanguage,

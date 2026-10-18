@@ -5,7 +5,6 @@ import { appStore } from '../store/store.js';
 import { nextLessonCompletion } from './lesson-count-logic.js';
 import { profileIsIncomplete, planProfileRepair } from './profile-repair-logic.js';
 import { mintShareCode } from '../utils/share-code-mint.js';
-import { generateShareCode } from '../utils/short-id.js';
 
 /**
  * Fold a freshly written profile payload into the store's copy of the user, so
@@ -110,9 +109,7 @@ export async function ensureCompleteProfileRow(userData) {
     // the server (reserved-word + uniqueness checked); if the RPC is
     // unreachable, fall back to the reserved-filtered local generator.
     const needsShareCode = !row || !row.share_code;
-    const candidateShareCode = needsShareCode
-        ? (await mintShareCode()) || generateShareCode()
-        : null;
+    const candidateShareCode = needsShareCode ? await mintShareCode() : null;
 
     const plan = planProfileRepair({ row, user, shareCode: candidateShareCode });
     if (plan.action === 'none') return { confirmed: true, payload: null };
