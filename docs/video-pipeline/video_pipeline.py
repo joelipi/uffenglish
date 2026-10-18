@@ -1450,9 +1450,9 @@ def process_single_video(row):
                 phrase_composited_clip = clip_for_effects
             phrase_composited_clip = add_background_sound(phrase_composited_clip, safe_get_value(row, 'bgSound'))
             phrase_composited_clip = add_ending_sound(phrase_composited_clip, safe_get_value(row, 'endSoundEffect'))
-            temp_name = f".phrase_{output_filename}"
+            temp_name = f".phrase_{base_filename}"
             phrase_composited_clip.write_videofile(social_path(temp_name), **social_write_kwargs(fps=base_video_clip.fps))
-            write_web_from_master(social_path(temp_name), web_path(output_filename))
+            write_web_from_master(social_path(temp_name), web_path(base_filename))
             try:
                 os.remove(social_path(temp_name))
             except Exception:

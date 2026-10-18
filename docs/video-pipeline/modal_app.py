@@ -32,6 +32,7 @@ from pipeline_lib import (
     estimate_cost,
     fetch_sheet_csv,
     plan_publish,
+    plan_publish_phrase_takes,
     pipeline_asset_key,
     raw_take_key,
     resolve_sheet_url,
@@ -277,6 +278,12 @@ def orchestrator(spec: dict):
         # join column), so it needs the rendered `output/web` listing; the
         # social twins share one compositing pass with it.
         plan = plan_publish(rows, os.listdir(pipeline.WEB_DIR), only=files)
+        # Per-take phrase-only web videos are named after the raw take (no
+        # `processed_`/`_full` suffix) and are served to the app as-is.
+        take_plan = plan_publish_phrase_takes(os.listdir(pipeline.WEB_DIR), only=files)
+        seen = {e["slug"] for e in plan}
+        take_plan = [e for e in take_plan if e["slug"] not in seen]
+        plan = plan + take_plan
         publish_result = _publish(plan)
         published = publish_result["published"]
         social_published = publish_result["social_published"]
