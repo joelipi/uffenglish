@@ -33,8 +33,8 @@ const SHORT_ID_MAX_LENGTH = toShortId(SHARE_CODE_SPACE - 1).length;
  * `/nonsense` matches the `/:shareCode` route just like `/k9gyi` does, because
  * React Router cannot see the difference. This is the difference: a share code
  * is lowercase and drawn from ALPHABET, at the generator's min length or
- * longer, and no longer than the largest code the generator can mint. Anything
- * else is a mistyped path and must fall through to the 404 page.
+ * longer, and at most the length of the largest code the generator can mint.
+ * Anything else is a mistyped path and must fall through to the 404 page.
  *
  * Derived from ALPHABET + SHORT_ID_MIN_LENGTH + the generator's space rather
  * than a second hand-written regex, so changing the generator cannot leave the

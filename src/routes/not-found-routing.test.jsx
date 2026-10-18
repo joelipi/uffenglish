@@ -68,6 +68,18 @@ describe('unknown-URL routing', () => {
 
     const lastMatch = (router) => router.state.matches[router.state.matches.length - 1];
 
+    it('finishes the preloader exactly once on the 404 branch', () => {
+        renderAt('/nonsense');
+        expect(container.querySelector('[data-testid="not-found-route"]')).not.toBeNull();
+        expect(finishPreloader).toHaveBeenCalledTimes(1);
+    });
+
+    it('finishes the preloader exactly once on the profile branch', () => {
+        renderAt('/abcd');
+        expect(container.querySelector('[data-testid="public-profile"]')).not.toBeNull();
+        expect(finishPreloader).toHaveBeenCalledTimes(1);
+    });
+
     it('renders the 404 page for a two-or-more-segment unknown URL', () => {
         const router = renderAt('/a/b/c');
         expect(container.querySelector('[data-testid="not-found-route"]')).not.toBeNull();
