@@ -1050,6 +1050,25 @@ describe('recorder auto-render — zero server changes', () => {
             'tests/hide-signup-skip-button.spec.js',
             // Desktop frame regression: the landing page must not be clipped.
             'tests/landing-frame-desktop.spec.js',
+            // Story 072 (frozen speech capture): the 9:16 camera composite, the
+            // frozen-take detector, and the 3-2-1 pre-roll countdown that holds
+            // back the localized speak overlay.
+            'src/components/widgets/WebcamPreview.jsx',
+            'src/components/widgets/MicStatusText.jsx',
+            'src/components/widgets/recording-countdown-wiring.test.js',
+            'src/modules/speech/speech-orchestrator.js',
+            'src/modules/speech/speech-orchestrator.test.js',
+            'src/modules/store/store.js',
+            'src/modules/speech/speech.web.js',
+            'src/modules/speech/portrait-capture-logic.js',
+            'src/modules/speech/portrait-capture-logic.test.js',
+            'src/modules/speech/portrait-capture-guards.test.js',
+            'src/modules/lesson/step-executor-webonly.js',
+            'playwright.config.js',
+            'tests/composite-freeze-guard.spec.js',
+            'stories/072-fix-frozen-speech-capture/story.md',
+            'docs/product.md',
+            'docs/learnings.md',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);

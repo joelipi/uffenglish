@@ -85,11 +85,7 @@ export default function WebcamPreview() {
                         pointerEvents: 'none',
                     }}
                 >
-                    {recordingCountdown === 'mic' ? (
-                        <span style={{ fontSize: '80px' }}>🎤</span>
-                    ) : (
-                        recordingCountdown
-                    )}
+                    {recordingCountdown}
                 </div>
             )}
         </div>
