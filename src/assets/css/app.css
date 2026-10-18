@@ -1277,7 +1277,7 @@ body { margin: 0; font-family: var(--font-body); font-size: 1rem; font-weight: 4
     animation: riseThroughWater 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
     z-index: 1;
 }
-/* Branching overlay: the "Choose how you will respond." headline sits below
+/* Branching overlay: the "Choose what you will say." headline sits below
    the blurred header band (the top ~18.5% of the frame — see .video-header-blur)
    and above the stacked choice buttons in the bottom band, which the layout
    keeps within the bottom 40% (60% from the bottom) and so never reach the
