@@ -44,7 +44,7 @@ import IncomingVideoWidget from './IncomingVideoWidget.jsx';
 import PointLossOverlay from './PointLossOverlay.jsx';
 import PlaybackVideo from './PlaybackVideo.jsx';
 import { loadNextStep as loadNextStepImpl, jumpToStep as jumpToStepImpl, replaySimpleVideo, handleTutorChatSubmit } from '../modules/lesson/lesson-progression.js';
-import { buildBranchChoiceView, isBranchingStep } from '../modules/lesson/branch-choice-logic.js';
+import { buildBranchChoiceView, isBranchingStep, resolveBranchLevel } from '../modules/lesson/branch-choice-logic.js';
 import { isVideoHeaderBlurVisible, videoHeaderBlurStyle } from '../modules/video/video-header-logic.js';
 import { loadLessonContent } from '../modules/lesson/lesson-loader.js';
 import { loadStep } from './step-loader.js';
@@ -61,6 +61,16 @@ export default function LessonContainer() {
     const bottomOverlayVisible = useStore(appStore, (state) => state.bottomOverlayVisible);
     const bottomState = useStore(appStore, (state) => state.bottomState);
     const labelLang = useNativeLanguage();
+
+    // Branching choice depth: an array of sibling keys, one per group entered.
+    // Reset whenever the lesson moves to a different step so a fresh row of
+    // buttons always starts at the first level. Kept here (not in the
+    // presentational row) because the overlay headline in SimpleVideoPlayer
+    // needs the depth too.
+    const [branchPath, setBranchPath] = useState([]);
+    useEffect(() => {
+        setBranchPath((prev) => (prev.length === 0 ? prev : []));
+    }, [currentStepIndex]);
 
     const [lesson, setLesson] = useState(null);
 
@@ -131,14 +141,26 @@ export default function LessonContainer() {
     }, [configData, currentLessonIndex, getCurrentStep, buildStepDeps, navigate]);
 
     // Branching: derive the render-ready view in the pure module, then delegate
-    // the three actions. No offset math or label choice happens in this file.
+    // the actions. No offset math or label choice happens in this file.
     const handleBranchChoose = useCallback((targetIndex) => {
         const stepDeps = buildStepDeps();
         if (!stepDeps) return;
         jumpToStepImpl(targetIndex, stepDeps);
     }, [buildStepDeps]);
 
+    // Enter a nested group: extend the path so resolveBranchLevel reveals it.
+    const handleBranchChooseGroup = useCallback((key) => {
+        setBranchPath((prev) => [...prev, key]);
+    }, []);
+
+    // Back out of a nested group (never changes currentStepIndex).
+    const handleBranchBack = useCallback(() => {
+        setBranchPath((prev) => prev.slice(0, -1));
+    }, []);
+
+    // Replay restarts the clip, so the buttons must restart at the first level.
     const handleBranchReplay = useCallback(() => {
+        setBranchPath((prev) => (prev.length === 0 ? prev : []));
         replaySimpleVideo();
     }, []);
 
@@ -162,6 +184,13 @@ export default function LessonContainer() {
             lang: labelLang,
         }),
         [currentStep, currentStepIndex, branchStepCount, labelLang]
+    );
+
+    // The visible level for the chosen path (root at depth 0). Pure module
+    // walks the tree; this file only supplies the path.
+    const branchLevelView = useMemo(
+        () => resolveBranchLevel(branchView, branchPath),
+        [branchView, branchPath]
     );
 
     return (
@@ -279,8 +308,10 @@ export default function LessonContainer() {
                             {bottomState === 'branchChoices' && (
                                 <div className="d-flex justify-content-center align-items-center w-100">
                                     <BranchChoiceButtons
-                                        view={branchView}
+                                        view={branchLevelView}
                                         onChoose={handleBranchChoose}
+                                        onChooseGroup={handleBranchChooseGroup}
+                                        onBack={handleBranchBack}
                                         onReplay={handleBranchReplay}
                                         onContinue={onLoadNextLesson}
                                     />
@@ -311,7 +342,7 @@ export default function LessonContainer() {
             {/* Media Viewport cleanly houses the pure React players now */}
             <div id="media-viewport" className={`position-absolute top-0 start-0 w-100 h-100${mediaVisible ? '' : ' media-viewport-hidden'}`} style={mediaState === 'processingRecording' || mediaState === 'preflightRejected' || mediaState === 'hidden' || mediaState === 'preloader' ? { display: 'none' } : undefined}>
                 <InteractiveVideoPlayer />
-                <SimpleVideoPlayer />
+                <SimpleVideoPlayer branchDepth={branchPath.length} />
             </div>
 
             <IncomingVideoWidget />

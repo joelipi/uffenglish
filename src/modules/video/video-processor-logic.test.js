@@ -298,6 +298,48 @@ describe('VideoRenderPlanner.generatePlan — recapSources clip selection', () =
         }
     });
 
+    it('borrows the branching step’s friend clip for a nested (two-step) branch target', () => {
+        // Same borrow rule, but the branching step nests: the targets live under
+        // the groups' children. resolveBranchChoices must flatten the tree so the
+        // parent lookup still finds the branching step for every leaf.
+        const steps = [
+            { responseType: 'lessonIntro', introBackgroundVideoUrl: 'testvideo01' },
+            {
+                responseType: 'branching',
+                simpleVideoUrl: 'ab12-model-w-response-01',
+                chooseStep: [
+                    {
+                        text: { en: 'Yes' },
+                        chooseStep: [
+                            { nextStep: 1, text: { en: 'Love it' } },
+                            { nextStep: 2, text: { en: 'Like it' } },
+                        ],
+                    },
+                    {
+                        text: { en: 'No' },
+                        chooseStep: [
+                            { nextStep: 3, text: { en: "Don't like it" } },
+                        ],
+                    },
+                ],
+            },
+            { responseType: 'friendClosedResponse', simpleVideoUrl: 'testvideo05', cue: 'Q1a' },
+            { responseType: 'friendClosedResponse', simpleVideoUrl: 'testvideo06', cue: 'Q1b' },
+            { responseType: 'friendClosedResponse', simpleVideoUrl: 'testvideo07', cue: 'Q1c' },
+        ];
+        for (const chosenStep of [2, 3, 4]) {
+            const recordings = [
+                { originalLessonId: 'w', originalStepIndex: chosenStep, blob: { size: 1 }, userResponse: 'a' },
+            ];
+            const plan = new VideoRenderPlanner(
+                recordings, makeConfig({ recapSources: 'friend', steps }), { total: 80 }, 'en', 'ab12'
+            ).generatePlan();
+
+            expect(plan.map(s => s.type), `nested branch target ${chosenStep}`).toEqual(['remote', 'webcam', 'tailing']);
+            expect(plan.find(s => s.type === 'remote').targetId).toBe('ab12-model-w-response-01');
+        }
+    });
+
     it('does not borrow a friend clip for a response that starts a new phase', () => {
         // No branching step here: the second recording follows the first
         // question's response sequentially (the "record the original" phase), so

@@ -65,6 +65,61 @@ describe('BranchChoiceButtons', () => {
         expect(onChoose).toHaveBeenCalledWith(3);
     });
 
+    // A nested step: choice 0 is a GROUP (children present), choice 1 is a leaf.
+    const nestedView = {
+        choices: [
+            {
+                key: 0,
+                label: { english: 'Yes', localized: 'Sí', lang: 'es', showEnglish: true },
+                children: [
+                    { key: 0, targetIndex: 3, label: { english: 'I love it', localized: null, lang: 'es', showEnglish: true } },
+                    { key: 1, targetIndex: 4, label: { english: 'A little', localized: null, lang: 'es', showEnglish: true } },
+                ],
+            },
+            { key: 1, targetIndex: 5, label: { english: 'No', localized: null, lang: 'es', showEnglish: true } },
+        ],
+        showContinue: false,
+        canGoBack: false,
+    };
+
+    it('calls onChooseGroup (not onChoose) when a group button is pressed', () => {
+        const onChoose = vi.fn();
+        const onChooseGroup = vi.fn();
+        render({ view: nestedView, onChoose, onChooseGroup, onBack: vi.fn(), onReplay: vi.fn(), onContinue: vi.fn() });
+
+        click(container.querySelector('#branchChoiceBtn-0'));
+        expect(onChooseGroup).toHaveBeenCalledWith(0);
+        expect(onChoose).not.toHaveBeenCalled();
+    });
+
+    it('calls onChoose (not onChooseGroup) when a leaf button is pressed', () => {
+        const onChoose = vi.fn();
+        const onChooseGroup = vi.fn();
+        render({ view: nestedView, onChoose, onChooseGroup, onBack: vi.fn(), onReplay: vi.fn(), onContinue: vi.fn() });
+
+        click(container.querySelector('#branchChoiceBtn-1'));
+        expect(onChoose).toHaveBeenCalledWith(5);
+        expect(onChooseGroup).not.toHaveBeenCalled();
+    });
+
+    it('renders a Back button when canGoBack and calls onBack', () => {
+        const onBack = vi.fn();
+        render({
+            view: { ...nestedView, canGoBack: true },
+            onChoose: vi.fn(), onChooseGroup: vi.fn(), onBack, onReplay: vi.fn(), onContinue: vi.fn(),
+        });
+
+        const back = container.querySelector('#branchBackBtn');
+        expect(back).not.toBeNull();
+        click(back);
+        expect(onBack).toHaveBeenCalledTimes(1);
+    });
+
+    it('renders no Back button at the first level', () => {
+        render({ view: nestedView, onChoose: vi.fn(), onChooseGroup: vi.fn(), onBack: vi.fn(), onReplay: vi.fn(), onContinue: vi.fn() });
+        expect(container.querySelector('#branchBackBtn')).toBeNull();
+    });
+
     it('drops the English line when showEnglish is false', () => {
         render({
             view: {

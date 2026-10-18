@@ -6,12 +6,16 @@ import {
     BRANCH_RESPONSE_TYPE,
     BRANCH_OVERLAY_PHASE,
     BRANCH_OVERLAY_TEXT_KEY,
+    BRANCH_DEEP_OVERLAY_TEXT_KEY,
     BRANCH_LABEL_CHAR_CAP,
     isBranchingStep,
+    resolveBranchNodes,
     resolveBranchChoices,
     resolveNextStepIndex,
     formatBranchChoiceLabel,
     buildBranchChoiceView,
+    resolveBranchLevel,
+    getBranchHeadingKey,
 } from './branch-choice-logic.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -26,6 +30,7 @@ describe('branch-choice-logic constants', () => {
         expect(BRANCH_RESPONSE_TYPE).toBe('branching');
         expect(BRANCH_OVERLAY_PHASE).toBe('simpleVideo-decisionTime-branching');
         expect(BRANCH_OVERLAY_TEXT_KEY).toBe('video_choose_how_respond');
+        expect(BRANCH_DEEP_OVERLAY_TEXT_KEY).toBe('video_choose_exactly');
         expect(BRANCH_LABEL_CHAR_CAP).toBe(48);
     });
 
@@ -34,6 +39,100 @@ describe('branch-choice-logic constants', () => {
         expect(isBranchingStep({ responseType: 'closedResponse' })).toBe(false);
         expect(isBranchingStep(null)).toBe(false);
         expect(isBranchingStep(undefined)).toBe(false);
+    });
+});
+
+describe('getBranchHeadingKey', () => {
+    it('returns the first-row heading at depth 0 or when depth is absent', () => {
+        expect(getBranchHeadingKey(0)).toBe(BRANCH_OVERLAY_TEXT_KEY);
+        expect(getBranchHeadingKey()).toBe(BRANCH_OVERLAY_TEXT_KEY);
+    });
+
+    it('returns the nested-row heading at every deeper depth', () => {
+        expect(getBranchHeadingKey(1)).toBe(BRANCH_DEEP_OVERLAY_TEXT_KEY);
+        expect(getBranchHeadingKey(2)).toBe(BRANCH_DEEP_OVERLAY_TEXT_KEY);
+    });
+});
+
+const nestedStep = {
+    responseType: 'branching',
+    chooseStep: [
+        {
+            text: { en: 'Yes', es: 'Sí' },
+            chooseStep: [
+                { nextStep: 1, text: { en: 'I love it' } },
+                { nextStep: 2, text: { en: 'I like it a little' } },
+            ],
+        },
+        {
+            text: { en: 'No' },
+            chooseStep: [
+                { nextStep: 3, text: { en: "I don't like it" } },
+            ],
+        },
+    ],
+};
+
+describe('resolveBranchNodes', () => {
+    it('resolves group entries with children whose offsets are relative to the branching index', () => {
+        const nodes = resolveBranchNodes(nestedStep, 2, 8);
+        expect(nodes).toHaveLength(2);
+        expect(nodes[0].text).toEqual({ en: 'Yes', es: 'Sí' });
+        expect(nodes[0].targetIndex).toBeUndefined();
+        expect(nodes[0].children).toHaveLength(2);
+        expect(nodes[0].children[0].targetIndex).toBe(3);
+        expect(nodes[0].children[1].targetIndex).toBe(4);
+        expect(nodes[1].children[0].targetIndex).toBe(5);
+    });
+
+    it('drops a group whose every child is invalid', () => {
+        const step = {
+            chooseStep: [
+                {
+                    text: { en: 'Bad' },
+                    chooseStep: [
+                        { nextStep: 0, text: { en: 'zero' } },
+                        { nextStep: 99, text: { en: 'past the end' } },
+                        { nextStep: 1 },
+                    ],
+                },
+                { text: { en: 'Good' }, chooseStep: [{ nextStep: 1, text: { en: 'z' } }] },
+            ],
+        };
+        const nodes = resolveBranchNodes(step, 2, 8);
+        expect(nodes).toHaveLength(1);
+        expect(nodes[0].text).toEqual({ en: 'Good' });
+    });
+
+    it('keeps a flat chooseStep of leaves (story-054 shape)', () => {
+        const flat = {
+            chooseStep: [
+                { nextStep: 1, text: { en: 'A' } },
+                { nextStep: 2, text: { en: 'B' } },
+            ],
+        };
+        const nodes = resolveBranchNodes(flat, 2, 8);
+        expect(nodes.map((n) => n.targetIndex)).toEqual([3, 4]);
+        expect(nodes.every((n) => n.children === undefined)).toBe(true);
+    });
+
+    it('returns [] for absent, object or string chooseStep', () => {
+        expect(resolveBranchNodes({}, 2, 8)).toEqual([]);
+        expect(resolveBranchNodes({ chooseStep: undefined }, 2, 8)).toEqual([]);
+        expect(resolveBranchNodes({ chooseStep: 'nope' }, 2, 8)).toEqual([]);
+        expect(resolveBranchNodes(null, 2, 8)).toEqual([]);
+    });
+});
+
+describe('resolveBranchChoices (nested)', () => {
+    it('flattens every reachable leaf in depth-first array order', () => {
+        const leaves = resolveBranchChoices(nestedStep, 2, 8);
+        expect(leaves.map((l) => l.targetIndex)).toEqual([3, 4, 5]);
+        expect(leaves.map((l) => l.text)).toEqual([
+            { en: 'I love it' },
+            { en: 'I like it a little' },
+            { en: "I don't like it" },
+        ]);
     });
 });
 
@@ -229,6 +328,120 @@ describe('buildBranchChoiceView', () => {
             step: { chooseStep: [{ nextStep: 0, text: { en: 'x' } }] },
             currentStepIndex: 2, stepCount: 6, lang: 'es',
         })).toEqual({ choices: [], showContinue: true });
+    });
+});
+
+describe('buildBranchChoiceView (nested)', () => {
+    it('maps nested nodes to keyed group and leaf choices', () => {
+        const view = buildBranchChoiceView({ step: nestedStep, currentStepIndex: 2, stepCount: 8, lang: 'es' });
+        expect(view.showContinue).toBe(false);
+        expect(view.choices).toHaveLength(2);
+
+        const group = view.choices[0];
+        expect(group.key).toBe(0);
+        expect(group.targetIndex).toBeUndefined();
+        expect(group.label).toEqual({ english: 'Yes', localized: 'Sí', lang: 'es', showEnglish: true });
+        expect(group.children).toHaveLength(2);
+        expect(group.children[0]).toEqual({
+            key: 0,
+            label: { english: 'I love it', localized: null, lang: 'es', showEnglish: true },
+            targetIndex: 3,
+        });
+        expect(group.children[1].key).toBe(1);
+        expect(group.children[1].targetIndex).toBe(4);
+
+        const secondGroup = view.choices[1];
+        expect(secondGroup.children[0].targetIndex).toBe(5);
+    });
+
+    // The cap is decided once per LEVEL, not once per step: a long label inside
+    // a group must not strip English from the group's own (short) row.
+    it('decides the English cap per level', () => {
+        const overCapText = () => ({
+            en: 'a'.repeat(24),
+            es: 'b'.repeat(BRANCH_LABEL_CHAR_CAP - 24 + 1),
+        });
+        const step = {
+            responseType: 'branching',
+            chooseStep: [
+                {
+                    text: { en: 'Yes', es: 'Sí' },
+                    chooseStep: [
+                        { nextStep: 1, text: overCapText() },
+                        { nextStep: 2, text: { en: 'Short', es: 'Corto' } },
+                    ],
+                },
+            ],
+        };
+        const view = buildBranchChoiceView({ step, currentStepIndex: 0, stepCount: 4, lang: 'es' });
+        // Root row: the group label is short, so it keeps both lines.
+        expect(view.choices[0].label.showEnglish).toBe(true);
+        // Nested row: the over-cap sibling forces translation-only for the level.
+        expect(view.choices[0].children.map((c) => c.label.showEnglish)).toEqual([false, false]);
+        expect(view.choices[0].children[0].label.localized).toBe(overCapText().es);
+    });
+
+    it('sets showContinue when no valid node resolves', () => {
+        expect(buildBranchChoiceView({
+            step: { chooseStep: [{ text: { en: 'x' }, chooseStep: [] }] },
+            currentStepIndex: 2, stepCount: 6, lang: 'es',
+        })).toEqual({ choices: [], showContinue: true });
+    });
+});
+
+describe('resolveBranchLevel', () => {
+    const view = buildBranchChoiceView({ step: nestedStep, currentStepIndex: 2, stepCount: 8, lang: 'en' });
+
+    it('returns the root level with canGoBack false when no path is given', () => {
+        const level = resolveBranchLevel(view);
+        expect(level.choices).toBe(view.choices);
+        expect(level.canGoBack).toBe(false);
+        expect(level.showContinue).toBe(false);
+    });
+
+    it('descends one level and reports canGoBack true', () => {
+        const level = resolveBranchLevel(view, [0]);
+        expect(level.choices).toBe(view.choices[0].children);
+        expect(level.canGoBack).toBe(true);
+        expect(level.showContinue).toBe(false);
+    });
+
+    it('walks two levels', () => {
+        const deeperStep = {
+            responseType: 'branching',
+            chooseStep: [
+                { text: { en: 'L1' }, chooseStep: [
+                    { text: { en: 'L2' }, chooseStep: [
+                        { nextStep: 1, text: { en: 'Leaf' } },
+                    ] },
+                ] },
+            ],
+        };
+        const deepView = buildBranchChoiceView({ step: deeperStep, currentStepIndex: 0, stepCount: 3, lang: 'en' });
+        const level = resolveBranchLevel(deepView, [0, 0]);
+        expect(level.canGoBack).toBe(true);
+        expect(level.choices[0].targetIndex).toBe(1);
+    });
+
+    it('falls back to the root for an out-of-range or non-array path', () => {
+        expect(resolveBranchLevel(view, [9]).choices).toBe(view.choices);
+        expect(resolveBranchLevel(view, [9]).canGoBack).toBe(false);
+        expect(resolveBranchLevel(view, 'nope').choices).toBe(view.choices);
+        expect(resolveBranchLevel(view, 'nope').canGoBack).toBe(false);
+    });
+
+    it('falls back to the root when a path key names a leaf', () => {
+        // view.choices[0].children[0] is a leaf (no children), so [0, 0] cannot
+        // descend twice.
+        const level = resolveBranchLevel(view, [0, 0]);
+        expect(level.choices).toBe(view.choices);
+        expect(level.canGoBack).toBe(false);
+    });
+
+    it('mirrors showContinue at the root of an empty view', () => {
+        expect(resolveBranchLevel({ choices: [], showContinue: true })).toEqual({
+            choices: [], canGoBack: false, showContinue: true,
+        });
     });
 });
 

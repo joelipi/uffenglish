@@ -17,7 +17,7 @@ const hasNavigator = typeof navigator !== 'undefined';
 const isIOS = hasNavigator && (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
 const isAndroid = hasNavigator && /Android/.test(navigator.userAgent);
 
-export default function SimpleVideoPlayer() {
+export default function SimpleVideoPlayer({ branchDepth = 0 } = {}) {
     const { isActive, config, subtitleText, isTimedSubtitles, scrollRatio, updateProgress } = useSimpleVideo();
     const mediaVisible = useStore(appStore, (s) => s.mediaVisible);
     const mediaState = useStore(appStore, (s) => s.mediaState);
@@ -48,7 +48,7 @@ export default function SimpleVideoPlayer() {
     const currentVideo = useStore(appStore, (s) => s.currentVideo);
     const overlayLang = useNativeLanguage();
 
-    const overlayTextKey = getSimpleVideoOverlayTextKey(appPhase, currentVideo);
+    const overlayTextKey = getSimpleVideoOverlayTextKey(appPhase, currentVideo, branchDepth);
     const overlayBilingual = useMemo(
         () => getBilingual(overlayTextKey, overlayLang),
         [overlayTextKey, overlayLang]

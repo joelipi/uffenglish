@@ -5,7 +5,7 @@ import {
     getResponseAnswerLabelKey,
     getSimpleVideoOverlayTextKey,
 } from './response-decision-logic.js';
-import { BRANCH_OVERLAY_PHASE, BRANCH_OVERLAY_TEXT_KEY } from '../lesson/branch-choice-logic.js';
+import { BRANCH_OVERLAY_PHASE, BRANCH_OVERLAY_TEXT_KEY, BRANCH_DEEP_OVERLAY_TEXT_KEY } from '../lesson/branch-choice-logic.js';
 
 describe('response-decision-logic', () => {
     describe('isClosedResponseType', () => {
@@ -52,6 +52,15 @@ describe('response-decision-logic', () => {
     describe('getSimpleVideoOverlayTextKey', () => {
         it('returns the branch heading for the branch overlay phase', () => {
             expect(getSimpleVideoOverlayTextKey(BRANCH_OVERLAY_PHASE, null)).toBe(BRANCH_OVERLAY_TEXT_KEY);
+        });
+
+        it('returns the nested branch heading once a branch level has been entered', () => {
+            expect(getSimpleVideoOverlayTextKey(BRANCH_OVERLAY_PHASE, null, 1)).toBe(BRANCH_DEEP_OVERLAY_TEXT_KEY);
+            expect(getSimpleVideoOverlayTextKey(BRANCH_OVERLAY_PHASE, null, 2)).toBe(BRANCH_DEEP_OVERLAY_TEXT_KEY);
+        });
+
+        it('ignores the branch depth outside the branch phase', () => {
+            expect(getSimpleVideoOverlayTextKey('simpleVideo', null, 3)).toBe('video_continue');
         });
 
         it('delegates the response phase to getResponseOverlayTextKey', () => {

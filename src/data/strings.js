@@ -2356,6 +2356,25 @@ const strings = {
         hi: "चुनें कि आप कैसे उत्तर देंगे।",
         bn: "আপনি কীভাবে উত্তর দেবেন তা বেছে নিন।"
     },
+    // Branching step: heading over the NESTED (second-or-deeper) row of buttons,
+    // shown once the learner has picked a group at the previous level.
+    'video_choose_exactly': {
+        en: "Now choose exactly what you want to say.",
+        es: "Ahora elige exactamente lo que quieres decir.",
+        pt: "Agora escolha exatamente o que você quer dizer.",
+        fr: "Choisissez maintenant exactement ce que vous voulez dire.",
+        hi: "अब ठीक वही चुनें जो आप कहना चाहते हैं।",
+        bn: "এখন আপনি ঠিক কী বলতে চান তা বেছে নিন।"
+    },
+    // Branching step: return from a nested choice level to the previous one.
+    'branch_back': {
+        en: "BACK",
+        es: "ATRÁS",
+        pt: "VOLTAR",
+        fr: "RETOUR",
+        hi: "वापस",
+        bn: "পিছনে"
+    },
     // Shown over the lesson-success video once it ends, so the learner knows
     // the revealed button creates the recap video they can share.
     'video_continue_create': {

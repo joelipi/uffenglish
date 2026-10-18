@@ -811,6 +811,31 @@ body { margin: 0; font-family: var(--font-body); font-size: 1rem; font-weight: 4
     font-weight: 500;
     opacity: 0.85;
 }
+/* A GROUP button (one that reveals a deeper row of choices) gets a chevron on
+   the right. The label stays centred like a leaf button so the two remain
+   visually consistent; the caret sits in the reserved padding. */
+.branch-choice-group-btn {
+    position: relative;
+    padding-right: 28px;
+}
+.branch-choice-btn .branch-choice-caret {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.9rem;
+    opacity: 0.85;
+}
+/* Back from a nested level to the previous one. Centred like the call buttons
+   so it never reads as one of the choice answers. */
+.branch-choice-back-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-weight: 600;
+    opacity: 0.9;
+}
 /*
 @container player (min-width: 420px) {
     .mission-section {
