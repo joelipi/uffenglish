@@ -191,14 +191,16 @@ export function useSignupForm({
                 throw insertError;
             }
 
-            let shareCode = null;
-            try {
-                const { data: row, error: readErr } = await supabase.from('user_profiles')
-                    .select('share_code').eq('id', user.id).maybeSingle();
-                if (readErr) throw readErr;
-                if (row?.share_code) shareCode = row.share_code;
-            } catch (readErr) {
-                console.warn('[Signup] could not read back share_code:', readErr?.message || readErr);
+            let shareCode = mintedCode;
+            if (!shareCode) {
+                try {
+                    const { data: row, error: readErr } = await supabase.from('user_profiles')
+                        .select('share_code').eq('id', user.id).maybeSingle();
+                    if (readErr) throw readErr;
+                    if (row?.share_code) shareCode = row.share_code;
+                } catch (readErr) {
+                    console.warn('[Signup] could not read back share_code:', readErr?.message || readErr);
+                }
             }
 
             identifyUser(user.id, {

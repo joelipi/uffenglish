@@ -138,15 +138,16 @@ describe('isShareCodeSegment', () => {
         expect(m[1]).toBe(ALPHABET);
         expect(sql).toContain('for i in 1..5 loop');
         expect(sql).toContain('floor(random() * length(alphabet))');
-        expect(sql).toContain("length(NEW.share_code) not in (4, 5)");
+        expect(sql).toContain("length(code) not in (4, 5)");
         // The trigger's validation regex must use the same alphabet, otherwise
         // it can reject codes the generator mints.
-        const r = sql.match(/!\~ '(\^[^']+)'/);
-        expect(r, 'validation regex not found').not.toBeNull();
-        // extract the bracketed class
-        const classMatch = r[1].match(/\[([^\]]+)\]/);
-        expect(classMatch, 'validation char class not found').not.toBeNull();
-        expect(classMatch[1]).toBe(ALPHABET);
+        const regexes = [...sql.matchAll(/!\~ '(\^[^']+)'/g)].map((x) => x[1]);
+        expect(regexes.length).toBeGreaterThan(0);
+        for (const r of regexes) {
+            const classMatch = r.match(/\[([^\]]+)\]/);
+            expect(classMatch, 'validation char class not found').not.toBeNull();
+            expect(classMatch[1]).toBe(ALPHABET);
+        }
         expect(sql).toContain('create trigger trg_fill_share_code');
     });
 

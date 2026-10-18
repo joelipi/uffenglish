@@ -112,8 +112,7 @@ export async function ensureCompleteProfileRow(userData) {
     const needsShareCode = !row || !row.share_code;
     const candidateShareCode = needsShareCode ? await mintShareCode() : null;
     if (needsShareCode && !candidateShareCode) {
-        console.warn('[user-profile] could not mint a share code; skipping repair');
-        return { confirmed: false, payload: null, reason: 'mint-failed' };
+        console.warn('[user-profile] could not mint a share code via RPC; relying on the DB trigger');
     }
 
     const plan = planProfileRepair({ row, user, shareCode: candidateShareCode });
@@ -125,6 +124,16 @@ export async function ensureCompleteProfileRow(userData) {
         + ` (${Object.keys(plan.payload).length - 1} field(s))`,
     );
     mergeRepairedProfileIntoStore(plan.payload);
+    // When the code came from the DB trigger (RPC unreachable), read it back
+    // so this session can use it.
+    if (needsShareCode && !candidateShareCode) {
+        const { row: freshRow, error: freshErr } = await fetchProfileIdentityRow(userId);
+        if (freshErr) {
+            console.warn('[user-profile] could not read back share_code:', freshErr?.message || freshErr);
+        } else if (freshRow?.share_code) {
+            mergeRepairedProfileIntoStore({ id: userId, share_code: freshRow.share_code });
+        }
+    }
     return { confirmed: true, payload: plan.payload };
 }
 

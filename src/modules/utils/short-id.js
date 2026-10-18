@@ -7,9 +7,9 @@ const BASE = ALPHABET.length;
 // New codes are always exactly five characters. Legacy codes may be four
 // characters (early accounts), so the shape gate accepts 4 or 5; generation
 // never produces fewer than five.
-const SHARE_CODE_MIN_LENGTH = 4;
-const SHARE_CODE_MAX_LENGTH = 5;
 const GENERATED_CODE_LENGTH = 5;
+const SHARE_CODE_MIN_LENGTH = 4;
+const SHARE_CODE_MAX_LENGTH = GENERATED_CODE_LENGTH;
 
 // 35^5 possible five-character codes, derived from the alphabet so the two
 // cannot drift apart.

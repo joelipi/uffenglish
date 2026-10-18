@@ -50,6 +50,28 @@ $$;
 revoke all on function public.generate_share_code() from public;
 grant execute on function public.generate_share_code() to authenticated, service_role;
 
+create or replace function public.validate_share_code(code text)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if length(code) not in (4, 5) then
+    raise exception 'invalid share code length';
+  end if;
+  if code !~ '^[abcdefghijkmnopqrstuvwxyz0123456789]+$' then
+    raise exception 'invalid share code characters';
+  end if;
+  if exists (select 1 from public.reserved_share_codes where word = code) then
+    raise exception 'reserved share code';
+  end if;
+end;
+$$;
+
+revoke all on function public.validate_share_code() from public;
+grant execute on function public.validate_share_code() to authenticated, service_role;
+
 create or replace function public.fill_share_code()
 returns trigger
 language plpgsql
@@ -61,29 +83,13 @@ begin
     if NEW.share_code is null then
       NEW.share_code := public.generate_share_code();
     else
-      if length(NEW.share_code) not in (4, 5) then
-        raise exception 'invalid share code length';
-      end if;
-      if NEW.share_code !~ '^[abcdefghijkmnopqrstuvwxyz0123456789]+$' then
-        raise exception 'invalid share code characters';
-      end if;
-      if exists (select 1 from public.reserved_share_codes where word = NEW.share_code) then
-        raise exception 'reserved share code';
-      end if;
+      perform public.validate_share_code(NEW.share_code);
     end if;
   elsif TG_OP = 'UPDATE' then
     if NEW.share_code is null then
       NEW.share_code := coalesce(OLD.share_code, public.generate_share_code());
     elsif NEW.share_code is distinct from OLD.share_code then
-      if length(NEW.share_code) not in (4, 5) then
-        raise exception 'invalid share code length';
-      end if;
-      if NEW.share_code !~ '^[abcdefghijkmnopqrstuvwxyz0123456789]+$' then
-        raise exception 'invalid share code characters';
-      end if;
-      if exists (select 1 from public.reserved_share_codes where word = NEW.share_code) then
-        raise exception 'reserved share code';
-      end if;
+      perform public.validate_share_code(NEW.share_code);
     end if;
   end if;
   return NEW;
