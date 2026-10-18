@@ -281,7 +281,7 @@ describe('saveCourseToUserProfile', () => {
         const result = await ensureCompleteProfileRow({ $id: 'u-1', email: 'jo@example.com' });
 
         expect(result.confirmed).toBe(true);
-        expect(writes()[0]).toMatchObject({ id: 'u-1', share_code: null });
+        expect(writes()[0]).toEqual({ id: 'u-1' }); // omits share_code so the trigger fills it
         expect(fetchIdentityMock).toHaveBeenCalledTimes(2);
         const merged = setCourseDataSpy.mock.calls
             .map((c) => c[0].userData)

@@ -95,6 +95,8 @@ begin
 end;
 $$;
 
+revoke all on function public.fill_share_code() from public, anon, authenticated;
+
 drop trigger if exists trg_fill_share_code on public.user_profiles;
 create trigger trg_fill_share_code
   before insert or update on public.user_profiles
@@ -105,4 +107,6 @@ alter table public.reserved_share_codes enable row level security;
 revoke all on table public.reserved_share_codes from anon, authenticated;
 
 -- Backfill any rows that still have a NULL share_code (e.g. ghost rows).
+-- The assignment is a no-op; its only effect is to fire trg_fill_share_code,
+-- whose UPDATE branch mints a code when OLD.share_code is NULL.
 update public.user_profiles set share_code = null where share_code is null;
