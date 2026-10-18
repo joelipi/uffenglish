@@ -52,14 +52,6 @@ function isShareCodeSegment(value) {
   return true;
 }
 
-export {
-  toShortId,
-  ALPHABET,
-  SHORT_ID_MIN_LENGTH,
-  SHORT_ID_MAX_LENGTH,
-  isShareCodeSegment,
-};
-
 /**
  * Generate a share code from the same 24-bit space the signup form uses.
  *
@@ -70,3 +62,11 @@ export {
 export function generateShareCode() {
     return toShortId(Math.floor(Math.random() * SHARE_CODE_SPACE));
 }
+
+export {
+  toShortId,
+  ALPHABET,
+  SHORT_ID_MIN_LENGTH,
+  SHORT_ID_MAX_LENGTH,
+  isShareCodeSegment,
+};

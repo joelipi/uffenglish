@@ -81,8 +81,8 @@ describe('isShareCodeSegment', () => {
     const source = readFileSync(sourcePath, 'utf8');
 
     it('accepts every code the generator mints (toShortId round trip)', () => {
-        // 0..2048 covers both padded 4-char codes and the natural rollover to
-        // 5 chars, plus arbitrary values across the 24-bit space.
+        // 0..2048 covers the padded 4-char codes; the explicit list covers the
+        // 5-char rollover at 1048576 and the top of the 24-bit space.
         for (let n = 0; n <= 2048; n += 1) {
             expect(isShareCodeSegment(toShortId(n)), `toShortId(${n})`).toBe(true);
         }
@@ -122,7 +122,7 @@ describe('isShareCodeSegment', () => {
         // constants (a hand-written character class could drift from the
         // generator without any behavioural test noticing).
         const fnAt = source.indexOf('function isShareCodeSegment');
-        const fnEnd = source.indexOf('\nexport {', fnAt);
+        const fnEnd = source.indexOf('\nexport function generateShareCode', fnAt);
         expect(fnAt).toBeGreaterThan(-1);
         expect(fnEnd).toBeGreaterThan(fnAt);
         const body = source.slice(fnAt, fnEnd);

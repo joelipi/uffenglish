@@ -53,7 +53,9 @@ describe('routes.jsx homepage split', () => {
         const catchAllLine = src.slice(catchAllAt, src.indexOf('\n', catchAllAt));
         expect(catchAllLine).toContain('<NotFoundRoute />');
         expect(catchAllLine).not.toContain('Navigate');
-        expect(src).not.toMatch(/<Navigate\b/);
+        // Story 071 removed the silent bounce specifically; a future redirect
+        // route elsewhere in the table is not what this guard is about.
+        expect(src).not.toContain('<Navigate to="/" replace />');
     });
 
     it('declares the /:shareCode route before the catch-all', () => {

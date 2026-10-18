@@ -10,7 +10,9 @@ import { test, expect } from '@playwright/test';
 // profile, auth status and inbox are injected the same way.
 
 const FIXED_NOW = '2026-09-24T12:00:00.000Z';
-const OWNER = 'owner1';
+// Must satisfy isShareCodeSegment: the owner is opened as the /:shareCode
+// path segment, which renders the 404 page for a malformed code.
+const OWNER = 'wg7d';
 const VIEWER = 'viewer1';
 
 const OWNER_PROFILE = {

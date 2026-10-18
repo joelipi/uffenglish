@@ -8,7 +8,9 @@ import { test, expect } from '@playwright/test';
 // 48h countdown is deterministic.
 
 const FIXED_NOW = '2026-09-24T12:00:00.000Z';
-const SHARE_CODE = 'friendtest1';
+// Must satisfy isShareCodeSegment: /:shareCode falls through to the 404 page
+// for a segment the generator could not have minted.
+const SHARE_CODE = 'k9gy';
 
 const PROFILE = {
     id: 'u1',
@@ -60,7 +62,7 @@ test.describe('public-profile friend-challenge links', () => {
         await expect(link).toHaveText('Make 3 questions');
         await expect(link).toHaveAttribute(
             'href',
-            'https://ultrafastfluency.com/course/friend/lesson/b?shareCode=friendtest1'
+            'https://ultrafastfluency.com/course/friend/lesson/b?shareCode=k9gy'
         );
 
         const fontSize = await link.evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
@@ -92,7 +94,7 @@ test.describe('public-profile friend-challenge links', () => {
         await expect(links).toHaveCount(1);
         await expect(links.nth(0)).toHaveAttribute(
             'href',
-            'https://ultrafastfluency.com/course/friendchain/lesson/b?shareCode=friendtest1'
+            'https://ultrafastfluency.com/course/friendchain/lesson/b?shareCode=k9gy'
         );
         await expect(links.nth(0)).toHaveText('Ask');
     });
