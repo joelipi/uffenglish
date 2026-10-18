@@ -6,7 +6,7 @@
 // an unusable value, this helper falls back to the reserved-filtered local
 // generator so signup and profile repair always get a code the DB trigger's
 // validation can accept.
-import { supabase } from '../api/supabase.js';
+import { mintShareCodeMutation } from '../api/api.js';
 import {
     isShareCodeSegment,
     normalizeShareCodeSegment,
@@ -16,7 +16,7 @@ import { RESERVED_SHARE_CODES } from './reserved-share-codes.js';
 
 export async function mintShareCode() {
     try {
-        const { data, error } = await supabase.rpc('generate_share_code');
+        const { data, error } = await mintShareCodeMutation();
         if (error) throw error;
         if (typeof data === 'string' && isShareCodeSegment(data) && !RESERVED_SHARE_CODES.has(data.toLowerCase())) {
             return normalizeShareCodeSegment(data);

@@ -33,6 +33,7 @@ vi.mock('../../modules/api/supabase.js', () => ({
 }));
 
 vi.mock('../../modules/api/api.js', () => ({
+    mintShareCodeMutation: vi.fn(async () => ({ data: 'abcde', error: null })),
     queryClient: { setQueryData: vi.fn(), invalidateQueries: vi.fn() },
 }));
 

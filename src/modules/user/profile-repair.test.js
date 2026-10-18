@@ -13,19 +13,13 @@ let setCourseDataSpy = null;
 vi.mock('../api/api.js', () => ({
     syncUserMetaDataMutation: vi.fn(async () => {}),
     getCurrentSession: vi.fn(async () => ({ access_token: 'test-token' })),
-    getCurrentSession: vi.fn(async () => ({ access_token: 'test-token' })),
     getCurrentUser: (...args) => getCurrentUserMock(...args),
     fetchProfileIdentityRow: (...args) => fetchIdentityMock(...args),
-}));
-
-vi.mock('../api/supabase.js', () => ({
-    supabase: {
-        rpc: vi.fn(async () => ({ data: 'zzzzz', error: null })),
-    },
+    mintShareCodeMutation: vi.fn(async () => ({ data: 'zzzzz', error: null })),
 }));
 
 import { syncUserMetaDataMutation } from '../api/api.js';
-import { supabase } from '../api/supabase.js';
+import { mintShareCodeMutation } from '../api/api.js';
 import { saveCourseToUserProfile, ensureCompleteProfileRow } from './user-profile.js';
 import { appStore } from '../store/store.js';
 
@@ -58,7 +52,7 @@ beforeEach(() => {
     syncUserMetaDataMutation.mockClear().mockResolvedValue(undefined);
     getCurrentUserMock.mockReset().mockResolvedValue(sessionUser);
     fetchIdentityMock.mockReset().mockResolvedValue({ row: completeRow, error: null });
-    supabase.rpc.mockReset().mockResolvedValue({ data: 'zzzzz', error: null });
+    mintShareCodeMutation.mockReset().mockResolvedValue({ data: 'zzzzz', error: null });
     appStore.setState({
         pendingFriendCredits: [],
         userData: { $id: 'u-1', email: 'jo@example.com', share_code: 'abcd' },
@@ -273,7 +267,7 @@ describe('saveCourseToUserProfile', () => {
         // repair must use the reserved-filtered local generator.
         const codeMissing = { ...completeRow, share_code: null };
         fetchIdentityMock.mockResolvedValue({ row: codeMissing, error: null });
-        supabase.rpc.mockResolvedValue({ data: null, error: new Error('down') });
+        mintShareCodeMutation.mockResolvedValue({ data: null, error: new Error('down') });
 
         const result = await ensureCompleteProfileRow({ $id: 'u-1', email: 'jo@example.com' });
 

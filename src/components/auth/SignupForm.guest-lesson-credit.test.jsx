@@ -39,6 +39,7 @@ vi.mock('../../modules/api/supabase.js', () => ({
 }));
 
 vi.mock('../../modules/api/api.js', () => ({
+    mintShareCodeMutation: vi.fn(async () => ({ data: 'abcde', error: null })),
     queryClient: { setQueryData: setQueryDataSpy, invalidateQueries: vi.fn() },
     fetchGeoInfo: vi.fn(async () => ({ ip: '1.2.3.4' })),
     recordFriendCompletion: (...args) => recordFriendCompletionSpy(...args),

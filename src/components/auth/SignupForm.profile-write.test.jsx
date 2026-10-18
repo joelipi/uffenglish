@@ -49,6 +49,7 @@ vi.mock('../../modules/api/api.js', () => ({
         $id: 'u-1', email: 'jo@example.com', name: 'Jo Kim', $createdAt: '2026-10-17',
     })),
     syncUserMetaDataMutation: vi.fn(async () => {}),
+    mintShareCodeMutation: (...args) => rpcSpy(...args),
 }));
 
 vi.mock('../../modules/user/email-confirmation.js', () => ({

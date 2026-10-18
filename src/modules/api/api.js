@@ -202,6 +202,11 @@ export async function fetchProfileIdentityRow(userId) {
   return { row: data ?? null, error: error ?? null };
 }
 
+export async function mintShareCodeMutation() {
+  const { data, error } = await supabase.rpc('generate_share_code');
+  return { data, error: error ?? null };
+}
+
 export async function syncUserMetaDataMutation(metaToUpdate, userId) {
   try {
     console.log('[syncUserMetaData] Updating profile metadata...', { userId, metaToUpdate });

@@ -1,8 +1,9 @@
-// Reserved share-code words. These are never minted by the server
-// (supabase/migrations/010_short_share_codes.sql) and never resolve to a
-// profile, so a URL whose segment is one of them renders the 404 page rather
-// than "User not found". Kept in lock-step with the SQL seed list by the
-// guard in src/modules/utils/short-id.test.js.
+// Reserved share-code words. These are never *minted* by the server
+// (supabase/migrations/010_short_share_codes.sql) or the client fallback, so
+// new accounts never get a code that reads as an offensive or confusing word.
+// The route gate deliberately stays shape-only: a legacy code that happens to
+// be one of these words still resolves to its profile. Kept in lock-step with
+// the SQL seed list by the guard in src/modules/utils/short-id.test.js.
 export const RESERVED_SHARE_CODES = new Set([
     'about', 'admin', 'asses', 'assho', 'beanr', 'bitch', 'boche', 'cocks',
     'codes', 'cunts', 'dicks', 'dykes', 'error', 'fagot', 'fatty', 'freak',
