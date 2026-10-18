@@ -9,7 +9,6 @@ import { guestSignupLessonCredit } from '../../modules/user/lesson-count-logic.j
 import { calculateCurrentStreak } from '../../modules/user/user-profile.js';
 import { flushPendingFriendCredits } from '../../modules/user/friend-credit-sync.js';
 import { verifyTurnstileToken } from '../../modules/auth/turnstile-logic.js';
-import { generateShareCode } from '../../modules/utils/short-id.js';
 import { mintShareCode } from '../../modules/utils/share-code-mint.js';
 import {
     checkEmailAddress,
@@ -191,17 +190,9 @@ export function useSignupForm({
                 throw insertError;
             }
 
-            let shareCode = mintedCode;
-            if (!shareCode) {
-                try {
-                    const { data: row, error: readErr } = await supabase.from('user_profiles')
-                        .select('share_code').eq('id', user.id).maybeSingle();
-                    if (readErr) throw readErr;
-                    if (row?.share_code) shareCode = row.share_code;
-                } catch (readErr) {
-                    console.warn('[Signup] could not read back share_code:', readErr?.message || readErr);
-                }
-            }
+            // If the RPC was unreachable, the DB trigger fills share_code; the
+            // store simply lacks it until the next bootstrap (no invented code).
+            const shareCode = mintedCode;
 
             identifyUser(user.id, {
                 email: user.email,

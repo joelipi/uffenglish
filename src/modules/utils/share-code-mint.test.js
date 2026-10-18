@@ -18,7 +18,12 @@ describe('mintShareCode', () => {
         expect(rpcSpy).toHaveBeenCalledWith('generate_share_code');
     });
 
-    it('returns null when the RPC errors, so the trigger mints instead', async () => {
+    it('normalizes mixed-case RPC output to lowercase', async () => {
+        rpcSpy.mockResolvedValue({ data: 'ABCDE', error: null });
+        await expect(mintShareCode()).resolves.toBe('abcde');
+    });
+
+    it('returns null when the RPC errors', async () => {
         rpcSpy.mockResolvedValue({ data: null, error: new Error('boom') });
         await expect(mintShareCode()).resolves.toBeNull();
     });

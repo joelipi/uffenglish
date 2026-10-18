@@ -74,18 +74,6 @@ function isShareCodeSegment(value) {
   return true;
 }
 
-/**
- * Generate a share code from the code space.
- *
- * Client-side fallback only. The authoritative generator is the Postgres
- * function `generate_share_code()` (see supabase/migrations), which also
- * filters reserved words and checks uniqueness. This local version does not
- * filter reserved words; it exists for tests and for degrading gracefully if
- * the RPC is unreachable.
- */
-export function generateShareCode() {
-  return toShortId(Math.floor(Math.random() * SHARE_CODE_SPACE));
-}
 
 export {
   toShortId,
