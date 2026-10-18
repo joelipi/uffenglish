@@ -9,6 +9,8 @@ import { guestSignupLessonCredit } from '../../modules/user/lesson-count-logic.j
 import { calculateCurrentStreak } from '../../modules/user/user-profile.js';
 import { flushPendingFriendCredits } from '../../modules/user/friend-credit-sync.js';
 import { verifyTurnstileToken } from '../../modules/auth/turnstile-logic.js';
+import { generateShareCode } from '../../modules/utils/short-id.js';
+import { mintShareCode } from '../../modules/utils/share-code-mint.js';
 import {
     checkEmailAddress,
     normalizeEmail,
@@ -153,6 +155,8 @@ export function useSignupForm({
             const signupDates = lessonCredit.creditLesson
                 ? [new Date().toLocaleDateString('en-CA')]
                 : [];
+            const mintedCode = await mintShareCode();
+
             // UPSERT, not insert. The fire-and-forget geo/referrer collection above
             // (collect-signup-data.js) also writes this row, via
             // syncUserMetaDataMutation's upsert. Which of the two lands first is
@@ -177,6 +181,7 @@ export function useSignupForm({
                 native_language: nativeLanguage,
                 english_level: userLevel,
                 completed_dates: signupDates,
+                ...(mintedCode ? { share_code: mintedCode } : {}),
                 ...(lessonCredit.creditLesson
                     ? { lessons_completed: lessonCredit.lessonsCompleted, counted_lessons: lessonCredit.countedLessons }
                     : {}),
