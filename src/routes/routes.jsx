@@ -1,4 +1,4 @@
-import { Navigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import RootLayout from './RootLayout.jsx';
 import AppLayout from './AppLayout.jsx';
 import AuthLayout from './AuthLayout.jsx';
@@ -16,6 +16,7 @@ import FriendsRoute from './FriendsRoute.jsx';
 import PrivacyRoute from './PrivacyRoute.jsx';
 import TermsRoute from './TermsRoute.jsx';
 import CoursesRoute from './CoursesRoute.jsx';
+import NotFoundRoute from './NotFoundRoute.jsx';
 
 function LessonError() {
   return (
@@ -53,7 +54,11 @@ export const routes = [
       { path: '/friends', element: <FriendsRoute /> },
       { path: '/course/:courseId/lesson/:lessonId', element: <AppLayout />, errorElement: <LessonError />, children: [{ index: true, element: <LessonContainer /> }] },
       { path: '/:shareCode', element: <PublicProfileRoute /> },
-      { path: '*', element: <Navigate to="/" replace /> },
+      // Unknown paths get a real 404 page instead of a silent bounce to `/`.
+      // Keep this last: `/:shareCode` above claims one-segment paths, and
+      // PublicProfileRoute renders the same 404 for segments that cannot be
+      // share codes.
+      { path: '*', element: <NotFoundRoute /> },
     ],
   },
 ];

@@ -309,3 +309,26 @@ describe('friend-response notification strings', () => {
         }
     });
 });
+
+describe('404 page copy', () => {
+    // Story 071: the 404 page is a real route, so it must not be the one route
+    // in the app with no translations. Assert on the raw table: `get()` falls
+    // back to English, so a `get()`-based check would pass for a missing locale.
+    it.each(['not_found_heading', 'not_found_body', 'not_found_courses', 'not_found_home'])(
+        '%s carries en/es/pt/fr/hi/bn',
+        (key) => {
+            for (const lang of ['en', 'es', 'pt', 'fr', 'hi', 'bn']) {
+                expect(strings[key][lang], `${key}/${lang}`).toBeTruthy();
+            }
+        },
+    );
+
+    it('does not report a missing person', () => {
+        // A mistyped path is not a share link; the copy says "page".
+        expect(get('not_found_heading', 'en')).toBe('Page not found');
+        expect(get('not_found_heading', 'en')).not.toBe(get('public_profile_not_found', 'en'));
+        for (const lang of ['es', 'pt', 'fr', 'hi', 'bn']) {
+            expect(get('not_found_heading', lang)).not.toBe(get('public_profile_not_found', lang));
+        }
+    });
+});

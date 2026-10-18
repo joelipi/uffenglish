@@ -1154,6 +1154,41 @@ const strings = {
         hi: "उपयोगकर्ता नहीं मिला",
         bn: "ব্যবহারকারী পাওয়া যায়নি"
     },
+    // The real 404 page (src/routes/NotFoundRoute.jsx): shown for paths that
+    // are neither a route nor a share-code-shaped segment. Deliberately says
+    // "page", not "user" — a mistyped path is not a missing person.
+    'not_found_heading': {
+        en: "Page not found",
+        es: "Página no encontrada",
+        pt: "Página não encontrada",
+        fr: "Page introuvable",
+        hi: "पेज नहीं मिला",
+        bn: "পৃষ্ঠাটি পাওয়া যায়নি"
+    },
+    'not_found_body': {
+        en: "We couldn't find that page. The link may be mistyped or no longer active.",
+        es: "No pudimos encontrar esa página. Puede que el enlace esté mal escrito o ya no esté activo.",
+        pt: "Não encontramos essa página. O link pode estar mal digitado ou não estar mais ativo.",
+        fr: "Nous n'avons pas trouvé cette page. Le lien est peut-être mal saisi ou n'est plus actif.",
+        hi: "हमें वह पेज नहीं मिला। हो सकता है लिंक गलत लिखा हो या अब सक्रिय न हो।",
+        bn: "আমরা সেই পৃষ্ঠাটি খুঁজে পাইনি। লিংকটি হয়তো ভুল লেখা বা আর সক্রিয় নয়।"
+    },
+    'not_found_courses': {
+        en: "Browse courses",
+        es: "Ver cursos",
+        pt: "Ver cursos",
+        fr: "Voir les cours",
+        hi: "पाठ्यक्रम देखें",
+        bn: "কোর্স দেখুন"
+    },
+    'not_found_home': {
+        en: "Go home",
+        es: "Ir al inicio",
+        pt: "Ir para o início",
+        fr: "Retour à l'accueil",
+        hi: "होम पर जाएँ",
+        bn: "হোমে যান"
+    },
     'profile_member_since': {
         en: "Member since {date}",
         es: "Miembro desde {date}",

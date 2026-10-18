@@ -44,8 +44,24 @@ describe('routes.jsx homepage split', () => {
         expect(coursesAt).toBeLessThan(shareCodeAt);
     });
 
-    it('keeps the catch-all pointing at the public homepage', () => {
-        expect(src).toContain("{ path: '*', element: <Navigate to=\"/\" replace /> }");
+    it('renders the real 404 route for the catch-all instead of redirecting home', () => {
+        // Story 071: a mistyped multi-segment path must not be swallowed by a
+        // silent redirect. Assert on the catch-all line itself, so a comment
+        // naming NotFoundRoute cannot satisfy the guard.
+        const catchAllAt = src.indexOf("{ path: '*'");
+        expect(catchAllAt).toBeGreaterThan(-1);
+        const catchAllLine = src.slice(catchAllAt, src.indexOf('\n', catchAllAt));
+        expect(catchAllLine).toContain('<NotFoundRoute />');
+        expect(catchAllLine).not.toContain('Navigate');
+        expect(src).not.toMatch(/<Navigate\b/);
+    });
+
+    it('declares the /:shareCode route before the catch-all', () => {
+        const shareCodeAt = src.indexOf("path: '/:shareCode'");
+        const catchAllAt = src.indexOf("path: '*'");
+        expect(shareCodeAt).toBeGreaterThan(-1);
+        expect(catchAllAt).toBeGreaterThan(-1);
+        expect(shareCodeAt).toBeLessThan(catchAllAt);
     });
 
     // Story 070 closed the standalone signup page by redirecting it, NOT by
