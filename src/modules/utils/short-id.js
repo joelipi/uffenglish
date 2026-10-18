@@ -28,13 +28,29 @@ function toShortId(num, minLength = SHORT_ID_MIN_LENGTH) {
 const SHORT_ID_MAX_LENGTH = toShortId(SHARE_CODE_SPACE - 1).length;
 
 /**
+ * Normalize a share-code segment for lookup.
+ *
+ * Share codes are minted lowercase, so an uppercase or mixed-case URL
+ * (`/Abcd`) refers to the same code as `/abcd`. Normalizing at the boundary
+ * means the database lookup sees the stored shape.
+ *
+ * @param {unknown} value
+ * @returns {unknown} the lowercased string, or the value unchanged when it is
+ *   not a string.
+ */
+function normalizeShareCodeSegment(value) {
+  return typeof value === 'string' ? value.toLowerCase() : value;
+}
+
+/**
  * Whether a single URL segment has the shape of a share code.
  *
  * `/nonsense` matches the `/:shareCode` route just like `/k9gyi` does, because
  * React Router cannot see the difference. This is the difference: a share code
- * is lowercase and drawn from ALPHABET, at the generator's min length or
- * longer, and at most the length of the largest code the generator can mint.
- * Anything else is a mistyped path and must fall through to the 404 page.
+ * is case-insensitive (uppercase is normalized to lowercase), drawn from
+ * ALPHABET, at the generator's min length or longer, and at most the length of
+ * the largest code the generator can mint. Anything else is a mistyped path
+ * and must fall through to the 404 page.
  *
  * Derived from ALPHABET + SHORT_ID_MIN_LENGTH + the generator's space rather
  * than a second hand-written regex, so changing the generator cannot leave the
@@ -45,8 +61,9 @@ const SHORT_ID_MAX_LENGTH = toShortId(SHARE_CODE_SPACE - 1).length;
  */
 function isShareCodeSegment(value) {
   if (typeof value !== 'string') return false;
-  if (value.length < SHORT_ID_MIN_LENGTH || value.length > SHORT_ID_MAX_LENGTH) return false;
-  for (const char of value) {
+  const normalized = normalizeShareCodeSegment(value);
+  if (normalized.length < SHORT_ID_MIN_LENGTH || normalized.length > SHORT_ID_MAX_LENGTH) return false;
+  for (const char of normalized) {
     if (!ALPHABET.includes(char)) return false;
   }
   return true;
@@ -68,5 +85,6 @@ export {
   ALPHABET,
   SHORT_ID_MIN_LENGTH,
   SHORT_ID_MAX_LENGTH,
+  normalizeShareCodeSegment,
   isShareCodeSegment,
 };

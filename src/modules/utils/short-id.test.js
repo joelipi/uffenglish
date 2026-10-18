@@ -7,6 +7,7 @@ import {
     ALPHABET,
     SHORT_ID_MIN_LENGTH,
     SHORT_ID_MAX_LENGTH,
+    normalizeShareCodeSegment,
     isShareCodeSegment,
 } from './short-id.js';
 
@@ -76,6 +77,20 @@ describe('toShortId', () => {
     });
 });
 
+describe('normalizeShareCodeSegment', () => {
+    it('lowercases strings so uppercase links resolve the stored code', () => {
+        expect(normalizeShareCodeSegment('Abcd')).toBe('abcd');
+        expect(normalizeShareCodeSegment('K9GYI')).toBe('k9gyi');
+        expect(normalizeShareCodeSegment('abcd')).toBe('abcd');
+    });
+
+    it('leaves non-strings unchanged for the predicate to reject', () => {
+        for (const value of [null, undefined, 1234, {}, []]) {
+            expect(normalizeShareCodeSegment(value)).toBe(value);
+        }
+    });
+});
+
 describe('isShareCodeSegment', () => {
     const sourcePath = path.join(path.dirname(fileURLToPath(import.meta.url)), 'short-id.js');
     const source = readFileSync(sourcePath, 'utf8');
@@ -98,9 +113,19 @@ describe('isShareCodeSegment', () => {
         expect(isShareCodeSegment('z'.repeat(SHORT_ID_MAX_LENGTH))).toBe(true);
     });
 
+    it('accepts uppercase and mixed-case forms of a share code', () => {
+        // Codes are minted lowercase, but a typed/shared URL may capitalize
+        // them; the route normalizes before the lookup, so the shape check
+        // must accept what normalization produces.
+        expect(isShareCodeSegment('Abcd')).toBe(true);
+        expect(isShareCodeSegment('ABCD')).toBe(true);
+        expect(isShareCodeSegment('aBcD')).toBe(true);
+        expect(isShareCodeSegment('K9GYI')).toBe(true);
+    });
+
     it('rejects malformed single segments', () => {
         expect(isShareCodeSegment('nonsense')).toBe(false);
-        expect(isShareCodeSegment('Abcd')).toBe(false); // the alphabet is lowercase
+        expect(isShareCodeSegment('AB0D')).toBe(false); // 0 is not in the alphabet
         expect(isShareCodeSegment('abc')).toBe(false); // shorter than the min
         expect(isShareCodeSegment('a'.repeat(SHORT_ID_MAX_LENGTH + 1))).toBe(false); // over the generator's space
         expect(isShareCodeSegment('')).toBe(false);
@@ -126,6 +151,7 @@ describe('isShareCodeSegment', () => {
         expect(fnAt).toBeGreaterThan(-1);
         expect(fnEnd).toBeGreaterThan(fnAt);
         const body = source.slice(fnAt, fnEnd);
+        expect(body).toContain('normalizeShareCodeSegment');
         expect(body).toContain('ALPHABET.includes');
         expect(body).toContain('SHORT_ID_MIN_LENGTH');
         expect(body).toContain('SHORT_ID_MAX_LENGTH');

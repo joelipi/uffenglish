@@ -15,7 +15,7 @@ vi.mock('../hooks/use-native-language.js', () => ({
     useNativeLanguage: () => 'en',
 }));
 vi.mock('../components/profile/PublicProfile.jsx', () => ({
-    default: () => React.createElement('div', { 'data-testid': 'public-profile' }, 'profile'),
+    default: ({ shareCode }) => React.createElement('div', { 'data-testid': 'public-profile' }, shareCode),
 }));
 
 vi.mock('./RootLayout.jsx', async () => {
@@ -109,11 +109,25 @@ describe('unknown-URL routing', () => {
         expect(container.querySelector('[data-testid="not-found-route"]')).toBeNull();
     });
 
-    it('treats an uppercase segment as a path, not a share code', () => {
-        renderAt('/Abcd');
-        expect(container.querySelector('[data-testid="not-found-route"]')).not.toBeNull();
-        expect(container.querySelector('[data-testid="public-profile"]')).toBeNull();
+    it('normalizes an uppercase segment and routes it to the profile', () => {
+        const router = renderAt('/Abcd');
+        const profile = container.querySelector('[data-testid="public-profile"]');
+        expect(profile).not.toBeNull();
+        expect(profile.textContent).toBe('abcd'); // lookup sees the stored lowercase code
+        expect(container.querySelector('[data-testid="not-found-route"]')).toBeNull();
+        expect(lastMatch(router).route.path).toBe('/:shareCode');
     });
+
+    it.each(['/ABCD', '/aBcDe', '/K9GYI'])(
+        'normalizes %s to the stored lowercase code',
+        (path) => {
+            renderAt(path);
+            const profile = container.querySelector('[data-testid="public-profile"]');
+            expect(profile).not.toBeNull();
+            expect(profile.textContent).toBe(path.slice(1).toLowerCase());
+            expect(container.querySelector('[data-testid="not-found-route"]')).toBeNull();
+        },
+    );
 
     it('treats a truncated segment as a path, not a share code', () => {
         renderAt('/abc');

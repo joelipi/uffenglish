@@ -42,6 +42,8 @@ Use the share-code shape already defined in `src/modules/utils/short-id.js`:
 `ALPHABET` (32 chars, `abcdefghijkmnpqrstuvwxyz23456789`) and a length of 4+
 (`toShortId`'s `minLength = 4`). A single path segment is treated as a share code
 **only if** it matches that shape; otherwise it falls through to the real 404.
+Uppercase input is **normalized to lowercase** before the check and before the
+lookup, so `/Abcd` resolves the stored code `abcd` instead of 404ing.
 
 This is derived from the generator rather than a second hand-written regex, so a
 change to the alphabet or the length cannot leave the two out of step.
@@ -75,15 +77,19 @@ Add a `NotFoundRoute` rendered for `*`, replacing `<Navigate to="/" replace />`.
 - The shape check only re-routes segments that **cannot** be share codes, so no
   valid link changes behaviour.
 - Guards assert real codes (`abcd`, `k9gyi`, a 5-char code) still route to the
-  profile, and that a truncated/uppercase/over-long segment does not.
+  profile, that uppercase/mixed-case forms normalize to the stored code, and
+  that a truncated/over-long segment does not.
 
 ## Tasks
 
 ### Task 1 — Share-code shape predicate
 
 - new pure predicate in `src/modules/utils/short-id.js` (the generator's own home)
-  → true for `abcd`, `k9gyi`, 5-char codes; false for `nonsense`, `Abcd` (the
-    alphabet is lowercase), over-long strings, empty strings, non-strings
+  → true for `abcd`, `k9gyi`, 5-char codes, and uppercase/mixed-case forms
+    (`Abcd`, `K9GYI`) which are normalized before the check; false for
+    `nonsense`, over-long strings, empty strings, non-strings
+- a `normalizeShareCodeSegment` helper lowercases the URL segment before both
+  the shape check and the profile lookup
 - derived from `ALPHABET` and the min length, not a duplicated literal
 - unit tests, including the generated-code round trip: `toShortId(n)` is always
   accepted by the predicate
@@ -102,7 +108,8 @@ Add a `NotFoundRoute` rendered for `*`, replacing `<Navigate to="/" replace />`.
 - `/:shareCode` stays before `*`
   → raw-source index-order guard
 - routing test: `/a/b/c` renders the 404 page; `/abcd` still routes to the
-  profile route; `/nonsense` renders the 404 page rather than "User not found"
+  profile route; `/Abcd` routes to the profile as `abcd`; `/nonsense` renders
+  the 404 page rather than "User not found"
 
 ### Task 4 — Docs
 
@@ -111,9 +118,11 @@ Add a `NotFoundRoute` rendered for `*`, replacing `<Navigate to="/" replace />`.
 
 ## Acceptance criteria
 
-1. `isShareCodeSegment` accepts real share codes and rejects malformed ones, and
-   is derived from `ALPHABET` + the min length rather than a second literal
-   → `short-id` unit tests, including a `toShortId` round trip
+1. `isShareCodeSegment` accepts real share codes (including uppercase forms,
+   normalized to lowercase) and rejects malformed ones, and is derived from
+   `ALPHABET` + the min length rather than a second literal
+   → `short-id` unit tests, including a `toShortId` round trip and a
+   `normalizeShareCodeSegment` test
 2. a two-or-more-segment unknown URL renders the 404 page instead of redirecting
    to `/`
    → routing test + raw-source guard that `<Navigate to="/" replace />` is gone
