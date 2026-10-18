@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { COURSE_LISTINGS_PATH } from '../courses/friend-courses-logic.js';
+import { COURSE_LISTINGS_PATH } from './friend-courses-logic.js';
 import { isGuestViewer, buildCoursesSignInHref } from './guest-viewer-logic.js';
 
 describe('isGuestViewer', () => {

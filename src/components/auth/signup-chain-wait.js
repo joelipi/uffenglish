@@ -12,6 +12,17 @@
 // Every poll flushes React through `act`, exactly as the single sleep did. The
 // first empty `act` flushes `setLoading(true)`, so the loop cannot read 'false'
 // in the gap between the click dispatch and the chain starting.
+//
+// NOTE on never-started chains: a predicate that is true from the very first
+// poll (e.g. one that only checks `loading === 'false'`) cannot distinguish a
+// chain that never started from one that finished instantly, so a "no account
+// was created" assertion can pass vacuously. The helper itself cannot detect
+// this (it only observes `isDone()`). Callers that want the stronger guarantee
+// should fold a *started* signal into the predicate — `emailSpy.mock.calls
+// .length > 0` (the email gate runs before signUp, so it fires on every
+// started chain, including ones that reject early) is the convention; see the
+// email-validation suite. A hung chain that never finishes throws after
+// `maxPolls`.
 import { act } from 'react';
 
 export const SIGNUP_CHAIN_POLL_LIMIT = 400;

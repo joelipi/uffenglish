@@ -7,10 +7,11 @@ import { act } from 'react';
 import { waitForSignupChain } from './signup-chain-wait.js';
 
 // Tracks every insert, tagged with the table it targeted.
-const { insertCalls, setQueryDataSpy, recordFriendCompletionSpy } = vi.hoisted(() => ({
+const { insertCalls, setQueryDataSpy, recordFriendCompletionSpy, emailSpy } = vi.hoisted(() => ({
     insertCalls: [],
     setQueryDataSpy: vi.fn(),
     recordFriendCompletionSpy: vi.fn(async () => ({ recorded: true })),
+    emailSpy: vi.fn(async () => ({ valid: true, reason: 'ok', suggestion: '' })),
 }));
 
 vi.mock('../../modules/api/supabase.js', () => ({
@@ -51,7 +52,7 @@ vi.mock('../../modules/user/email-confirmation.js', () => ({
 // stays hermetic — unmocked it would attempt a real fetch and pass only because
 // the client wrapper fails OPEN, which is not what this test is about.
 vi.mock('../../modules/auth/email-validation-logic.js', () => ({
-    checkEmailAddress: vi.fn(async () => ({ valid: true, reason: 'ok', suggestion: '' })),
+    checkEmailAddress: emailSpy,
     normalizeEmail: (raw) => (typeof raw === 'string' ? raw.trim().toLowerCase() : ''),
 }));
 
@@ -115,6 +116,7 @@ beforeEach(() => {
     insertCalls.length = 0;
     setQueryDataSpy.mockClear();
     recordFriendCompletionSpy.mockClear();
+    emailSpy.mockReset().mockResolvedValue({ valid: true, reason: 'ok', suggestion: '' });
     appStore.setState({ pendingFriendCredits: [] });
     container = document.createElement('div');
     document.body.appendChild(container);

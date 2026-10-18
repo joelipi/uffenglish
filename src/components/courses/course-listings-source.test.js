@@ -18,6 +18,7 @@ import path from 'node:path';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const src = readFileSync(path.join(__dirname, 'CourseListings.jsx'), 'utf8');
+const containerSrc = readFileSync(path.join(__dirname, 'CourseListingsContainer.jsx'), 'utf8');
 
 describe('CourseListings notice placement', () => {
     it('declares the notice above the scroll region', () => {
@@ -70,7 +71,20 @@ describe('CourseListings notice placement', () => {
     });
 });
 
-// The whole spam argument for closing /signup rests on one fact: a friend
+// Story 070 review: the bug "a signed-in user cold-loading /courses is told
+// they are not signed in" is prevented by exactly two lines in the container —
+// reading `isLoading`/`isError` off `useUserProfile()` and forwarding them as
+// `isResolving`. `CourseListings.test.jsx` injects `isResolving` directly, so
+// without this guard either line can be deleted with the whole suite green.
+describe('CourseListingsContainer viewer-state wiring', () => {
+    it('reads isLoading and isError from the profile query', () => {
+        expect(containerSrc).toMatch(/const \{ data: profile, isLoading: isProfileResolving, isError: isProfileError \} = useUserProfile\(\);/);
+    });
+
+    it('forwards the loading/error state as isResolving', () => {
+        expect(containerSrc).toMatch(/isResolving=\{isProfileResolving \|\| isProfileError\}/);
+    });
+});
 // lesson cannot be completed without a camera and mic, because the mode chooser
 // withholds text and audio-only. `AGENTS.md` used to state the opposite as a
 // standing rule ("always visible and usable", no exception), so the next agent

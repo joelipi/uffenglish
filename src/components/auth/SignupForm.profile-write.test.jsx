@@ -15,10 +15,11 @@ import { createRoot } from 'react-dom/client';
 import { act } from 'react';
 import { waitForSignupChain } from './signup-chain-wait.js';
 
-const { insertCalls, upsertOpts, signUpSpy } = vi.hoisted(() => ({
+const { insertCalls, upsertOpts, signUpSpy, emailSpy } = vi.hoisted(() => ({
     insertCalls: [],
     upsertOpts: [],
     signUpSpy: vi.fn(),
+    emailSpy: vi.fn(async () => ({ valid: true, reason: 'ok', suggestion: '' })),
 }));
 
 vi.mock('../../modules/api/supabase.js', () => ({
@@ -57,7 +58,7 @@ vi.mock('../../modules/auth/turnstile-logic.js', () => ({
 }));
 
 vi.mock('../../modules/auth/email-validation-logic.js', () => ({
-    checkEmailAddress: vi.fn(async () => ({ valid: true, reason: 'ok', suggestion: '' })),
+    checkEmailAddress: emailSpy,
     normalizeEmail: (raw) => (typeof raw === 'string' ? raw.trim().toLowerCase() : ''),
 }));
 
@@ -113,6 +114,7 @@ beforeEach(() => {
         data: { user: { id: 'u-1', email: 'jo@example.com', created_at: '2026-10-17' } },
         error: null,
     });
+    emailSpy.mockReset().mockResolvedValue({ valid: true, reason: 'ok', suggestion: '' });
     appStore.setState({ pendingFriendCredits: [] });
     container = document.createElement('div');
     document.body.appendChild(container);
