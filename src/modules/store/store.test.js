@@ -335,6 +335,7 @@ describe('Zustand App Store', () => {
             appStore.getState().transitionTo('review', {}, { fromStepLoad: true });
             appStore.getState().transitionTo('recording/answering');
             expect(warn.mock.calls.some(([msg]) => String(msg).includes('Unexpected transition'))).toBe(false);
+            expect(appStore.getState().appPhase).toBe('recording/answering');
             warn.mockRestore();
         });
 

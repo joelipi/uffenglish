@@ -66,7 +66,7 @@ On a refusal the learner is **not** stranded: `onTranscriptRejected` has already
   - → `appStore.getState().isMicActive` is `true` again
   - → `orchestrator.listeningState.active` is `true` again
 - learner presses **record again** twice for the same transcript
-  - → `startSpeechCamRecording` is called once per press (the second press restarts once; `reviewActive` still guards the review itself)
+  - → the second press is completely inert: `startSpeechCamRecording` stays at one restart, and `onTranscriptRejected` and `updateSpeechRecording` each fire once (`reviewActive` latches the whole closure, so no second deduction or write happens)
 - learner presses **record again** while a take is still rolling
   - → `startSpeechCamRecording` is not called again
   - → a `[Speech] Re-record not started` warning is logged naming the decision
@@ -84,8 +84,9 @@ On a refusal the learner is **not** stranded: `onTranscriptRejected` has already
   - → `rejectTranscript` calls `restartTakeAfterReject()` after `onTranscriptRejected`
   - → `rejectTranscript`'s `reviewActive` latch still precedes the restart, and the latch is the region's only `reviewActive` assignment
   - → the module imports `decideRerecordAction` from `./rerecord-logic.js`
-- `src/modules/store/store.js` source inspected
-  - → `answerFlowTransitions.review` lists `'recording/answering'` (so `review → recording/answering` does not log an unexpected transition)
+- `review → recording/answering` is a legal store transition
+  - → `transitionTo('recording/answering')` from `review` logs no unexpected-transition warning and actually writes `appPhase` (`src/modules/store/store.test.js`)
+  - → the live reject sequence — take → review → ✕ — logs no unexpected-transition warning (`speech-orchestrator.test.js`)
 
 ## Technical Context
 

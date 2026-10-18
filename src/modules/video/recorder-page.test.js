@@ -1071,9 +1071,9 @@ describe('recorder auto-render — zero server changes', () => {
             'docs/product.md',
             'docs/learnings.md',
             // Story 074 (single-press re-record): the pure restart decision plus
-            // its unit and source-guard tests. No recorder-page code involved —
-            // listed per this file's per-story convention so the tracked-diff
-            // loop above stays exhaustive.
+            // its unit and source-guard tests, and the store table's transition
+            // case. No recorder-page code involved — listed per this file's
+            // per-story convention.
             'src/modules/speech/rerecord-logic.js',
             'src/modules/speech/rerecord-logic.test.js',
             'src/modules/speech/rerecord-wiring.test.js',

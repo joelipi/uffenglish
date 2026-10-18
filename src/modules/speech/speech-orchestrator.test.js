@@ -293,9 +293,9 @@ function makeRecordingOrchestrator(overrides = {}) {
 // `onTranscriptRejected` transition into `recording/answering`. Without it the
 // restart would run with the store still in `review`, which no shipped UI does.
 // Called without `fromStepLoad`, so the store's transition table is exercised.
-function reviewHooks({ onRecordingStart = vi.fn() } = {}) {
+function reviewHooks() {
     return {
-        onRecordingStart,
+        onRecordingStart: vi.fn(),
         onMediaError: vi.fn(),
         onReviewStart: vi.fn(),
         onTranscriptRejected: vi.fn(() => {
