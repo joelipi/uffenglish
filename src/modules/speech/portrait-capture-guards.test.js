@@ -30,7 +30,7 @@ function functionBody(source, signature) {
 
 describe('portrait capture (9:16)', () => {
     it('Phase 1: freeze reporter wired in startDeferredSpeechCamRecording', () => {
-        const body = functionBody(WEB, 'export function startDeferredSpeechCamRecording()');
+        const body = functionBody(WEB, 'export async function startDeferredSpeechCamRecording()');
         expect(body).not.toBe('');
         expect(body).toMatch(/createFreezeReporter\(/);
         expect(body).toMatch(/\.start\(\)/);
@@ -87,6 +87,10 @@ describe('portrait capture (9:16)', () => {
         expect(body).toMatch(/compositeCropRect\(/);
         expect(body).toMatch(/paintCompositeFrame\(/);
         expect(body).toMatch(/createLivenessCounter\(/);
+        expect(body).toMatch(/requestAnimationFrame\(/);
+        expect(body).toMatch(/resolveCompositeWatchdog\(/);
+        // Canvas must be appended to the DOM.
+        expect(body).toMatch(/document\.body\.appendChild\(canvas\)/);
         // Adapter must not call ctx.drawImage directly.
         expect(body).not.toMatch(/ctx\.drawImage\(/);
         // compositeCropRect must precede paintCompositeFrame.
@@ -105,6 +109,13 @@ describe('portrait capture (9:16)', () => {
     it('tears the composite down alongside the camera stream', () => {
         const body = functionBody(WEB, 'export function safelyStopStream()');
         expect(body).toMatch(/teardownPortraitCapture\(\)/);
+    });
+
+    it('teardown cancels rAF and watchdog handles', () => {
+        const body = functionBody(WEB, 'function teardownPortraitCapture()');
+        expect(body).not.toBe('');
+        expect(body).toMatch(/cancelAnimationFrame/);
+        expect(body).toMatch(/clearInterval/);
     });
 
     it('releases the composite on phones when recording stops (free it before transcription)', () => {

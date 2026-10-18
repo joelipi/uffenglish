@@ -313,9 +313,10 @@ export function createSpeechOrchestrator({
                         console.log('[Hesitation] Skipped (friend/shareCta lesson — hesitation is not displayed)');
                     }
 
-                    // Stream is ready — go full-screen immediately so the preview
-                    // paints without waiting for the VAD audio tap to arm.
-                    startDeferredSpeechCamRecording();
+                    // Stream is ready — wait for the composite to paint at least
+                    // one frame before recording, so a cold camera cannot freeze
+                    // the take on frame 0. Then go full-screen.
+                    await startDeferredSpeechCamRecording();
                     appStore.getState().setMicActive(true);
                     appStore.getState().setHesitationMs(0);
                     if (uiHooks?.onRecordingStart) uiHooks.onRecordingStart(userData);

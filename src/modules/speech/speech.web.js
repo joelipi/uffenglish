@@ -13,6 +13,8 @@ import {
     createLivenessCounter,
     shouldForceReleaseComposite,
     createFreezeReporter,
+    resolveCompositeWatchdog,
+    COMPOSITE_WATCHDOG_MS,
 } from './portrait-capture-logic.js';
 import Strings from '../../data/strings.js';
 import { getAppLanguage } from '../bilingual/config-normalizer.js';
@@ -56,6 +58,8 @@ let isPlaceholderStream = false;
 let compositeRawStream = null;
 let compositeVideoEl = null;
 let compositeDrawTimer = null;
+let compositeRafId = null;
+let compositeWatchdogTimer = null;
 let compositeLiveness = null;
 let compositeFreezeReporter = null;
 let compositeFreezeTickTimer = null;
@@ -112,6 +116,8 @@ function createPortraitCaptureStream(rawStream) {
     const canvas = document.createElement('canvas');
     canvas.width = dims.width;
     canvas.height = dims.height;
+    canvas.style.cssText = 'position:fixed;top:0;left:0;width:2px;height:4px;opacity:0.01;pointer-events:none;';
+    document.body.appendChild(canvas);
     const ctx = canvas.getContext('2d');
 
     // Hidden element playing the raw camera stream; we sample it into the canvas.
@@ -150,7 +156,50 @@ function createPortraitCaptureStream(rawStream) {
     draw();
     compositeRawStream = rawStream;
     compositeVideoEl = video;
-    compositeDrawTimer = setInterval(draw, 1000 / dims.fps);
+    // rAF loop (Phase 2 promoted): same scheduler as executeRenderLoop.
+    // The no-throw invariant: tick() must never throw, or the loop dies.
+    let lastSourceAdvanceAt = performance.now();
+    function tick() {
+        const prevSourceTime = compositeLastSourceTime;
+        const rect = compositeCropRect({
+            videoWidth: video.videoWidth,
+            videoHeight: video.videoHeight,
+            canvasWidth: canvas.width,
+            canvasHeight: canvas.height,
+        });
+        paintCompositeFrame({ ctx, video, rect, canvasWidth: canvas.width, canvasHeight: canvas.height });
+        if (rect !== null && compositeLiveness) compositeLiveness.recordPaint();
+        if (video.currentTime > prevSourceTime) {
+            if (compositeLiveness) compositeLiveness.recordSourceAdvance();
+            compositeLastSourceTime = video.currentTime;
+            lastSourceAdvanceAt = performance.now();
+        }
+        compositeRafId = requestAnimationFrame(tick);
+    }
+    compositeRafId = requestAnimationFrame(tick);
+
+    // 1 Hz watchdog: resume a stalled source.
+    compositeWatchdogTimer = setInterval(() => {
+        if (!compositeVideoEl) return;
+        const action = resolveCompositeWatchdog({
+            hasEverHadMetadata: compositeLastSourceTime > 0,
+            readyState: compositeVideoEl.readyState,
+            paused: compositeVideoEl.paused,
+            ended: compositeVideoEl.ended,
+            lastSourceAdvanceAtMs: lastSourceAdvanceAt,
+            nowMs: performance.now(),
+        });
+        if (action === 'resume') {
+            console.warn('[Speech] composite source stalled; resuming');
+            compositeVideoEl.play().catch((e) => {
+                console.warn('[Speech] composite resume failed', e);
+                compositeVideoEl.muted = true;
+                compositeVideoEl.play().catch((fatal) => {
+                    console.warn('[Speech] composite resume fatal', fatal);
+                });
+            });
+        }
+    }, COMPOSITE_WATCHDOG_MS);
 
     return new MediaStream([
         ...canvas.captureStream(dims.fps).getVideoTracks(),
@@ -162,6 +211,14 @@ function teardownPortraitCapture() {
     if (compositeDrawTimer) {
         clearInterval(compositeDrawTimer);
         compositeDrawTimer = null;
+    }
+    if (compositeRafId) {
+        cancelAnimationFrame(compositeRafId);
+        compositeRafId = null;
+    }
+    if (compositeWatchdogTimer) {
+        clearInterval(compositeWatchdogTimer);
+        compositeWatchdogTimer = null;
     }
     if (compositeLiveness) {
         compositeLiveness.reset();
@@ -328,9 +385,20 @@ export async function startSpeechCamRecording(micStatusText, userData, { deferSt
     }
 }
 
-export function startDeferredSpeechCamRecording() {
+export async function startDeferredSpeechCamRecording() {
     if (speechCamRecorder && speechCamRecorder.state === 'inactive') {
-        speechCamRecorder.start();
+        // Gate recording on the composite producing at least one frame, so a
+        // cold camera / slow first paint cannot freeze the take on frame 0.
+        // Timeout after 2s so a permanently dead composite doesn't hang.
+        if (compositeLiveness) {
+            const deadline = performance.now() + 2000;
+            while (compositeLiveness.snapshot().framesDrawn === 0 && performance.now() < deadline) {
+                await new Promise((r) => setTimeout(r, 50));
+            }
+        }
+        if (speechCamRecorder && speechCamRecorder.state === 'inactive') {
+            speechCamRecorder.start();
+        }
         // Frozen-take detection: report once if the composite stops producing
         // frames. Sinks are logging + telemetry only (no user-facing copy in
         // Phase 1). Meta is derived from appStore at tick time.
