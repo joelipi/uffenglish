@@ -116,6 +116,10 @@ export async function ensureCompleteProfileRow(userData) {
     }
 
     const plan = planProfileRepair({ row, user, shareCode: candidateShareCode });
+    if (needsShareCode && !candidateShareCode && plan.action === 'none') {
+        plan.action = 'update';
+        plan.payload = { id: row?.id || user.$id, share_code: null };
+    }
     if (plan.action === 'none') return { confirmed: true, payload: null };
 
     await syncUserMetaDataMutation(plan.payload, userId);
