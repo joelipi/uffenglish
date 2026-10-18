@@ -8,6 +8,7 @@ import {
     SHARE_CODE_MIN_LENGTH,
     SHARE_CODE_MAX_LENGTH,
     GENERATED_CODE_LENGTH,
+    SHARE_CODE_SPACE,
     normalizeShareCodeSegment,
     isShareCodeSegment,
 } from './short-id.js';
