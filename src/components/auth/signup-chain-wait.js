@@ -40,5 +40,6 @@ export async function waitForSignupChain(isDone, { maxPolls = SIGNUP_CHAIN_POLL_
         if (isDone()) return;
         await act(async () => { await new Promise((resolve) => setTimeout(resolve, 5)); });
     }
+    if (isDone()) return;
     throw new Error(`signup chain did not settle within ${maxPolls} polls`);
 }

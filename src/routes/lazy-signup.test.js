@@ -51,13 +51,15 @@ const COURSE_COPY_KEYS = ['courses_guest_notice_title', 'courses_guest_notice_bo
  * template placeholder's `}` cannot hide the path and a variable target that
  * resolves elsewhere is not mistaken for one.
  */
-const TARGET_ASSIGNMENT = /(?:^|[\s{(])(?:to|href)\s*=\s*(?:"[^"]*"|'[^']*'|\{[^}]*\})/gm;
-const NAVIGATE_CALL = /navigate\(\s*(?:"[^"]*"|'[^']*'|\{[^}]*\})/g;
+const TARGET_ASSIGNMENT = /(?:^|[\s{(])(?:to|href)\s*=\s*(?:"[^"]*"|'[^']*'|\{[^}]*\}|`[^`]*`)/gm;
+const NAVIGATE_CALL = /navigate\(\s*(?:"[^"]*"|'[^']*'|\{[^}]*\}|`[^`]*`)/g;
+const LOCATION_ASSIGNMENT = /location\.href\s*=\s*(?:"[^"]*"|'[^']*'|\{[^}]*\}|`[^`]*`)/g;
 
 function signupLinkTargets(src) {
     return [
         ...[...src.matchAll(TARGET_ASSIGNMENT)].map((m) => m[0]),
         ...[...src.matchAll(NAVIGATE_CALL)].map((m) => m[0]),
+        ...[...src.matchAll(LOCATION_ASSIGNMENT)].map((m) => m[0]),
     ].filter((target) => target.includes('/signup'));
 }
 
@@ -91,6 +93,14 @@ describe('story 070 — the signup-target matcher can see what it must catch', (
         expect(signupLinkTargets('<Link to="/signup">Back</Link>')).toHaveLength(1);
         expect(signupLinkTargets("<Link to='/signup?x=1'>Back</Link>")).toHaveLength(1);
         expect(signupLinkTargets("navigate('/signup')")).toHaveLength(1);
+    });
+
+    it('sees template-literal navigate() arguments and location.href assignments', () => {
+        // These are the two forms the previous matcher could not see, even though
+        // the pre-story entry point used a template literal.
+        expect(signupLinkTargets('navigate(`/signup?redirect=${x}`)')).toHaveLength(1);
+        expect(signupLinkTargets("window.location.href = '/signup'")).toHaveLength(1);
+        expect(signupLinkTargets('location.href = `/signup`')).toHaveLength(1);
     });
 
     it('ignores a target that is a variable, and prose about the route', () => {

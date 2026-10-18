@@ -157,6 +157,7 @@ describe('useSignupForm captcha gate', () => {
         expect(verifySpy).not.toHaveBeenCalled();
         expect(signUpSpy).not.toHaveBeenCalled();
         expect(insertCalls.length).toBe(0);
+        expect(container.querySelector('[data-testid="error"]').textContent).toMatch(/human verification is not ready/i);
     });
 
     it('skips the gate entirely when captcha is false', async () => {
