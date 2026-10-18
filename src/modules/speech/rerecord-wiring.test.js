@@ -24,8 +24,14 @@ const here = dirname(fileURLToPath(import.meta.url));
 const ORCH = readFileSync(join(here, 'speech-orchestrator.js'), 'utf8');
 
 describe('re-record wiring guard', () => {
-    it('imports the pure decision from ./rerecord-logic.js', () => {
-        expect(ORCH).toMatch(/import\s*\{\s*decideRerecordAction\s*\}\s*from\s*'\.\/rerecord-logic\.js'/);
+    it('imports the pure decision and its enum from ./rerecord-logic.js', () => {
+        const importLine = ORCH.match(/^import \{[^}]*\} from '\.\/rerecord-logic\.js';$/m);
+        expect(importLine).not.toBeNull();
+        expect(importLine[0]).toContain('decideRerecordAction');
+        // The enum must be the thing the call site compares against, otherwise
+        // the import is dead and a literal string could drift from the module.
+        expect(importLine[0]).toContain('RERECORD_DECISIONS');
+        expect(ORCH).toMatch(/decision !== RERECORD_DECISIONS\.restart/);
     });
 
     it('calls decideRerecordAction inside restartTakeAfterReject and only re-enters when it says restart', () => {
@@ -37,7 +43,7 @@ describe('re-record wiring guard', () => {
         expect(end).toBeGreaterThan(start);
         const region = ORCH.slice(start, end);
 
-        const gate = region.indexOf('const { restart, decision } = decideRerecordAction({');
+        const gate = region.indexOf('const decision = decideRerecordAction({');
         const bail = region.indexOf('console.warn(\'[Speech] Re-record not started —\', decision);');
         const reentry = region.indexOf('toggleSpeechRecognition(params)');
         expect(gate).toBeGreaterThan(-1);

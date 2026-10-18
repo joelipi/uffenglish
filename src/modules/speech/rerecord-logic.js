@@ -18,7 +18,8 @@ export const RERECORD_DECISIONS = {
 
 // listeningActive — a take is still rolling in the orchestrator. Re-entering
 //   `toggleSpeechRecognition` would run its STOP branch and immediately abort
-//   the very take the learner is trying to redo.
+//   the very take the learner is trying to redo. Checked first so it wins the
+//   explanation when both gates are held: a rolling take is the actionable one.
 // transitioning  — the orchestrator's own start/stop mutex is still held (its
 //   `finally` has not released it yet), so a re-entry would be refused anyway.
 //   A real review tap lands in a later task and never hits this; the guard is
@@ -28,12 +29,12 @@ export const RERECORD_DECISIONS = {
 // take is rolling (in `review` the bottom band shows the review buttons, not the
 // mic) nor while the mutex is held. They become reachable if a future UI keeps
 // the mic mounted behind the review overlay.
+//
+// Returns the decision alone. A separate `restart` boolean would be a second
+// source of truth that a future decision could contradict; callers compare
+// against RERECORD_DECISIONS.restart.
 export function decideRerecordAction({ listeningActive = false, transitioning = false } = {}) {
-    if (listeningActive) {
-        return { restart: false, decision: RERECORD_DECISIONS.alreadyRecording };
-    }
-    if (transitioning) {
-        return { restart: false, decision: RERECORD_DECISIONS.transitioning };
-    }
-    return { restart: true, decision: RERECORD_DECISIONS.restart };
+    if (listeningActive) return RERECORD_DECISIONS.alreadyRecording;
+    if (transitioning) return RERECORD_DECISIONS.transitioning;
+    return RERECORD_DECISIONS.restart;
 }

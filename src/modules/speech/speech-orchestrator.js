@@ -4,7 +4,7 @@ import { validateAnswerPrecheck, findMatchingCueText } from '../answer/answers.j
 import { appStore } from '../store/store.js';
 import Strings from '../../data/strings.js';
 import { getAppLanguage } from '../bilingual/config-normalizer.js';
-import { decideRerecordAction } from './rerecord-logic.js';
+import { decideRerecordAction, RERECORD_DECISIONS } from './rerecord-logic.js';
 
 function computeWaveformPeaks(audioData, numPeaks = 120) {
     const blockSize = Math.max(1, Math.floor(audioData.length / numPeaks));
@@ -152,11 +152,11 @@ export function createSpeechOrchestrator({
         // when `onRecordingStart` fires (its guard treats that phase as an
         // in-step retry and leaves it alone).
         const restartTakeAfterReject = () => {
-            const { restart, decision } = decideRerecordAction({
+            const decision = decideRerecordAction({
                 listeningActive: listeningState.active,
                 transitioning: listeningState.transitioning,
             });
-            if (!restart) {
+            if (decision !== RERECORD_DECISIONS.restart) {
                 // Not a dead end: `onTranscriptRejected` already put the app in
                 // `recording/answering`, so the mic button is mounted and the
                 // manual second press still works.

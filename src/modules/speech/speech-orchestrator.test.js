@@ -321,6 +321,9 @@ describe('speech orchestrator — re-record is a single press', () => {
     beforeEach(() => {
         vi.useFakeTimers();
         appStore.setState({
+            // Reset appPhase explicitly: a test that asserts a transition must
+            // not inherit the previous test's phase.
+            appPhase: 'loading',
             isWhisperReady: true,
             isWhisperEngineFailed: false,
             isMicActive: false,
@@ -386,6 +389,7 @@ describe('speech orchestrator — re-record is a single press', () => {
         await vi.advanceTimersByTimeAsync(10);
 
         expect(hooks.onTranscriptRejected).toHaveBeenCalledTimes(1);
+        expect(hooks.onTranscriptRejected).toHaveBeenCalledWith('hello', 'a clear sentence');
         expect(order).toEqual(['onTranscriptRejected', 'startSpeechCamRecording']);
     });
 

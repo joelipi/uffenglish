@@ -31,12 +31,14 @@ Ordering matters: `onTranscriptRejected` must run **first** so the app is alread
 
 The store's `answerFlowTransitions.review` currently allows only `feedback` and `loading`, so `review → recording/answering` would log `[Phase] Unexpected transition`. Add `'recording/answering'` to that list — it is now a first-class transition, and an unexpected-transition warning is a defect per `AGENTS.md`.
 
-The two gates ("can we restart right now?") live in a new pure module `src/modules/speech/rerecord-logic.js` per the repo's logic/presentation rule:
+The two gates ("can we restart right now?") live in a new pure module `src/modules/speech/rerecord-logic.js` per the repo's logic/presentation rule. It returns a single decision from an exported enum; the caller compares against `RERECORD_DECISIONS.restart`. A parallel `restart: boolean` would be a second source of truth a future decision could contradict.
 
-- `listeningActive` — a take is still rolling. Re-entering `toggleSpeechRecognition` would run its **stop** branch and immediately abort the take the learner is trying to redo. Never restart.
+- `listeningActive` — a take is still rolling. Re-entering `toggleSpeechRecognition` would run its **stop** branch and immediately abort the take the learner is trying to redo. Never restart. Checked first, so it wins when both gates are held.
 - `transitioning` — the orchestrator's own start/stop mutex is still held. `toggleSpeechRecognition` already refuses in that state; refusing here too keeps the decision explicit and loggable instead of a silent no-op. Never happens for a real UI click (the reject lands in a later task, after the stop branch's `finally` released the lock), but it is the one case the guard exists for.
 
 On a refusal the learner is **not** stranded: `onTranscriptRejected` has already put the app in `recording/answering`, which renders the mic button, so the manual second press still works exactly as today.
+
+`onTranscriptRejected` is optional-chained, but the whole design depends on it running first: it is the hook that transitions to `recording/answering`. The shipped step executor always registers it together with `onReviewStart`, so the two are effectively a pair — a caller must not supply one without the other.
 
 `onMediaError` on the restarted take needs no special handling: `startSpeechCamRecording`'s catch already routes through `uiHooks.onMediaError`, which leaves the mic button mounted with localized recovery copy — the same behaviour as a first take with no camera.
 
@@ -52,6 +54,8 @@ On a refusal the learner is **not** stranded: `onTranscriptRejected` has already
 - `transitioning: true` + reject pressed
   - → returns `restart: false` with decision `transitioning`
   - → the mic path is not re-entered
+- both gates held at once
+  - → returns `already-recording` (the actionable reason wins over the mutex one, since a rolling take would be *aborted* by the re-entry)
 - `decideRerecordAction()` called with no argument
   - → returns `{ restart: true, decision: 'restart' }` (both flags default to `false`)
 
@@ -101,7 +105,8 @@ On a refusal the learner is **not** stranded: `onTranscriptRejected` has already
 ## Notes
 
 - The learner still sees the same 3-2-1 countdown they get on the first tap; only the extra "press the mic again" step disappears.
-- Nothing about the take's quality changes: the rejected transcript is still persisted via `updateSpeechRecording` before the restart, so analytics and the `whisperRejections` counter are unchanged.
+- Nothing about the take's quality changes: the rejected transcript is still persisted via `updateSpeechRecording`, so analytics and the `whisperRejections` counter are unchanged. That write is fire-and-forget and its position relative to the restart is not load-bearing (the 3 s pre-roll makes an overlap impossible in practice), so no ordering between the two is asserted.
+- The 7-second review auto-accept timer cannot fire during the restart: `rejectTranscript` sets `reviewActive = false` and clears the interval before the restart begins, and `acceptTranscript` re-checks the same latch.
 - On Android the camera composite is force-released when a take stops (`shouldForceReleaseComposite`), so the restart re-runs `getUserMedia`; that is the same cost as the first tap and is what makes the blank-screen symptom visible there.
 - **Not specified by this story, unchanged behaviour:** if the engine is not ready at the moment of the restart, the re-entered mic path takes the existing `!isWhisperReady` branch — `onEngineNotReady` plus the 1 Hz ready poll — and the learner sees the existing engine-error copy on the (still mounted) mic button. A friend/share lesson's ✕ restarts the same way; nothing about the restart is voice-step-specific.
 - The restart deliberately bypasses `MicrophoneToggle.web.jsx`'s `setHintsVisible(false)`. That is benign: the review overlay precedes feedback, and `hangmanOps` is only set after an answer is judged, so the "Try again" card cannot be on screen when ✕ is pressed.
