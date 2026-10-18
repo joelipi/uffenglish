@@ -68,21 +68,25 @@ describe('re-record wiring guard', () => {
         const start = ORCH.indexOf('const rejectTranscript = () => {');
         const end = ORCH.indexOf("console.warn('[PT] CALLING onReviewStart'", start);
         const region = ORCH.slice(start, end);
-        expect(region.indexOf('if (!reviewActive) return;'))
-            .toBeLessThan(region.indexOf('restartTakeAfterReject();'));
+        const latch = region.indexOf('if (!reviewActive) return;');
+        const restart = region.indexOf('restartTakeAfterReject();');
+        expect(latch).toBeGreaterThan(-1);
+        expect(latch).toBeLessThan(restart);
+        // Order alone cannot see a `reviewActive = true` reintroduced between
+        // the latch and the restart, so assert the latch sets it exactly once
+        // and nothing in the region writes it again.
+        expect(region.match(/reviewActive\s*=\s*\w+/g)).toEqual(['reviewActive = false']);
     });
 });
 
 describe('review phase transition guard', () => {
     it('allows review → recording/answering without an unexpected-transition warning', () => {
-        const start = STORE.indexOf("review:                                      [");
-        expect(start).toBeGreaterThan(-1);
-        // One mapping per line: bound the slice at the newline. A wider slice
-        // would match `phaseMapping`'s own 'recording/answering' entries and
-        // could never fail.
-        const end = STORE.indexOf('\n', start + 1);
-        expect(end).toBeGreaterThan(start);
-        const line = STORE.slice(start, end);
-        expect(line).toContain("'recording/answering'");
+        // Match the `answerFlowTransitions` entry by shape, not by column
+        // alignment — `phaseMapping` has an identically aligned `review:` line
+        // whose value is an object literal, so the `[` keeps the two apart and
+        // a re-aligned table cannot silently break this guard.
+        const match = STORE.match(/^\s*review:\s*\[[^\]]*\]/m);
+        expect(match).not.toBeNull();
+        expect(match[0]).toContain("'recording/answering'");
     });
 });

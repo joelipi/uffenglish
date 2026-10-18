@@ -289,13 +289,18 @@ function makeRecordingOrchestrator(overrides = {}) {
     return { orchestrator: createSpeechOrchestrator(deps), deps };
 }
 
-// Mirrors the real uiHooks the step executor registers.
+// Mirrors the real uiHooks the step executor registers, including the
+// `onTranscriptRejected` transition into `recording/answering`. Without it the
+// restart would run with the store still in `review`, which no shipped UI does.
+// Called without `fromStepLoad`, so the store's transition table is exercised.
 function reviewHooks({ onRecordingStart = vi.fn() } = {}) {
     return {
         onRecordingStart,
         onMediaError: vi.fn(),
         onReviewStart: vi.fn(),
-        onTranscriptRejected: vi.fn(),
+        onTranscriptRejected: vi.fn(() => {
+            appStore.getState().transitionTo('recording/answering');
+        }),
         onReviewEnd: vi.fn(),
     };
 }
@@ -341,10 +346,8 @@ describe('speech orchestrator — re-record is a single press', () => {
         expect(hooks.onReviewStart).toHaveBeenCalledTimes(1);
         expect(deps.startSpeechCamRecording).toHaveBeenCalledTimes(1);
 
-        // The store must actually reach `recording/answering` (what the real
-        // onTranscriptRejected hook does) so the restart sees the right phase.
-        appStore.getState().transitionTo('recording/answering');
         hooks.onReviewStart.mock.calls[0][3](); // ✕ "record again"
+        expect(appStore.getState().appPhase).toBe('recording/answering');
 
         // Re-entered the mic path exactly like the first tap.
         expect(deps.startSpeechCamRecording).toHaveBeenCalledTimes(2);
@@ -397,9 +400,20 @@ describe('speech orchestrator — re-record is a single press', () => {
         await vi.advanceTimersByTimeAsync(10);
 
         expect(deps.startSpeechCamRecording).toHaveBeenCalledTimes(2); // 1 take + 1 restart
+        // The `reviewActive` latch is the only thing stopping the second press:
+        // without it the hook would fire again (deducting another 20 speaking
+        // points in step-executor-webonly.js) and the rejected transcript would
+        // be persisted twice. Both would then be refused downstream by the
+        // already-recording gate, which is why the counts matter here.
+        expect(hooks.onTranscriptRejected).toHaveBeenCalledTimes(1);
+        expect(deps.updateSpeechRecording).toHaveBeenCalledTimes(1); // the reject's write only
     });
 
-    it('refuses to restart while a take is still rolling (a re-entry would stop it)', async () => {
+    it('refuses to restart while a take is still rolling (defence in depth)', async () => {
+        // The shipped UI cannot reach this state — in `review` the bottom band
+        // shows the review buttons, not the mic — so this pins the guard rather
+        // than a reachable path. It matters if a future UI ever keeps the mic
+        // mounted behind the overlay.
         const { orchestrator, deps } = makeRecordingOrchestrator();
         const hooks = reviewHooks();
         await runTakeToReview(orchestrator, baseParams(hooks));
@@ -452,13 +466,34 @@ describe('speech orchestrator — re-record is a single press', () => {
         expect(deps.startDeferredSpeechCamRecording).toHaveBeenCalledTimes(1); // no second take started
     });
 
-    it('review → recording/answering does not log an unexpected transition', async () => {
+    it('refuses to restart while the orchestrator start/stop lock is still held', async () => {
+        const { orchestrator, deps } = makeRecordingOrchestrator();
+        const hooks = reviewHooks();
+        await runTakeToReview(orchestrator, baseParams(hooks));
+
+        // A real ✕ click always lands after the stop branch's `finally` has
+        // released the mutex, so this is the other defence-in-depth gate.
+        orchestrator.listeningState.transitioning = true;
+
+        hooks.onReviewStart.mock.calls[0][3]();
+        await vi.advanceTimersByTimeAsync(10);
+
+        expect(deps.startSpeechCamRecording).toHaveBeenCalledTimes(1); // no second take
+        expect(warnSpy.mock.calls.some((c) => String(c[0]).includes('Re-record not started')
+            && c.slice(1).map(String).includes('transitioning'))).toBe(true);
+    });
+
+    it('the reject sequence logs no unexpected phase transition', async () => {
+        // The store table is asserted directly in store.test.js; this proves the
+        // real reject path (a live take → review → ✕ → hook transition) stays
+        // inside it, so a regression surfaces as a console warning.
         const { orchestrator } = makeRecordingOrchestrator();
         const hooks = reviewHooks();
         appStore.setState({ appPhase: 'review' });
 
         await runTakeToReview(orchestrator, baseParams(hooks));
-        appStore.getState().transitionTo('recording/answering');
+        hooks.onReviewStart.mock.calls[0][3]();
+        await vi.advanceTimersByTimeAsync(10);
 
         expect(warnSpy.mock.calls.some((c) => String(c[0]).includes('Unexpected transition'))).toBe(false);
     });

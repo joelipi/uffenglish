@@ -328,6 +328,16 @@ describe('Zustand App Store', () => {
             warn.mockRestore();
         });
 
+        it('allows review → recording/answering', () => {
+            // Story 074: the Whisper review "record again" (✕) press transitions
+            // out of review and restarts the take.
+            const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+            appStore.getState().transitionTo('review', {}, { fromStepLoad: true });
+            appStore.getState().transitionTo('recording/answering');
+            expect(warn.mock.calls.some(([msg]) => String(msg).includes('Unexpected transition'))).toBe(false);
+            warn.mockRestore();
+        });
+
         it('resolves conditional topState based on currentVideo', () => {
             appStore.setState({ currentVideo: { type: 'interactive' } });
             appStore.getState().transitionTo('recording/answering');

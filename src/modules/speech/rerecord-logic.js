@@ -23,6 +23,11 @@ export const RERECORD_DECISIONS = {
 //   `finally` has not released it yet), so a re-entry would be refused anyway.
 //   A real review tap lands in a later task and never hits this; the guard is
 //   there so the refusal is explicit and loggable instead of a silent no-op.
+//
+// Both gates are defence in depth: the shipped UI cannot show the ✕ while a
+// take is rolling (in `review` the bottom band shows the review buttons, not the
+// mic) nor while the mutex is held. They become reachable if a future UI keeps
+// the mic mounted behind the review overlay.
 export function decideRerecordAction({ listeningActive = false, transitioning = false } = {}) {
     if (listeningActive) {
         return { restart: false, decision: RERECORD_DECISIONS.alreadyRecording };
