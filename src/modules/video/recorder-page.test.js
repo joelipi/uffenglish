@@ -953,6 +953,7 @@ describe('recorder auto-render — zero server changes', () => {
             // wouldyourather: stale lesson titles + stray SRT batch markers.
             'wouldyourather.source.txt',
             'src/config/wouldyourather.json',
+            'src/config/wouldyourather-test.json',
             'src/config/wouldyourather.test.js',
             // Story 066 (recorder auto-render).
             'public/recorder.html',
@@ -993,7 +994,6 @@ describe('recorder auto-render — zero server changes', () => {
             'src/modules/courses/friend-courses-logic.js',
             'src/modules/courses/friend-courses-logic.test.js',
             'src/modules/courses/friend-course-configs.test.js',
-            'src/modules/courses/friend-course-configs.test.js',            // Translation-batching refactor.
             'scripts/lib/gemini.js',
             'scripts/lib/gemini.test.js',
             'scripts/translate-master-csv.mjs',
