@@ -9,6 +9,7 @@ import { guestSignupLessonCredit } from '../../modules/user/lesson-count-logic.j
 import { calculateCurrentStreak } from '../../modules/user/user-profile.js';
 import { flushPendingFriendCredits } from '../../modules/user/friend-credit-sync.js';
 import { verifyTurnstileToken } from '../../modules/auth/turnstile-logic.js';
+import { generateShareCode } from '../../modules/utils/short-id.js';
 import { mintShareCode } from '../../modules/utils/share-code-mint.js';
 import {
     checkEmailAddress,
@@ -137,7 +138,7 @@ export function useSignupForm({
                 console.error('[Signup] Failed to import collection module:', importError);
             }
 
-            const shareCode = await mintShareCode();
+            const mintedCode = await mintShareCode();
             // A guest's completed lesson lives only in the store — there is no
             // row to write it to, and the bootstrap right after signup seeds the
             // store from that row. Credit the lesson on the success screen so the
@@ -179,16 +180,16 @@ export function useSignupForm({
                 native_language: nativeLanguage,
                 english_level: userLevel,
                 completed_dates: signupDates,
-                share_code: shareCode,
+                ...(mintedCode ? { share_code: mintedCode } : {}),
                 ...(lessonCredit.creditLesson
                     ? { lessons_completed: lessonCredit.lessonsCompleted, counted_lessons: lessonCredit.countedLessons }
                     : {}),
             }, { onConflict: 'id' });
+            const shareCode = mintedCode || generateShareCode();
             if (insertError) {
                 console.error('[Signup] Failed to create profile row:', insertError);
                 throw insertError;
             }
-            console.log(`[Signup] shareCode ${shareCode} set for user ${user.id}`);
 
             identifyUser(user.id, {
                 email: user.email,
@@ -208,7 +209,7 @@ export function useSignupForm({
                 display_name: fullName,
                 join_date: user.created_at,
                 auth_method: 'supabase',
-                shareCode,
+                shareCode: shareCode,
                 share_code: shareCode,
                 firstName: firstName.trim(),
                 lastName: lastName.trim(),

@@ -18,15 +18,13 @@ describe('mintShareCode', () => {
         expect(rpcSpy).toHaveBeenCalledWith('generate_share_code');
     });
 
-    it('falls back to a local code when the RPC errors', async () => {
+    it('returns null when the RPC errors, so the trigger mints instead', async () => {
         rpcSpy.mockResolvedValue({ data: null, error: new Error('boom') });
-        const code = await mintShareCode();
-        expect(isShareCodeSegment(code)).toBe(true);
+        await expect(mintShareCode()).resolves.toBeNull();
     });
 
-    it('falls back when the RPC returns a non-code value', async () => {
+    it('returns null when the RPC returns a non-code value', async () => {
         rpcSpy.mockResolvedValue({ data: 'nope', error: null });
-        const code = await mintShareCode();
-        expect(isShareCodeSegment(code)).toBe(true);
+        await expect(mintShareCode()).resolves.toBeNull();
     });
 });

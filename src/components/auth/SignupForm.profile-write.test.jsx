@@ -31,7 +31,12 @@ vi.mock('../../modules/api/supabase.js', () => ({
             upsert: (row, opts) => {
                 upsertOpts.push(opts);
                 insertCalls.push(row);
-                return Promise.resolve({ error: null });
+                return {
+                    select: () => Promise.resolve({
+                        data: [{ share_code: row.share_code ?? null }],
+                        error: null,
+                    }),
+                };
             },
             insert: (row) => {
                 insertCalls.push(row);

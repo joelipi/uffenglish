@@ -60,17 +60,24 @@ set search_path = ''
 as $$
 begin
   if NEW.share_code is not null then
-    if length(NEW.share_code) not in (4, 5) then
-      raise exception 'invalid share code length';
-    end if;
-    if NEW.share_code !~ '^[abcdefghijkmnopqrstuvwxyz0123456789]+$' then
-      raise exception 'invalid share code characters';
-    end if;
-    if exists (select 1 from public.reserved_share_codes where word = NEW.share_code) then
-      raise exception 'reserved share code';
+    -- Only validate when the value is actually being set or changed.
+    if TG_OP = 'INSERT' or NEW.share_code is distinct from OLD.share_code then
+      if length(NEW.share_code) not in (4, 5) then
+        raise exception 'invalid share code length';
+      end if;
+      if NEW.share_code !~ '^[abcdefghijkmnopqrstuvwxyz0123456789]+$' then
+        raise exception 'invalid share code characters';
+      end if;
+      if exists (select 1 from public.reserved_share_codes where word = NEW.share_code) then
+        raise exception 'reserved share code';
+      end if;
     end if;
   else
-    NEW.share_code := public.generate_share_code();
+    -- Fill only when the row has no code yet, so unrelated updates (e.g.
+    -- progress writes) never overwrite or regenerate an existing code.
+    if TG_OP = 'INSERT' or OLD.share_code is null then
+      NEW.share_code := public.generate_share_code();
+    end if;
   end if;
   return NEW;
 end;

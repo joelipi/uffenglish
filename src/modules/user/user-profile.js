@@ -120,6 +120,14 @@ export async function ensureCompleteProfileRow(userData) {
         + ` (${Object.keys(plan.payload).length - 1} field(s))`,
     );
     mergeRepairedProfileIntoStore(plan.payload);
+    // When the code was minted server-side by the trigger (RPC unreachable),
+    // read it back so this session can use it.
+    if (needsShareCode && !candidateShareCode) {
+        const { row: freshRow } = await fetchProfileIdentityRow(userId);
+        if (freshRow?.share_code) {
+            mergeRepairedProfileIntoStore({ id: userId, share_code: freshRow.share_code });
+        }
+    }
     return { confirmed: true, payload: plan.payload };
 }
 
