@@ -793,10 +793,6 @@ body { margin: 0; font-family: var(--font-body); font-size: 1rem; font-weight: 4
 .branch-choice-col::-webkit-scrollbar-track {
     background: transparent;
 }
-.branch-choice-buttons {
-    /* Full-width button stack. */
-    width: 100%;
-}
 .branch-choice-footer {
     display: flex;
     justify-content: space-around;

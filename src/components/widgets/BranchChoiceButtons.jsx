@@ -34,7 +34,7 @@ export default function BranchChoiceButtons({ view, onChoose, onChooseGroup, onB
     return (
         <>
             <div className="branch-choice-row">
-                <div className="branch-choice-col branch-choice-buttons">
+                <div className="branch-choice-col">
                     {view?.canGoBack && (
                         <button className="btn branch-choice-btn branch-choice-back-btn" id="branchBackBtn" onClick={() => onBack()}>
                             <i className="bi bi-arrow-left"></i>

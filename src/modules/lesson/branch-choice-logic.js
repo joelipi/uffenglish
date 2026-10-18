@@ -118,14 +118,14 @@ export function resolveNextStepIndex(step, currentStepIndex) {
  * - localized value exists and there is room for both -> stacked (both lines).
  * - localized value exists but there is no room for both -> English only.
  *
- * The English/translation decision is made **once for the whole level** by
- * `stepShowsEnglish` (the only place `BRANCH_LABEL_CHAR_CAP` is applied) and
- * passed in as `showEnglish`, so every button visible at that level agrees and
+ * The both-languages decision is made **once for the whole level** by
+ * `stepShowsBoth` (the only place `BRANCH_LABEL_CHAR_CAP` is applied) and
+ * passed in as `showBoth`, so every button visible at that level agrees and
  * this function never re-decides per label.
  *
  * @param {object} text
  * @param {string} lang
- * @param {boolean} showEnglish level-level decision from `buildBranchChoiceView`
+ * @param {boolean} showBoth level-level decision from `buildBranchChoiceView`
  * @returns {{ english: string, localized: string|null, lang: string, showEnglish: boolean }}
  */
 export function formatBranchChoiceLabel(text, lang, showBoth) {
