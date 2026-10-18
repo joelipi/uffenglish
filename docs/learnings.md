@@ -258,3 +258,17 @@
 **Takeaway**: When narrowing what a route accepts, grep `tests/**` for the fixture value used as a path segment, not just for the fixture name: a code used in a query param or a query key is fine, but the same literal in `page.goto('/<code>')` must satisfy the new predicate. Run the affected spec (`npx playwright test tests/<spec>.js`) after the unit suite, because the guard only fails at page load.
 
 ---
+
+## A subagent `model:` pin that names an unavailable model fails as "Insufficient Balance"
+**Date**: 2026-10-18
+**Area**: workflow | tooling
+**What happened**: `.opencode/agents/code-reviewer.md` (and the other three agent files) had been repointed at `deepseek/deepseek-flash`, a model ID that is not in this environment's catalog at all. Every `subagent` call to `@code-reviewer` died instantly with `Insufficient Balance` or `Insufficient unified billing credits`, which reads like an account problem rather than a bad model id. The same thing happened for `cloudflare-ai-gateway/anthropic/*` (gateway out of credit); `opencode/beam-free` ran fine.
+**Takeaway**: Before blaming the account, check `tools.opencode.models()` for the pinned id, then re-run the subagent with an explicit `model:` parameter from the catalog (this session's own provider, or a `*-free` id) to get the verdict. The commit that carries the unusable pin is separate from the work — don't let it block the review loop, and don't revert `.opencode/agents/*.md` either (see the `recorder-page.test.js` worktree-hygiene entry above).
+
+---
+
+## `new Intl.Collator('und')` is NOT the CLDR root collation in V8
+**Date**: 2026-10-18
+**Area**: i18n
+**What happened**: Ordering the language dropdowns by endonym needed the Unicode default collation. `new Intl.Collator('und').resolvedOptions().locale` returns `en-US` with collation `default` in V8 — 'und' is the CLDR root tag but the engine silently substitutes the default locale instead of switching collation tables, so it only *looks* like the root. `new Intl.Collator('en')` produces the same order for real language names (English tailoring only touches punctuation and spacing, not script or letter order), which is why the app pins `'en'`.
+**Takeaway**: Pin the collator to a fixed locale and say why — leaving it on the runtime default reorders the menu per user (Swedish puts `å` after `z`). Don't describe `'en'` as "the CLDR root locale" in a comment; a reviewer reading both comments will find them contradictory.
