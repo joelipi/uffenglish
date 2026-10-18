@@ -31,12 +31,7 @@ vi.mock('../../modules/api/supabase.js', () => ({
             upsert: (row, opts) => {
                 upsertOpts.push(opts);
                 insertCalls.push(row);
-                return {
-                    select: () => Promise.resolve({
-                        data: [{ share_code: row.share_code ?? null }],
-                        error: null,
-                    }),
-                };
+                return Promise.resolve({ error: null });
             },
             insert: (row) => {
                 insertCalls.push(row);
@@ -155,7 +150,7 @@ describe('signup profile write', () => {
         expect(row.join_date).toBeTruthy();
         // A row without a share code can never be reached by share link, which
         // is exactly how the ghost rows were spotted.
-        expect(row.share_code).toBe('zzzzz'); // minted server-side via generate_share_code()
+        expect(row.share_code).toBeUndefined(); // minted by the DB trigger, not the client
     });
 
     it('reports no error when the profile write succeeds', async () => {

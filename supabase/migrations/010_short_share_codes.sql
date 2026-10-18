@@ -5,9 +5,7 @@
 -- (every lowercase letter except `l`, plus every digit). The generator skips
 -- reserved words (offensive terms, slurs, and a few confusable dictionary
 -- words) and any code already present in user_profiles, so collisions and
--- reserved codes are avoided in practice. Rows created without the client
--- (trigger fallback) still go through this function; client-side fallbacks
--- that bypass the RPC may mint a reserved word, but those are rare.
+-- reserved codes are avoided in practice.
 
 create table if not exists public.reserved_share_codes (
     word text primary key
@@ -66,18 +64,7 @@ begin
       if length(NEW.share_code) not in (4, 5) then
         raise exception 'invalid share code length';
       end if;
-      if NEW.share_code !~ '^[abcdefghijkmnopqrstuvwxyz0123456789]+
-end;
-$$;
-
-drop trigger if exists trg_fill_share_code on public.user_profiles;
-create trigger trg_fill_share_code
-  before insert or update on public.user_profiles
-  for each row
-  execute function public.fill_share_code();
-
-alter table public.reserved_share_codes enable row level security;
-revoke all on table public.reserved_share_codes from anon, authenticated; then
+      if NEW.share_code !~ '^[abcdefghijkmnopqrstuvwxyz0123456789]+$' then
         raise exception 'invalid share code characters';
       end if;
       if exists (select 1 from public.reserved_share_codes where word = NEW.share_code) then
@@ -91,18 +78,7 @@ revoke all on table public.reserved_share_codes from anon, authenticated; then
       if length(NEW.share_code) not in (4, 5) then
         raise exception 'invalid share code length';
       end if;
-      if NEW.share_code !~ '^[abcdefghijkmnopqrstuvwxyz0123456789]+
-end;
-$$;
-
-drop trigger if exists trg_fill_share_code on public.user_profiles;
-create trigger trg_fill_share_code
-  before insert or update on public.user_profiles
-  for each row
-  execute function public.fill_share_code();
-
-alter table public.reserved_share_codes enable row level security;
-revoke all on table public.reserved_share_codes from anon, authenticated; then
+      if NEW.share_code !~ '^[abcdefghijkmnopqrstuvwxyz0123456789]+$' then
         raise exception 'invalid share code characters';
       end if;
       if exists (select 1 from public.reserved_share_codes where word = NEW.share_code) then
@@ -122,3 +98,6 @@ create trigger trg_fill_share_code
 
 alter table public.reserved_share_codes enable row level security;
 revoke all on table public.reserved_share_codes from anon, authenticated;
+
+-- Backfill any rows that still have a NULL share_code (e.g. ghost rows).
+update public.user_profiles set share_code = null where share_code is null;

@@ -9,8 +9,6 @@ import { guestSignupLessonCredit } from '../../modules/user/lesson-count-logic.j
 import { calculateCurrentStreak } from '../../modules/user/user-profile.js';
 import { flushPendingFriendCredits } from '../../modules/user/friend-credit-sync.js';
 import { verifyTurnstileToken } from '../../modules/auth/turnstile-logic.js';
-import { generateShareCode } from '../../modules/utils/short-id.js';
-import { mintShareCode } from '../../modules/utils/share-code-mint.js';
 import {
     checkEmailAddress,
     normalizeEmail,
@@ -138,7 +136,6 @@ export function useSignupForm({
                 console.error('[Signup] Failed to import collection module:', importError);
             }
 
-            const mintedCode = await mintShareCode();
             // A guest's completed lesson lives only in the store — there is no
             // row to write it to, and the bootstrap right after signup seeds the
             // store from that row. Credit the lesson on the success screen so the
@@ -180,7 +177,6 @@ export function useSignupForm({
                 native_language: nativeLanguage,
                 english_level: userLevel,
                 completed_dates: signupDates,
-                ...(mintedCode ? { share_code: mintedCode } : {}),
                 ...(lessonCredit.creditLesson
                     ? { lessons_completed: lessonCredit.lessonsCompleted, counted_lessons: lessonCredit.countedLessons }
                     : {}),
@@ -190,24 +186,14 @@ export function useSignupForm({
                 throw insertError;
             }
 
-            let shareCode = mintedCode;
-            if (!shareCode) {
-                try {
-                    const { data: row, error: readErr } = await supabase.from('user_profiles')
-                        .select('share_code').eq('id', user.id).maybeSingle();
-                    if (readErr) throw readErr;
-                    if (row?.share_code) shareCode = row.share_code;
-                } catch (readErr) {
-                    console.warn('[Signup] could not read back share_code:', readErr?.message || readErr);
-                }
-            }
-            if (!shareCode) {
-                shareCode = generateShareCode();
-                try {
-                    await supabase.from('user_profiles').update({ share_code: shareCode }).eq('id', user.id);
-                } catch (writeErr) {
-                    console.warn('[Signup] fallback share_code write failed:', writeErr?.message || writeErr);
-                }
+            let shareCode = null;
+            try {
+                const { data: row, error: readErr } = await supabase.from('user_profiles')
+                    .select('share_code').eq('id', user.id).maybeSingle();
+                if (readErr) throw readErr;
+                if (row?.share_code) shareCode = row.share_code;
+            } catch (readErr) {
+                console.warn('[Signup] could not read back share_code:', readErr?.message || readErr);
             }
 
             identifyUser(user.id, {

@@ -3,8 +3,8 @@
 import { syncUserMetaDataMutation, getCurrentUser, fetchProfileIdentityRow } from '../api/api.js';
 import { appStore } from '../store/store.js';
 import { nextLessonCompletion } from './lesson-count-logic.js';
-import { mintShareCode } from '../utils/share-code-mint.js';
 import { profileIsIncomplete, planProfileRepair } from './profile-repair-logic.js';
+import { mintShareCode } from '../utils/share-code-mint.js';
 
 /**
  * Fold a freshly written profile payload into the store's copy of the user, so
@@ -105,20 +105,18 @@ export async function ensureCompleteProfileRow(userData) {
     }
 
     // A candidate share code is generated up front and usually discarded: the
-    // plan includes it only when the row has none to protect. Mint it only when
-    // the row actually lacks a share code, and do it on the server so it is
-    // checked against the reserved list and the unique constraint.
+    // plan includes it only when the row has none to protect. Mint it on the
+    // server so it is checked against the reserved list and the unique
+    // constraint; if minting fails, report the row unconfirmed rather than
+    // claiming a successful repair.
     const needsShareCode = !row || !row.share_code;
     const candidateShareCode = needsShareCode ? await mintShareCode() : null;
+    if (needsShareCode && !candidateShareCode) {
+        console.warn('[user-profile] could not mint a share code; skipping repair');
+        return { confirmed: false, payload: null, reason: 'mint-failed' };
+    }
 
     const plan = planProfileRepair({ row, user, shareCode: candidateShareCode });
-    // If the row only lacks a share code and the RPC was unreachable, plan
-    // would be 'none' (no field to fill). Force a write with a null code so
-    // the DB trigger mints one instead of leaving the row incomplete forever.
-    if (needsShareCode && plan.action === 'none') {
-        plan.action = 'update';
-        plan.payload = { id: row?.id || user.$id, share_code: null };
-    }
     if (plan.action === 'none') return { confirmed: true, payload: null };
 
     await syncUserMetaDataMutation(plan.payload, userId);
@@ -127,21 +125,7 @@ export async function ensureCompleteProfileRow(userData) {
         + ` (${Object.keys(plan.payload).length - 1} field(s))`,
     );
     mergeRepairedProfileIntoStore(plan.payload);
-    // When the code was minted server-side by the trigger (RPC unreachable),
-    // read it back so this session can use it.
-    let confirmed = true;
-    if (needsShareCode && !candidateShareCode) {
-        const { row: freshRow, error: freshErr } = await fetchProfileIdentityRow(userId);
-        if (freshErr) {
-            console.warn('[user-profile] could not read back share_code:', freshErr?.message || freshErr);
-            confirmed = false;
-        } else if (freshRow?.share_code) {
-            mergeRepairedProfileIntoStore({ id: userId, share_code: freshRow.share_code });
-        } else {
-            confirmed = false;
-        }
-    }
-    return { confirmed, payload: plan.payload };
+    return { confirmed: true, payload: plan.payload };
 }
 
 /**
