@@ -773,6 +773,7 @@ body { margin: 0; font-family: var(--font-body); font-size: 1rem; font-weight: 4
     justify-content: flex-end;
     flex: 2 1 0;
     min-width: 0;
+    min-height: min-content;
     width: 100%;
     gap: 4px;
     /* The button area is the only scrollable region: when the buttons do not
