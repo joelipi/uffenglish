@@ -1050,6 +1050,10 @@ def create_overlay_html(row, video_width, video_height):
     title_max_height = max(12, _title_height_cap)
     footer_size = max(9, int(video_height * 0.018))
     aside_size = max(9, int(video_height * 0.02))
+    # Phrase overlay: same left-anchored callout as <aside>, but larger and
+    # vertically centered, so the spoken phrase reads at a glance on the web.
+    phrase_size = max(12, int(video_height * 0.04))
+    phrase_size = max(phrase_size, aside_size * 2)
     mark_size = max(10, int(video_height * 0.03))
 
     font_variable_path = f"file:///{os.path.abspath(os.path.join(FONT_DIRECTORY, FONT_FILE_VARIABLE)).replace(chr(92), '/')}"
@@ -1183,6 +1187,30 @@ aside {{
     overflow: hidden;
 }}
 
+/* Phrase overlay: the spoken phrase as a left-anchored callout, larger font
+   and vertically centered (mirror of <aside> but centered on the frame). */
+aside.phrase-overlay {{
+    position: fixed;
+    top: {video_height * 0.5}px;
+    left: {video_width * 0.02}px;
+    transform: translateY(-50%);
+    max-width: {video_width * 0.60}px;
+    max-height: {video_height * 0.60}px;
+    background: rgba(255, 255, 255, 0.85);
+    color: #111111;
+    font-family: '{SUBTITLE_FONT}', sans-serif;
+    font-size: {phrase_size}px;
+    font-weight: 700;
+    line-height: 1.4;
+    text-align: left;
+    -webkit-text-stroke: 0;
+    text-shadow: none;
+    padding: {phrase_size * 0.5}px {phrase_size * 0.6}px;
+    border-radius: {phrase_size * 0.8}px;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+}}
+
 /* <strong> is used for highlighting (in the callout box and subtitles).
    Overrides the inherited subtitle text-shadow/stroke so the highlight reads
    as clean dark text on yellow. */
@@ -1204,6 +1232,8 @@ strong {{
 {f'<div class="footer">{row["footer_text"]}</div>' if row.get('footer_text') else ''}
 
 <div class="subtitle">{row["subtitle_text"]}</div>
+
+{f'<aside class="phrase-overlay">{row.get("phrase", "")}</aside>' if row.get("phrase") else ""}
 
 <script>
     // Fit a block's font to its band: start at the minimum and grow to the
@@ -1242,6 +1272,15 @@ strong {{
         var size = {aside_size};
         el.style.fontSize = size + 'px';
         while (size > 8 && (el.scrollHeight > el.clientHeight || el.scrollWidth > el.clientWidth)) {{
+            size -= 1;
+            el.style.fontSize = size + 'px';
+        }}
+    }});
+    // Phrase overlay: shrink from its (larger) base size so long phrases fit.
+    document.querySelectorAll('aside.phrase-overlay').forEach(function (el) {{
+        var size = {phrase_size};
+        el.style.fontSize = size + 'px';
+        while (size > 10 && (el.scrollHeight > el.clientHeight || el.scrollWidth > el.clientWidth)) {{
             size -= 1;
             el.style.fontSize = size + 'px';
         }}
