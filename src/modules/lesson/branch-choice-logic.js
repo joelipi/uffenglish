@@ -19,8 +19,8 @@ export const BRANCH_OVERLAY_TEXT_KEY = 'video_choose_how_respond';
 // ... and for every deeper row, once a group has been chosen.
 export const BRANCH_DEEP_OVERLAY_TEXT_KEY = 'video_choose_exactly';
 
-// Combined English + translation length above which the label drops the English
-// line and shows the translation only. The single "space does not allow" knob.
+// Combined English + translation length above which the label drops the localized
+// line and shows English only. The single "space does not allow" knob.
 export const BRANCH_LABEL_CHAR_CAP = 48;
 
 export function isBranchingStep(step) {
@@ -115,8 +115,8 @@ export function resolveNextStepIndex(step, currentStepIndex) {
 /**
  * Chooses how a branch choice's text renders:
  * - no localized value for `lang` -> English only (`showEnglish: true`).
- * - localized value exists and `showEnglish` -> stacked (both lines).
- * - localized value exists and `!showEnglish` -> translation only.
+ * - localized value exists and there is room for both -> stacked (both lines).
+ * - localized value exists but there is no room for both -> English only.
  *
  * The English/translation decision is made **once for the whole level** by
  * `stepShowsEnglish` (the only place `BRANCH_LABEL_CHAR_CAP` is applied) and
@@ -146,11 +146,12 @@ export function formatBranchChoiceLabel(text, lang, showBoth) {
 }
 
 // The char cap is a level-level, all-or-nothing decision. A button drops its
-// English line only when EVERY button visible at that level can drop it: if any
-// label's combined English + translation length exceeds BRANCH_LABEL_CHAR_CAP,
-// the whole visible column shows translation-only; otherwise every button shows
-// both lines. Deciding per level (not per step) keeps the visible buttons
-// consistent while allowing a deep level with short labels to keep its English.
+// localized line only when ANY button visible at that level exceeds the cap: if
+// any label's combined English + translation length exceeds
+// BRANCH_LABEL_CHAR_CAP, the whole visible column shows English only; otherwise
+// every button shows both lines. Deciding per level (not per step) keeps the
+// visible buttons consistent while allowing a deep level with short labels to
+// keep its localized text.
 function stepShowsBoth(nodes, lang) {
     return nodes.every(({ text }) => {
         const { english, localized, shouldShowLocalized } = formatBilingualText(text, lang);

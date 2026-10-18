@@ -266,7 +266,7 @@ describe('buildBranchChoiceView', () => {
     });
 
     // The cap is decided once per step, not per label: the whole column either
-    // shows both languages or translation-only. A per-label decision is the bug
+    // shows both languages or English-only. A per-label decision is the bug
     // this guards (one button bilingual, its neighbour translation-only).
     const atCapText = () => ({
         en: 'a'.repeat(24),
