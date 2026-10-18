@@ -12,8 +12,9 @@ import { isGuestViewer, buildCoursesSignInHref } from '../../modules/courses/gue
 //
 // This page serves both audiences: signed-in users get the install banner and
 // the notification prompt, guests get the signed-out notice. Both gates read
-// `isGuestViewer` so they can never disagree about who is signed in, and both
-// wait for the profile query (`isResolving`) before claiming either.
+// `isGuestViewer` so they can never disagree about who is signed in. The notice
+// waits for the profile query (`isResolving`) before claiming either way; the
+// banners mount immediately and self-gate on `userId` internally.
 export default function CourseListings({ lang = 'en', courses, isLoading = false, isError = false, userId = null, isResolving = false, onBack }) {
     // `isResolving` is the profile query still loading: the viewer is unknown,
     // so neither the guest notice nor the signed-in banners render yet. Gating

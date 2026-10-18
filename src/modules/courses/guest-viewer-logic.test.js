@@ -57,7 +57,6 @@ describe('isGuestViewer', () => {
         for (const [id, expectedGuest] of cases) {
             const isGuest = isGuestViewer(id);
             expect(isGuest, `isGuestViewer(${String(id)})`).toBe(expectedGuest);
-            expect(!isGuest, 'the signed-in banner gate').toBe(!expectedGuest);
         }
     });
 });
