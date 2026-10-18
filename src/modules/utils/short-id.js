@@ -1,14 +1,20 @@
-const ALPHABET = "abcdefghijkmnpqrstuvwxyz23456789";
+// Share-code alphabet: all lowercase letters except `l`, plus all digits.
+// `o`, `0` and `1` are intentionally kept (the user accepted the small
+// confusion risk in exchange for a larger code space); only `l` is excluded.
+const ALPHABET = "abcdefghijkmnopqrstuvwxyz0123456789";
 const BASE = ALPHABET.length;
 
-// The signup form draws a code from a 24-bit space, so the longest code the
-// generator can mint is the encoding of the largest in-space value. Deriving
-// the bound (instead of writing 5) keeps the shape predicate in step with the
-// generator: widen the space and the accepted length follows.
-const SHARE_CODE_SPACE = 0xFFFFFF;
-const SHORT_ID_MIN_LENGTH = 4;
+// New codes are always exactly five characters. Legacy codes may be four
+// characters (early accounts), so the shape gate accepts 4 or 5; generation
+// never produces fewer than five.
+const SHARE_CODE_MIN_LENGTH = 4;
+const SHARE_CODE_MAX_LENGTH = 5;
+const GENERATED_CODE_LENGTH = 5;
 
-function toShortId(num, minLength = SHORT_ID_MIN_LENGTH) {
+// 35^5 ≈ 52.5M possible five-character codes.
+const SHARE_CODE_SPACE = 35 ** 5;
+
+function toShortId(num, minLength = GENERATED_CODE_LENGTH) {
   const n = typeof num === 'string' ? parseInt(num, 10) : num;
 
   if (!Number.isInteger(n) || n < 0) {
@@ -30,7 +36,7 @@ const SHORT_ID_MAX_LENGTH = toShortId(SHARE_CODE_SPACE - 1).length;
 /**
  * Normalize a share-code segment for lookup.
  *
- * Share codes are minted lowercase, so an uppercase or mixed-case URL
+ * Share codes are stored lowercase, so an uppercase or mixed-case URL
  * (`/Abcd`) refers to the same code as `/abcd`. Normalizing at the boundary
  * means the database lookup sees the stored shape.
  *
@@ -48,11 +54,11 @@ function normalizeShareCodeSegment(value) {
  * `/nonsense` matches the `/:shareCode` route just like `/k9gyi` does, because
  * React Router cannot see the difference. This is the difference: a share code
  * is case-insensitive (uppercase is normalized to lowercase), drawn from
- * ALPHABET, at the generator's min length or longer, and at most the length of
- * the largest code the generator can mint. Anything else is a mistyped path
- * and must fall through to the 404 page.
+ * ALPHABET, four or five characters long (legacy codes may be four), and at
+ * most five characters. Anything else is a mistyped path and must fall through
+ * to the 404 page.
  *
- * Derived from ALPHABET + SHORT_ID_MIN_LENGTH + the generator's space rather
+ * Derived from ALPHABET + SHARE_CODE_MIN_LENGTH/SHARE_CODE_MAX_LENGTH rather
  * than a second hand-written regex, so changing the generator cannot leave the
  * two out of step.
  *
@@ -62,29 +68,32 @@ function normalizeShareCodeSegment(value) {
 function isShareCodeSegment(value) {
   if (typeof value !== 'string') return false;
   const normalized = normalizeShareCodeSegment(value);
-  if (normalized.length < SHORT_ID_MIN_LENGTH || normalized.length > SHORT_ID_MAX_LENGTH) return false;
+  if (normalized.length < SHARE_CODE_MIN_LENGTH || normalized.length > SHARE_CODE_MAX_LENGTH) return false;
   for (const char of normalized) {
     if (!ALPHABET.includes(char)) return false;
   }
   return true;
 }
 
-/**
- * Generate a share code from the same 24-bit space the signup form uses.
- *
- * Lives here, beside toShortId, so the code space has a single definition — the
- * signup form and the profile-repair path both draw from it, and two copies of
- * the expression is how the space silently drifts apart.
- */
-export function generateShareCode() {
-    return toShortId(Math.floor(Math.random() * SHARE_CODE_SPACE));
-}
-
 export {
   toShortId,
   ALPHABET,
-  SHORT_ID_MIN_LENGTH,
-  SHORT_ID_MAX_LENGTH,
+  SHARE_CODE_MIN_LENGTH,
+  SHARE_CODE_MAX_LENGTH,
+  GENERATED_CODE_LENGTH,
   normalizeShareCodeSegment,
   isShareCodeSegment,
 };
+
+/**
+ * Generate a share code from the 35^5 code space.
+ *
+ * Client-side fallback only. The authoritative generator is the Postgres
+ * function `generate_share_code()` (see supabase/migrations), which also
+ * filters reserved words and checks uniqueness. This local version does not
+ * filter reserved words; it exists for tests and for degrading gracefully if
+ * the RPC is unreachable.
+ */
+export function generateShareCode() {
+  return toShortId(Math.floor(Math.random() * SHARE_CODE_SPACE));
+}

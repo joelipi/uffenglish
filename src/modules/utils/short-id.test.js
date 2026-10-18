@@ -5,39 +5,28 @@ import path from 'node:path';
 import {
     toShortId,
     ALPHABET,
-    SHORT_ID_MIN_LENGTH,
-    SHORT_ID_MAX_LENGTH,
+    SHARE_CODE_MIN_LENGTH,
+    SHARE_CODE_MAX_LENGTH,
+    GENERATED_CODE_LENGTH,
     normalizeShareCodeSegment,
     isShareCodeSegment,
 } from './short-id.js';
 
 describe('toShortId', () => {
-    it('encodes 0 to 4-char padded string', () => {
+    it('encodes 0 to 5-char padded string', () => {
         const result = toShortId(0);
-        expect(result).toBe('aaaa');
-        expect(result.length).toBe(4);
-    });
-
-    it('encodes 1048575 as a 4-char string (max 4-char value)', () => {
-        expect(32 ** 4).toBe(1048576);
-        const result = toShortId(1048575);
-        expect(result.length).toBe(4);
-    });
-
-    it('encodes 1048576 as a 5-char string (natural rollover)', () => {
-        const result = toShortId(1048576);
+        expect(result).toBe('aaaaa');
         expect(result.length).toBe(5);
-        expect(result.startsWith('b'));
     });
 
     it('encodes small numbers correctly', () => {
-        expect(toShortId(1)).toBe('aaab');
-        expect(toShortId(31)).toBe('aaa9');
-        expect(toShortId(32)).toBe('aaba');
+        expect(toShortId(1)).toBe('aaaab');
+        expect(toShortId(5)).toBe('aaaaf');
+        expect(toShortId(35)).toBe('aaaba');
     });
 
-    it('uses default minLength of 4', () => {
-        expect(toShortId(5)).toBe('aaaf');
+    it('uses default length of 5', () => {
+        expect(toShortId(5)).toBe('aaaaf');
     });
 
     it('respects custom minLength', () => {
@@ -46,7 +35,7 @@ describe('toShortId', () => {
     });
 
     it('does not truncate when encoded length exceeds minLength', () => {
-        const result = toShortId(1048576, 3);
+        const result = toShortId(52521874, 3);
         expect(result.length).toBe(5);
     });
 
@@ -55,9 +44,8 @@ describe('toShortId', () => {
     });
 
     it('accepts string numeric input', () => {
-        expect(toShortId('0')).toBe('aaaa');
-        expect(toShortId('45')).toBe('aabp');
-        expect(toShortId('1048576')).toBe('baaaa');
+        expect(toShortId('0')).toBe('aaaaa');
+        expect(toShortId('45')).toBe('aaabk');
     });
 
     it('throws on non-integers', () => {
@@ -68,12 +56,17 @@ describe('toShortId', () => {
     });
 
     it('exports ALPHABET with expected length and chars', () => {
-        expect(ALPHABET.length).toBe(32);
-        expect(ALPHABET).toBe('abcdefghijkmnpqrstuvwxyz23456789');
-        expect(ALPHABET.includes('o')).toBe(false);
+        expect(ALPHABET.length).toBe(35);
+        expect(ALPHABET).toBe('abcdefghijkmnopqrstuvwxyz0123456789');
+        // only `l` is excluded; `o`, `0` and `1` are kept
         expect(ALPHABET.includes('l')).toBe(false);
-        expect(ALPHABET.includes('0')).toBe(false);
-        expect(ALPHABET.includes('1')).toBe(false);
+        expect(ALPHABET.includes('o')).toBe(true);
+        expect(ALPHABET.includes('0')).toBe(true);
+        expect(ALPHABET.includes('1')).toBe(true);
+    });
+
+    it('generated code length is exactly 5', () => {
+        expect(GENERATED_CODE_LENGTH).toBe(5);
     });
 });
 
@@ -96,12 +89,10 @@ describe('isShareCodeSegment', () => {
     const source = readFileSync(sourcePath, 'utf8');
 
     it('accepts every code the generator mints (toShortId round trip)', () => {
-        // 0..2048 covers the padded 4-char codes; the explicit list covers the
-        // 5-char rollover at 1048576 and the top of the 24-bit space.
         for (let n = 0; n <= 2048; n += 1) {
             expect(isShareCodeSegment(toShortId(n)), `toShortId(${n})`).toBe(true);
         }
-        for (const n of [50000, 250000, 1048575, 1048576, 16777214]) {
+        for (const n of [50000, 250000, 1000000, 52521874]) {
             expect(isShareCodeSegment(toShortId(n)), `toShortId(${n})`).toBe(true);
         }
     });
@@ -109,14 +100,11 @@ describe('isShareCodeSegment', () => {
     it('accepts the real share codes the product uses', () => {
         expect(isShareCodeSegment('abcd')).toBe(true);
         expect(isShareCodeSegment('k9gyi')).toBe(true);
-        expect(isShareCodeSegment('a'.repeat(SHORT_ID_MIN_LENGTH))).toBe(true);
-        expect(isShareCodeSegment('z'.repeat(SHORT_ID_MAX_LENGTH))).toBe(true);
+        expect(isShareCodeSegment('a'.repeat(SHARE_CODE_MIN_LENGTH))).toBe(true);
+        expect(isShareCodeSegment('z'.repeat(SHARE_CODE_MAX_LENGTH))).toBe(true);
     });
 
     it('accepts uppercase and mixed-case forms of a share code', () => {
-        // Codes are minted lowercase, but a typed/shared URL may capitalize
-        // them; the route normalizes before the lookup, so the shape check
-        // must accept what normalization produces.
         expect(isShareCodeSegment('Abcd')).toBe(true);
         expect(isShareCodeSegment('ABCD')).toBe(true);
         expect(isShareCodeSegment('aBcD')).toBe(true);
@@ -124,15 +112,12 @@ describe('isShareCodeSegment', () => {
     });
 
     it('rejects malformed single segments', () => {
-        expect(isShareCodeSegment('nonsense')).toBe(false);
-        expect(isShareCodeSegment('AB0D')).toBe(false); // 0 is not in the alphabet
+        expect(isShareCodeSegment('nonsense')).toBe(false); // 8 chars
         expect(isShareCodeSegment('abc')).toBe(false); // shorter than the min
-        expect(isShareCodeSegment('a'.repeat(SHORT_ID_MAX_LENGTH + 1))).toBe(false); // over the generator's space
+        expect(isShareCodeSegment('a'.repeat(SHARE_CODE_MAX_LENGTH + 1))).toBe(false); // over the max
         expect(isShareCodeSegment('')).toBe(false);
         expect(isShareCodeSegment('ab-cd')).toBe(false);
         expect(isShareCodeSegment('ab cd')).toBe(false);
-        expect(isShareCodeSegment('ab0d')).toBe(false);
-        expect(isShareCodeSegment('ab1d')).toBe(false);
         expect(isShareCodeSegment('abl d')).toBe(false);
     });
 
@@ -142,10 +127,7 @@ describe('isShareCodeSegment', () => {
         }
     });
 
-    it('derives its shape from ALPHABET and the generator min length', () => {
-        // A guard, not a restatement: the predicate must consult the shared
-        // constants (a hand-written character class could drift from the
-        // generator without any behavioural test noticing).
+    it('derives its shape from ALPHABET and the code-length bounds', () => {
         const fnAt = source.indexOf('function isShareCodeSegment');
         const fnEnd = source.indexOf('\nexport function generateShareCode', fnAt);
         expect(fnAt).toBeGreaterThan(-1);
@@ -153,16 +135,14 @@ describe('isShareCodeSegment', () => {
         const body = source.slice(fnAt, fnEnd);
         expect(body).toContain('normalizeShareCodeSegment');
         expect(body).toContain('ALPHABET.includes');
-        expect(body).toContain('SHORT_ID_MIN_LENGTH');
-        expect(body).toContain('SHORT_ID_MAX_LENGTH');
+        expect(body).toContain('SHARE_CODE_MIN_LENGTH');
+        expect(body).toContain('SHARE_CODE_MAX_LENGTH');
         expect(body).not.toMatch(/\[a-z0-9\]/);
 
-        // Every alphabet character is accepted, and only those.
         for (const char of ALPHABET) {
-            expect(isShareCodeSegment(char + 'a'.repeat(SHORT_ID_MIN_LENGTH - 1))).toBe(true);
+            expect(isShareCodeSegment(char + 'a'.repeat(SHARE_CODE_MIN_LENGTH - 1))).toBe(true);
         }
-        for (const char of 'ol01') {
-            expect(isShareCodeSegment(char + 'a'.repeat(SHORT_ID_MIN_LENGTH - 1))).toBe(false);
-        }
+        // `l` is the only excluded letter
+        expect(isShareCodeSegment('l' + 'a'.repeat(SHARE_CODE_MIN_LENGTH - 1))).toBe(false);
     });
 });

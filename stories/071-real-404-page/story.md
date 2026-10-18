@@ -39,11 +39,14 @@ Anything here must treat a real share code as inviolable.
 ### 1. Decide the one-segment ambiguity explicitly
 
 Use the share-code shape already defined in `src/modules/utils/short-id.js`:
-`ALPHABET` (32 chars, `abcdefghijkmnpqrstuvwxyz23456789`) and a length of 4+
-(`toShortId`'s `minLength = 4`). A single path segment is treated as a share code
-**only if** it matches that shape; otherwise it falls through to the real 404.
+`ALPHABET` (35 chars, `abcdefghijkmnopqrstuvwxyz0123456789` — all lowercase
+letters except `l`, plus all digits) and a length of 4–5 (`toShortId`'s
+default length is 5). A single path segment is treated as a share code **only
+if** it matches that shape; otherwise it falls through to the real 404.
 Uppercase input is **normalized to lowercase** before the check and before the
-lookup, so `/Abcd` resolves the stored code `abcd` instead of 404ing.
+lookup, so `/Abcd` resolves the stored code `abcd` instead of 404ing. New
+codes are always exactly five characters; legacy four-character codes are still
+accepted by the gate so existing links keep working.
 
 This is derived from the generator rather than a second hand-written regex, so a
 change to the alphabet or the length cannot leave the two out of step.

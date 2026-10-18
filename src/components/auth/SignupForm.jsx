@@ -137,7 +137,17 @@ export function useSignupForm({
                 console.error('[Signup] Failed to import collection module:', importError);
             }
 
-            const shareCode = generateShareCode();
+            // Mint the code server-side so it is checked against the reserved
+            // list and the unique constraint (no client-side duplicates).
+            let shareCode = null;
+            try {
+                const { data: minted, error: mintError } = await supabase.rpc('generate_share_code');
+                if (mintError) throw mintError;
+                if (typeof minted === 'string' && minted.length === 5) shareCode = minted;
+            } catch (mintErr) {
+                console.warn('[Signup] generate_share_code RPC failed, falling back to local mint:', mintErr?.message || mintErr);
+            }
+            if (!shareCode) shareCode = generateShareCode();
             // A guest's completed lesson lives only in the store — there is no
             // row to write it to, and the bootstrap right after signup seeds the
             // store from that row. Credit the lesson on the success screen so the
