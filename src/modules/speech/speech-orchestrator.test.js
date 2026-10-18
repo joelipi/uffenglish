@@ -191,13 +191,17 @@ describe('speech orchestrator — hesitation timer gating', () => {
 
     it('starts the 100 ms hesitation timer by default', async () => {
         const orchestrator = makeOrchestrator();
-        await orchestrator.toggleSpeechRecognition(baseParams({}));
+        const p = orchestrator.toggleSpeechRecognition(baseParams({}));
+        await vi.advanceTimersByTimeAsync(4000);
+        await p;
         expect(orchestrator.listeningState.hesitationTimer).not.toBeNull();
     });
 
     it('does not start the timer when trackHesitation is false', async () => {
         const orchestrator = makeOrchestrator();
-        await orchestrator.toggleSpeechRecognition({ ...baseParams({}), trackHesitation: false });
+        const p = orchestrator.toggleSpeechRecognition({ ...baseParams({}), trackHesitation: false });
+        await vi.advanceTimersByTimeAsync(4000);
+        await p;
         expect(orchestrator.listeningState.hesitationTimer).toBeNull();
     });
 });

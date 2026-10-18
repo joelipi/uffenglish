@@ -119,6 +119,7 @@ export function createLoadStep(deps) {
             if (typeof enableAudioSystem === 'function') enableAudioSystem();
         } else {
             setWebcamStream(null);
+            appStore.getState().setRecordingCountdown(null);
         }
 
         if (step.image) {
