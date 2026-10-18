@@ -7,6 +7,7 @@ export default function WebcamPreview() {
     // then read the actual stream from the module-level getter.
     const webcamStreamKey = useStore(appStore, (state) => state._webcamStreamKey);
     const mediaState = useStore(appStore, (state) => state.mediaState);
+    const recordingCountdown = useStore(appStore, (state) => state.recordingCountdown);
     const videoRef = useRef(null);
     const wrapperRef = useRef(null);
     const prevShow = useRef(false);
@@ -62,8 +63,35 @@ export default function WebcamPreview() {
     }
 
     return (
-        <div ref={wrapperRef} id="pip-wrapper" className={className}>
+        <div ref={wrapperRef} id="pip-wrapper" className={className} style={{ position: 'relative' }}>
             <video ref={videoRef} id="webcam-preview" autoPlay muted playsInline></video>
+            {recordingCountdown !== null && (
+                <div
+                    data-testid="recording-countdown-overlay"
+                    style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                        zIndex: 100,
+                        fontSize: '120px',
+                        fontWeight: 'bold',
+                        color: 'white',
+                        pointerEvents: 'none',
+                    }}
+                >
+                    {recordingCountdown === 'mic' ? (
+                        <span style={{ fontSize: '80px' }}>🎤</span>
+                    ) : (
+                        recordingCountdown
+                    )}
+                </div>
+            )}
         </div>
     );
 }

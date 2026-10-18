@@ -108,6 +108,7 @@ export const appStore = createStore(
             pendingLessonNavigation: null,
             pauseAllVideosTrigger: 0,
             pendingVideoPlayType: null,  // 'interactive' | 'simple' | 'success' | null
+            recordingCountdown: null,    // null | 3 | 2 | 1 | 'mic' — drives the recording countdown overlay
 
 // --- Session-scoped State (not persisted, reset per lesson) ---
             isAudioEnabled: false,
@@ -231,6 +232,7 @@ export const appStore = createStore(
             setWhisperReady: (val) => set({ isWhisperReady: val }),
             setWhisperEngineFailed: (val) => set({ isWhisperEngineFailed: val }),
             setMicActive: (val) => set({ isMicActive: val }),
+            setRecordingCountdown: (val) => set({ recordingCountdown: val }),
             setTextMode: (val) => set({ isTextMode: val }),
             setPlaybackMuted: (val) => set({ isPlaybackMuted: val }),
             setCameraOff: (val) => set({ isCameraOff: val }),

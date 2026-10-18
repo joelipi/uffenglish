@@ -97,6 +97,7 @@ export function safelyStopStream() {
     }
     teardownPortraitCapture();
     isPlaceholderStream = false;
+    appStore.getState().setRecordingCountdown(null);
 }
 
 /**
@@ -381,6 +382,7 @@ export async function startSpeechCamRecording(micStatusText, userData, { deferSt
         // dead-end the user with no way back to the mode chooser.
         setWebcamStream(null);
         safelyStopStream();
+        appStore.getState().setRecordingCountdown(null);
         throw err; // re-throw so the orchestrator can surface guidance cleanly
     }
 }

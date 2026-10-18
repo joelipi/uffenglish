@@ -313,14 +313,26 @@ export function createSpeechOrchestrator({
                         console.log('[Hesitation] Skipped (friend/shareCta lesson — hesitation is not displayed)');
                     }
 
-                    // Stream is ready — wait for the composite to paint at least
-                    // one frame before recording, so a cold camera cannot freeze
-                    // the take on frame 0. Then go full-screen.
-                    await startDeferredSpeechCamRecording();
+                    // Stream is ready — transition to recording/answering so the
+                    // full-screen camera preview is visible, then run a 3-2-1
+                    // countdown before recording starts.
                     appStore.getState().setMicActive(true);
                     appStore.getState().setHesitationMs(0);
                     if (uiHooks?.onRecordingStart) uiHooks.onRecordingStart(userData);
                     if (uiHooks?.onRecordingActive) uiHooks.onRecordingActive(button);
+
+                    // 3-2-1 countdown before recording.
+                    for (const n of [3, 2, 1]) {
+                        appStore.getState().setRecordingCountdown(n);
+                        await new Promise((r) => setTimeout(r, 1000));
+                    }
+                    appStore.getState().setRecordingCountdown('mic');
+                    await new Promise((r) => setTimeout(r, 500));
+                    appStore.getState().setRecordingCountdown(null);
+
+                    // Wait for the composite to paint at least one frame before
+                    // recording, so a cold camera cannot freeze the take on frame 0.
+                    await startDeferredSpeechCamRecording();
 
                     const stream = getSpeechCamStream();
                     if (stream) {
