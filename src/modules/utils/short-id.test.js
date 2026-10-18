@@ -138,6 +138,7 @@ describe('isShareCodeSegment', () => {
         expect(m[1]).toBe(ALPHABET);
         expect(sql).toContain('for i in 1..5 loop');
         expect(sql).toContain('floor(random() * length(alphabet))');
+        expect(sql).toContain("length(NEW.share_code) not in (4, 5)");
         // The trigger's validation regex must use the same alphabet, otherwise
         // it can reject codes the generator mints.
         const r = sql.match(/!\~ '(\^[^']+)'/);

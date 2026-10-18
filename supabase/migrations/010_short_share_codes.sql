@@ -59,24 +59,55 @@ security definer
 set search_path = ''
 as $$
 begin
-  if NEW.share_code is not null then
-    -- Only validate when the value is actually being set or changed.
-    if TG_OP = 'INSERT' or NEW.share_code is distinct from OLD.share_code then
+  if TG_OP = 'INSERT' then
+    if NEW.share_code is null then
+      NEW.share_code := public.generate_share_code();
+    else
       if length(NEW.share_code) not in (4, 5) then
         raise exception 'invalid share code length';
       end if;
-      if NEW.share_code !~ '^[abcdefghijkmnopqrstuvwxyz0123456789]+$' then
+      if NEW.share_code !~ '^[abcdefghijkmnopqrstuvwxyz0123456789]+
+end;
+$$;
+
+drop trigger if exists trg_fill_share_code on public.user_profiles;
+create trigger trg_fill_share_code
+  before insert or update on public.user_profiles
+  for each row
+  execute function public.fill_share_code();
+
+alter table public.reserved_share_codes enable row level security;
+revoke all on table public.reserved_share_codes from anon, authenticated; then
         raise exception 'invalid share code characters';
       end if;
       if exists (select 1 from public.reserved_share_codes where word = NEW.share_code) then
         raise exception 'reserved share code';
       end if;
     end if;
-  else
-    -- Fill only when the row has no code yet, so unrelated updates (e.g.
-    -- progress writes) never overwrite or regenerate an existing code.
-    if TG_OP = 'INSERT' or OLD.share_code is null then
-      NEW.share_code := public.generate_share_code();
+  elsif TG_OP = 'UPDATE' then
+    if NEW.share_code is null then
+      NEW.share_code := coalesce(OLD.share_code, public.generate_share_code());
+    elsif NEW.share_code is distinct from OLD.share_code then
+      if length(NEW.share_code) not in (4, 5) then
+        raise exception 'invalid share code length';
+      end if;
+      if NEW.share_code !~ '^[abcdefghijkmnopqrstuvwxyz0123456789]+
+end;
+$$;
+
+drop trigger if exists trg_fill_share_code on public.user_profiles;
+create trigger trg_fill_share_code
+  before insert or update on public.user_profiles
+  for each row
+  execute function public.fill_share_code();
+
+alter table public.reserved_share_codes enable row level security;
+revoke all on table public.reserved_share_codes from anon, authenticated; then
+        raise exception 'invalid share code characters';
+      end if;
+      if exists (select 1 from public.reserved_share_codes where word = NEW.share_code) then
+        raise exception 'reserved share code';
+      end if;
     end if;
   end if;
   return NEW;
