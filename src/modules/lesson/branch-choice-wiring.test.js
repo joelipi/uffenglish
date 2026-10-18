@@ -173,7 +173,7 @@ describe('StepLoader, strings and styles', () => {
         expect(col).toContain('display: flex');
         expect(col).toContain('flex-direction: column');
         expect(col).toContain('flex: 0 0 auto');
-        expect(col).toContain('justify-content: flex-end');
+        expect(col).toContain('justify-content: flex-start');
 
         const btn = cssBlock(css, '.branch-choice-btn {');
         expect(btn).toContain('width: 100%');
