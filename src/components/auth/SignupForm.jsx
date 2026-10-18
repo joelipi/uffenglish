@@ -189,6 +189,7 @@ export function useSignupForm({
                 console.error('[Signup] Failed to create profile row:', insertError);
                 throw insertError;
             }
+            console.log(`[Signup] shareCode ${shareCode} set for user ${user.id}`);
 
             identifyUser(user.id, {
                 email: user.email,

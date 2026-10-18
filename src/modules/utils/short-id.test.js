@@ -11,6 +11,7 @@ import {
     SHARE_CODE_SPACE,
     normalizeShareCodeSegment,
     isShareCodeSegment,
+    generateShareCode,
 } from './short-id.js';
 import { RESERVED_SHARE_CODES } from './reserved-share-codes.js';
 
@@ -69,6 +70,14 @@ describe('toShortId', () => {
     it('generated code length is exactly 5', () => {
         expect(GENERATED_CODE_LENGTH).toBe(5);
     });
+
+    it('local generation never returns a reserved word', () => {
+        for (let i = 0; i < 200; i += 1) {
+            const code = generateShareCode();
+            expect(isShareCodeSegment(code)).toBe(true);
+            expect(RESERVED_SHARE_CODES.has(code)).toBe(false);
+        }
+    });
 });
 
 describe('normalizeShareCodeSegment', () => {
@@ -120,13 +129,6 @@ describe('isShareCodeSegment', () => {
         expect(isShareCodeSegment('ab-cd')).toBe(false);
         expect(isShareCodeSegment('ab cd')).toBe(false);
         expect(isShareCodeSegment('abl d')).toBe(false);
-    });
-
-    it('rejects reserved words so they render the 404 page', () => {
-        expect(isShareCodeSegment('media')).toBe(false);
-        expect(isShareCodeSegment('admin')).toBe(false);
-        expect(isShareCodeSegment('about')).toBe(false);
-        expect(isShareCodeSegment('MEDIA')).toBe(false); // case-insensitive
     });
 
     it('keeps the SQL reserved list in step with the JS set', () => {

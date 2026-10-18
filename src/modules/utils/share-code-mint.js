@@ -12,12 +12,13 @@ import {
     normalizeShareCodeSegment,
     generateShareCode,
 } from './short-id.js';
+import { RESERVED_SHARE_CODES } from './reserved-share-codes.js';
 
 export async function mintShareCode() {
     try {
         const { data, error } = await supabase.rpc('generate_share_code');
         if (error) throw error;
-        if (typeof data === 'string' && isShareCodeSegment(data)) {
+        if (typeof data === 'string' && isShareCodeSegment(data) && !RESERVED_SHARE_CODES.has(data.toLowerCase())) {
             return normalizeShareCodeSegment(data);
         }
         console.warn('[share-code-mint] RPC returned a non-code value; using local fallback:', data);

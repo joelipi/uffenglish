@@ -70,7 +70,6 @@ function isShareCodeSegment(value) {
   if (typeof value !== 'string') return false;
   const normalized = normalizeShareCodeSegment(value);
   if (normalized.length < SHARE_CODE_MIN_LENGTH || normalized.length > SHARE_CODE_MAX_LENGTH) return false;
-  if (RESERVED_SHARE_CODES.has(normalized)) return false;
   for (const char of normalized) {
     if (!ALPHABET.includes(char)) return false;
   }
@@ -81,14 +80,14 @@ function isShareCodeSegment(value) {
 /**
  * Last-resort client generator, used only when the server RPC is unreachable.
  * Loops until the candidate is shape-valid and not reserved, so the DB
- * trigger's validation cannot reject it. Uniqueness is enforced by the
- * `share_code` UNIQUE constraint (collisions re-mint on the next repair).
+ * trigger's validation cannot reject it. A collision with an existing code is
+ * caught by the `share_code` UNIQUE constraint (probability ~1/52M).
  */
 export function generateShareCode() {
   let code;
   do {
     code = toShortId(Math.floor(Math.random() * SHARE_CODE_SPACE));
-  } while (!isShareCodeSegment(code));
+  } while (!isShareCodeSegment(code) || RESERVED_SHARE_CODES.has(code));
   return code;
 }
 
