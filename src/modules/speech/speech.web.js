@@ -58,6 +58,7 @@ let compositeVideoEl = null;
 let compositeDrawTimer = null;
 let compositeLiveness = null;
 let compositeFreezeReporter = null;
+let compositeFreezeTickTimer = null;
 let compositeLastSourceTime = 0;
 let compositeMeta = { lessonId: null, stepIndex: null, responseType: null };
 
@@ -165,6 +166,10 @@ function teardownPortraitCapture() {
     if (compositeLiveness) {
         compositeLiveness.reset();
         compositeLiveness = null;
+    }
+    if (compositeFreezeTickTimer) {
+        clearInterval(compositeFreezeTickTimer);
+        compositeFreezeTickTimer = null;
     }
     if (compositeFreezeReporter) {
         compositeFreezeReporter.reset();
@@ -350,11 +355,9 @@ export function startDeferredSpeechCamRecording() {
             });
             compositeFreezeReporter.start();
             // Tick at 1 Hz.
-            const tickTimer = setInterval(() => {
+            compositeFreezeTickTimer = setInterval(() => {
                 if (compositeFreezeReporter) compositeFreezeReporter.tick();
             }, 1000);
-            // Store the timer so stopSpeechCamRecording can clear it.
-            compositeFreezeReporter._tickTimer = tickTimer;
         }
     }
 }
@@ -407,9 +410,9 @@ export function stopSpeechCamRecording({ download = true, persist = false, meta 
                         speechCamChunks = [];
 
                         // Clear frozen-take reporter + tick timer.
-                        if (compositeFreezeReporter && compositeFreezeReporter._tickTimer) {
-                            clearInterval(compositeFreezeReporter._tickTimer);
-                            compositeFreezeReporter._tickTimer = null;
+                        if (compositeFreezeTickTimer) {
+                            clearInterval(compositeFreezeTickTimer);
+                            compositeFreezeTickTimer = null;
                         }
                         if (compositeFreezeReporter) {
                             compositeFreezeReporter.reset();
@@ -425,9 +428,9 @@ export function stopSpeechCamRecording({ download = true, persist = false, meta 
             speechCamRecorder = null;
             speechCamChunks = [];
             // Clear frozen-take reporter + tick timer.
-            if (compositeFreezeReporter && compositeFreezeReporter._tickTimer) {
-                clearInterval(compositeFreezeReporter._tickTimer);
-                compositeFreezeReporter._tickTimer = null;
+            if (compositeFreezeTickTimer) {
+                clearInterval(compositeFreezeTickTimer);
+                compositeFreezeTickTimer = null;
             }
             if (compositeFreezeReporter) {
                 compositeFreezeReporter.reset();
@@ -440,9 +443,9 @@ export function stopSpeechCamRecording({ download = true, persist = false, meta 
     } catch (err) {
         speechCamRecorder = null;
         speechCamChunks = [];
-        if (compositeFreezeReporter && compositeFreezeReporter._tickTimer) {
-            clearInterval(compositeFreezeReporter._tickTimer);
-            compositeFreezeReporter._tickTimer = null;
+        if (compositeFreezeTickTimer) {
+            clearInterval(compositeFreezeTickTimer);
+            compositeFreezeTickTimer = null;
         }
         compositeFreezeReporter = null;
         setWebcamStream(null); safelyStopStream();
