@@ -268,28 +268,19 @@ describe('saveCourseToUserProfile', () => {
         expect(writes()[0].course_progress).toBeTruthy();
     });
 
-    it('falls back to the DB trigger when the mint RPC fails', async () => {
-        // Row is complete except for a NULL share code. RPC fails, so the
-        // repair must force a write with share_code: null (the trigger's fill
-        // signal) and read the generated code back.
+    it('falls back to a local code when the mint RPC fails', async () => {
+        // Row is complete except for a NULL share code. The RPC fails, so the
+        // repair must use the reserved-filtered local generator.
         const codeMissing = { ...completeRow, share_code: null };
-        fetchIdentityMock
-            .mockResolvedValueOnce({ row: codeMissing, error: null }) // identity read
-            .mockResolvedValueOnce({ row: { ...codeMissing, share_code: 'trg01' }, error: null }); // read-back
+        fetchIdentityMock.mockResolvedValue({ row: codeMissing, error: null });
         supabase.rpc.mockResolvedValue({ data: null, error: new Error('down') });
 
         const result = await ensureCompleteProfileRow({ $id: 'u-1', email: 'jo@example.com' });
 
         expect(result.confirmed).toBe(true);
-        // The forced update must carry a non-conflict column so PostgREST
-        // emits DO UPDATE SET (a bare { id } becomes DO NOTHING) and the
-        // trigger's UPDATE branch fills the NULL share code.
-        expect(writes()[0]).toEqual({ id: 'u-1', account_status: 'active' });
-        expect(fetchIdentityMock).toHaveBeenCalledTimes(2);
-        const merged = setCourseDataSpy.mock.calls
-            .map((c) => c[0].userData)
-            .find((u) => u && u.share_code === 'trg01');
-        expect(merged, 'the read-back code must reach the store').toBeTruthy();
+        expect(writes()[0].share_code).toBeTruthy();
+        expect(writes()[0].share_code.length).toBe(5);
+        expect(fetchIdentityMock).toHaveBeenCalledTimes(1); // identity read only, no read-back
     });
 
     it('leaves guests and already-initialised courses alone', async () => {

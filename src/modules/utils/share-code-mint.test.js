@@ -29,7 +29,7 @@ describe('mintShareCode', () => {
     });
 
     it('returns null when the RPC returns a non-code value', async () => {
-        rpcSpy.mockResolvedValue({ data: 'nope', error: null });
+        rpcSpy.mockResolvedValue({ data: 'ab-cd', error: null });
         await expect(mintShareCode()).resolves.toBeNull();
     });
 });

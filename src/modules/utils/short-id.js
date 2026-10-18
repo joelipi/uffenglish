@@ -78,6 +78,20 @@ function isShareCodeSegment(value) {
 }
 
 
+/**
+ * Last-resort client generator, used only when the server RPC is unreachable.
+ * Loops until the candidate is shape-valid and not reserved, so the DB
+ * trigger's validation cannot reject it. Uniqueness is enforced by the
+ * `share_code` UNIQUE constraint (collisions re-mint on the next repair).
+ */
+export function generateShareCode() {
+  let code;
+  do {
+    code = toShortId(Math.floor(Math.random() * SHARE_CODE_SPACE));
+  } while (!isShareCodeSegment(code));
+  return code;
+}
+
 export {
   toShortId,
   ALPHABET,

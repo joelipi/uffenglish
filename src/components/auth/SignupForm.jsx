@@ -10,6 +10,7 @@ import { calculateCurrentStreak } from '../../modules/user/user-profile.js';
 import { flushPendingFriendCredits } from '../../modules/user/friend-credit-sync.js';
 import { verifyTurnstileToken } from '../../modules/auth/turnstile-logic.js';
 import { mintShareCode } from '../../modules/utils/share-code-mint.js';
+import { generateShareCode } from '../../modules/utils/short-id.js';
 import {
     checkEmailAddress,
     normalizeEmail,
@@ -155,6 +156,9 @@ export function useSignupForm({
                 ? [new Date().toLocaleDateString('en-CA')]
                 : [];
             const mintedCode = await mintShareCode();
+            // If the RPC was unreachable, fall back to the reserved-filtered
+            // local generator so the row and session still have a usable code.
+            const shareCode = mintedCode || generateShareCode();
 
             // UPSERT, not insert. The fire-and-forget geo/referrer collection above
             // (collect-signup-data.js) also writes this row, via
@@ -180,7 +184,7 @@ export function useSignupForm({
                 native_language: nativeLanguage,
                 english_level: userLevel,
                 completed_dates: signupDates,
-                ...(mintedCode ? { share_code: mintedCode } : {}),
+                share_code: shareCode,
                 ...(lessonCredit.creditLesson
                     ? { lessons_completed: lessonCredit.lessonsCompleted, counted_lessons: lessonCredit.countedLessons }
                     : {}),
@@ -189,10 +193,6 @@ export function useSignupForm({
                 console.error('[Signup] Failed to create profile row:', insertError);
                 throw insertError;
             }
-
-            // If the RPC was unreachable, the DB trigger fills share_code; the
-            // store simply lacks it until the next bootstrap (no invented code).
-            const shareCode = mintedCode;
 
             identifyUser(user.id, {
                 email: user.email,

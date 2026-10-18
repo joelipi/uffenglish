@@ -5,6 +5,7 @@ import { appStore } from '../store/store.js';
 import { nextLessonCompletion } from './lesson-count-logic.js';
 import { profileIsIncomplete, planProfileRepair } from './profile-repair-logic.js';
 import { mintShareCode } from '../utils/share-code-mint.js';
+import { generateShareCode } from '../utils/short-id.js';
 
 /**
  * Fold a freshly written profile payload into the store's copy of the user, so
@@ -104,29 +105,16 @@ export async function ensureCompleteProfileRow(userData) {
         return { confirmed: false, payload: null, reason: 'session-mismatch' };
     }
 
-    // A candidate share code is generated up front and usually discarded: the
-    // plan includes it only when the row has none to protect. Mint it on the
-    // server so it is checked against the reserved list and the unique
-    // constraint; if minting fails, rely on the DB trigger and read it back.
+    // A candidate share code is generated up front and usually discarded:
+    // the plan includes it only when the row has none to protect. Mint it on
+    // the server (reserved-word + uniqueness checked); if the RPC is
+    // unreachable, fall back to the reserved-filtered local generator.
     const needsShareCode = !row || !row.share_code;
-    const candidateShareCode = needsShareCode ? await mintShareCode() : null;
-    if (needsShareCode && !candidateShareCode) {
-        console.warn('[user-profile] could not mint a share code via RPC; relying on the DB trigger');
-    }
+    const candidateShareCode = needsShareCode
+        ? (await mintShareCode()) || generateShareCode()
+        : null;
 
     const plan = planProfileRepair({ row, user, shareCode: candidateShareCode });
-    if (needsShareCode && !candidateShareCode && plan.action === 'none') {
-        plan.action = 'update';
-        // The trigger fills a NULL share_code on UPDATE, but PostgREST only
-        // emits DO UPDATE SET for payload columns other than the conflict
-        // target — a bare { id } would become DO NOTHING. Re-send a real
-        // identity column (same value) so the UPDATE fires and the trigger
-        // mints the code.
-        plan.payload = {
-            id: row?.id || user.$id,
-            account_status: row?.account_status || 'active',
-        };
-    }
     if (plan.action === 'none') return { confirmed: true, payload: null };
 
     await syncUserMetaDataMutation(plan.payload, userId);
@@ -135,16 +123,6 @@ export async function ensureCompleteProfileRow(userData) {
         + ` (${Object.keys(plan.payload).length - 1} field(s))`,
     );
     mergeRepairedProfileIntoStore(plan.payload);
-    // When the code came from the DB trigger (RPC unreachable), read it back
-    // so this session can use it.
-    if (needsShareCode && !candidateShareCode) {
-        const { row: freshRow, error: freshErr } = await fetchProfileIdentityRow(userId);
-        if (freshErr) {
-            console.warn('[user-profile] could not read back share_code:', freshErr?.message || freshErr);
-        } else if (freshRow?.share_code) {
-            mergeRepairedProfileIntoStore({ id: userId, share_code: freshRow.share_code });
-        }
-    }
     return { confirmed: true, payload: plan.payload };
 }
 

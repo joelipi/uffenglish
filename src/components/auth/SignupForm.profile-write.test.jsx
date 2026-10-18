@@ -161,10 +161,11 @@ describe('signup profile write', () => {
         expect(errorText(), 'signup surfaced an error').toBe('');
     });
 
-    it('omits share_code so the DB trigger mints it when the RPC is unavailable', async () => {
+    it('falls back to a local code when the RPC is unavailable', async () => {
         rpcSpy.mockReset().mockResolvedValue({ data: null, error: new Error('down') });
         await submit();
         expect(errorText(), 'signup surfaced an error').toBe('');
-        expect(insertCalls[0].share_code, 'client must not invent a code').toBeUndefined();
+        expect(insertCalls[0].share_code, 'client must still write a usable code').toBeTruthy();
+        expect(insertCalls[0].share_code.length).toBe(5);
     });
 });
