@@ -770,19 +770,19 @@ body { margin: 0; font-family: var(--font-body); font-size: 1rem; font-weight: 4
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    justify-content: flex-end;
+    justify-content: flex-start;
     flex: 0 0 auto;
     min-width: 0;
     min-height: 0;
     width: 100%;
     gap: 4px;
-    /* The button area is the only scrollable region: when the buttons do not
-       fit, the scrollbar stays visible so it is obvious more choices exist.
-       50vh leaves room for the top headline and the bottom Replay/Tutorial
-       footer while still fitting several long options. */
+    /* The button area is the only scrollable region: a permanently visible
+       scrollbar makes it obvious more choices exist. flex-start keeps the
+       first button at the top instead of pinning the list to the bottom. */
     max-height: 50vh;
     overflow-y: scroll;
     overflow-x: hidden;
+    scrollbar-gutter: stable;
     scrollbar-width: thin;
     scrollbar-color: rgba(255, 255, 255, 0.6) transparent;
 }
@@ -1284,7 +1284,7 @@ body { margin: 0; font-family: var(--font-body); font-size: 1rem; font-weight: 4
    headline's new home. */
 .ivp-overlay.ivp-overlay-branch {
     align-items: flex-start;
-    padding-top: 20vh;
+    padding-top: 16vh;
     padding-bottom: 45vh;
 }
 .ivp-overlay.ivp-overlay-branch .ivp-overlay-content {

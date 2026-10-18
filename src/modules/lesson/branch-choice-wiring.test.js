@@ -206,7 +206,7 @@ describe('StepLoader, strings and styles', () => {
         // 20vh clears the blurred video-header band (the top ~18.5% of the
         // frame — see .video-header-blur); the choice buttons never rise higher
         // than 60% from the bottom, so the headline has room between the two.
-        expect(overlay).toMatch(/padding-top:\s*20vh/);
+        expect(overlay).toMatch(/padding-top:\s*16vh/);
         expect(overlay).toMatch(/padding-bottom:\s*45vh/);
         // The content is clamped so a long headline/translation cannot spill
         // into the reserved bottom band.
