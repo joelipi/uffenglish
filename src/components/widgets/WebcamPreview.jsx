@@ -14,7 +14,8 @@ export default function WebcamPreview() {
     const configData = useStore(appStore, (state) => state.configData);
     const currentLessonIndex = useStore(appStore, (state) => state.currentLessonIndex);
     const currentStepIndex = useStore(appStore, (state) => state.currentStepIndex);
-    const lang = useNativeLanguage();
+    const rawLang = useNativeLanguage();
+    const lang = rawLang === 'OTHER' ? 'en' : rawLang;
     const videoRef = useRef(null);
     const wrapperRef = useRef(null);
     const prevShow = useRef(false);
