@@ -1070,6 +1070,14 @@ describe('recorder auto-render — zero server changes', () => {
             'stories/072-fix-frozen-speech-capture/story.md',
             'docs/product.md',
             'docs/learnings.md',
+            // Story 074 (single-press re-record): the pure restart decision plus
+            // its unit and source-guard tests. No recorder-page code involved —
+            // listed so the "no untracked file" assertion below stays meaningful
+            // for this branch too.
+            'src/modules/speech/rerecord-logic.js',
+            'src/modules/speech/rerecord-logic.test.js',
+            'src/modules/speech/rerecord-wiring.test.js',
+            'stories/074-rerecord-single-press/story.md',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);

@@ -4,6 +4,7 @@ import { validateAnswerPrecheck, findMatchingCueText } from '../answer/answers.j
 import { appStore } from '../store/store.js';
 import Strings from '../../data/strings.js';
 import { getAppLanguage } from '../bilingual/config-normalizer.js';
+import { decideRerecordAction } from './rerecord-logic.js';
 
 function computeWaveformPeaks(audioData, numPeaks = 120) {
     const blockSize = Math.max(1, Math.floor(audioData.length / numPeaks));
@@ -143,6 +144,31 @@ export function createSpeechOrchestrator({
             );
         };
 
+        // The review "record again" (✕) button is a single press: it re-enters
+        // the exact same mic path the first tap takes — stream → camera preview
+        // → 3-2-1 countdown → take — instead of parking the learner on an idle
+        // `recording/answering` screen that needs a second press. Called after
+        // `onTranscriptRejected` so the app is already in `recording/answering`
+        // when `onRecordingStart` fires (its guard treats that phase as an
+        // in-step retry and leaves it alone).
+        const restartTakeAfterReject = () => {
+            const { restart, decision } = decideRerecordAction({
+                listeningActive: listeningState.active,
+                transitioning: listeningState.transitioning,
+            });
+            if (!restart) {
+                // Not a dead end: `onTranscriptRejected` already put the app in
+                // `recording/answering`, so the mic button is mounted and the
+                // manual second press still works.
+                console.warn('[Speech] Re-record not started —', decision);
+                return;
+            }
+            console.log('[Speech] Re-record pressed — restarting the take immediately');
+            toggleSpeechRecognition(params).catch((e) => {
+                console.error('[Speech] Re-record could not start a new take:', e);
+            });
+        };
+
         const rejectTranscript = () => {
             if (!reviewActive) return;
             reviewActive = false;
@@ -157,6 +183,8 @@ export function createSpeechOrchestrator({
                 currentStepIndex,
                 { userResponse: transcriptToReview, cue: step?.cue }
             ).catch(e => console.error(e));
+
+            restartTakeAfterReject();
         };
 
         console.warn('[PT] CALLING onReviewStart', { displayTranscript: displayTranscript.substring(0, 30), transcriptToReview: transcriptToReview.substring(0, 30), timeLeft });
