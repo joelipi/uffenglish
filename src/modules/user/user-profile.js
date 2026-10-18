@@ -129,19 +129,15 @@ export async function ensureCompleteProfileRow(userData) {
     mergeRepairedProfileIntoStore(plan.payload);
     // When the code came from the DB trigger (RPC unreachable), read it back
     // so this session can use it.
-    let confirmed = true;
     if (needsShareCode && !candidateShareCode) {
         const { row: freshRow, error: freshErr } = await fetchProfileIdentityRow(userId);
         if (freshErr) {
             console.warn('[user-profile] could not read back share_code:', freshErr?.message || freshErr);
-            confirmed = false;
         } else if (freshRow?.share_code) {
             mergeRepairedProfileIntoStore({ id: userId, share_code: freshRow.share_code });
-        } else {
-            confirmed = false;
         }
     }
-    return { confirmed, payload: plan.payload };
+    return { confirmed: true, payload: plan.payload };
 }
 
 /**

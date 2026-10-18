@@ -1,3 +1,5 @@
+import { RESERVED_SHARE_CODES } from './reserved-share-codes.js';
+
 // Share-code alphabet: all lowercase letters except `l`, plus all digits.
 // `o`, `0` and `1` are intentionally kept (the user accepted the small
 // confusion risk in exchange for a larger code space); only `l` is excluded.
@@ -68,6 +70,7 @@ function isShareCodeSegment(value) {
   if (typeof value !== 'string') return false;
   const normalized = normalizeShareCodeSegment(value);
   if (normalized.length < SHARE_CODE_MIN_LENGTH || normalized.length > SHARE_CODE_MAX_LENGTH) return false;
+  if (RESERVED_SHARE_CODES.has(normalized)) return false;
   for (const char of normalized) {
     if (!ALPHABET.includes(char)) return false;
   }

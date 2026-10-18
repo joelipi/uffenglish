@@ -12,6 +12,7 @@ import {
     normalizeShareCodeSegment,
     isShareCodeSegment,
 } from './short-id.js';
+import { RESERVED_SHARE_CODES } from './reserved-share-codes.js';
 
 describe('toShortId', () => {
     it('encodes 0 to 5-char padded string', () => {
@@ -119,6 +120,25 @@ describe('isShareCodeSegment', () => {
         expect(isShareCodeSegment('ab-cd')).toBe(false);
         expect(isShareCodeSegment('ab cd')).toBe(false);
         expect(isShareCodeSegment('abl d')).toBe(false);
+    });
+
+    it('rejects reserved words so they render the 404 page', () => {
+        expect(isShareCodeSegment('media')).toBe(false);
+        expect(isShareCodeSegment('admin')).toBe(false);
+        expect(isShareCodeSegment('about')).toBe(false);
+        expect(isShareCodeSegment('MEDIA')).toBe(false); // case-insensitive
+    });
+
+    it('keeps the SQL reserved list in step with the JS set', () => {
+        const migPath = path.join(
+            path.dirname(fileURLToPath(import.meta.url)),
+            '..', '..', '..', 'supabase', 'migrations', '010_short_share_codes.sql',
+        );
+        const sql = readFileSync(migPath, 'utf8');
+        const m = sql.match(/insert into public\.reserved_share_codes \(word\) values([\s\S]*?)on conflict/);
+        expect(m, 'reserved list not found').not.toBeNull();
+        const sqlWords = [...m[1].matchAll(/\('([^']*)'\)/g)].map((x) => x[1]);
+        expect(new Set(sqlWords)).toEqual(RESERVED_SHARE_CODES);
     });
 
     it('rejects non-string values', () => {
