@@ -67,7 +67,7 @@
         {
           "cue": "",
           "responseType": "lessonIntro",
-          "introBackgroundVideoUrl": "wouldyourather-a-01-01"
+          "introBackgroundVideoUrl": "wouldyourather-test-a-01-01"
         },
         {
           "responseType": "branching",
@@ -120,7 +120,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-a-01-01",
+          "simpleVideoUrl": "wouldyourather-test-a-01-01",
           "cue": [
             {
               "en": "A million dollars today or five million dollars in five years?",
@@ -135,7 +135,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-a-01-02",
+          "simpleVideoUrl": "wouldyourather-test-a-01-02",
           "cue": [
             {
               "en": "Which is better: getting a million dollars today or getting five million dollars in five years?",
@@ -150,7 +150,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-a-01-03",
+          "simpleVideoUrl": "wouldyourather-test-a-01-03",
           "cue": [
             {
               "en": "Would you rather receive a million dollars today or wait five years and receive five million dollars?",
@@ -165,7 +165,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-a-01-04",
+          "simpleVideoUrl": "wouldyourather-test-a-01-04",
           "cue": [
             {
               "en": "Given the choice between accepting a million dollars today and waiting five years for five million dollars, which would you choose?",
@@ -229,7 +229,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-a-02-01",
+          "simpleVideoUrl": "wouldyourather-test-a-02-01",
           "cue": [
             {
               "en": "A meal with great food or a meal with great conversation?",
@@ -252,7 +252,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-a-02-02",
+          "simpleVideoUrl": "wouldyourather-test-a-02-02",
           "cue": [
             {
               "en": "Which is better: a meal with great food or a meal with great conversation?",
@@ -275,7 +275,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-a-02-03",
+          "simpleVideoUrl": "wouldyourather-test-a-02-03",
           "cue": [
             {
               "en": "Would you rather have a meal with great food or have a meal with great conversation ?",
@@ -298,7 +298,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-a-02-04",
+          "simpleVideoUrl": "wouldyourather-test-a-02-04",
           "cue": [
             {
               "en": "Given the choice between having a meal with great food and having a meal with great conversation, which would you choose?",
@@ -370,7 +370,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-a-03-01",
+          "simpleVideoUrl": "wouldyourather-test-a-03-01",
           "cue": [
             {
               "en": "A short beach vacation with great weather or a long beach vacation with bad weather?",
@@ -393,7 +393,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-a-03-02",
+          "simpleVideoUrl": "wouldyourather-test-a-03-02",
           "cue": [
             {
               "en": "Which is better: a short beach vacation with great weather or a long beach vacation with bad weather?",
@@ -416,7 +416,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-a-03-03",
+          "simpleVideoUrl": "wouldyourather-test-a-03-03",
           "cue": [
             {
               "en": "Would you rather go on a beach vacation that's short with great weather or one that's long but with bad weather?",
@@ -439,7 +439,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-a-03-04",
+          "simpleVideoUrl": "wouldyourather-test-a-03-04",
           "cue": [
             {
               "en": "Given the choice between a brief beach vacation with ideal weather and a long beach vacation with inclement weather, which would you choose?",
@@ -623,7 +623,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-b-01",
+          "simpleVideoUrl": "wouldyourather-test-b-01-01",
           "cue": [
             {
               "en": "A million dollars today.",
@@ -638,7 +638,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-b-01",
+          "simpleVideoUrl": "wouldyourather-test-b-01-02",
           "cue": [
             {
               "en": "Getting a million dollars today is better than getting five million dollars in five years.",
@@ -653,7 +653,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-b-01",
+          "simpleVideoUrl": "wouldyourather-test-b-01-03",
           "cue": [
             {
               "en": "I would rather receive a million dollars today than wait five years for five million dollars.",
@@ -668,7 +668,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-b-01",
+          "simpleVideoUrl": "wouldyourather-test-b-01-04",
           "cue": [
             {
               "en": "Given the choice between accepting a million dollars today and waiting five years for five million dollars, I would choose to accept a million dollars today.",
@@ -683,7 +683,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-b-02",
+          "simpleVideoUrl": "wouldyourather-test-b-02-01",
           "cue": [
             {
               "en": "Five million dollars in five years.",
@@ -698,7 +698,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-b-02",
+          "simpleVideoUrl": "wouldyourather-test-b-02-02",
           "cue": [
             {
               "en": "Getting five million dollars in five years is better than getting a million dollars today.",
@@ -713,7 +713,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-b-02",
+          "simpleVideoUrl": "wouldyourather-test-b-02-03",
           "cue": [
             {
               "en": "I would rather wait five years for five million dollars than receive one million dollars today.",
@@ -728,7 +728,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-b-02",
+          "simpleVideoUrl": "wouldyourather-test-b-02-04",
           "cue": [
             {
               "en": "Given the choice between accepting a million dollars today and waiting five years for five million dollars, I would choose to wait.",
@@ -743,7 +743,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-a-02",
+          "simpleVideoUrl": "wouldyourather-test-a-02",
           "cue": [
             {
               "en": "A meal with great food or a meal with great conversation?",
@@ -908,7 +908,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-b-03",
+          "simpleVideoUrl": "wouldyourather-test-b-03-01",
           "cue": [
             {
               "en": "A meal with great food.",
@@ -931,7 +931,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-b-03",
+          "simpleVideoUrl": "wouldyourather-test-b-03-02",
           "cue": [
             {
               "en": "A meal with great food is better than a meal with great conversation.",
@@ -954,7 +954,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-b-03",
+          "simpleVideoUrl": "wouldyourather-test-b-03-03",
           "cue": [
             {
               "en": "I would rather have a meal with great food than a meal with great conversation.",
@@ -977,7 +977,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-b-03",
+          "simpleVideoUrl": "wouldyourather-test-b-03-04",
           "cue": [
             {
               "en": "Given the choice between a meal with great food and a meal with great conversation, I would choose to have a meal with great food.",
@@ -1000,7 +1000,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-b-04",
+          "simpleVideoUrl": "wouldyourather-test-b-04-01",
           "cue": [
             {
               "en": "A meal with great conversation.",
@@ -1015,7 +1015,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-b-04",
+          "simpleVideoUrl": "wouldyourather-test-b-04-02",
           "cue": [
             {
               "en": "A meal with great conversation is better than a meal with great food.",
@@ -1030,7 +1030,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-b-04",
+          "simpleVideoUrl": "wouldyourather-test-b-04-03",
           "cue": [
             {
               "en": "I would rather have a meal with great conversation than a meal with great food.",
@@ -1045,7 +1045,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-b-04",
+          "simpleVideoUrl": "wouldyourather-test-b-04-04",
           "cue": [
             {
               "en": "Given the choice between a meal with great food and a meal with great conversation, I would choose to have a meal with great conversation.",
@@ -1060,7 +1060,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-a-03",
+          "simpleVideoUrl": "wouldyourather-test-a-03",
           "cue": [
             {
               "en": "A short beach vacation with great weather or a long beach vacation with bad weather?",
@@ -1225,7 +1225,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-b-05",
+          "simpleVideoUrl": "wouldyourather-test-b-05-01",
           "cue": [
             {
               "en": "A short beach vacation with great weather.",
@@ -1240,7 +1240,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-b-05",
+          "simpleVideoUrl": "wouldyourather-test-b-05-02",
           "cue": [
             {
               "en": "A short beach vacation with great weather is better than a long beach vacation with bad weather.",
@@ -1255,7 +1255,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-b-05",
+          "simpleVideoUrl": "wouldyourather-test-b-05-03",
           "cue": [
             {
               "en": "I would rather have a short beach vacation with great weather than a long beach vacation with bad weather.",
@@ -1270,7 +1270,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-b-05",
+          "simpleVideoUrl": "wouldyourather-test-b-05-04",
           "cue": [
             {
               "en": "Given the choice between a short beach vacation with great weather and a long beach vacation with bad weather, I would choose to have a short beach vacation with great weather.",
@@ -1285,7 +1285,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-b-06",
+          "simpleVideoUrl": "wouldyourather-test-b-06-01",
           "cue": [
             {
               "en": "A long beach vacation with bad weather.",
@@ -1300,7 +1300,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-b-06",
+          "simpleVideoUrl": "wouldyourather-test-b-06-02",
           "cue": [
             {
               "en": "A long beach vacation with bad weather is better than a short beach vacation with great weather.",
@@ -1315,7 +1315,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-b-06",
+          "simpleVideoUrl": "wouldyourather-test-b-06-03",
           "cue": [
             {
               "en": "I would rather have a long beach vacation with bad weather than a short beach vacation with great weather.",
@@ -1330,7 +1330,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-b-06",
+          "simpleVideoUrl": "wouldyourather-test-b-06-04",
           "cue": [
             {
               "en": "Given the choice between a short beach vacation with great weather and a long beach vacation with bad weather, I would choose to go on a long beach vacation with bad weather.",
@@ -1384,11 +1384,11 @@
         {
           "cue": "",
           "responseType": "lessonIntro",
-          "introBackgroundVideoUrl": "wouldyourather-c-01"
+          "introBackgroundVideoUrl": "wouldyourather-test-c-01"
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-c-01",
+          "simpleVideoUrl": "wouldyourather-test-c-01",
           "cue": [
             {
               "en": "Speak every language or play every instrument?",
@@ -1434,7 +1434,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-c-02",
+          "simpleVideoUrl": "wouldyourather-test-c-02",
           "cue": [
             {
               "en": "A small apartment in a big city or a big house in a small town?",
@@ -1480,7 +1480,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-c-03",
+          "simpleVideoUrl": "wouldyourather-test-c-03",
           "cue": [
             {
               "en": "Honest friends or fun friends?",
@@ -1569,7 +1569,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-c-01",
+          "simpleVideoUrl": "wouldyourather-test-c-01",
           "cue": [
             {
               "en": "Speak every language or play every instrument?",
@@ -1644,7 +1644,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-d-01",
+          "simpleVideoUrl": "wouldyourather-test-d-01",
           "cue": [
             {
               "en": "Speak every language.",
@@ -1691,7 +1691,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-d-02",
+          "simpleVideoUrl": "wouldyourather-test-d-02",
           "cue": [
             {
               "en": "Play every instrument.",
@@ -1738,7 +1738,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-c-02",
+          "simpleVideoUrl": "wouldyourather-test-c-02",
           "cue": [
             {
               "en": "A small apartment in a big city or a big house in a small town?",
@@ -1813,7 +1813,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-d-03",
+          "simpleVideoUrl": "wouldyourather-test-d-03",
           "cue": [
             {
               "en": "A tiny apartment in a big city.",
@@ -1860,7 +1860,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-d-04",
+          "simpleVideoUrl": "wouldyourather-test-d-04",
           "cue": [
             {
               "en": "A huge house in the countryside.",
@@ -1907,7 +1907,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-c-03",
+          "simpleVideoUrl": "wouldyourather-test-c-03",
           "cue": [
             {
               "en": "Honest friends or fun friends?",
@@ -1982,7 +1982,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-d-05",
+          "simpleVideoUrl": "wouldyourather-test-d-05",
           "cue": [
             {
               "en": "I want honest friends.",
@@ -2029,7 +2029,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-d-06",
+          "simpleVideoUrl": "wouldyourather-test-d-06",
           "cue": [
             {
               "en": "Friends who always make you feel good.",
@@ -2115,11 +2115,11 @@
         {
           "cue": "",
           "responseType": "lessonIntro",
-          "introBackgroundVideoUrl": "wouldyourather-e-01"
+          "introBackgroundVideoUrl": "wouldyourather-test-e-01"
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-e-01",
+          "simpleVideoUrl": "wouldyourather-test-e-01",
           "cue": [
             {
               "en": "A great job with low pay or a bad job with high pay?",
@@ -2165,7 +2165,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-e-02",
+          "simpleVideoUrl": "wouldyourather-test-e-02",
           "cue": [
             {
               "en": "Rich with no privacy or poor with complete privacy?",
@@ -2211,7 +2211,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-e-03",
+          "simpleVideoUrl": "wouldyourather-test-e-03",
           "cue": [
             {
               "en": "A week without your phone or a week without music?",
@@ -2300,7 +2300,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-e-01",
+          "simpleVideoUrl": "wouldyourather-test-e-01",
           "cue": [
             {
               "en": "A great job with low pay or a bad job with high pay?",
@@ -2375,7 +2375,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-f-01",
+          "simpleVideoUrl": "wouldyourather-test-f-01",
           "cue": [
             {
               "en": "A job you love with a low salary.",
@@ -2422,7 +2422,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-f-02",
+          "simpleVideoUrl": "wouldyourather-test-f-02",
           "cue": [
             {
               "en": "A job you hate with a high salary.",
@@ -2469,7 +2469,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-e-02",
+          "simpleVideoUrl": "wouldyourather-test-e-02",
           "cue": [
             {
               "en": "Rich with no privacy or poor with complete privacy?",
@@ -2544,7 +2544,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-f-03",
+          "simpleVideoUrl": "wouldyourather-test-f-03",
           "cue": [
             {
               "en": "Rich with no privacy.",
@@ -2591,7 +2591,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-f-04",
+          "simpleVideoUrl": "wouldyourather-test-f-04",
           "cue": [
             {
               "en": "Poor with complete privacy.",
@@ -2638,7 +2638,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-e-03",
+          "simpleVideoUrl": "wouldyourather-test-e-03",
           "cue": [
             {
               "en": "A week without your phone or a week without music?",
@@ -2713,7 +2713,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-f-05",
+          "simpleVideoUrl": "wouldyourather-test-f-05",
           "cue": [
             {
               "en": "A week without your phone.",
@@ -2760,7 +2760,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-f-06",
+          "simpleVideoUrl": "wouldyourather-test-f-06",
           "cue": [
             {
               "en": "A week without music.",
