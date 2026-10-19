@@ -1,56 +1,19 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { useConfirmEmailForm } from './ConfirmEmailForm.jsx';
+import React from 'react';
+import { useConfirmEmailForm, useConfirmEmailRedirect } from './ConfirmEmailForm.jsx';
 import Strings from '../../data/strings.js';
-import {
-    REDIRECT_SECONDS,
-    initialCountdown,
-    nextCountdown,
-    shouldRedirect,
-} from './confirm-email-redirect-logic.js';
 
 const ALERTS = {
     pending: { className: 'alert-info', key: 'auth_confirm_email_pending' },
-    confirmed: { className: 'alert-success', key: 'auth_confirm_email_success' },
     invalid: { className: 'alert-danger', key: 'auth_confirm_email_invalid' },
 };
 
 export default function ConfirmEmailForm({ token, onContinue }) {
     const { status } = useConfirmEmailForm({ token });
+    const { countdown, continueOnce } = useConfirmEmailRedirect(status, onContinue);
     const lang = (navigator.language || 'en').split('-')[0].toLowerCase();
-    const alert = ALERTS[status] || ALERTS.pending;
-
-    const [countdown, setCountdown] = useState(null);
-    const redirectedRef = useRef(false);
-    const onContinueRef = useRef(onContinue);
-    onContinueRef.current = onContinue;
-
-    const continueOnce = () => {
-        if (redirectedRef.current) return;
-        redirectedRef.current = true;
-        onContinueRef.current?.();
-    };
-
-    useEffect(() => {
-        if (status !== 'confirmed') {
-            setCountdown(null);
-            redirectedRef.current = false;
-            return;
-        }
-        setCountdown(initialCountdown());
-        const interval = setInterval(() => {
-            setCountdown((prev) => {
-                const next = nextCountdown(prev);
-                if (shouldRedirect(next)) {
-                    clearInterval(interval);
-                    continueOnce();
-                }
-                return next;
-            });
-        }, 1000);
-        return () => clearInterval(interval);
-    }, [status]);
 
     const isConfirmed = status === 'confirmed';
+    const alert = ALERTS[status] || ALERTS.pending;
 
     return (
         <>
