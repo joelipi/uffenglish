@@ -77,7 +77,7 @@ describe('introTargets', () => {
         // step slugs (`intro` retired — no config references it); the configs
         // are generated, so this list grows as courses are added.
         expect(slugs).toEqual(
-            ['do_you_have_dark_chocolate', 'do_you_have_rolls_too', 'gtests-0-1-1', 'gtests-1-0', 'testvideo01', 'testvideointro', 'wouldyourather-a-01', 'wouldyourather-c-01', 'wouldyourather-e-01', 'wouldyourather-test-a-01-01', 'wouldyourather-test-c-01', 'wouldyourather-test-e-01'],
+            ['do_you_have_dark_chocolate', 'do_you_have_rolls_too', 'gtests-0-1-1', 'gtests-1-0', 'testvideo01', 'testvideointro', 'wouldyourather-a-01', 'wouldyourather-a-01-01', 'wouldyourather-c-01', 'wouldyourather-e-01'],
         );
     });
 
