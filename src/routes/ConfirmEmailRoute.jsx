@@ -8,7 +8,7 @@ export default function ConfirmEmailRoute() {
     return (
         <ConfirmEmailForm
             token={params.get('token')}
-            onContinue={() => navigate('/')}
+            onContinue={() => navigate('/home')}
         />
     );
 }

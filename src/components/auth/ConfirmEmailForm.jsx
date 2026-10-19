@@ -1,5 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { confirmEmailToken } from '../../modules/user/email-confirmation.js';
+import {
+    REDIRECT_SECONDS,
+    initialCountdown,
+    nextCountdown,
+    shouldRedirect,
+} from './confirm-email-redirect-logic.js';
 
 // Sentinel so the very first effect run always records a result, even when the
 // URL has no token (confirmEmailToken(null) resolves false without an RPC).
@@ -35,4 +41,52 @@ export function useConfirmEmailForm({ token } = {}) {
     }, [token]);
 
     return { status };
+}
+
+// Drives the auto-redirect countdown after a successful confirmation. Returns
+// the remaining seconds (or null while not counting down).
+export function useConfirmEmailRedirect(status, onContinue) {
+    const [countdown, setCountdown] = useState(null);
+    const redirectedRef = useRef(false);
+    const onContinueRef = useRef(onContinue);
+
+    useEffect(() => {
+        onContinueRef.current = onContinue;
+    }, [onContinue]);
+
+    useEffect(() => {
+        if (status !== 'confirmed') {
+            setCountdown(null);
+            redirectedRef.current = false;
+            return;
+        }
+        redirectedRef.current = false;
+        setCountdown(initialCountdown());
+
+        const interval = setInterval(() => {
+            setCountdown((prev) => nextCountdown(prev));
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [status]);
+
+    useEffect(() => {
+        if (countdown === null || countdown === undefined) return;
+        if (!shouldRedirect(countdown)) return;
+        if (redirectedRef.current) return;
+        const handler = onContinueRef.current;
+        if (!handler) return;
+        redirectedRef.current = true;
+        handler();
+    }, [countdown]);
+
+    const continueOnce = () => {
+        if (redirectedRef.current) return;
+        const handler = onContinueRef.current;
+        if (!handler) return;
+        redirectedRef.current = true;
+        handler();
+    };
+
+    return { countdown, continueOnce };
 }
