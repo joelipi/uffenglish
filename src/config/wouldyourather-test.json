@@ -968,7 +968,15 @@
               "hi": "बढ़िया खाने वाला भोजन।"
             }
           ],
-          "nextStep": 8
+          "nextStep": 8,
+          "subtitles": {
+            "en": "1\n00:00:00,000 --> 00:00:04,400\nA meal with great food or a meal with great conversation.",
+            "es": "1\n00:00:00,000 --> 00:00:04,400\nUna comida con excelente comida o una comida con una gran conversación.",
+            "pt": "1\n00:00:00,000 --> 00:00:04,400\nUma refeição com ótima comida ou uma refeição com ótima conversa.",
+            "fr": "1\n00:00:00,000 --> 00:00:04,400\nUn repas avec de la super nourriture ou un repas avec une excellente conversation.",
+            "hi": "1\n00:00:00,000 --> 00:00:04,400\nशानदार खाने वाला भोजन या बेहतरीन बातचीत वाला भोजन।",
+            "bn": "1\n00:00:00,000 --> 00:00:04,400\nদারুণ খাবার বা দারুণ কথোপকথনের একটি খাবার।"
+          }
         },
         {
           "responseType": "friendClosedResponse",
@@ -983,7 +991,15 @@
               "hi": "बढ़िया खाने वाला भोजन, बढ़िया बातचीत वाले भोजन से बेहतर है।"
             }
           ],
-          "nextStep": 7
+          "nextStep": 7,
+          "subtitles": {
+            "en": "1\n00:00:00,000 --> 00:00:06,000\nWhich is better, a meal with great food or a meal with great conversation.",
+            "es": "1\n00:00:00,000 --> 00:00:06,000\n¿Qué es mejor, una comida con excelente comida o una comida con una gran conversación.",
+            "pt": "1\n00:00:00,000 --> 00:00:06,000\nO que é melhor, uma refeição com ótima comida ou uma refeição com ótima conversa.",
+            "fr": "1\n00:00:00,000 --> 00:00:06,000\nQu'est-ce qui est mieux, un repas avec de la super nourriture ou un repas avec une super conversation.",
+            "hi": "1\n00:00:00,000 --> 00:00:06,000\nकौन सा बेहतर है, शानदार खाने वाला भोजन या शानदार बातचीत वाला भोजन।",
+            "bn": "1\n00:00:00,000 --> 00:00:06,000\nকোনটি ভালো, দারুণ খাবারের একটি খাবার নাকি দারুণ কথোপকথনের একটি খাবার।"
+          }
         },
         {
           "responseType": "friendClosedResponse",
@@ -998,7 +1014,15 @@
               "hi": "मैं स्वादिष्ट खाने वाला भोजन बढ़िया बातचीत वाले भोजन से ज़्यादा पसंद करूंगा।"
             }
           ],
-          "nextStep": 6
+          "nextStep": 6,
+          "subtitles": {
+            "en": "1\n00:00:00,000 --> 00:00:05,000\nWould you rather have a meal with great food or have a meal with great conversation?",
+            "es": "1\n00:00:00,000 --> 00:00:05,000\n¿Preferirías tener una comida con excelente comida o tener una comida con una gran conversación?",
+            "pt": "1\n00:00:00,000 --> 00:00:05,000\nVocê prefere fazer uma refeição com ótima comida ou com uma ótima conversa?",
+            "fr": "1\n00:00:00,000 --> 00:00:05,000\nPréférez-vous un repas avec de la super nourriture ou un repas avec une super conversation ?",
+            "hi": "1\n00:00:00,000 --> 00:00:05,000\nक्या आप शानदार भोजन के साथ भोजन करना पसंद करेंगे या बेहतरीन बातचीत के साथ?",
+            "bn": "1\n00:00:00,000 --> 00:00:05,000\nআপনি কি চমৎকার খাবারসহ একটি খাবার নাকি চমৎকার কথোপকথনসহ একটি খাবার পেতে পছন্দ করবেন?"
+          }
         },
         {
           "responseType": "friendClosedResponse",
@@ -1013,7 +1037,15 @@
               "hi": "शानदार भोजन वाले भोजन और शानदार बातचीत वाले भोजन के बीच चुनाव दिया जाए, तो मैं शानदार भोजन वाला भोजन चुनूँगा।"
             }
           ],
-          "nextStep": 5
+          "nextStep": 5,
+          "subtitles": {
+            "en": "1\n00:00:00,000 --> 00:00:05,280\nGiven the choice between having a meal with great food and having a meal with great conversation,\n\n2\n00:00:05,280 --> 00:00:07,040\nwhich would you choose?",
+            "es": "1\n00:00:00,000 --> 00:00:05,280\nDada la opción entre tener una comida con excelente comida y tener una comida con una gran conversación,\n\n2\n00:00:05,280 --> 00:00:07,040\n¿cuál elegirías?",
+            "pt": "1\n00:00:00,000 --> 00:00:05,280\nDada a escolha entre ter uma refeição com comida excelente e ter uma refeição com uma conversa excelente,\n\n2\n00:00:05,280 --> 00:00:07,040\nqual você escolheria?",
+            "fr": "1\n00:00:00,000 --> 00:00:05,280\nÉtant donné le choix entre un repas avec de la super cuisine et un repas avec une super conversation,\n\n2\n00:00:05,280 --> 00:00:07,040\nque choisiriez-vous ?",
+            "hi": "1\n00:00:00,000 --> 00:00:05,280\nशानदार खाना खाने और बेहतरीन बातचीत के साथ खाना खाने के बीच विकल्प दिया जाए, तो,\n\n2\n00:00:05,280 --> 00:00:07,040\nआप किसे चुनेंगे?",
+            "bn": "1\n00:00:00,000 --> 00:00:05,280\nচমৎকার খাবারযুক্ত কোনো খাবারের আয়োজন নাকি দারুণ কথোপকথনযুক্ত কোনো খাবারের আয়োজন—এই দুটির মধ্যে কোনো একটি বেছে নিতে বললে,\n\n2\n00:00:05,280 --> 00:00:07,040\nআপনি কোনটি বেছে নেবেন?"
+          }
         },
         {
           "responseType": "friendClosedResponse",
