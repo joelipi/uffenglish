@@ -1626,8 +1626,57 @@
           "introBackgroundVideoUrl": "wouldyourather-c-01"
         },
         {
+          "responseType": "branching",
+          "chooseStep": [
+            {
+              "nextStep": 1,
+              "text": {
+                "en": "Speak every language or play every instrument?",
+                "es": "¿Hablar todos los idiomas o tocar todos los instrumentos?",
+                "pt": "Falar todos os idiomas ou tocar todos os instrumentos?",
+                "bn": "সব ভাষা বলতে পারা নাকি সব বাদ্যযন্ত্র বাজাতে পারা?",
+                "fr": "Parler toutes les langues ou jouer de tous les instruments ?",
+                "hi": "हर भाषा बोलें या हर वाद्य यंत्र बजाएं?"
+              }
+            },
+            {
+              "nextStep": 2,
+              "text": {
+                "en": "Which is better: speaking every language or playing every instrument?",
+                "es": "¿Qué es mejor: hablar todos los idiomas o tocar todos los instrumentos?",
+                "pt": "O que é melhor: falar todos os idiomas ou tocar todos os instrumentos?",
+                "bn": "কোনটি ভালো: সব ভাষা বলতে পারা নাকি সব বাদ্যযন্ত্র বাজাতে পারা?",
+                "fr": "Qu'est-ce qui est mieux : parler toutes les langues ou jouer de tous les instruments ?",
+                "hi": "कौन सा बेहतर है: हर भाषा बोलना या हर वाद्य यंत्र बजाना?"
+              }
+            },
+            {
+              "nextStep": 3,
+              "text": {
+                "en": "Would you rather be able to speak every language or be able to play every musical instrument?",
+                "es": "¿Preferirías poder hablar todos los idiomas o poder tocar todos los instrumentos musicales?",
+                "pt": "Você prefere ser capaz de falar todos os idiomas ou ser capaz de tocar todos os instrumentos musicais?",
+                "bn": "আপনি কি সব ভাষা বলতে সক্ষম হতে চান নাকি প্রতিটি বাদ্যযন্ত্র বাজাতে সক্ষম হতে চান?",
+                "fr": "Préférerais-tu pouvoir parler toutes les langues ou pouvoir jouer de tous les instruments de musique ?",
+                "hi": "क्या आप हर भाषा बोल पाना पसंद करेंगे या हर संगीत वाद्य यंत्र बजा पाना?"
+              }
+            },
+            {
+              "nextStep": 4,
+              "text": {
+                "en": "Given the choice between being able to speak every language in the world and being able to play every musical instrument, which would you choose?",
+                "es": "Dada la opción entre poder hablar todos los idiomas del mundo y poder tocar todos los instrumentos musicales, ¿cuál elegirías?",
+                "pt": "Dada a escolha entre ser capaz de falar todos os idiomas do mundo e ser capaz de tocar todos os instrumentos musicais, qual você escolheria?",
+                "bn": "বিশ্বের সমস্ত ভাষা বলতে সক্ষম হওয়া এবং প্রতিটি বাদ্যযন্ত্র বাজাতে সক্ষম হওয়ার মধ্যে পছন্দ দেওয়া হলে, আপনি কোনটি বেছে নেবেন?",
+                "fr": "Si tu avais le choix entre pouvoir parler toutes les langues du monde et pouvoir jouer de tous les instruments de musique, que choisirais-tu ?",
+                "hi": "दुनिया की हर भाषा बोल पाने और हर संगीत वाद्ययंत्र बजा पाने के बीच चुनाव दिया जाए, तो आप क्या चुनेंगे?"
+              }
+            }
+          ]
+        },
+        {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-c-01",
+          "simpleVideoUrl": "wouldyourather-c-01-01",
           "cue": [
             {
               "en": "Speak every language or play every instrument?",
@@ -1636,7 +1685,14 @@
               "bn": "সব ভাষা বলতে পারা নাকি সব বাদ্যযন্ত্র বাজাতে পারা?",
               "fr": "Parler toutes les langues ou jouer de tous les instruments ?",
               "hi": "हर भाषा बोलें या हर वाद्य यंत्र बजाएं?"
-            },
+            }
+          ],
+          "nextStep": 4
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-c-01-02",
+          "cue": [
             {
               "en": "Which is better: speaking every language or playing every instrument?",
               "es": "¿Qué es mejor: hablar todos los idiomas o tocar todos los instrumentos?",
@@ -1644,7 +1700,14 @@
               "bn": "কোনটি ভালো: সব ভাষা বলতে পারা নাকি সব বাদ্যযন্ত্র বাজাতে পারা?",
               "fr": "Qu'est-ce qui est mieux : parler toutes les langues ou jouer de tous les instruments ?",
               "hi": "कौन सा बेहतर है: हर भाषा बोलना या हर वाद्य यंत्र बजाना?"
-            },
+            }
+          ],
+          "nextStep": 3
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-c-01-03",
+          "cue": [
             {
               "en": "Would you rather be able to speak every language or be able to play every musical instrument?",
               "es": "¿Preferirías poder hablar todos los idiomas o poder tocar todos los instrumentos musicales?",
@@ -1652,7 +1715,14 @@
               "bn": "আপনি কি সব ভাষা বলতে সক্ষম হতে চান নাকি প্রতিটি বাদ্যযন্ত্র বাজাতে সক্ষম হতে চান?",
               "fr": "Préférerais-tu pouvoir parler toutes les langues ou pouvoir jouer de tous les instruments de musique ?",
               "hi": "क्या आप हर भाषा बोल पाना पसंद करेंगे या हर संगीत वाद्य यंत्र बजा पाना?"
-            },
+            }
+          ],
+          "nextStep": 2
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-c-01-04",
+          "cue": [
             {
               "en": "Given the choice between being able to speak every language in the world and being able to play every musical instrument, which would you choose?",
               "es": "Dada la opción entre poder hablar todos los idiomas del mundo y poder tocar todos los instrumentos musicales, ¿cuál elegirías?",
@@ -1662,18 +1732,60 @@
               "hi": "दुनिया की हर भाषा बोल पाने और हर संगीत वाद्ययंत्र बजा पाने के बीच चुनाव दिया जाए, तो आप क्या चुनेंगे?"
             }
           ],
-          "subtitles": {
-            "en": "1\n00:00:00,000 --> 00:00:06,050\nSpeak every language or play every instrument?\n\n2\n00:00:06,050 --> 00:00:11,800\nWhich is better: speaking every language or playing every instrument?\n\n3\n00:00:11,800 --> 00:00:20,050\nWould you rather be able to speak every language or be able to play every musical instrument?\n\n4\n00:00:20,050 --> 00:00:29,200\nGiven the choice between being able to speak every language in the world and being able to play every musical instrument, which would you choose?",
-            "es": "1\n00:00:00,000 --> 00:00:06,050\n¿Hablar todos los idiomas o tocar todos los instrumentos?\n\n2\n00:00:06,050 --> 00:00:11,800\n¿Qué es mejor: hablar todos los idiomas o tocar todos los instrumentos?\n\n3\n00:00:11,800 --> 00:00:20,050\n¿Preferirías poder hablar todos los idiomas o poder tocar todos los instrumentos musicales?\n\n4\n00:00:20,050 --> 00:00:29,200\nDada la opción entre poder hablar todos los idiomas del mundo y poder tocar todos los instrumentos musicales, ¿cuál elegirías?",
-            "pt": "1\n00:00:00,000 --> 00:00:06,050\nFalar todos os idiomas ou tocar todos os instrumentos?\n\n2\n00:00:06,050 --> 00:00:11,800\nO que é melhor: falar todos os idiomas ou tocar todos os instrumentos?\n\n3\n00:00:11,800 --> 00:00:20,050\nVocê prefere ser capaz de falar todos os idiomas ou ser capaz de tocar todos os instrumentos musicais?\n\n4\n00:00:20,050 --> 00:00:29,200\nDada a escolha entre poder falar todos os idiomas do mundo e poder tocar todos os instrumentos musicais, qual você escolheria?",
-            "bn": "1\n00:00:00,000 --> 00:00:06,050\nপ্রতিটি ভাষায় কথা বলা নাকি প্রতিটি বাদ্যযন্ত্র বাজানো?\n\n2\n00:00:06,050 --> 00:00:11,800\nকোনটি ভালো: প্রতিটি ভাষা বলা নাকি প্রতিটি বাদ্যযন্ত্র বাজানো?\n\n3\n00:00:11,800 --> 00:00:20,050\nআপনি কি প্রতিটি ভাষায় কথা বলতে পারতে পছন্দ করবেন নাকি প্রতিটি বাদ্যযন্ত্র বাজাতে পারতে পছন্দ করবেন?\n\n4\n00:00:20,050 --> 00:00:29,200\nবিশ্বের প্রতিটি ভাষায় কথা বলার ক্ষমতা এবং প্রতিটি বাদ্যযন্ত্র বাজানোর ক্ষমতার মধ্যে বেছে নিতে হলে, আপনি কোনটি বেছে নেবেন?",
-            "fr": "1\n00:00:00,000 --> 00:00:06,050\nParler toutes les langues ou jouer de tous les instruments ?\n\n2\n00:00:06,050 --> 00:00:11,800\nQu'est-ce qui est mieux : parler toutes les langues ou jouer de tous les instruments ?\n\n3\n00:00:11,800 --> 00:00:20,050\nPréférerais-tu pouvoir parler toutes les langues ou pouvoir jouer de tous les instruments de musique ?\n\n4\n00:00:20,050 --> 00:00:29,200\nSi tu avais le choix entre pouvoir parler toutes les langues du monde et pouvoir jouer de tous les instruments de musique, que choisirais-tu ?",
-            "hi": "1\n00:00:00,000 --> 00:00:06,050\nहर भाषा बोलें या हर वाद्य यंत्र बजाएं?\n\n2\n00:00:06,050 --> 00:00:11,800\nकौन सा बेहतर है: हर भाषा बोलना या हर वाद्य यंत्र बजाना?\n\n3\n00:00:11,800 --> 00:00:20,050\nक्या आप हर भाषा बोल पाना पसंद करेंगे या हर संगीत वाद्य यंत्र बजा पाना?\n\n4\n00:00:20,050 --> 00:00:29,200\nदुनिया की हर भाषा बोल पाने और हर संगीत वाद्ययंत्र बजा पाने के बीच चुनाव दिया जाए, तो आप क्या चुनेंगे?"
-          }
+          "nextStep": 1
+        },
+        {
+          "responseType": "branching",
+          "chooseStep": [
+            {
+              "nextStep": 1,
+              "text": {
+                "en": "A small apartment in a big city or a big house in a small town?",
+                "es": "¿Un apartamento pequeño en una gran ciudad o una casa grande en un pueblo pequeño?",
+                "pt": "Um apartamento pequeno em uma cidade grande ou uma casa grande em uma cidade pequena?",
+                "bn": "বড় শহরে একটি ছোট অ্যাপার্টমেন্ট নাকি ছোট শহরে একটি বড় বাড়ি?",
+                "fr": "Un petit appartement dans une grande ville ou une grande maison dans une petite ville ?",
+                "hi": "बड़े शहर में एक छोटा अपार्टमेंट या छोटे शहर में एक बड़ा घर?"
+              }
+            },
+            {
+              "nextStep": 2,
+              "text": {
+                "en": "Which is better: a tiny apartment in a big city or a huge house in the countryside?",
+                "es": "¿Qué es mejor: un apartamento diminuto en una gran ciudad o una casa enorme en el campo?",
+                "pt": "O que é melhor: um apartamento minúsculo em uma cidade grande ou uma casa enorme no campo?",
+                "bn": "কোনটি ভালো: বড় শহরে একটি ছোট অ্যাপার্টমেন্ট নাকি গ্রামে একটি বিশাল বাড়ি?",
+                "fr": "Qu'est-ce qui est mieux : un petit appartement dans une grande ville ou une grande maison à la campagne ?",
+                "hi": "कौन सा बेहतर है: बड़े शहर में एक छोटा फ्लैट या गांव में एक बड़ा घर?"
+              }
+            },
+            {
+              "nextStep": 3,
+              "text": {
+                "en": "Would you rather live in a tiny apartment in a big city or live in a mansion out in the country?",
+                "es": "¿Preferirías vivir en un apartamento diminuto en una gran ciudad o vivir en una mansión en el campo?",
+                "pt": "Você prefere morar em um apartamento minúsculo em uma cidade grande ou morar em uma mansão no interior?",
+                "bn": "আপনি কি বড় শহরে একটি ছোট অ্যাপার্টমেন্টে বাস করতে চান নাকি দেশের বাইরে একটি প্রাসাদে বাস করতে চান?",
+                "fr": "Préférerais-tu vivre dans un petit appartement dans une grande ville ou vivre dans une villa à la campagne ?",
+                "hi": "आप एक बड़े शहर में छोटे से अपार्टमेंट में रहना पसंद करेंगे या गांव में एक बड़ी हवेली में रहना पसंद करेंगे?"
+              }
+            },
+            {
+              "nextStep": 4,
+              "text": {
+                "en": "Given the choice between cramming into a tiny apartment in a major metropolis and luxuriating in a mansion in the back of beyond, which would you choose?",
+                "es": "Dada la opción entre amontonarse en un apartamento diminuto en una metrópolis importante y luxuriar en una mansión en el confín del mundo, ¿cuál elegirías?",
+                "pt": "Dada a escolha entre se espremer em um apartamento minúsculo em uma metrópole importante e desfrutar de uma mansão no fim do mundo, qual você escolheria?",
+                "bn": "একটি প্রধান মহানগরের একটি ছোট অ্যাপার্টমেন্টে ক্র্যামিং করা এবং পিছনের দিকে একটি প্রাসাদে বিলাসবহুল হওয়ার মধ্যে পছন্দ দেওয়া হলে, আপনি কোনটি বেছে নেবেন?",
+                "fr": "Si tu avais le choix entre t'entasser dans un minuscule appartement dans une grande métropole et profiter d'une villa au fin fond de la campagne, que choisirais-tu ?",
+                "hi": "किसी बड़े महानगर में एक छोटे से अपार्टमेंट में ठुँस जाने और सुदूर इलाके में एक हवेली में ऐश करने के बीच चुनाव दिया जाए, तो आप क्या चुनेंगे?"
+              }
+            }
+          ]
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-c-02",
+          "simpleVideoUrl": "wouldyourather-c-02-01",
           "cue": [
             {
               "en": "A small apartment in a big city or a big house in a small town?",
@@ -1682,7 +1794,14 @@
               "bn": "বড় শহরে একটি ছোট অ্যাপার্টমেন্ট নাকি ছোট শহরে একটি বড় বাড়ি?",
               "fr": "Un petit appartement dans une grande ville ou une grande maison dans une petite ville ?",
               "hi": "बड़े शहर में एक छोटा अपार्टमेंट या छोटे शहर में एक बड़ा घर?"
-            },
+            }
+          ],
+          "nextStep": 4
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-c-02-02",
+          "cue": [
             {
               "en": "Which is better: a tiny apartment in a big city or a huge house in the countryside?",
               "es": "¿Qué es mejor: un apartamento diminuto en una gran ciudad o una casa enorme en el campo?",
@@ -1690,7 +1809,14 @@
               "bn": "কোনটি ভালো: বড় শহরে একটি ছোট অ্যাপার্টমেন্ট নাকি গ্রামে একটি বিশাল বাড়ি?",
               "fr": "Qu'est-ce qui est mieux : un petit appartement dans une grande ville ou une grande maison à la campagne ?",
               "hi": "कौन सा बेहतर है: बड़े शहर में एक छोटा फ्लैट या गांव में एक बड़ा घर?"
-            },
+            }
+          ],
+          "nextStep": 3
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-c-02-03",
+          "cue": [
             {
               "en": "Would you rather live in a tiny apartment in a big city or live in a mansion out in the country?",
               "es": "¿Preferirías vivir en un apartamento diminuto en una gran ciudad o vivir en una mansión en el campo?",
@@ -1698,7 +1824,14 @@
               "bn": "আপনি কি বড় শহরে একটি ছোট অ্যাপার্টমেন্টে বাস করতে চান নাকি দেশের বাইরে একটি প্রাসাদে বাস করতে চান?",
               "fr": "Préférerais-tu vivre dans un petit appartement dans une grande ville ou vivre dans une villa à la campagne ?",
               "hi": "आप एक बड़े शहर में छोटे से अपार्टमेंट में रहना पसंद करेंगे या गांव में एक बड़ी हवेली में रहना पसंद करेंगे?"
-            },
+            }
+          ],
+          "nextStep": 2
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-c-02-04",
+          "cue": [
             {
               "en": "Given the choice between cramming into a tiny apartment in a major metropolis and luxuriating in a mansion in the back of beyond, which would you choose?",
               "es": "Dada la opción entre amontonarse en un apartamento diminuto en una metrópolis importante y luxuriar en una mansión en el confín del mundo, ¿cuál elegirías?",
@@ -1708,18 +1841,60 @@
               "hi": "किसी बड़े महानगर में एक छोटे से अपार्टमेंट में ठुँस जाने और सुदूर इलाके में एक हवेली में ऐश करने के बीच चुनाव दिया जाए, तो आप क्या चुनेंगे?"
             }
           ],
-          "subtitles": {
-            "en": "1\n00:00:00,000 --> 00:00:07,550\nA small apartment in a big city or a big house in a small town?\n\n2\n00:00:07,550 --> 00:00:14,700\nWhich is better: a tiny apartment in a big city or a huge house in the countryside?\n\n3\n00:00:14,700 --> 00:00:21,450\nWould you rather live in a tiny apartment in a big city or live in a mansion out in the country?\n\n4\n00:00:21,450 --> 00:00:31,300\nGiven the choice between cramming into a tiny apartment in a major metropolis and luxuriating in a mansion in the back of beyond, which would you choose?",
-            "es": "1\n00:00:00,000 --> 00:00:07,550\n¿Un apartamento pequeño en una gran ciudad o una casa grande en un pueblo pequeño?\n\n2\n00:00:07,550 --> 00:00:14,700\n¿Qué es mejor: un apartamento diminuto en una gran ciudad o una casa enorme en el campo?\n\n3\n00:00:14,700 --> 00:00:21,450\n¿Preferirías vivir en un apartamento diminuto en una gran ciudad o vivir en una mansión en el campo?\n\n4\n00:00:21,450 --> 00:00:31,300\nDada la opción entre meterte en un apartamento diminuto en una gran metrópoli y disfrutar de una mansión en medio de la nada, ¿cuál elegirías?",
-            "pt": "1\n00:00:00,000 --> 00:00:07,550\nUm apartamento pequeno em uma cidade grande ou uma casa grande em uma cidade pequena?\n\n2\n00:00:07,550 --> 00:00:14,700\nO que é melhor: um apartamento minúsculo em uma cidade grande ou uma casa enorme no campo?\n\n3\n00:00:14,700 --> 00:00:21,450\nVocê prefere morar em um apartamento minúsculo em uma cidade grande ou morar em uma mansão no campo?\n\n4\n00:00:21,450 --> 00:00:31,300\nDada a escolha entre se espremer em um apartamento minúsculo em uma metrópole importante e desfrutar de uma mansão no fim do mundo, qual você escolheria?",
-            "bn": "1\n00:00:00,000 --> 00:00:07,550\nবড় শহরের একটি ছোট অ্যাপার্টমেন্ট নাকি ছোট শহরের একটি বড় বাড়ি?\n\n2\n00:00:07,550 --> 00:00:14,700\nকোনটি ভালো: বড় শহরের একটি ছোট অ্যাপার্টমেন্ট নাকি গ্রামাঞ্চলের একটি বিশাল বাড়ি?\n\n3\n00:00:14,700 --> 00:00:21,450\nআপনি কি বড় শহরের একটি ছোট অ্যাপার্টমেন্টে থাকতে পছন্দ করবেন নাকি গ্রামাঞ্চলের একটি প্রাসাদে থাকতে পছন্দ করবেন?\n\n4\n00:00:21,450 --> 00:00:31,300\nবড় শহরের ছোট অ্যাপার্টমেন্ট এবং গ্রামাঞ্চলের প্রাসাদের বিলাসিতার মধ্যে বেছে নিতে হলে, আপনি কোনটি বেছে নেবেন?",
-            "fr": "1\n00:00:00,000 --> 00:00:07,550\nUn petit appartement dans une grande ville ou une grande maison dans une petite ville ?\n\n2\n00:00:07,550 --> 00:00:14,700\nQu'est-ce qui est mieux : un petit appartement dans une grande ville ou une grande maison à la campagne ?\n\n3\n00:00:14,700 --> 00:00:21,450\nPréférerais-tu vivre dans un petit appartement dans une grande ville ou vivre dans une villa à la campagne ?\n\n4\n00:00:21,450 --> 00:00:31,300\nSi tu avais le choix entre t'entasser dans un minuscule appartement dans une grande métropole et profiter d'une villa au fin fond de la campagne, que choisirais-tu ?",
-            "hi": "1\n00:00:00,000 --> 00:00:07,550\nबड़े शहर में एक छोटा अपार्टमेंट या छोटे शहर में एक बड़ा घर?\n\n2\n00:00:07,550 --> 00:00:14,700\nकौन सा बेहतर है: बड़े शहर में एक छोटा फ्लैट या गांव में एक बड़ा घर?\n\n3\n00:00:14,700 --> 00:00:21,450\nआप एक बड़े शहर में छोटे से अपार्टमेंट में रहना पसंद करेंगे या गांव में एक बड़ी हवेली में रहना पसंद करेंगे?\n\n4\n00:00:21,450 --> 00:00:31,300\nकिसी बड़े महानगर में एक छोटे से अपार्टमेंट में ठुँस जाने और सुदूर इलाके में एक हवेली में ऐश करने के बीच चुनाव दिया जाए, तो आप क्या चुनेंगे?"
-          }
+          "nextStep": 1
+        },
+        {
+          "responseType": "branching",
+          "chooseStep": [
+            {
+              "nextStep": 1,
+              "text": {
+                "en": "Honest friends or fun friends?",
+                "es": "¿Amigos honestos o amigos divertidos?",
+                "pt": "Amigos honestos ou amigos divertidos?",
+                "bn": "সৎ বন্ধুরা নাকি মজার বন্ধুরা?",
+                "fr": "Des amis honnêtes ou des amis amusants ?",
+                "hi": "ईमानदार दोस्त या मजेदार दोस्त?"
+              }
+            },
+            {
+              "nextStep": 2,
+              "text": {
+                "en": "Which is better: friends who are honest or friends who are fun?",
+                "es": "¿Qué es mejor: amigos que son honestos o amigos que son divertidos?",
+                "pt": "O que é melhor: amigos que são honestos ou amigos que são divertidos?",
+                "bn": "কোনটি ভালো: যে বন্ধুরা সৎ নাকি যে বন্ধুরা মজার?",
+                "fr": "Qu'est-ce qui est mieux : des amis honnêtes ou des amis amusants ?",
+                "hi": "कौन सा बेहतर है: ईमानदार दोस्त या मजेदार दोस्त?"
+              }
+            },
+            {
+              "nextStep": 3,
+              "text": {
+                "en": "Would you rather have friends who always tell you the truth or have friends who always make you feel good?",
+                "es": "¿Preferirías tener amigos que siempre te dicen la verdad o tener amigos que siempre te hacen sentir bien?",
+                "pt": "Você prefere ter amigos que sempre dizem a verdade a você ou ter amigos que sempre fazem você se sentir bem?",
+                "bn": "আপনি কি এমন বন্ধু রাখতে চান যারা সর্বদা আপনাকে সত্য বলে নাকি এমন বন্ধু রাখতে চান যারা সর্বদা আপনাকে ভালো বোধ করায়?",
+                "fr": "Préférerais-tu avoir des amis qui te disent toujours la vérité ou avoir des amis qui te font toujours du bien ?",
+                "hi": "आप ऐसे दोस्त पसंद करेंगे जो हमेशा आपको सच बताएं या ऐसे दोस्त जो हमेशा आपको अच्छा महसूस कराएं?"
+              }
+            },
+            {
+              "nextStep": 4,
+              "text": {
+                "en": "Given the choice between having friends who always tell you the truth and having friends who always make you feel good, which would you choose?",
+                "es": "Dada la opción entre tener amigos que siempre te dicen la verdad y tener amigos que siempre te hacen sentir bien, ¿cuál elegirías?",
+                "pt": "Dada a escolha entre ter amigos que sempre dizem a verdade a você e ter amigos que sempre fazem você se sentir bem, qual você escolheria?",
+                "bn": "এমন বন্ধু থাকা যারা সর্বদা আপনাকে সত্য বলে এবং এমন বন্ধু থাকা যারা সর্বদা আপনাকে ভালো বোধ করায় তার মধ্যে পছন্দ দেওয়া হলে, আপনি কোনটি বেছে নেবেন?",
+                "fr": "Si tu avais le choix entre avoir des amis qui te disent toujours la vérité et avoir des amis qui te font toujours du bien, que choisirais-tu ?",
+                "hi": "अगर आपको चुनाव करना पड़े कि आपके ऐसे दोस्त हों जो हमेशा आपको सच बताते हैं, और ऐसे दोस्त हों जो हमेशा आपको अच्छा महसूस कराते हैं, तो आप कौन से दोस्त चुनेंगे?"
+              }
+            }
+          ]
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-c-03",
+          "simpleVideoUrl": "wouldyourather-c-03-01",
           "cue": [
             {
               "en": "Honest friends or fun friends?",
@@ -1728,7 +1903,14 @@
               "bn": "সৎ বন্ধুরা নাকি মজার বন্ধুরা?",
               "fr": "Des amis honnêtes ou des amis amusants ?",
               "hi": "ईमानदार दोस्त या मजेदार दोस्त?"
-            },
+            }
+          ],
+          "nextStep": 4
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-c-03-02",
+          "cue": [
             {
               "en": "Which is better: friends who are honest or friends who are fun?",
               "es": "¿Qué es mejor: amigos que son honestos o amigos que son divertidos?",
@@ -1736,7 +1918,14 @@
               "bn": "কোনটি ভালো: যে বন্ধুরা সৎ নাকি যে বন্ধুরা মজার?",
               "fr": "Qu'est-ce qui est mieux : des amis honnêtes ou des amis amusants ?",
               "hi": "कौन सा बेहतर है: ईमानदार दोस्त या मजेदार दोस्त?"
-            },
+            }
+          ],
+          "nextStep": 3
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-c-03-03",
+          "cue": [
             {
               "en": "Would you rather have friends who always tell you the truth or have friends who always make you feel good?",
               "es": "¿Preferirías tener amigos que siempre te dicen la verdad o tener amigos que siempre te hacen sentir bien?",
@@ -1744,7 +1933,14 @@
               "bn": "আপনি কি এমন বন্ধু রাখতে চান যারা সর্বদা আপনাকে সত্য বলে নাকি এমন বন্ধু রাখতে চান যারা সর্বদা আপনাকে ভালো বোধ করায়?",
               "fr": "Préférerais-tu avoir des amis qui te disent toujours la vérité ou avoir des amis qui te font toujours du bien ?",
               "hi": "आप ऐसे दोस्त पसंद करेंगे जो हमेशा आपको सच बताएं या ऐसे दोस्त जो हमेशा आपको अच्छा महसूस कराएं?"
-            },
+            }
+          ],
+          "nextStep": 2
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-c-03-04",
+          "cue": [
             {
               "en": "Given the choice between having friends who always tell you the truth and having friends who always make you feel good, which would you choose?",
               "es": "Dada la opción entre tener amigos que siempre te dicen la verdad y tener amigos que siempre te hacen sentir bien, ¿cuál elegirías?",
@@ -1754,14 +1950,7 @@
               "hi": "अगर आपको चुनाव करना पड़े कि आपके ऐसे दोस्त हों जो हमेशा आपको सच बताते हैं, और ऐसे दोस्त हों जो हमेशा आपको अच्छा महसूस कराते हैं, तो आप कौन से दोस्त चुनेंगे?"
             }
           ],
-          "subtitles": {
-            "en": "1\n00:00:00,000 --> 00:00:04,050\nHonest friends or fun friends?\n\n2\n00:00:04,050 --> 00:00:09,500\nWhich is better: friends who are honest or friends who are fun?\n\n3\n00:00:09,500 --> 00:00:16,450\nWould you rather have friends who always tell you the truth or have friends who always make you feel good?\n\n4\n00:00:16,450 --> 00:00:24,700\nGiven the choice between having friends who always tell you the truth and having friends who always make you feel good, which would you choose?",
-            "es": "1\n00:00:00,000 --> 00:00:04,050\n¿Amigos honestos o amigos divertidos?\n\n2\n00:00:04,050 --> 00:00:09,500\n¿Qué es mejor: amigos que son honestos o amigos que son divertidos?\n\n3\n00:00:09,500 --> 00:00:16,450\n¿Preferirías tener amigos que siempre te digan la verdad o tener amigos que siempre te hagan sentir bien?\n\n4\n00:00:16,450 --> 00:00:24,700\nDada la opción entre tener amigos que siempre te digan la verdad y tener amigos que siempre te hagan sentir bien, ¿cuál elegirías?",
-            "pt": "1\n00:00:00,000 --> 00:00:04,050\nAmigos honestos ou amigos divertidos?\n\n2\n00:00:04,050 --> 00:00:09,500\nO que é melhor: amigos que são honestos ou amigos que são divertidos?\n\n3\n00:00:09,500 --> 00:00:16,450\nVocê prefere ter amigos que sempre dizem a verdade ou ter amigos que sempre fazem você se sentir bem?\n\n4\n00:00:16,450 --> 00:00:24,700\nDada a escolha entre ter amigos que sempre dizem a verdade e ter amigos que sempre fazem você se sentir bem, qual você escolheria?",
-            "bn": "1\n00:00:00,000 --> 00:00:04,050\nসৎ বন্ধু নাকি মজার বন্ধু?\n\n2\n00:00:04,050 --> 00:00:09,500\nকোনটি ভালো: যে বন্ধুরা সৎ নাকি যে বন্ধুরা মজার?\n\n3\n00:00:09,500 --> 00:00:16,450\nআপনার কি এমন বন্ধু থাকা উচিত যারা আপনাকে সবসময় সত্য বলে নাকি এমন বন্ধু যারা আপনাকে সবসময় ভালো বোধ করায়?\n\n4\n00:00:16,450 --> 00:00:24,700\nআপনাকে সবসময় সত্য বলা বন্ধু এবং আপনাকে সবসময় ভালো বোধ করানোর বন্ধুদের মধ্যে বেছে নিতে হলে, আপনি কোনটি বেছে নেবেন?",
-            "fr": "1\n00:00:00,000 --> 00:00:04,050\nDes amis honnêtes ou des amis amusants ?\n\n2\n00:00:04,050 --> 00:00:09,500\nQu'est-ce qui est mieux : des amis honnêtes ou des amis amusants ?\n\n3\n00:00:09,500 --> 00:00:16,450\nPréférerais-tu avoir des amis qui te disent toujours la vérité ou avoir des amis qui te font toujours du bien ?\n\n4\n00:00:16,450 --> 00:00:24,700\nSi tu avais le choix entre avoir des amis qui te disent toujours la vérité et avoir des amis qui te font toujours du bien, que choisirais-tu ?",
-            "hi": "1\n00:00:00,000 --> 00:00:04,050\nईमानदार दोस्त या मजेदार दोस्त?\n\n2\n00:00:04,050 --> 00:00:09,500\nकौन सा बेहतर है: ईमानदार दोस्त या मजेदार दोस्त?\n\n3\n00:00:09,500 --> 00:00:16,450\nआप ऐसे दोस्त पसंद करेंगे जो हमेशा आपको सच बताएं या ऐसे दोस्त जो हमेशा आपको अच्छा महसूस कराएं?\n\n4\n00:00:16,450 --> 00:00:24,700\nअगर आपको चुनाव करना पड़े कि आपके ऐसे दोस्त हों जो हमेशा आपको सच बताते हैं, और ऐसे दोस्त हों जो हमेशा आपको अच्छा महसूस कराते हैं, तो आप कौन से दोस्त चुनेंगे?"
-          }
+          "nextStep": 1
         }
       ]
     },
@@ -1805,53 +1994,6 @@
           "cue": "",
           "responseType": "lessonIntro",
           "introBackgroundVideoUrl": "{friendCode}{selfCode}-wouldyourather-test-c-01"
-        },
-        {
-          "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-c-01",
-          "cue": [
-            {
-              "en": "Speak every language or play every instrument?",
-              "es": "¿Hablar todos los idiomas o tocar todos los instrumentos?",
-              "pt": "Falar todos os idiomas ou tocar todos os instrumentos?",
-              "bn": "সব ভাষা বলতে পারা নাকি সব বাদ্যযন্ত্র বাজাতে পারা?",
-              "fr": "Parler toutes les langues ou jouer de tous les instruments ?",
-              "hi": "हर भाषा बोलें या हर वाद्य यंत्र बजाएं?"
-            },
-            {
-              "en": "Which is better: speaking every language or playing every instrument?",
-              "es": "¿Qué es mejor: hablar todos los idiomas o tocar todos los instrumentos?",
-              "pt": "O que é melhor: falar todos os idiomas ou tocar todos os instrumentos?",
-              "bn": "কোনটি ভালো: সব ভাষা বলতে পারা নাকি সব বাদ্যযন্ত্র বাজাতে পারা?",
-              "fr": "Qu'est-ce qui est mieux : parler toutes les langues ou jouer de tous les instruments ?",
-              "hi": "कौन सा बेहतर है: हर भाषा बोलना या हर वाद्य यंत्र बजाना?"
-            },
-            {
-              "en": "Would you rather be able to speak every language or be able to play every musical instrument?",
-              "es": "¿Preferirías poder hablar todos los idiomas o poder tocar todos los instrumentos musicales?",
-              "pt": "Você prefere ser capaz de falar todos os idiomas ou ser capaz de tocar todos os instrumentos musicais?",
-              "bn": "আপনি কি সব ভাষা বলতে সক্ষম হতে চান নাকি প্রতিটি বাদ্যযন্ত্র বাজাতে সক্ষম হতে চান?",
-              "fr": "Préférerais-tu pouvoir parler toutes les langues ou pouvoir jouer de tous les instruments de musique ?",
-              "hi": "क्या आप हर भाषा बोल पाना पसंद करेंगे या हर संगीत वाद्य यंत्र बजा पाना?"
-            },
-            {
-              "en": "Given the choice between being able to speak every language in the world and being able to play every musical instrument, which would you choose?",
-              "es": "Dada la opción entre poder hablar todos los idiomas del mundo y poder tocar todos los instrumentos musicales, ¿cuál elegirías?",
-              "pt": "Dada a escolha entre ser capaz de falar todos os idiomas do mundo e ser capaz de tocar todos os instrumentos musicais, qual você escolheria?",
-              "bn": "বিশ্বের সমস্ত ভাষা বলতে সক্ষম হওয়া এবং প্রতিটি বাদ্যযন্ত্র বাজাতে সক্ষম হওয়ার মধ্যে পছন্দ দেওয়া হলে, আপনি কোনটি বেছে নেবেন?",
-              "fr": "Si tu avais le choix entre pouvoir parler toutes les langues du monde et pouvoir jouer de tous les instruments de musique, que choisirais-tu ?",
-              "hi": "दुनिया की हर भाषा बोल पाने और हर संगीत वाद्ययंत्र बजा पाने के बीच चुनाव दिया जाए, तो आप क्या चुनेंगे?"
-            }
-          ],
-          "publishLessonId": "c",
-          "subtitles": {
-            "en": "1\n00:00:00,000 --> 00:00:06,050\nSpeak every language or play every instrument?\n\n2\n00:00:06,050 --> 00:00:11,800\nWhich is better: speaking every language or playing every instrument?\n\n3\n00:00:11,800 --> 00:00:20,050\nWould you rather be able to speak every language or be able to play every musical instrument?\n\n4\n00:00:20,050 --> 00:00:29,200\nGiven the choice between being able to speak every language in the world and being able to play every musical instrument, which would you choose?",
-            "es": "1\n00:00:00,000 --> 00:00:06,050\n¿Hablar todos los idiomas o tocar todos los instrumentos?\n\n2\n00:00:06,050 --> 00:00:11,800\n¿Qué es mejor: hablar todos los idiomas o tocar todos los instrumentos?\n\n3\n00:00:11,800 --> 00:00:20,050\n¿Preferirías poder hablar todos los idiomas o poder tocar todos los instrumentos musicales?\n\n4\n00:00:20,050 --> 00:00:29,200\nDada la opción entre poder hablar todos los idiomas del mundo y poder tocar todos los instrumentos musicales, ¿cuál elegirías?",
-            "pt": "1\n00:00:00,000 --> 00:00:06,050\nFalar todos os idiomas ou tocar todos os instrumentos?\n\n2\n00:00:06,050 --> 00:00:11,800\nO que é melhor: falar todos os idiomas ou tocar todos os instrumentos?\n\n3\n00:00:11,800 --> 00:00:20,050\nVocê prefere ser capaz de falar todos os idiomas ou ser capaz de tocar todos os instrumentos musicais?\n\n4\n00:00:20,050 --> 00:00:29,200\nDada a escolha entre poder falar todos os idiomas do mundo e poder tocar todos os instrumentos musicais, qual você escolheria?",
-            "bn": "1\n00:00:00,000 --> 00:00:06,050\nপ্রতিটি ভাষায় কথা বলা নাকি প্রতিটি বাদ্যযন্ত্র বাজানো?\n\n2\n00:00:06,050 --> 00:00:11,800\nকোনটি ভালো: প্রতিটি ভাষা বলা নাকি প্রতিটি বাদ্যযন্ত্র বাজানো?\n\n3\n00:00:11,800 --> 00:00:20,050\nআপনি কি প্রতিটি ভাষায় কথা বলতে পারতে পছন্দ করবেন নাকি প্রতিটি বাদ্যযন্ত্র বাজাতে পারতে পছন্দ করবেন?\n\n4\n00:00:20,050 --> 00:00:29,200\nবিশ্বের প্রতিটি ভাষায় কথা বলার ক্ষমতা এবং প্রতিটি বাদ্যযন্ত্র বাজানোর ক্ষমতার মধ্যে বেছে নিতে হলে, আপনি কোনটি বেছে নেবেন?",
-            "fr": "1\n00:00:00,000 --> 00:00:06,050\nParler toutes les langues ou jouer de tous les instruments ?\n\n2\n00:00:06,050 --> 00:00:11,800\nQu'est-ce qui est mieux : parler toutes les langues ou jouer de tous les instruments ?\n\n3\n00:00:11,800 --> 00:00:20,050\nPréférerais-tu pouvoir parler toutes les langues ou pouvoir jouer de tous les instruments de musique ?\n\n4\n00:00:20,050 --> 00:00:29,200\nSi tu avais le choix entre pouvoir parler toutes les langues du monde et pouvoir jouer de tous les instruments de musique, que choisirais-tu ?",
-            "hi": "1\n00:00:00,000 --> 00:00:06,050\nहर भाषा बोलें या हर वाद्य यंत्र बजाएं?\n\n2\n00:00:06,050 --> 00:00:11,800\nकौन सा बेहतर है: हर भाषा बोलना या हर वाद्य यंत्र बजाना?\n\n3\n00:00:11,800 --> 00:00:20,050\nक्या आप हर भाषा बोल पाना पसंद करेंगे या हर संगीत वाद्य यंत्र बजा पाना?\n\n4\n00:00:20,050 --> 00:00:29,200\nदुनिया की हर भाषा बोल पाने और हर संगीत वाद्ययंत्र बजा पाने के बीच चुनाव दिया जाए, तो आप क्या चुनेंगे?"
-          }
         },
         {
           "responseType": "branching",
@@ -2220,6 +2362,203 @@
           ]
         },
         {
+          "responseType": "branching",
+          "simpleVideoUrl": "{friendCode}{selfCode}-wouldyourather-test-c-02",
+          "chooseStep": [
+            {
+              "nextStep": 1,
+              "text": {
+                "en": "Tiny apartment in the city",
+                "es": "Apartamento pequeño en la ciudad",
+                "pt": "Apartamento minúsculo na cidade",
+                "bn": "শহরে ছোট অ্যাপার্টমেন্ট",
+                "fr": "Petit appartement en ville",
+                "hi": "शहर में छोटा अपार्टमेंट"
+              }
+            },
+            {
+              "nextStep": 2,
+              "text": {
+                "en": "Huge house in the countryside",
+                "es": "Casa enorme en el campo",
+                "pt": "Casa enorme no campo",
+                "bn": "গ্রামে বিশাল বাড়ি",
+                "fr": "Grande maison à la campagne",
+                "hi": "गाँव में बहुत बड़ा घर"
+              }
+            }
+          ]
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-d-03",
+          "cue": [
+            {
+              "en": "A tiny apartment in a big city.",
+              "es": "Un apartamento diminuto en una gran ciudad.",
+              "pt": "Um apartamento minúsculo em uma cidade grande.",
+              "bn": "বড় শহরে একটি ছোট অ্যাপার্টমেন্ট।",
+              "fr": "Un petit appartement dans une grande ville.",
+              "hi": "बड़े शहर में एक छोटा अपार्टमेंट।"
+            },
+            {
+              "en": "A tiny apartment in a big city is better than a huge house in the countryside.",
+              "es": "Un apartamento diminuto en una gran ciudad es mejor que una casa enorme en el campo.",
+              "pt": "Um apartamento minúsculo em uma cidade grande é melhor do que uma casa enorme no campo.",
+              "bn": "গ্রামের একটি বিশাল বাড়ির চেয়ে বড় শহরে একটি ছোট অ্যাপার্টমেন্ট ভালো।",
+              "fr": "Un petit appartement dans une grande ville, c'est mieux qu'une grande maison à la campagne.",
+              "hi": "बड़े शहर में एक छोटा अपार्टमेंट गाँव के एक बड़े घर से बेहतर है।"
+            },
+            {
+              "en": "I would rather live in a tiny apartment in a big city than live in a huge house in the countryside.",
+              "es": "Preferiría vivir en un apartamento diminuto en una gran ciudad que vivir en una casa enorme en el campo.",
+              "pt": "Eu prefiro morar em um apartamento minúsculo em uma cidade grande a morar em uma casa enorme no campo.",
+              "bn": "আমি গ্রামের একটি বিশাল বাড়িতে বাস করার চেয়ে বড় শহরে একটি ছোট অ্যাপার্টমেন্টে বাস করতে পছন্দ করব।",
+              "fr": "Je préférerais vivre dans un petit appartement dans une grande ville plutôt que de vivre dans une grande maison à la campagne.",
+              "hi": "मैं बड़े शहर में एक छोटे से फ्लैट में रहना पसंद करूंगा, बजाय गांव में एक बड़े घर में रहने के।"
+            },
+            {
+              "en": "Given the choice between living in a tiny apartment in a big city and living in a huge house in the countryside, I would choose to live in a tiny apartment in a big city.",
+              "es": "Dada la opción entre vivir en un apartamento diminuto en una gran ciudad y vivir en una casa enorme en el campo, elegiría vivir en un apartamento diminuto en una gran ciudad.",
+              "pt": "Dada a escolha entre morar em um apartamento minúsculo em uma cidade grande e morar em uma casa enorme no campo, eu escolheria morar em um apartamento minúsculo em uma cidade grande.",
+              "bn": "বড় শহরে একটি ছোট অ্যাপার্টমেন্টে বাস করা এবং গ্রামে একটি বিশাল বাড়িতে বাস করার মধ্যে পছন্দ দেওয়া হলে, আমি বড় শহরে একটি ছোট অ্যাপার্টমেন্টে বাস করা বেছে নেব।",
+              "fr": "Si je devais choisir entre vivre dans un petit appartement dans une grande ville et vivre dans une grande maison à la campagne, je choisirais de vivre dans un petit appartement dans une grande ville.",
+              "hi": "अगर आपको चुनाव करना पड़े कि आप एक बड़े शहर में एक छोटे से फ्लैट में रहें, और ग्रामीण इलाके में एक बड़े घर में रहें, तो मैं एक बड़े शहर में एक छोटे से फ्लैट में रहना चुनूंगा।"
+            }
+          ],
+          "nextStep": 2,
+          "subtitles": {
+            "en": "1\n00:00:00,000 --> 00:00:03,050\nA tiny apartment in a big city.\n\n2\n00:00:03,050 --> 00:00:09,600\nA tiny apartment in a big city is better than a huge house in the countryside.\n\n3\n00:00:09,600 --> 00:00:16,350\nI would rather live in a tiny apartment in a big city than live in a huge house in the countryside.\n\n4\n00:00:16,350 --> 00:00:26,200\nGiven the choice between living in a tiny apartment in a big city and living in a huge house in the countryside, I would choose to live in a tiny apartment in a big city.",
+            "es": "1\n00:00:00,000 --> 00:00:03,050\nA tiny apartment in a big city.\n\n2\n00:00:03,050 --> 00:00:09,600\nUn apartamento diminuto en una gran ciudad es mejor que una casa enorme en el campo.\n\n3\n00:00:09,600 --> 00:00:16,350\nPreferiría vivir en un apartamento diminuto en una gran ciudad que vivir en una casa enorme en el campo.\n\n4\n00:00:16,350 --> 00:00:26,200\nDada la opción entre vivir en un apartamento diminuto en una gran ciudad y vivir en una casa enorme en el campo, elegiría vivir en un apartamento diminuto en una gran ciudad.",
+            "pt": "1\n00:00:00,000 --> 00:00:03,050\nUm apartamento minúsculo em uma cidade grande.\n\n2\n00:00:03,050 --> 00:00:09,600\nUm apartamento minúsculo em uma cidade grande é melhor do que uma casa enorme no campo.\n\n3\n00:00:09,600 --> 00:00:16,350\nEu preferiria morar em um apartamento minúsculo em uma cidade grande do que morar em uma casa enorme no campo.\n\n4\n00:00:16,350 --> 00:00:26,200\nDada a escolha entre morar em um apartamento minúsculo em uma cidade grande e morar em uma casa enorme no campo, eu escolheria morar em um apartamento minúsculo em uma cidade grande.",
+            "bn": "1\n00:00:00,000 --> 00:00:03,050\nবড় শহরের একটি ছোট অ্যাপার্টমেন্ট।\n\n2\n00:00:03,050 --> 00:00:09,600\nগ্রামাঞ্চলের বিশাল বাড়ির চেয়ে বড় শহরের একটি ছোট অ্যাপার্টমেন্ট ভালো।\n\n3\n00:00:09,600 --> 00:00:16,350\nআমি গ্রামাঞ্চলের বিশাল বাড়িতে থাকার চেয়ে বড় শহরের একটি ছোট অ্যাপার্টমেন্টে থাকতে পছন্দ করব।\n\n4\n00:00:16,350 --> 00:00:26,200\nবড় শহরের ছোট অ্যাপার্টমেন্ট এবং গ্রামাঞ্চলের বিশাল বাড়িতে থাকার মধ্যে বেছে নিতে হলে, আমি বড় শহরের একটি ছোট অ্যাপার্টমেন্টে থাকাই বেছে নেব।",
+            "fr": "1\n00:00:00,000 --> 00:00:03,050\nUn petit appartement dans une grande ville.\n\n2\n00:00:03,050 --> 00:00:09,600\nUn petit appartement dans une grande ville, c'est mieux qu'une grande maison à la campagne.\n\n3\n00:00:09,600 --> 00:00:16,350\nJe préférerais vivre dans un petit appartement dans une grande ville plutôt que de vivre dans une grande maison à la campagne.\n\n4\n00:00:16,350 --> 00:00:26,200\nSi je devais choisir entre vivre dans un petit appartement dans une grande ville et vivre dans une grande maison à la campagne, je choisirais de vivre dans un petit appartement dans une grande ville.",
+            "hi": "1\n00:00:00,000 --> 00:00:03,050\nबड़े शहर में एक छोटा अपार्टमेंट।\n\n2\n00:00:03,050 --> 00:00:09,600\nबड़े शहर में एक छोटा अपार्टमेंट गाँव के एक बड़े घर से बेहतर है।\n\n3\n00:00:09,600 --> 00:00:16,350\nमैं बड़े शहर में एक छोटे से फ्लैट में रहना पसंद करूंगा, बजाय गांव में एक बड़े घर में रहने के।\n\n4\n00:00:16,350 --> 00:00:26,200\nअगर आपको चुनाव करना पड़े कि आप एक बड़े शहर में एक छोटे से फ्लैट में रहें, और ग्रामीण इलाके में एक बड़े घर में रहें, तो मैं एक बड़े शहर में एक छोटे से फ्लैट में रहना चुनूंगा।"
+          }
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-d-04",
+          "cue": [
+            {
+              "en": "A huge house in the countryside.",
+              "es": "Una casa enorme en el campo.",
+              "pt": "Uma casa enorme no campo.",
+              "bn": "গ্রামে একটি বিশাল বাড়ি।",
+              "fr": "Une grande maison à la campagne.",
+              "hi": "गाँव में एक बड़ा घर।"
+            },
+            {
+              "en": "A huge house in the countryside is better than a tiny apartment in a big city.",
+              "es": "Una casa enorme en el campo es mejor que un apartamento diminuto en una gran ciudad.",
+              "pt": "Uma casa enorme no campo é melhor do que um apartamento minúsculo em uma cidade grande.",
+              "bn": "বড় শহরে একটি ছোট অ্যাপার্টমেন্টের চেয়ে গ্রামে একটি বিশাল বাড়ি ভালো।",
+              "fr": "Une grande maison à la campagne, c'est mieux qu'un petit appartement en grande ville.",
+              "hi": "गाँव में एक बड़ा घर बड़े शहर के एक छोटे अपार्टमेंट से बेहतर है।"
+            },
+            {
+              "en": "I would rather live in a huge house in the countryside than live in a tiny apartment in a big city.",
+              "es": "Preferiría vivir en una casa enorme en el campo que vivir en un apartamento diminuto en una gran ciudad.",
+              "pt": "Eu prefiro morar em uma casa enorme no campo a morar em um apartamento minúsculo em uma cidade grande.",
+              "bn": "আমি বড় শহরে একটি ছোট অ্যাপার্টমেন্টে বাস করার চেয়ে গ্রামে একটি বিশাল বাড়িতে বাস করতে পছন্দ করব।",
+              "fr": "Je préférerais vivre dans une grande maison à la campagne plutôt que de vivre dans un petit appartement dans une grande ville.",
+              "hi": "मैं गांव में एक बड़े घर में रहना पसंद करूंगा, बजाय बड़े शहर में एक छोटे से फ्लैट में रहने के।"
+            },
+            {
+              "en": "Given the choice between living in a tiny apartment in a big city and living in a huge house in the countryside, I would choose to live in a huge house in the countryside.",
+              "es": "Dada la opción entre vivir en un apartamento diminuto en una gran ciudad y vivir en una casa enorme en el campo, elegiría vivir en una casa enorme en el campo.",
+              "pt": "Dada a escolha entre morar em um apartamento minúsculo em uma cidade grande e morar em uma casa enorme no campo, eu escolheria morar em uma casa enorme no campo.",
+              "bn": "বড় শহরে একটি ছোট অ্যাপার্টমেন্টে বাস করা এবং গ্রামে একটি বিশাল বাড়িতে বাস করার মধ্যে পছন্দ দেওয়া হলে, আমি গ্রামে একটি বিশাল বাড়িতে বাস করা বেছে নেব।",
+              "fr": "Si je devais choisir entre vivre dans un petit appartement dans une grande ville et vivre dans une grande maison à la campagne, je choisirais de vivre dans une grande maison à la campagne.",
+              "hi": "अगर आपको चुनाव करना पड़े कि आप एक बड़े शहर में एक छोटे से फ्लैट में रहें, और ग्रामीण इलाके में एक बड़े घर में रहें, तो मैं ग्रामीण इलाके में एक बड़े घर में रहना चुनूंगा।"
+            }
+          ],
+          "nextStep": 1,
+          "subtitles": {
+            "en": "1\n00:00:00,000 --> 00:00:02,850\nA huge house in the countryside.\n\n2\n00:00:02,850 --> 00:00:08,700\nA huge house in the countryside is better than a tiny apartment in a big city.\n\n3\n00:00:08,700 --> 00:00:16,060\nI would rather live in a huge house in the countryside than live in a tiny apartment in a big city.\n\n4\n00:00:16,060 --> 00:00:25,410\nGiven the choice between living in a tiny apartment in a big city and living in a huge house in the countryside, I would choose to live in a huge house in the countryside.",
+            "es": "1\n00:00:00,000 --> 00:00:02,850\nA huge house in the countryside.\n\n2\n00:00:02,850 --> 00:00:08,700\nUna casa enorme en el campo es mejor que un apartamento diminuto en una gran ciudad.\n\n3\n00:00:08,700 --> 00:00:16,060\nPreferiría vivir en una casa enorme en el campo que vivir en un apartamento diminuto en una gran ciudad.\n\n4\n00:00:16,060 --> 00:00:25,410\nDada la opción entre vivir en un apartamento diminuto en una gran ciudad y vivir en una casa enorme en el campo, elegiría vivir en una casa enorme en el campo.",
+            "pt": "1\n00:00:00,000 --> 00:00:02,850\nUma casa enorme no campo.\n\n2\n00:00:02,850 --> 00:00:08,700\nUma casa enorme no campo é melhor do que um apartamento minúsculo em uma cidade grande.\n\n3\n00:00:08,700 --> 00:00:16,060\nEu preferiria morar em uma casa enorme no campo do que morar em um apartamento minúsculo em uma cidade grande.\n\n4\n00:00:16,060 --> 00:00:25,410\nDada a escolha entre morar em um apartamento minúsculo em uma cidade grande e morar em uma casa enorme no campo, eu escolheria morar em uma casa enorme no campo.",
+            "bn": "1\n00:00:00,000 --> 00:00:02,850\nগ্রামাঞ্চলের একটি বিশাল বাড়ি।\n\n2\n00:00:02,850 --> 00:00:08,700\nবড় শহরের ছোট অ্যাপার্টমেন্টের চেয়ে গ্রামাঞ্চলের একটি বিশাল বাড়ি ভালো।\n\n3\n00:00:08,700 --> 00:00:16,060\nআমি বড় শহরের ছোট অ্যাপার্টমেন্টে থাকার চেয়ে গ্রামাঞ্চলের একটি বিশাল বাড়িতে থাকতে পছন্দ করব।\n\n4\n00:00:16,060 --> 00:00:25,410\nবড় শহরের ছোট অ্যাপার্টমেন্ট এবং গ্রামাঞ্চলের বিশাল বাড়িতে থাকার মধ্যে বেছে নিতে হলে, আমি গ্রামাঞ্চলের একটি বিশাল বাড়িতে থাকাই বেছে নেব।",
+            "fr": "1\n00:00:00,000 --> 00:00:02,850\nUne grande maison à la campagne.\n\n2\n00:00:02,850 --> 00:00:08,700\nUne grande maison à la campagne, c'est mieux qu'un petit appartement en grande ville.\n\n3\n00:00:08,700 --> 00:00:16,060\nJe préférerais vivre dans une grande maison à la campagne plutôt que de vivre dans un petit appartement dans une grande ville.\n\n4\n00:00:16,060 --> 00:00:25,410\nSi je devais choisir entre vivre dans un petit appartement dans une grande ville et vivre dans une grande maison à la campagne, je choisirais de vivre dans une grande maison à la campagne.",
+            "hi": "1\n00:00:00,000 --> 00:00:02,850\nगाँव में एक बड़ा घर।\n\n2\n00:00:02,850 --> 00:00:08,700\nगाँव में एक बड़ा घर बड़े शहर के एक छोटे अपार्टमेंट से बेहतर है।\n\n3\n00:00:08,700 --> 00:00:16,060\nमैं गांव में एक बड़े घर में रहना पसंद करूंगा, बजाय बड़े शहर में एक छोटे से फ्लैट में रहने के।\n\n4\n00:00:16,060 --> 00:00:25,410\nअगर आपको चुनाव करना पड़े कि आप एक बड़े शहर में एक छोटे से फ्लैट में रहें, और ग्रामीण इलाके में एक बड़े घर में रहें, तो मैं ग्रामीण इलाके में एक बड़े घर में रहना चुनूंगा।"
+          }
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-c-03",
+          "cue": [
+            {
+              "en": "Honest friends or fun friends?",
+              "es": "¿Amigos honestos o amigos divertidos?",
+              "pt": "Amigos honestos ou amigos divertidos?",
+              "bn": "সৎ বন্ধুরা নাকি মজার বন্ধুরা?",
+              "fr": "Des amis honnêtes ou des amis amusants ?",
+              "hi": "ईमानदार दोस्त या मजेदार दोस्त?"
+            },
+            {
+              "en": "Which is better: friends who are honest or friends who are fun?",
+              "es": "¿Qué es mejor: amigos que son honestos o amigos que son divertidos?",
+              "pt": "O que é melhor: amigos que são honestos ou amigos que são divertidos?",
+              "bn": "কোনটি ভালো: যে বন্ধুরা সৎ নাকি যে বন্ধুরা মজার?",
+              "fr": "Qu'est-ce qui est mieux : des amis honnêtes ou des amis amusants ?",
+              "hi": "कौन सा बेहतर है: ईमानदार दोस्त या मजेदार दोस्त?"
+            },
+            {
+              "en": "Would you rather have friends who always tell you the truth or have friends who always make you feel good?",
+              "es": "¿Preferirías tener amigos que siempre te dicen la verdad o tener amigos que siempre te hacen sentir bien?",
+              "pt": "Você prefere ter amigos que sempre dizem a verdade a você ou ter amigos que sempre fazem você se sentir bem?",
+              "bn": "আপনি কি এমন বন্ধু রাখতে চান যারা সর্বদা আপনাকে সত্য বলে নাকি এমন বন্ধু রাখতে চান যারা সর্বদা আপনাকে ভালো বোধ করায়?",
+              "fr": "Préférerais-tu avoir des amis qui te disent toujours la vérité ou avoir des amis qui te font toujours du bien ?",
+              "hi": "आप ऐसे दोस्त पसंद करेंगे जो हमेशा आपको सच बताएं या ऐसे दोस्त जो हमेशा आपको अच्छा महसूस कराएं?"
+            },
+            {
+              "en": "Given the choice between having friends who always tell you the truth and having friends who always make you feel good, which would you choose?",
+              "es": "Dada la opción entre tener amigos que siempre te dicen la verdad y tener amigos que siempre te hacen sentir bien, ¿cuál elegirías?",
+              "pt": "Dada a escolha entre ter amigos que sempre dizem a verdade a você e ter amigos que sempre fazem você se sentir bem, qual você escolheria?",
+              "bn": "এমন বন্ধু থাকা যারা সর্বদা আপনাকে সত্য বলে এবং এমন বন্ধু থাকা যারা সর্বদা আপনাকে ভালো বোধ করায় তার মধ্যে পছন্দ দেওয়া হলে, আপনি কোনটি বেছে নেবেন?",
+              "fr": "Si tu avais le choix entre avoir des amis qui te disent toujours la vérité et avoir des amis qui te font toujours du bien, que choisirais-tu ?",
+              "hi": "अगर आपको चुनाव करना पड़े कि आपके ऐसे दोस्त हों जो हमेशा आपको सच बताते हैं, और ऐसे दोस्त हों जो हमेशा आपको अच्छा महसूस कराते हैं, तो आप कौन से दोस्त चुनेंगे?"
+            }
+          ],
+          "publishLessonId": "c",
+          "subtitles": {
+            "en": "1\n00:00:00,000 --> 00:00:04,050\nHonest friends or fun friends?\n\n2\n00:00:04,050 --> 00:00:09,500\nWhich is better: friends who are honest or friends who are fun?\n\n3\n00:00:09,500 --> 00:00:16,450\nWould you rather have friends who always tell you the truth or have friends who always make you feel good?\n\n4\n00:00:16,450 --> 00:00:24,700\nGiven the choice between having friends who always tell you the truth and having friends who always make you feel good, which would you choose?",
+            "es": "1\n00:00:00,000 --> 00:00:04,050\n¿Amigos honestos o amigos divertidos?\n\n2\n00:00:04,050 --> 00:00:09,500\n¿Qué es mejor: amigos que son honestos o amigos que son divertidos?\n\n3\n00:00:09,500 --> 00:00:16,450\n¿Preferirías tener amigos que siempre te digan la verdad o tener amigos que siempre te hagan sentir bien?\n\n4\n00:00:16,450 --> 00:00:24,700\nDada la opción entre tener amigos que siempre te digan la verdad y tener amigos que siempre te hagan sentir bien, ¿cuál elegirías?",
+            "pt": "1\n00:00:00,000 --> 00:00:04,050\nAmigos honestos ou amigos divertidos?\n\n2\n00:00:04,050 --> 00:00:09,500\nO que é melhor: amigos que são honestos ou amigos que são divertidos?\n\n3\n00:00:09,500 --> 00:00:16,450\nVocê prefere ter amigos que sempre dizem a verdade ou ter amigos que sempre fazem você se sentir bem?\n\n4\n00:00:16,450 --> 00:00:24,700\nDada a escolha entre ter amigos que sempre dizem a verdade e ter amigos que sempre fazem você se sentir bem, qual você escolheria?",
+            "bn": "1\n00:00:00,000 --> 00:00:04,050\nসৎ বন্ধু নাকি মজার বন্ধু?\n\n2\n00:00:04,050 --> 00:00:09,500\nকোনটি ভালো: যে বন্ধুরা সৎ নাকি যে বন্ধুরা মজার?\n\n3\n00:00:09,500 --> 00:00:16,450\nআপনার কি এমন বন্ধু থাকা উচিত যারা আপনাকে সবসময় সত্য বলে নাকি এমন বন্ধু যারা আপনাকে সবসময় ভালো বোধ করায়?\n\n4\n00:00:16,450 --> 00:00:24,700\nআপনাকে সবসময় সত্য বলা বন্ধু এবং আপনাকে সবসময় ভালো বোধ করানোর বন্ধুদের মধ্যে বেছে নিতে হলে, আপনি কোনটি বেছে নেবেন?",
+            "fr": "1\n00:00:00,000 --> 00:00:04,050\nDes amis honnêtes ou des amis amusants ?\n\n2\n00:00:04,050 --> 00:00:09,500\nQu'est-ce qui est mieux : des amis honnêtes ou des amis amusants ?\n\n3\n00:00:09,500 --> 00:00:16,450\nPréférerais-tu avoir des amis qui te disent toujours la vérité ou avoir des amis qui te font toujours du bien ?\n\n4\n00:00:16,450 --> 00:00:24,700\nSi tu avais le choix entre avoir des amis qui te disent toujours la vérité et avoir des amis qui te font toujours du bien, que choisirais-tu ?",
+            "hi": "1\n00:00:00,000 --> 00:00:04,050\nईमानदार दोस्त या मजेदार दोस्त?\n\n2\n00:00:04,050 --> 00:00:09,500\nकौन सा बेहतर है: ईमानदार दोस्त या मजेदार दोस्त?\n\n3\n00:00:09,500 --> 00:00:16,450\nआप ऐसे दोस्त पसंद करेंगे जो हमेशा आपको सच बताएं या ऐसे दोस्त जो हमेशा आपको अच्छा महसूस कराएं?\n\n4\n00:00:16,450 --> 00:00:24,700\nअगर आपको चुनाव करना पड़े कि आपके ऐसे दोस्त हों जो हमेशा आपको सच बताते हैं, और ऐसे दोस्त हों जो हमेशा आपको अच्छा महसूस कराते हैं, तो आप कौन से दोस्त चुनेंगे?"
+          }
+        },
+        {
+          "responseType": "branching",
+          "simpleVideoUrl": "{friendCode}{selfCode}-wouldyourather-test-c-03",
+          "chooseStep": [
+            {
+              "nextStep": 1,
+              "text": {
+                "en": "Friends who tell the truth",
+                "es": "Amigos que dicen la verdad",
+                "pt": "Amigos que dizem a verdade",
+                "bn": "যে বন্ধুরা সত্য বলে",
+                "fr": "Des amis qui disent la vérité",
+                "hi": "ऐसे दोस्त जो सच बोलते हैं"
+              }
+            },
+            {
+              "nextStep": 2,
+              "text": {
+                "en": "Friends who make you feel good",
+                "es": "Amigos que te hacen sentir bien",
+                "pt": "Amigos que fazem você se sentir bem",
+                "bn": "যে বন্ধুরা আপনাকে ভালো বোধ করায়",
+                "fr": "Des amis qui font du bien",
+                "hi": "ऐसे दोस्त जो आपको अच्छा महसूस कराते हैं"
+              }
+            }
+          ]
+        },
+        {
           "responseType": "friendClosedResponse",
           "simpleVideoUrl": "wouldyourather-d-05",
           "cue": [
@@ -2312,6 +2651,269 @@
             "fr": "1\n00:00:00,000 --> 00:00:02,650\nDes amis qui te font toujours du bien.\n\n2\n00:00:02,650 --> 00:00:06,000\nLes amis amusants, c'est mieux que les amis honnêtes.\n\n3\n00:00:06,000 --> 00:00:11,750\nJe préférerais avoir des amis qui te font toujours du bien plutôt que d'avoir des amis qui te disent toujours la vérité.\n\n4\n00:00:11,750 --> 00:00:20,600\nSi je devais choisir entre avoir des amis qui me disent toujours la vérité et avoir des amis qui me font toujours du bien, je choisirais les amis qui me font toujours du bien.",
             "hi": "1\n00:00:00,000 --> 00:00:02,650\nऐसे मित्र जो आपको हमेशा अच्छा महसूस कराएँ।\n\n2\n00:00:02,650 --> 00:00:06,000\nमज़ेदार मित्र ईमानदार मित्रों से बेहतर हैं।\n\n3\n00:00:06,000 --> 00:00:11,750\nमैं ऐसे दोस्त रखना पसंद करूंगा जो मुझे हमेशा अच्छा महसूस कराएं, बजाय ऐसे दोस्तों के जो मुझे हमेशा सच बताएं।\n\n4\n00:00:11,750 --> 00:00:20,600\nअगर आपको चुनाव करना पड़े कि आपके ऐसे दोस्त हों जो हमेशा आपको सच बताते हैं, और ऐसे दोस्त हों जो हमेशा आपको अच्छा महसूस कराते हैं, तो मैं ऐसे दोस्त चुनूंगा जो हमेशा मुझे अच्छा महसूस कराते हैं।"
           }
+        },
+        {
+          "responseType": "branching",
+          "simpleVideoUrl": "{friendCode}{selfCode}-wouldyourather-test-c-03",
+          "chooseStep": [
+            {
+              "nextStep": 1,
+              "text": {
+                "en": "Friends who tell the truth",
+                "es": "Amigos que dicen la verdad",
+                "pt": "Amigos que dizem a verdade",
+                "bn": "যে বন্ধুরা সত্য বলে",
+                "fr": "Des amis qui disent la vérité",
+                "hi": "ऐसे दोस्त जो सच बोलते हैं"
+              }
+            },
+            {
+              "nextStep": 2,
+              "text": {
+                "en": "Friends who make you feel good",
+                "es": "Amigos que te hacen sentir bien",
+                "pt": "Amigos que fazem você se sentir bem",
+                "bn": "যে বন্ধুরা আপনাকে ভালো বোধ করায়",
+                "fr": "Des amis qui font du bien",
+                "hi": "ऐसे दोस्त जो आपको अच्छा महसूस कराते हैं"
+              }
+            }
+          ]
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-d-05",
+          "cue": [
+            {
+              "en": "I want honest friends.",
+              "es": "Quiero amigos honestos.",
+              "pt": "Eu quero amigos honestos.",
+              "bn": "আমি সৎ বন্ধু চাই।",
+              "fr": "Je veux des amis honnêtes.",
+              "hi": "मुझे ईमानदार दोस्त चाहिए।"
+            },
+            {
+              "en": "Honest friends are better than fun friends.",
+              "es": "Los amigos honestos son mejores que los amigos divertidos.",
+              "pt": "Amigos honestos são melhores do que amigos divertidos.",
+              "bn": "মজার বন্ধুদের চেয়ে সৎ বন্ধুরা ভালো।",
+              "fr": "Les amis honnêtes, c'est mieux que les amis amusants.",
+              "hi": "ईमानदार दोस्त मजेदार दोस्तों से बेहतर होते हैं।"
+            },
+            {
+              "en": "I would rather have friends who always tell me the truth than have friends who always make me feel good.",
+              "es": "Preferiría tener amigos que siempre me dicen la verdad que tener amigos que siempre me hacen sentir bien.",
+              "pt": "Eu prefiro ter amigos que sempre me dizem a verdade a ter amigos que sempre me fazem sentir bem.",
+              "bn": "আমি এমন বন্ধু রাখার চেয়ে যারা সর্বদা আমাকে ভালো বোধ করায়, এমন বন্ধু রাখতে পছন্দ করব যারা সর্বদা আমাকে সত্য বলে।",
+              "fr": "Je préférerais avoir des amis qui me disent toujours la vérité plutôt que d'avoir des amis qui me font toujours du bien.",
+              "hi": "मैं ऐसे दोस्त रखना पसंद करूंगा जो मुझे हमेशा सच बताएं, बजाय ऐसे दोस्तों के जो मुझे हमेशा अच्छा महसूस कराएं।"
+            },
+            {
+              "en": "Given the choice between having friends who always tell you the truth and having friends who always make you feel good, I would choose friends who always tell you the truth.",
+              "es": "Dada la opción entre tener amigos que siempre te dicen la verdad y tener amigos que siempre te hacen sentir bien, elegiría amigos que siempre te dicen la verdad.",
+              "pt": "Dada a escolha entre ter amigos que sempre dizem a verdade a você e ter amigos que sempre fazem você se sentir bem, eu escolheria amigos que sempre dizem a verdade a você.",
+              "bn": "এমন বন্ধু থাকা যারা সর্বদা আপনাকে সত্য বলে এবং এমন বন্ধু থাকা যারা সর্বদা আপনাকে ভালো বোধ করায় তার মধ্যে পছন্দ দেওয়া হলে, আমি এমন বন্ধু বেছে নেব যারা সর্বদা আপনাকে সত্য বলে।",
+              "fr": "Si je devais choisir entre avoir des amis qui me disent toujours la vérité et avoir des amis qui me font toujours du bien, je choisirais les amis qui me disent toujours la vérité.",
+              "hi": "अगर आपको चुनाव करना पड़े कि आपके ऐसे दोस्त हों जो हमेशा आपको सच बताते हैं, और ऐसे दोस्त हों जो हमेशा आपको अच्छा महसूस कराते हैं, तो मैं ऐसे दोस्त चुनूंगा जो हमेशा मुझे सच बताते हैं।"
+            }
+          ],
+          "nextStep": 2,
+          "subtitles": {
+            "en": "1\n00:00:00,000 --> 00:00:02,250\nI want honest friends.\n\n2\n00:00:02,250 --> 00:00:06,000\nHonest friends are better than fun friends.\n\n3\n00:00:06,000 --> 00:00:12,650\nI would rather have friends who always tell me the truth than have friends who always make me feel good.\n\n4\n00:00:12,650 --> 00:00:22,500\nGiven the choice between having friends who always tell you the truth and having friends who always make you feel good, I would choose friends who always tell you the truth.",
+            "es": "1\n00:00:00,000 --> 00:00:02,250\nI want honest friends.\n\n2\n00:00:02,250 --> 00:00:06,000\nLos amigos honestos son mejores que los amigos divertidos.\n\n3\n00:00:06,000 --> 00:00:12,650\nPreferiría tener amigos que siempre me digan la verdad que tener amigos que siempre me hagan sentir bien.\n\n4\n00:00:12,650 --> 00:00:22,500\nDada la opción entre tener amigos que siempre te digan la verdad y tener amigos que siempre te hagan sentir bien, elegiría amigos que siempre te digan la verdad.",
+            "pt": "1\n00:00:00,000 --> 00:00:02,250\nEu quero amigos honestos.\n\n2\n00:00:02,250 --> 00:00:06,000\nAmigos honestos são melhores do que amigos divertidos.\n\n3\n00:00:06,000 --> 00:00:12,650\nEu preferiria ter amigos que sempre me dizem a verdade do que ter amigos que sempre me fazem sentir bem.\n\n4\n00:00:12,650 --> 00:00:22,500\nDada a escolha entre ter amigos que sempre dizem a verdade e ter amigos que sempre fazem você se sentir bem, eu escolheria amigos que sempre dizem a verdade.",
+            "bn": "1\n00:00:00,000 --> 00:00:02,250\nআমি সৎ বন্ধু চাই।\n\n2\n00:00:02,250 --> 00:00:06,000\nমজার বন্ধুর চেয়ে সৎ বন্ধুরা ভালো।\n\n3\n00:00:06,000 --> 00:00:12,650\nআমাকে সবসময় ভালো বোধ করানোর বন্ধুদের চেয়ে আমাকে সবসময় সত্য বলা বন্ধুরা থাকা আমি বেশি পছন্দ করব।\n\n4\n00:00:12,650 --> 00:00:22,500\nআপনাকে সবসময় সত্য বলা বন্ধু এবং আপনাকে সবসময় ভালো বোধ করানোর বন্ধুদের মধ্যে বেছে নিতে হলে, আমি এমন বন্ধুদের বেছে নেব যারা আপনাকে সবসময় সত্য বলে।",
+            "fr": "1\n00:00:00,000 --> 00:00:02,250\nJe veux des amis honnêtes.\n\n2\n00:00:02,250 --> 00:00:06,000\nLes amis honnêtes, c'est mieux que les amis amusants.\n\n3\n00:00:06,000 --> 00:00:12,650\nJe préférerais avoir des amis qui me disent toujours la vérité plutôt que d'avoir des amis qui me font toujours du bien.\n\n4\n00:00:12,650 --> 00:00:22,500\nSi je devais choisir entre avoir des amis qui me disent toujours la vérité et avoir des amis qui me font toujours du bien, je choisirais les amis qui me disent toujours la vérité.",
+            "hi": "1\n00:00:00,000 --> 00:00:02,250\nमुझे ईमानदार दोस्त चाहिए।\n\n2\n00:00:02,250 --> 00:00:06,000\nईमानदार दोस्त मजेदार दोस्तों से बेहतर होते हैं।\n\n3\n00:00:06,000 --> 00:00:12,650\nमैं ऐसे दोस्त रखना पसंद करूंगा जो मुझे हमेशा सच बताएं, बजाय ऐसे दोस्तों के जो मुझे हमेशा अच्छा महसूस कराएं।\n\n4\n00:00:12,650 --> 00:00:22,500\nअगर आपको चुनाव करना पड़े कि आपके ऐसे दोस्त हों जो हमेशा आपको सच बताते हैं, और ऐसे दोस्त हों जो हमेशा आपको अच्छा महसूस कराते हैं, तो मैं ऐसे दोस्त चुनूंगा जो हमेशा मुझे सच बताते हैं।"
+          }
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-d-06",
+          "cue": [
+            {
+              "en": "Friends who always make you feel good.",
+              "es": "Amigos que siempre te hacen sentir bien.",
+              "pt": "Amigos que sempre fazem você se sentir bem.",
+              "bn": "যে বন্ধুরা সর্বদা আপনাকে ভালো বোধ করায়।",
+              "fr": "Des amis qui te font toujours du bien.",
+              "hi": "ऐसे मित्र जो आपको हमेशा अच्छा महसूस कराएँ।"
+            },
+            {
+              "en": "Fun friends are better than honest friends.",
+              "es": "Los amigos divertidos son mejores que los amigos honestos.",
+              "pt": "Amigos divertidos são melhores do que amigos honestos.",
+              "bn": "সৎ বন্ধুদের চেয়ে মজার বন্ধুরা ভালো।",
+              "fr": "Les amis amusants, c'est mieux que les amis honnêtes.",
+              "hi": "मज़ेदार मित्र ईमानदार मित्रों से बेहतर हैं।"
+            },
+            {
+              "en": "I would rather have friends who always make you feel good than have friends who always tell you the truth.",
+              "es": "Preferiría tener amigos que siempre te hacen sentir bien que tener amigos que siempre te dicen la verdad.",
+              "pt": "Eu prefiro ter amigos que sempre me fazem sentir bem a ter amigos que sempre me dizem a verdade.",
+              "bn": "আমি এমন বন্ধু রাখার চেয়ে যারা সর্বদা আমাকে সত্য বলে, এমন বন্ধু রাখতে পছন্দ করব যারা সর্বদা আমাকে ভালো বোধ করায়।",
+              "fr": "Je préférerais avoir des amis qui te font toujours du bien plutôt que d'avoir des amis qui te disent toujours la vérité.",
+              "hi": "मैं ऐसे दोस्त रखना पसंद करूंगा जो मुझे हमेशा अच्छा महसूस कराएं, बजाय ऐसे दोस्तों के जो मुझे हमेशा सच बताएं।"
+            },
+            {
+              "en": "Given the choice between having friends who always tell you the truth and having friends who always make you feel good, I would choose friends who always make you feel good.",
+              "es": "Dada la opción entre tener amigos que siempre te dicen la verdad y tener amigos que siempre te hacen sentir bien, elegiría amigos que siempre te hacen sentir bien.",
+              "pt": "Dada a escolha entre ter amigos que sempre dizem a verdade a você e ter amigos que sempre fazem você se sentir bem, eu escolheria amigos que sempre fazem você se sentir bem.",
+              "bn": "এমন বন্ধু থাকা যারা সর্বদা আপনাকে সত্য বলে এবং এমন বন্ধু থাকা যারা সর্বদা আপনাকে ভালো বোধ করায় তার মধ্যে পছন্দ দেওয়া হলে, আমি এমন বন্ধু বেছে নেব যারা সর্বদা আপনাকে ভালো বোধ করায়।",
+              "fr": "Si je devais choisir entre avoir des amis qui me disent toujours la vérité et avoir des amis qui me font toujours du bien, je choisirais les amis qui me font toujours du bien.",
+              "hi": "अगर आपको चुनाव करना पड़े कि आपके ऐसे दोस्त हों जो हमेशा आपको सच बताते हैं, और ऐसे दोस्त हों जो हमेशा आपको अच्छा महसूस कराते हैं, तो मैं ऐसे दोस्त चुनूंगा जो हमेशा मुझे अच्छा महसूस कराते हैं।"
+            }
+          ],
+          "nextStep": 1,
+          "subtitles": {
+            "en": "1\n00:00:00,000 --> 00:00:02,650\nFriends who always make you feel good.\n\n2\n00:00:02,650 --> 00:00:06,000\nFun friends are better than honest friends.\n\n3\n00:00:06,000 --> 00:00:11,750\nI would rather have friends who always make you feel good than have friends who always tell you the truth.\n\n4\n00:00:11,750 --> 00:00:20,600\nGiven the choice between having friends who always tell you the truth and having friends who always make you feel good, I would choose friends who always make you feel good.",
+            "es": "1\n00:00:00,000 --> 00:00:02,650\nFriends who always make you feel good.\n\n2\n00:00:02,650 --> 00:00:06,000\nLos amigos divertidos son mejores que los amigos honestos.\n\n3\n00:00:06,000 --> 00:00:11,750\nPreferiría tener amigos que siempre te hagan sentir bien que tener amigos que siempre te digan la verdad.\n\n4\n00:00:11,750 --> 00:00:20,600\nDada la opción entre tener amigos que siempre te digan la verdad y tener amigos que siempre te hagan sentir bien, elegiría amigos que siempre te hagan sentir bien.",
+            "pt": "1\n00:00:00,000 --> 00:00:02,650\nAmigos que sempre fazem você se sentir bem.\n\n2\n00:00:02,650 --> 00:00:06,000\nAmigos divertidos são melhores do que amigos honestos.\n\n3\n00:00:06,000 --> 00:00:11,750\nEu preferiria ter amigos que sempre fazem você se sentir bem do que ter amigos que sempre dizem a verdade.\n\n4\n00:00:11,750 --> 00:00:20,600\nDada a escolha entre ter amigos que sempre dizem a verdade e ter amigos que sempre fazem você se sentir bem, eu escolheria amigos que sempre fazem você se sentir bem.",
+            "bn": "1\n00:00:00,000 --> 00:00:02,650\nযে বন্ধুরা সবসময় আপনাকে ভালো বোধ করায়।\n\n2\n00:00:02,650 --> 00:00:06,000\nসৎ বন্ধুদের চেয়ে মজার বন্ধুরা ভালো।\n\n3\n00:00:06,000 --> 00:00:11,750\nআমাকে সবসময় সত্য বলা বন্ধুদের চেয়ে আমাকে সবসময় ভালো বোধ করানো বন্ধু থাকা আমি বেশি পছন্দ করব।\n\n4\n00:00:11,750 --> 00:00:20,600\nআপনাকে সবসময় সত্য বলা বন্ধু এবং আপনাকে সবসময় ভালো বোধ করানোর বন্ধুদের মধ্যে বেছে নিতে হলে, আমি এমন বন্ধুদের বেছে নেব যারা আপনাকে সবসময় ভালো বোধ করায়।",
+            "fr": "1\n00:00:00,000 --> 00:00:02,650\nDes amis qui te font toujours du bien.\n\n2\n00:00:02,650 --> 00:00:06,000\nLes amis amusants, c'est mieux que les amis honnêtes.\n\n3\n00:00:06,000 --> 00:00:11,750\nJe préférerais avoir des amis qui te font toujours du bien plutôt que d'avoir des amis qui te disent toujours la vérité.\n\n4\n00:00:11,750 --> 00:00:20,600\nSi je devais choisir entre avoir des amis qui me disent toujours la vérité et avoir des amis qui me font toujours du bien, je choisirais les amis qui me font toujours du bien.",
+            "hi": "1\n00:00:00,000 --> 00:00:02,650\nऐसे मित्र जो आपको हमेशा अच्छा महसूस कराएँ।\n\n2\n00:00:02,650 --> 00:00:06,000\nमज़ेदार मित्र ईमानदार मित्रों से बेहतर हैं।\n\n3\n00:00:06,000 --> 00:00:11,750\nमैं ऐसे दोस्त रखना पसंद करूंगा जो मुझे हमेशा अच्छा महसूस कराएं, बजाय ऐसे दोस्तों के जो मुझे हमेशा सच बताएं।\n\n4\n00:00:11,750 --> 00:00:20,600\nअगर आपको चुनाव करना पड़े कि आपके ऐसे दोस्त हों जो हमेशा आपको सच बताते हैं, और ऐसे दोस्त हों जो हमेशा आपको अच्छा महसूस कराते हैं, तो मैं ऐसे दोस्त चुनूंगा जो हमेशा मुझे अच्छा महसूस कराते हैं।"
+          }
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-c-01",
+          "cue": [
+            {
+              "en": "Speak every language or play every instrument?",
+              "es": "¿Hablar todos los idiomas o tocar todos los instrumentos?",
+              "pt": "Falar todos os idiomas ou tocar todos os instrumentos?",
+              "bn": "সব ভাষা বলতে পারা নাকি সব বাদ্যযন্ত্র বাজাতে পারা?",
+              "fr": "Parler toutes les langues ou jouer de tous les instruments ?",
+              "hi": "हर भाषा बोलें या हर वाद्य यंत्र बजाएं?"
+            },
+            {
+              "en": "Which is better: speaking every language or playing every instrument?",
+              "es": "¿Qué es mejor: hablar todos los idiomas o tocar todos los instrumentos?",
+              "pt": "O que é melhor: falar todos os idiomas ou tocar todos os instrumentos?",
+              "bn": "কোনটি ভালো: সব ভাষা বলতে পারা নাকি সব বাদ্যযন্ত্র বাজাতে পারা?",
+              "fr": "Qu'est-ce qui est mieux : parler toutes les langues ou jouer de tous les instruments ?",
+              "hi": "कौन सा बेहतर है: हर भाषा बोलना या हर वाद्य यंत्र बजाना?"
+            },
+            {
+              "en": "Would you rather be able to speak every language or be able to play every musical instrument?",
+              "es": "¿Preferirías poder hablar todos los idiomas o poder tocar todos los instrumentos musicales?",
+              "pt": "Você prefere ser capaz de falar todos os idiomas ou ser capaz de tocar todos os instrumentos musicais?",
+              "bn": "আপনি কি সব ভাষা বলতে সক্ষম হতে চান নাকি প্রতিটি বাদ্যযন্ত্র বাজাতে সক্ষম হতে চান?",
+              "fr": "Préférerais-tu pouvoir parler toutes les langues ou pouvoir jouer de tous les instruments de musique ?",
+              "hi": "क्या आप हर भाषा बोल पाना पसंद करेंगे या हर संगीत वाद्य यंत्र बजा पाना?"
+            },
+            {
+              "en": "Given the choice between being able to speak every language in the world and being able to play every musical instrument, which would you choose?",
+              "es": "Dada la opción entre poder hablar todos los idiomas del mundo y poder tocar todos los instrumentos musicales, ¿cuál elegirías?",
+              "pt": "Dada a escolha entre ser capaz de falar todos os idiomas do mundo e ser capaz de tocar todos os instrumentos musicais, qual você escolheria?",
+              "bn": "বিশ্বের সমস্ত ভাষা বলতে সক্ষম হওয়া এবং প্রতিটি বাদ্যযন্ত্র বাজাতে সক্ষম হওয়ার মধ্যে পছন্দ দেওয়া হলে, আপনি কোনটি বেছে নেবেন?",
+              "fr": "Si tu avais le choix entre pouvoir parler toutes les langues du monde et pouvoir jouer de tous les instruments de musique, que choisirais-tu ?",
+              "hi": "दुनिया की हर भाषा बोल पाने और हर संगीत वाद्ययंत्र बजा पाने के बीच चुनाव दिया जाए, तो आप क्या चुनेंगे?"
+            }
+          ],
+          "publishLessonId": "c",
+          "subtitles": {
+            "en": "1\n00:00:00,000 --> 00:00:06,050\nSpeak every language or play every instrument?\n\n2\n00:00:06,050 --> 00:00:11,800\nWhich is better: speaking every language or playing every instrument?\n\n3\n00:00:11,800 --> 00:00:20,050\nWould you rather be able to speak every language or be able to play every musical instrument?\n\n4\n00:00:20,050 --> 00:00:29,200\nGiven the choice between being able to speak every language in the world and being able to play every musical instrument, which would you choose?",
+            "es": "1\n00:00:00,000 --> 00:00:06,050\n¿Hablar todos los idiomas o tocar todos los instrumentos?\n\n2\n00:00:06,050 --> 00:00:11,800\n¿Qué es mejor: hablar todos los idiomas o tocar todos los instrumentos?\n\n3\n00:00:11,800 --> 00:00:20,050\n¿Preferirías poder hablar todos los idiomas o poder tocar todos los instrumentos musicales?\n\n4\n00:00:20,050 --> 00:00:29,200\nDada la opción entre poder hablar todos los idiomas del mundo y poder tocar todos los instrumentos musicales, ¿cuál elegirías?",
+            "pt": "1\n00:00:00,000 --> 00:00:06,050\nFalar todos os idiomas ou tocar todos os instrumentos?\n\n2\n00:00:06,050 --> 00:00:11,800\nO que é melhor: falar todos os idiomas ou tocar todos os instrumentos?\n\n3\n00:00:11,800 --> 00:00:20,050\nVocê prefere ser capaz de falar todos os idiomas ou ser capaz de tocar todos os instrumentos musicais?\n\n4\n00:00:20,050 --> 00:00:29,200\nDada a escolha entre poder falar todos os idiomas do mundo e poder tocar todos os instrumentos musicais, qual você escolheria?",
+            "bn": "1\n00:00:00,000 --> 00:00:06,050\nপ্রতিটি ভাষায় কথা বলা নাকি প্রতিটি বাদ্যযন্ত্র বাজানো?\n\n2\n00:00:06,050 --> 00:00:11,800\nকোনটি ভালো: প্রতিটি ভাষা বলা নাকি প্রতিটি বাদ্যযন্ত্র বাজানো?\n\n3\n00:00:11,800 --> 00:00:20,050\nআপনি কি প্রতিটি ভাষায় কথা বলতে পারতে পছন্দ করবেন নাকি প্রতিটি বাদ্যযন্ত্র বাজাতে পারতে পছন্দ করবেন?\n\n4\n00:00:20,050 --> 00:00:29,200\nবিশ্বের প্রতিটি ভাষায় কথা বলার ক্ষমতা এবং প্রতিটি বাদ্যযন্ত্র বাজানোর ক্ষমতার মধ্যে বেছে নিতে হলে, আপনি কোনটি বেছে নেবেন?",
+            "fr": "1\n00:00:00,000 --> 00:00:06,050\nParler toutes les langues ou jouer de tous les instruments ?\n\n2\n00:00:06,050 --> 00:00:11,800\nQu'est-ce qui est mieux : parler toutes les langues ou jouer de tous les instruments ?\n\n3\n00:00:11,800 --> 00:00:20,050\nPréférerais-tu pouvoir parler toutes les langues ou pouvoir jouer de tous les instruments de musique ?\n\n4\n00:00:20,050 --> 00:00:29,200\nSi tu avais le choix entre pouvoir parler toutes les langues du monde et pouvoir jouer de tous les instruments de musique, que choisirais-tu ?",
+            "hi": "1\n00:00:00,000 --> 00:00:06,050\nहर भाषा बोलें या हर वाद्य यंत्र बजाएं?\n\n2\n00:00:06,050 --> 00:00:11,800\nकौन सा बेहतर है: हर भाषा बोलना या हर वाद्य यंत्र बजाना?\n\n3\n00:00:11,800 --> 00:00:20,050\nक्या आप हर भाषा बोल पाना पसंद करेंगे या हर संगीत वाद्य यंत्र बजा पाना?\n\n4\n00:00:20,050 --> 00:00:29,200\nदुनिया की हर भाषा बोल पाने और हर संगीत वाद्ययंत्र बजा पाने के बीच चुनाव दिया जाए, तो आप क्या चुनेंगे?"
+          }
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-c-02",
+          "cue": [
+            {
+              "en": "A small apartment in a big city or a big house in a small town?",
+              "es": "¿Un apartamento pequeño en una gran ciudad o una casa grande en un pueblo pequeño?",
+              "pt": "Um apartamento pequeno em uma cidade grande ou uma casa grande em uma cidade pequena?",
+              "bn": "বড় শহরে একটি ছোট অ্যাপার্টমেন্ট নাকি ছোট শহরে একটি বড় বাড়ি?",
+              "fr": "Un petit appartement dans une grande ville ou une grande maison dans une petite ville ?",
+              "hi": "बड़े शहर में एक छोटा अपार्टमेंट या छोटे शहर में एक बड़ा घर?"
+            },
+            {
+              "en": "Which is better: a tiny apartment in a big city or a huge house in the countryside?",
+              "es": "¿Qué es mejor: un apartamento diminuto en una gran ciudad o una casa enorme en el campo?",
+              "pt": "O que é melhor: um apartamento minúsculo em uma cidade grande ou uma casa enorme no campo?",
+              "bn": "কোনটি ভালো: বড় শহরে একটি ছোট অ্যাপার্টমেন্ট নাকি গ্রামে একটি বিশাল বাড়ি?",
+              "fr": "Qu'est-ce qui est mieux : un petit appartement dans une grande ville ou une grande maison à la campagne ?",
+              "hi": "कौन सा बेहतर है: बड़े शहर में एक छोटा फ्लैट या गांव में एक बड़ा घर?"
+            },
+            {
+              "en": "Would you rather live in a tiny apartment in a big city or live in a mansion out in the country?",
+              "es": "¿Preferirías vivir en un apartamento diminuto en una gran ciudad o vivir en una mansión en el campo?",
+              "pt": "Você prefere morar em um apartamento minúsculo em uma cidade grande ou morar em uma mansão no interior?",
+              "bn": "আপনি কি বড় শহরে একটি ছোট অ্যাপার্টমেন্টে বাস করতে চান নাকি দেশের বাইরে একটি প্রাসাদে বাস করতে চান?",
+              "fr": "Préférerais-tu vivre dans un petit appartement dans une grande ville ou vivre dans une villa à la campagne ?",
+              "hi": "आप एक बड़े शहर में छोटे से अपार्टमेंट में रहना पसंद करेंगे या गांव में एक बड़ी हवेली में रहना पसंद करेंगे?"
+            },
+            {
+              "en": "Given the choice between cramming into a tiny apartment in a major metropolis and luxuriating in a mansion in the back of beyond, which would you choose?",
+              "es": "Dada la opción entre amontonarse en un apartamento diminuto en una metrópolis importante y luxuriar en una mansión en el confín del mundo, ¿cuál elegirías?",
+              "pt": "Dada a escolha entre se espremer em um apartamento minúsculo em uma metrópole importante e desfrutar de uma mansão no fim do mundo, qual você escolheria?",
+              "bn": "একটি প্রধান মহানগরের একটি ছোট অ্যাপার্টমেন্টে ক্র্যামিং করা এবং পিছনের দিকে একটি প্রাসাদে বিলাসবহুল হওয়ার মধ্যে পছন্দ দেওয়া হলে, আপনি কোনটি বেছে নেবেন?",
+              "fr": "Si tu avais le choix entre t'entasser dans un minuscule appartement dans une grande métropole et profiter d'une villa au fin fond de la campagne, que choisirais-tu ?",
+              "hi": "किसी बड़े महानगर में एक छोटे से अपार्टमेंट में ठुँस जाने और सुदूर इलाके में एक हवेली में ऐश करने के बीच चुनाव दिया जाए, तो आप क्या चुनेंगे?"
+            }
+          ],
+          "publishLessonId": "c",
+          "subtitles": {
+            "en": "1\n00:00:00,000 --> 00:00:07,550\nA small apartment in a big city or a big house in a small town?\n\n2\n00:00:07,550 --> 00:00:14,700\nWhich is better: a tiny apartment in a big city or a huge house in the countryside?\n\n3\n00:00:14,700 --> 00:00:21,450\nWould you rather live in a tiny apartment in a big city or live in a mansion out in the country?\n\n4\n00:00:21,450 --> 00:00:31,300\nGiven the choice between cramming into a tiny apartment in a major metropolis and luxuriating in a mansion in the back of beyond, which would you choose?",
+            "es": "1\n00:00:00,000 --> 00:00:07,550\n¿Un apartamento pequeño en una gran ciudad o una casa grande en un pueblo pequeño?\n\n2\n00:00:07,550 --> 00:00:14,700\n¿Qué es mejor: un apartamento diminuto en una gran ciudad o una casa enorme en el campo?\n\n3\n00:00:14,700 --> 00:00:21,450\n¿Preferirías vivir en un apartamento diminuto en una gran ciudad o vivir en una mansión en el campo?\n\n4\n00:00:21,450 --> 00:00:31,300\nDada la opción entre meterte en un apartamento diminuto en una gran metrópoli y disfrutar de una mansión en medio de la nada, ¿cuál elegirías?",
+            "pt": "1\n00:00:00,000 --> 00:00:07,550\nUm apartamento pequeno em uma cidade grande ou uma casa grande em uma cidade pequena?\n\n2\n00:00:07,550 --> 00:00:14,700\nO que é melhor: um apartamento minúsculo em uma cidade grande ou uma casa enorme no campo?\n\n3\n00:00:14,700 --> 00:00:21,450\nVocê prefere morar em um apartamento minúsculo em uma cidade grande ou morar em uma mansão no campo?\n\n4\n00:00:21,450 --> 00:00:31,300\nDada a escolha entre se espremer em um apartamento minúsculo em uma metrópole importante e desfrutar de uma mansão no fim do mundo, qual você escolheria?",
+            "bn": "1\n00:00:00,000 --> 00:00:07,550\nবড় শহরের একটি ছোট অ্যাপার্টমেন্ট নাকি ছোট শহরের একটি বড় বাড়ি?\n\n2\n00:00:07,550 --> 00:00:14,700\nকোনটি ভালো: বড় শহরের একটি ছোট অ্যাপার্টমেন্ট নাকি গ্রামাঞ্চলের একটি বিশাল বাড়ি?\n\n3\n00:00:14,700 --> 00:00:21,450\nআপনি কি বড় শহরের একটি ছোট অ্যাপার্টমেন্টে থাকতে পছন্দ করবেন নাকি গ্রামাঞ্চলের একটি প্রাসাদে থাকতে পছন্দ করবেন?\n\n4\n00:00:21,450 --> 00:00:31,300\nবড় শহরের ছোট অ্যাপার্টমেন্ট এবং গ্রামাঞ্চলের প্রাসাদের বিলাসিতার মধ্যে বেছে নিতে হলে, আপনি কোনটি বেছে নেবেন?",
+            "fr": "1\n00:00:00,000 --> 00:00:07,550\nUn petit appartement dans une grande ville ou une grande maison dans une petite ville ?\n\n2\n00:00:07,550 --> 00:00:14,700\nQu'est-ce qui est mieux : un petit appartement dans une grande ville ou une grande maison à la campagne ?\n\n3\n00:00:14,700 --> 00:00:21,450\nPréférerais-tu vivre dans un petit appartement dans une grande ville ou vivre dans une villa à la campagne ?\n\n4\n00:00:21,450 --> 00:00:31,300\nSi tu avais le choix entre t'entasser dans un minuscule appartement dans une grande métropole et profiter d'une villa au fin fond de la campagne, que choisirais-tu ?",
+            "hi": "1\n00:00:00,000 --> 00:00:07,550\nबड़े शहर में एक छोटा अपार्टमेंट या छोटे शहर में एक बड़ा घर?\n\n2\n00:00:07,550 --> 00:00:14,700\nकौन सा बेहतर है: बड़े शहर में एक छोटा फ्लैट या गांव में एक बड़ा घर?\n\n3\n00:00:14,700 --> 00:00:21,450\nआप एक बड़े शहर में छोटे से अपार्टमेंट में रहना पसंद करेंगे या गांव में एक बड़ी हवेली में रहना पसंद करेंगे?\n\n4\n00:00:21,450 --> 00:00:31,300\nकिसी बड़े महानगर में एक छोटे से अपार्टमेंट में ठुँस जाने और सुदूर इलाके में एक हवेली में ऐश करने के बीच चुनाव दिया जाए, तो आप क्या चुनेंगे?"
+          }
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-c-03",
+          "cue": [
+            {
+              "en": "Honest friends or fun friends?",
+              "es": "¿Amigos honestos o amigos divertidos?",
+              "pt": "Amigos honestos ou amigos divertidos?",
+              "bn": "সৎ বন্ধুরা নাকি মজার বন্ধুরা?",
+              "fr": "Des amis honnêtes ou des amis amusants ?",
+              "hi": "ईमानदार दोस्त या मजेदार दोस्त?"
+            },
+            {
+              "en": "Which is better: friends who are honest or friends who are fun?",
+              "es": "¿Qué es mejor: amigos que son honestos o amigos que son divertidos?",
+              "pt": "O que é melhor: amigos que são honestos ou amigos que são divertidos?",
+              "bn": "কোনটি ভালো: যে বন্ধুরা সৎ নাকি যে বন্ধুরা মজার?",
+              "fr": "Qu'est-ce qui est mieux : des amis honnêtes ou des amis amusants ?",
+              "hi": "कौन सा बेहतर है: ईमानदार दोस्त या मजेदार दोस्त?"
+            },
+            {
+              "en": "Would you rather have friends who always tell you the truth or have friends who always make you feel good?",
+              "es": "¿Preferirías tener amigos que siempre te dicen la verdad o tener amigos que siempre te hacen sentir bien?",
+              "pt": "Você prefere ter amigos que sempre dizem a verdade a você ou ter amigos que sempre fazem você se sentir bem?",
+              "bn": "আপনি কি এমন বন্ধু রাখতে চান যারা সর্বদা আপনাকে সত্য বলে নাকি এমন বন্ধু রাখতে চান যারা সর্বদা আপনাকে ভালো বোধ করায়?",
+              "fr": "Préférerais-tu avoir des amis qui te disent toujours la vérité ou avoir des amis qui te font toujours du bien ?",
+              "hi": "आप ऐसे दोस्त पसंद करेंगे जो हमेशा आपको सच बताएं या ऐसे दोस्त जो हमेशा आपको अच्छा महसूस कराएं?"
+            },
+            {
+              "en": "Given the choice between having friends who always tell you the truth and having friends who always make you feel good, which would you choose?",
+              "es": "Dada la opción entre tener amigos que siempre te dicen la verdad y tener amigos que siempre te hacen sentir bien, ¿cuál elegirías?",
+              "pt": "Dada a escolha entre ter amigos que sempre dizem a verdade a você e ter amigos que sempre fazem você se sentir bem, qual você escolheria?",
+              "bn": "এমন বন্ধু থাকা যারা সর্বদা আপনাকে সত্য বলে এবং এমন বন্ধু থাকা যারা সর্বদা আপনাকে ভালো বোধ করায় তার মধ্যে পছন্দ দেওয়া হলে, আপনি কোনটি বেছে নেবেন?",
+              "fr": "Si tu avais le choix entre avoir des amis qui te disent toujours la vérité et avoir des amis qui te font toujours du bien, que choisirais-tu ?",
+              "hi": "अगर आपको चुनाव करना पड़े कि आपके ऐसे दोस्त हों जो हमेशा आपको सच बताते हैं, और ऐसे दोस्त हों जो हमेशा आपको अच्छा महसूस कराते हैं, तो आप कौन से दोस्त चुनेंगे?"
+            }
+          ],
+          "publishLessonId": "c",
+          "subtitles": {
+            "en": "1\n00:00:00,000 --> 00:00:04,050\nHonest friends or fun friends?\n\n2\n00:00:04,050 --> 00:00:09,500\nWhich is better: friends who are honest or friends who are fun?\n\n3\n00:00:09,500 --> 00:00:16,450\nWould you rather have friends who always tell you the truth or have friends who always make you feel good?\n\n4\n00:00:16,450 --> 00:00:24,700\nGiven the choice between having friends who always tell you the truth and having friends who always make you feel good, which would you choose?",
+            "es": "1\n00:00:00,000 --> 00:00:04,050\n¿Amigos honestos o amigos divertidos?\n\n2\n00:00:04,050 --> 00:00:09,500\n¿Qué es mejor: amigos que son honestos o amigos que son divertidos?\n\n3\n00:00:09,500 --> 00:00:16,450\n¿Preferirías tener amigos que siempre te digan la verdad o tener amigos que siempre te hagan sentir bien?\n\n4\n00:00:16,450 --> 00:00:24,700\nDada la opción entre tener amigos que siempre te digan la verdad y tener amigos que siempre te hagan sentir bien, ¿cuál elegirías?",
+            "pt": "1\n00:00:00,000 --> 00:00:04,050\nAmigos honestos ou amigos divertidos?\n\n2\n00:00:04,050 --> 00:00:09,500\nO que é melhor: amigos que são honestos ou amigos que são divertidos?\n\n3\n00:00:09,500 --> 00:00:16,450\nVocê prefere ter amigos que sempre dizem a verdade ou ter amigos que sempre fazem você se sentir bem?\n\n4\n00:00:16,450 --> 00:00:24,700\nDada a escolha entre ter amigos que sempre dizem a verdade e ter amigos que sempre fazem você se sentir bem, qual você escolheria?",
+            "bn": "1\n00:00:00,000 --> 00:00:04,050\nসৎ বন্ধু নাকি মজার বন্ধু?\n\n2\n00:00:04,050 --> 00:00:09,500\nকোনটি ভালো: যে বন্ধুরা সৎ নাকি যে বন্ধুরা মজার?\n\n3\n00:00:09,500 --> 00:00:16,450\nআপনার কি এমন বন্ধু থাকা উচিত যারা আপনাকে সবসময় সত্য বলে নাকি এমন বন্ধু যারা আপনাকে সবসময় ভালো বোধ করায়?\n\n4\n00:00:16,450 --> 00:00:24,700\nআপনাকে সবসময় সত্য বলা বন্ধু এবং আপনাকে সবসময় ভালো বোধ করানোর বন্ধুদের মধ্যে বেছে নিতে হলে, আপনি কোনটি বেছে নেবেন?",
+            "fr": "1\n00:00:00,000 --> 00:00:04,050\nDes amis honnêtes ou des amis amusants ?\n\n2\n00:00:04,050 --> 00:00:09,500\nQu'est-ce qui est mieux : des amis honnêtes ou des amis amusants ?\n\n3\n00:00:09,500 --> 00:00:16,450\nPréférerais-tu avoir des amis qui te disent toujours la vérité ou avoir des amis qui te font toujours du bien ?\n\n4\n00:00:16,450 --> 00:00:24,700\nSi tu avais le choix entre avoir des amis qui te disent toujours la vérité et avoir des amis qui te font toujours du bien, que choisirais-tu ?",
+            "hi": "1\n00:00:00,000 --> 00:00:04,050\nईमानदार दोस्त या मजेदार दोस्त?\n\n2\n00:00:04,050 --> 00:00:09,500\nकौन सा बेहतर है: ईमानदार दोस्त या मजेदार दोस्त?\n\n3\n00:00:09,500 --> 00:00:16,450\nआप ऐसे दोस्त पसंद करेंगे जो हमेशा आपको सच बताएं या ऐसे दोस्त जो हमेशा आपको अच्छा महसूस कराएं?\n\n4\n00:00:16,450 --> 00:00:24,700\nअगर आपको चुनाव करना पड़े कि आपके ऐसे दोस्त हों जो हमेशा आपको सच बताते हैं, और ऐसे दोस्त हों जो हमेशा आपको अच्छा महसूस कराते हैं, तो आप कौन से दोस्त चुनेंगे?"
+          }
         }
       ]
     },
@@ -2357,8 +2959,57 @@
           "introBackgroundVideoUrl": "wouldyourather-e-01"
         },
         {
+          "responseType": "branching",
+          "chooseStep": [
+            {
+              "nextStep": 1,
+              "text": {
+                "en": "A great job with low pay or a bad job with high pay?",
+                "es": "¿Un gran trabajo con baja remuneración o un mal trabajo con alta remuneración?",
+                "pt": "Um ótimo emprego com salário baixo ou um péssimo emprego com salário alto?",
+                "bn": "কম বেতনের একটি দারুণ চাকরি নাকি বেশি বেতনের একটি খারাপ চাকরি?",
+                "fr": "Un super travail mal payé ou un mauvais travail bien payé ?",
+                "hi": "कम वेतन वाली बढ़िया नौकरी या ज़्यादा वेतन वाली खराब नौकरी?"
+              }
+            },
+            {
+              "nextStep": 2,
+              "text": {
+                "en": "Which is better: a wonderful job with low pay or a horrible job with high pay?",
+                "es": "¿Qué es mejor: un trabajo maravilloso con baja remuneración o un trabajo horrible con alta remuneración?",
+                "pt": "O que é melhor: um emprego maravilhoso com salário baixo ou um emprego horrível com salário alto?",
+                "bn": "কোনটি ভালো: কম বেতনের একটি চমৎকার চাকরি নাকি বেশি বেতনের একটি ভীতিজনক চাকরি?",
+                "fr": "Qu'est-ce qui est mieux : un super travail mal payé ou un horrible travail bien payé ?",
+                "hi": "कौन सा बेहतर है: कम वेतन वाली शानदार नौकरी या ज्यादा वेतन वाली भयानक नौकरी?"
+              }
+            },
+            {
+              "nextStep": 3,
+              "text": {
+                "en": "Would you rather have a job you love that pays a low salary or have a job you hate that pays a high salary?",
+                "es": "¿Preferirías tener un trabajo que amas que paga un salario bajo o tener un trabajo que odias que paga un salario alto?",
+                "pt": "Você prefere ter um emprego que ama que paga um salário baixo ou ter um emprego que odeia que paga um salário alto?",
+                "bn": "আপনি কি এমন একটি চাকরি করতে পছন্দ করবেন যা আপনি ভালোবাসেন যার কম বেতন দেয় নাকি এমন একটি চাকরি করতে পছন্দ করবেন যা আপনি ঘৃণা করেন যার বেশি বেতন দেয়?",
+                "fr": "Préférerais-tu avoir un travail que tu aimes avec un petit salaire ou avoir un travail que tu détestes avec un gros salaire ?",
+                "hi": "आप ऐसी नौकरी पसंद करेंगे जो आपको पसंद हो लेकिन वेतन कम हो या ऐसी नौकरी जो आपको पसंद न हो लेकिन वेतन ज्यादा हो?"
+              }
+            },
+            {
+              "nextStep": 4,
+              "text": {
+                "en": "Given the choice between having a job you love that pays a low salary and having a job you hate that pays a high salary, which would you choose?",
+                "es": "Dada la opción entre tener un trabajo que amas que paga un salario bajo y tener un trabajo que odias que paga un salario alto, ¿cuál elegirías?",
+                "pt": "Dada a escolha entre ter um emprego que você ama que paga um salário baixo e ter um emprego que você odeia que paga um salário alto, qual você escolheria?",
+                "bn": "কম বেতন দেয় এমন একটি চাকরি যা আপনি ভালোবাসেন এবং বেশি বেতন দেয় এমন একটি চাকরি যা আপনি ঘৃণা করেন তার মধ্যে পছন্দ দেওয়া হলে, আপনি কোনটি বেছে নেবেন?",
+                "fr": "Si tu avais le choix entre avoir un travail que tu aimes avec un petit salaire et avoir un travail que tu détestes avec un gros salaire, que choisirais-tu ?",
+                "hi": "अगर आपको चुनाव करना पड़े कि आप एक ऐसी नौकरी करें जो आपको पसंद है लेकिन कम वेतन देती है, और एक ऐसी नौकरी करें जो आपको पसंद नहीं है लेकिन ज़्यादा वेतन देती है, तो आप कौन सी चुनेंगे?"
+              }
+            }
+          ]
+        },
+        {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-e-01",
+          "simpleVideoUrl": "wouldyourather-e-01-01",
           "cue": [
             {
               "en": "A great job with low pay or a bad job with high pay?",
@@ -2367,7 +3018,14 @@
               "bn": "কম বেতনের একটি দারুণ চাকরি নাকি বেশি বেতনের একটি খারাপ চাকরি?",
               "fr": "Un super travail mal payé ou un mauvais travail bien payé ?",
               "hi": "कम वेतन वाली बढ़िया नौकरी या ज़्यादा वेतन वाली खराब नौकरी?"
-            },
+            }
+          ],
+          "nextStep": 4
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-e-01-02",
+          "cue": [
             {
               "en": "Which is better: a wonderful job with low pay or a horrible job with high pay?",
               "es": "¿Qué es mejor: un trabajo maravilloso con baja remuneración o un trabajo horrible con alta remuneración?",
@@ -2375,7 +3033,14 @@
               "bn": "কোনটি ভালো: কম বেতনের একটি চমৎকার চাকরি নাকি বেশি বেতনের একটি ভীতিজনক চাকরি?",
               "fr": "Qu'est-ce qui est mieux : un super travail mal payé ou un horrible travail bien payé ?",
               "hi": "कौन सा बेहतर है: कम वेतन वाली शानदार नौकरी या ज्यादा वेतन वाली भयानक नौकरी?"
-            },
+            }
+          ],
+          "nextStep": 3
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-e-01-03",
+          "cue": [
             {
               "en": "Would you rather have a job you love that pays a low salary or have a job you hate that pays a high salary?",
               "es": "¿Preferirías tener un trabajo que amas que paga un salario bajo o tener un trabajo que odias que paga un salario alto?",
@@ -2383,7 +3048,14 @@
               "bn": "আপনি কি এমন একটি চাকরি করতে পছন্দ করবেন যা আপনি ভালোবাসেন যার কম বেতন দেয় নাকি এমন একটি চাকরি করতে পছন্দ করবেন যা আপনি ঘৃণা করেন যার বেশি বেতন দেয়?",
               "fr": "Préférerais-tu avoir un travail que tu aimes avec un petit salaire ou avoir un travail que tu détestes avec un gros salaire ?",
               "hi": "आप ऐसी नौकरी पसंद करेंगे जो आपको पसंद हो लेकिन वेतन कम हो या ऐसी नौकरी जो आपको पसंद न हो लेकिन वेतन ज्यादा हो?"
-            },
+            }
+          ],
+          "nextStep": 2
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-e-01-04",
+          "cue": [
             {
               "en": "Given the choice between having a job you love that pays a low salary and having a job you hate that pays a high salary, which would you choose?",
               "es": "Dada la opción entre tener un trabajo que amas que paga un salario bajo y tener un trabajo que odias que paga un salario alto, ¿cuál elegirías?",
@@ -2393,18 +3065,60 @@
               "hi": "अगर आपको चुनाव करना पड़े कि आप एक ऐसी नौकरी करें जो आपको पसंद है लेकिन कम वेतन देती है, और एक ऐसी नौकरी करें जो आपको पसंद नहीं है लेकिन ज़्यादा वेतन देती है, तो आप कौन सी चुनेंगे?"
             }
           ],
-          "subtitles": {
-            "en": "1\n00:00:00,000 --> 00:00:06,250\nA great job with low pay or a bad job with high pay?\n\n2\n00:00:06,250 --> 00:00:13,100\nWhich is better: a wonderful job with low pay or a horrible job with high pay?\n\n3\n00:00:13,100 --> 00:00:20,750\nWould you rather have a job you love that pays a low salary or have a job you hate that pays a high salary?\n\n4\n00:00:20,750 --> 00:00:29,800\nGiven the choice between having a job you love that pays a low salary and having a job you hate that pays a high salary, which would you choose?",
-            "es": "1\n00:00:00,000 --> 00:00:06,250\n¿Un gran trabajo con mal sueldo o un mal trabajo con buen sueldo?\n\n2\n00:00:06,250 --> 00:00:13,100\n¿Qué es mejor: un trabajo maravilloso con mal sueldo o un trabajo horrible con buen sueldo?\n\n3\n00:00:13,100 --> 00:00:20,750\n¿Preferirías tener un trabajo que amas que paga un salario bajo o tener un trabajo que odias que paga un salario alto?\n\n4\n00:00:20,750 --> 00:00:29,800\nDada la opción entre tener un trabajo que amas que paga un salario bajo y tener un trabajo que odias que paga un salario alto, ¿cuál elegirías?",
-            "pt": "1\n00:00:00,000 --> 00:00:06,250\nUm ótimo emprego com salário baixo ou um emprego ruim com salário alto?\n\n2\n00:00:06,250 --> 00:00:13,100\nO que é melhor: um trabalho maravilhoso com salário baixo ou um trabalho horrível com salário alto?\n\n3\n00:00:13,100 --> 00:00:20,750\nVocê prefere ter um emprego que ama que paga um salário baixo ou ter um emprego que odeia que paga um salário alto?\n\n4\n00:00:20,750 --> 00:00:29,800\nDada a escolha entre ter um emprego que você ama que paga um salário baixo e ter um emprego que você odeia que paga um salário alto, qual você escolheria?",
-            "bn": "1\n00:00:00,000 --> 00:00:06,250\nকম বেতনের দারুণ চাকরি নাকি বেশি বেতনের খারাপ চাকরি?\n\n2\n00:00:06,250 --> 00:00:13,100\nকোনটি ভালো: কম বেতনের চমৎকার চাকরি নাকি বেশি বেতনের বাজে চাকরি?\n\n3\n00:00:13,100 --> 00:00:20,750\nআপনি কি এমন চাকরি পছন্দ করবেন যা আপনি ভালোবাসেন কিন্তু কম বেতন দেয়, নাকি এমন চাকরি যা আপনি ঘৃণা করেন কিন্তু বেশি বেতন দেয়?\n\n4\n00:00:20,750 --> 00:00:29,800\nকম বেতনের ভালো চাকরি এবং বেশি বেতনের বাজে চাকরির মধ্যে বেছে নিতে হলে, আপনি কোনটি বেছে নেবেন?",
-            "fr": "1\n00:00:00,000 --> 00:00:06,250\nUn super travail mal payé ou un mauvais travail bien payé ?\n\n2\n00:00:06,250 --> 00:00:13,100\nQu'est-ce qui est mieux : un super travail mal payé ou un horrible travail bien payé ?\n\n3\n00:00:13,100 --> 00:00:20,750\nPréférerais-tu avoir un travail que tu aimes avec un petit salaire ou avoir un travail que tu détestes avec un gros salaire ?\n\n4\n00:00:20,750 --> 00:00:29,800\nSi tu avais le choix entre avoir un travail que tu aimes avec un petit salaire et avoir un travail que tu détestes avec un gros salaire, que choisirais-tu ?",
-            "hi": "1\n00:00:00,000 --> 00:00:06,250\nकम वेतन वाली बढ़िया नौकरी या ज़्यादा वेतन वाली खराब नौकरी?\n\n2\n00:00:06,250 --> 00:00:13,100\nकौन सा बेहतर है: कम वेतन वाली शानदार नौकरी या ज्यादा वेतन वाली भयानक नौकरी?\n\n3\n00:00:13,100 --> 00:00:20,750\nआप ऐसी नौकरी पसंद करेंगे जो आपको पसंद हो लेकिन वेतन कम हो या ऐसी नौकरी जो आपको पसंद न हो लेकिन वेतन ज्यादा हो?\n\n4\n00:00:20,750 --> 00:00:29,800\nअगर आपको चुनाव करना पड़े कि आप एक ऐसी नौकरी करें जो आपको पसंद है लेकिन कम वेतन देती है, और एक ऐसी नौकरी करें जो आपको पसंद नहीं है लेकिन ज़्यादा वेतन देती है, तो आप कौन सी चुनेंगे?"
-          }
+          "nextStep": 1
+        },
+        {
+          "responseType": "branching",
+          "chooseStep": [
+            {
+              "nextStep": 1,
+              "text": {
+                "en": "Rich with no privacy or poor with complete privacy?",
+                "es": "¿Rico sin privacidad o pobre con privacidad completa?",
+                "pt": "Rico sem privacidade ou pobre com privacidade total?",
+                "bn": "গোপনীয়তা ছাড়া ধনী নাকি সম্পূর্ণ গোপনীয়তা সহ গরিব?",
+                "fr": "Riche sans vie privée ou pauvre avec une vie privée totale ?",
+                "hi": "बिना निजता के अमीर या पूरी निजता के साथ गरीब?"
+              }
+            },
+            {
+              "nextStep": 2,
+              "text": {
+                "en": "Which is better: rich with no privacy or poor with complete privacy?",
+                "es": "¿Qué es mejor: rico sin privacidad o pobre con privacidad completa?",
+                "pt": "O que é melhor: rico sem privacidade ou pobre com privacidade total?",
+                "bn": "কোনটি ভালো: গোপনীয়তা ছাড়া ধনী নাকি সম্পূর্ণ গোপনীয়তা সহ গরিব?",
+                "fr": "Qu'est-ce qui est mieux : être riche sans vie privée ou être pauvre avec une vie privée totale ?",
+                "hi": "कौन सा बेहतर है: बिना निजता के अमीर या पूरी निजता के साथ गरीब?"
+              }
+            },
+            {
+              "nextStep": 3,
+              "text": {
+                "en": "Would you rather be rich but have no privacy or be poor but have complete privacy?",
+                "es": "¿Preferirías ser rico pero no tener privacidad o ser pobre pero tener privacidad completa?",
+                "pt": "Você prefere ser rico, mas não ter privacidade, ou ser pobre, mas ter privacidade total?",
+                "bn": "আপনি কি ধনী হতে চান কিন্তু কোনো গোপনীয়তা নেই নাকি গরিব হতে চান কিন্তু সম্পূর্ণ গোপনীয়তা আছে?",
+                "fr": "Préférerais-tu être riche mais sans vie privée ou être pauvre mais avec une vie privée totale ?",
+                "hi": "आप अमीर होना पसंद करेंगे लेकिन कोई निजता न हो या गरीब होना पसंद करेंगे लेकिन पूरी निजता हो?"
+              }
+            },
+            {
+              "nextStep": 4,
+              "text": {
+                "en": "Given the choice between being rich but having no privacy and being poor but having complete privacy, which would you choose?",
+                "es": "Dada la opción entre ser rico pero no tener privacidad y ser pobre pero tener privacidad completa, ¿cuál elegirías?",
+                "pt": "Dada a escolha entre ser rico, mas não ter privacidade, e ser pobre, mas ter privacidade total, qual você escolheria?",
+                "bn": "ধনী হওয়া কিন্তু কোনো গোপনীয়তা না থাকা এবং গরিব হওয়া কিন্তু সম্পূর্ণ গোপনীয়তা থাকার মধ্যে পছন্দ দেওয়া হলে, আপনি কোনটি বেছে নেবেন?",
+                "fr": "Si tu avais le choix entre être riche mais sans vie privée et être pauvre mais avec une vie privée totale, que choisirais-tu ?",
+                "hi": "अमीर होने पर बिना निजता के और गरीब होने पर पूरी निजता के साथ जीने के बीच चुनाव दिया जाए, तो आप क्या चुनेंगे?"
+              }
+            }
+          ]
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-e-02",
+          "simpleVideoUrl": "wouldyourather-e-02-01",
           "cue": [
             {
               "en": "Rich with no privacy or poor with complete privacy?",
@@ -2413,7 +3127,14 @@
               "bn": "গোপনীয়তা ছাড়া ধনী নাকি সম্পূর্ণ গোপনীয়তা সহ গরিব?",
               "fr": "Riche sans vie privée ou pauvre avec une vie privée totale ?",
               "hi": "बिना निजता के अमीर या पूरी निजता के साथ गरीब?"
-            },
+            }
+          ],
+          "nextStep": 4
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-e-02-02",
+          "cue": [
             {
               "en": "Which is better: rich with no privacy or poor with complete privacy?",
               "es": "¿Qué es mejor: rico sin privacidad o pobre con privacidad completa?",
@@ -2421,7 +3142,14 @@
               "bn": "কোনটি ভালো: গোপনীয়তা ছাড়া ধনী নাকি সম্পূর্ণ গোপনীয়তা সহ গরিব?",
               "fr": "Qu'est-ce qui est mieux : être riche sans vie privée ou être pauvre avec une vie privée totale ?",
               "hi": "कौन सा बेहतर है: बिना निजता के अमीर या पूरी निजता के साथ गरीब?"
-            },
+            }
+          ],
+          "nextStep": 3
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-e-02-03",
+          "cue": [
             {
               "en": "Would you rather be rich but have no privacy or be poor but have complete privacy?",
               "es": "¿Preferirías ser rico pero no tener privacidad o ser pobre pero tener privacidad completa?",
@@ -2429,7 +3157,14 @@
               "bn": "আপনি কি ধনী হতে চান কিন্তু কোনো গোপনীয়তা নেই নাকি গরিব হতে চান কিন্তু সম্পূর্ণ গোপনীয়তা আছে?",
               "fr": "Préférerais-tu être riche mais sans vie privée ou être pauvre mais avec une vie privée totale ?",
               "hi": "आप अमीर होना पसंद करेंगे लेकिन कोई निजता न हो या गरीब होना पसंद करेंगे लेकिन पूरी निजता हो?"
-            },
+            }
+          ],
+          "nextStep": 2
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-e-02-04",
+          "cue": [
             {
               "en": "Given the choice between being rich but having no privacy and being poor but having complete privacy, which would you choose?",
               "es": "Dada la opción entre ser rico pero no tener privacidad y ser pobre pero tener privacidad completa, ¿cuál elegirías?",
@@ -2439,18 +3174,60 @@
               "hi": "अमीर होने पर बिना निजता के और गरीब होने पर पूरी निजता के साथ जीने के बीच चुनाव दिया जाए, तो आप क्या चुनेंगे?"
             }
           ],
-          "subtitles": {
-            "en": "1\n00:00:00,000 --> 00:00:06,250\nRich with no privacy or poor with complete privacy?\n\n2\n00:00:06,250 --> 00:00:11,300\nWhich is better: rich with no privacy or poor with complete privacy?\n\n3\n00:00:11,300 --> 00:00:17,850\nWould you rather be rich but have no privacy or be poor but have complete privacy?\n\n4\n00:00:17,850 --> 00:00:27,100\nGiven the choice between being rich but having no privacy and being poor but having complete privacy, which would you choose?",
-            "es": "1\n00:00:00,000 --> 00:00:06,250\n¿Rico sin privacidad o pobre con total privacidad?\n\n2\n00:00:06,250 --> 00:00:11,300\n¿Qué es mejor: rico sin privacidad o pobre con total privacidad?\n\n3\n00:00:11,300 --> 00:00:17,850\n¿Preferirías ser rico pero no tener privacidad o ser pobre pero tener total privacidad?\n\n4\n00:00:17,850 --> 00:00:27,100\nDada la opción entre ser rico pero no tener privacidad y ser pobre pero tener total privacidad, ¿cuál elegirías?",
-            "pt": "1\n00:00:00,000 --> 00:00:06,250\nRico sem privacidade ou pobre com privacidade total?\n\n2\n00:00:06,250 --> 00:00:11,300\nO que é melhor: rico sem privacidade ou pobre com privacidade total?\n\n3\n00:00:11,300 --> 00:00:17,850\nVocê prefere ser rico, mas não ter privacidade, ou ser pobre, mas ter total privacidade?\n\n4\n00:00:17,850 --> 00:00:27,100\nDada a escolha entre ser rico, mas não ter privacidade, e ser pobre, mas ter total privacidade, qual você escolheria?",
-            "bn": "1\n00:00:00,000 --> 00:00:06,250\nগোপনীয়তা ছাড়া ধনী নাকি সম্পূর্ণ গোপনীয়তাসহ দরিদ্র?\n\n2\n00:00:06,250 --> 00:00:11,300\nকোনটি ভালো: গোপনীয়তা ছাড়া ধনী নাকি সম্পূর্ণ গোপনীয়তাসহ দরিদ্র?\n\n3\n00:00:11,300 --> 00:00:17,850\nআপনি কি ধনী হতে পছন্দ করবেন কিন্তু কোনো গোপনীয়তা থাকবে না নাকি দরিদ্র হবেন কিন্তু সম্পূর্ণ গোপনীয়তা থাকবে?\n\n4\n00:00:17,850 --> 00:00:27,100\nগোপনীয়তাহীন ধনী হওয়া এবং সম্পূর্ণ গোপনীয়তাসহ দরিদ্র হওয়ার মধ্যে বেছে নিতে হলে, আপনি কোনটি বেছে নেবেন?",
-            "fr": "1\n00:00:00,000 --> 00:00:06,250\nRiche sans vie privée ou pauvre avec une vie privée totale ?\n\n2\n00:00:06,250 --> 00:00:11,300\nQu'est-ce qui est mieux : être riche sans vie privée ou être pauvre avec une vie privée totale ?\n\n3\n00:00:11,300 --> 00:00:17,850\nPréférerais-tu être riche mais sans vie privée ou être pauvre mais avec une vie privée totale ?\n\n4\n00:00:17,850 --> 00:00:27,100\nSi tu avais le choix entre être riche mais sans vie privée et être pauvre mais avec une vie privée totale, que choisirais-tu ?",
-            "hi": "1\n00:00:00,000 --> 00:00:06,250\nबिना निजता के अमीर या पूरी निजता के साथ गरीब?\n\n2\n00:00:06,250 --> 00:00:11,300\nकौन सा बेहतर है: बिना निजता के अमीर या पूरी निजता के साथ गरीब?\n\n3\n00:00:11,300 --> 00:00:17,850\nआप अमीर होना पसंद करेंगे लेकिन कोई निजता न हो या गरीब होना पसंद करेंगे लेकिन पूरी निजता हो?\n\n4\n00:00:17,850 --> 00:00:27,100\nअमीर होने पर बिना निजता के और गरीब होने पर पूरी निजता के साथ जीने के बीच चुनाव दिया जाए, तो आप क्या चुनेंगे?"
-          }
+          "nextStep": 1
+        },
+        {
+          "responseType": "branching",
+          "chooseStep": [
+            {
+              "nextStep": 1,
+              "text": {
+                "en": "A week without your phone or a week without music?",
+                "es": "¿Una semana sin tu teléfono o una semana sin música?",
+                "pt": "Uma semana sem o seu telefone ou uma semana sem música?",
+                "bn": "ফোন ছাড়া এক সপ্তাহ নাকি গান ছাড়া এক সপ্তাহ?",
+                "fr": "Une semaine sans ton téléphone ou une semaine sans musique ?",
+                "hi": "आपके फ़ोन के बिना एक हफ़्ता या संगीत के बिना एक हफ़्ता?"
+              }
+            },
+            {
+              "nextStep": 2,
+              "text": {
+                "en": "Which is better: a week without your phone or a week without music?",
+                "es": "¿Qué es mejor: una semana sin tu teléfono o una semana sin música?",
+                "pt": "O que é melhor: uma semana sem o seu telefone ou uma semana sem música?",
+                "bn": "কোনটি ভালো: ফোন ছাড়া এক সপ্তাহ নাকি গান ছাড়া এক সপ্তাহ?",
+                "fr": "Qu'est-ce qui est mieux : une semaine sans ton téléphone ou une semaine sans musique ?",
+                "hi": "कौन सा बेहतर है: अपने फोन के बिना एक हफ्ता या संगीत के बिना एक हफ्ता?"
+              }
+            },
+            {
+              "nextStep": 3,
+              "text": {
+                "en": "Would you rather go a week without your phone or go a week without listening to any music?",
+                "es": "¿Preferirías pasar una semana sin tu teléfono o pasar una semana sin escuchar nada de música?",
+                "pt": "Você prefere passar uma semana sem o seu telefone ou passar uma semana sem ouvir nenhuma música?",
+                "bn": "আপনি কি ফোন ছাড়া এক সপ্তাহ কাটাতে চান নাকি কোনো গান না শুনে এক সপ্তাহ কাটাতে চান?",
+                "fr": "Préférerais-tu passer une semaine sans ton téléphone ou passer une semaine sans écouter de musique ?",
+                "hi": "आप एक हफ्ता अपने फोन के बिना बिताना पसंद करेंगे या एक हफ्ता कोई संगीत सुने बिना बिताना पसंद करेंगे?"
+              }
+            },
+            {
+              "nextStep": 4,
+              "text": {
+                "en": "Given the choice between going a week without your phone and going a week without listening to any music, which would you choose?",
+                "es": "Dada la opción entre pasar una semana sin tu teléfono y pasar una semana sin escuchar nada de música, ¿cuál elegirías?",
+                "pt": "Dada a escolha entre passar uma semana sem o seu telefone e passar uma semana sem ouvir nenhuma música, qual você escolheria?",
+                "bn": "ফোন ছাড়া এক সপ্তাহ কাটানো এবং কোনো গান না শুনে এক সপ্তাহ কাটানোর মধ্যে পছন্দ দেওয়া হলে, আপনি কোনটি বেছে নেবেন?",
+                "fr": "Si tu avais le choix entre passer une semaine sans ton téléphone et passer une semaine sans écouter de musique, que choisirais-tu ?",
+                "hi": "एक सप्ताह अपने फ़ोन के बिना रहने और एक सप्ताह कोई संगीत सुने बिना रहने के बीच चुनाव दिया जाए, तो आप क्या चुनेंगे?"
+              }
+            }
+          ]
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-e-03",
+          "simpleVideoUrl": "wouldyourather-e-03-01",
           "cue": [
             {
               "en": "A week without your phone or a week without music?",
@@ -2459,7 +3236,14 @@
               "bn": "ফোন ছাড়া এক সপ্তাহ নাকি গান ছাড়া এক সপ্তাহ?",
               "fr": "Une semaine sans ton téléphone ou une semaine sans musique ?",
               "hi": "आपके फ़ोन के बिना एक हफ़्ता या संगीत के बिना एक हफ़्ता?"
-            },
+            }
+          ],
+          "nextStep": 4
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-e-03-02",
+          "cue": [
             {
               "en": "Which is better: a week without your phone or a week without music?",
               "es": "¿Qué es mejor: una semana sin tu teléfono o una semana sin música?",
@@ -2467,7 +3251,14 @@
               "bn": "কোনটি ভালো: ফোন ছাড়া এক সপ্তাহ নাকি গান ছাড়া এক সপ্তাহ?",
               "fr": "Qu'est-ce qui est mieux : une semaine sans ton téléphone ou une semaine sans musique ?",
               "hi": "कौन सा बेहतर है: अपने फोन के बिना एक हफ्ता या संगीत के बिना एक हफ्ता?"
-            },
+            }
+          ],
+          "nextStep": 3
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-e-03-03",
+          "cue": [
             {
               "en": "Would you rather go a week without your phone or go a week without listening to any music?",
               "es": "¿Preferirías pasar una semana sin tu teléfono o pasar una semana sin escuchar nada de música?",
@@ -2475,7 +3266,14 @@
               "bn": "আপনি কি ফোন ছাড়া এক সপ্তাহ কাটাতে চান নাকি কোনো গান না শুনে এক সপ্তাহ কাটাতে চান?",
               "fr": "Préférerais-tu passer une semaine sans ton téléphone ou passer une semaine sans écouter de musique ?",
               "hi": "आप एक हफ्ता अपने फोन के बिना बिताना पसंद करेंगे या एक हफ्ता कोई संगीत सुने बिना बिताना पसंद करेंगे?"
-            },
+            }
+          ],
+          "nextStep": 2
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-e-03-04",
+          "cue": [
             {
               "en": "Given the choice between going a week without your phone and going a week without listening to any music, which would you choose?",
               "es": "Dada la opción entre pasar una semana sin tu teléfono y pasar una semana sin escuchar nada de música, ¿cuál elegirías?",
@@ -2485,14 +3283,7 @@
               "hi": "एक सप्ताह अपने फ़ोन के बिना रहने और एक सप्ताह कोई संगीत सुने बिना रहने के बीच चुनाव दिया जाए, तो आप क्या चुनेंगे?"
             }
           ],
-          "subtitles": {
-            "en": "1\n00:00:00,000 --> 00:00:03,750\nA week without your phone or a week without music?\n\n2\n00:00:03,750 --> 00:00:09,300\nWhich is better: a week without your phone or a week without music?\n\n3\n00:00:09,300 --> 00:00:15,950\nWould you rather go a week without your phone or go a week without listening to any music?\n\n4\n00:00:15,950 --> 00:00:23,200\nGiven the choice between going a week without your phone and going a week without listening to any music, which would you choose?",
-            "es": "1\n00:00:00,000 --> 00:00:03,750\n¿Una semana sin tu teléfono o una semana sin música?\n\n2\n00:00:03,750 --> 00:00:09,300\n¿Qué es mejor: una semana sin tu teléfono o una semana sin música?\n\n3\n00:00:09,300 --> 00:00:15,950\n¿Preferirías pasar una semana sin tu teléfono o pasar una semana sin escuchar música?\n\n4\n00:00:15,950 --> 00:00:23,200\nDada la opción entre pasar una semana sin tu teléfono y pasar una semana sin escuchar música, ¿cuál elegirías?",
-            "pt": "1\n00:00:00,000 --> 00:00:03,750\nUma semana sem o seu telefone ou uma semana sem música?\n\n2\n00:00:03,750 --> 00:00:09,300\nO que é melhor: uma semana sem o seu telefone ou uma semana sem música?\n\n3\n00:00:09,300 --> 00:00:15,950\nVocê prefere ficar uma semana sem o seu telefone ou ficar uma semana sem ouvir nenhuma música?\n\n4\n00:00:15,950 --> 00:00:23,200\nDada a escolha entre passar uma semana sem o seu telefone e passar uma semana sem ouvir nenhuma música, qual você escolheria?",
-            "bn": "1\n00:00:00,000 --> 00:00:03,750\nফোন ছাড়া এক সপ্তাহ নাকি গান ছাড়া এক সপ্তাহ?\n\n2\n00:00:03,750 --> 00:00:09,300\nকোনটি ভালো: ফোন ছাড়া এক সপ্তাহ নাকি গান ছাড়া এক সপ্তাহ?\n\n3\n00:00:09,300 --> 00:00:15,950\nআপনি কি ফোন ছাড়া এক সপ্তাহ কাটাতে পছন্দ করবেন নাকি কোনো গান শোনা ছাড়া এক সপ্তাহ কাটাতে পছন্দ করবেন?\n\n4\n00:00:15,950 --> 00:00:23,200\nফোন ছাড়া এক সপ্তাহ কাটানো এবং কোনো গান শোনা ছাড়া এক সপ্তাহ কাটানোর মধ্যে বেছে নিতে হলে, আপনি কোনটি বেছে নেবেন?",
-            "fr": "1\n00:00:00,000 --> 00:00:03,750\nUne semaine sans ton téléphone ou une semaine sans musique ?\n\n2\n00:00:03,750 --> 00:00:09,300\nQu'est-ce qui est mieux : une semaine sans ton téléphone ou une semaine sans musique ?\n\n3\n00:00:09,300 --> 00:00:15,950\nPréférerais-tu passer une semaine sans ton téléphone ou passer une semaine sans écouter de musique ?\n\n4\n00:00:15,950 --> 00:00:23,200\nSi tu avais le choix entre passer une semaine sans ton téléphone et passer une semaine sans écouter de musique, que choisirais-tu ?",
-            "hi": "1\n00:00:00,000 --> 00:00:03,750\nआपके फ़ोन के बिना एक हफ़्ता या संगीत के बिना एक हफ़्ता?\n\n2\n00:00:03,750 --> 00:00:09,300\nकौन सा बेहतर है: अपने फोन के बिना एक हफ्ता या संगीत के बिना एक हफ्ता?\n\n3\n00:00:09,300 --> 00:00:15,950\nआप एक हफ्ता अपने फोन के बिना बिताना पसंद करेंगे या एक हफ्ता कोई संगीत सुने बिना बिताना पसंद करेंगे?\n\n4\n00:00:15,950 --> 00:00:23,200\nएक सप्ताह अपने फ़ोन के बिना रहने और एक सप्ताह कोई संगीत सुने बिना रहने के बीच चुनाव दिया जाए, तो आप क्या चुनेंगे?"
-          }
+          "nextStep": 1
         }
       ]
     },
@@ -2536,53 +3327,6 @@
           "cue": "",
           "responseType": "lessonIntro",
           "introBackgroundVideoUrl": "{friendCode}{selfCode}-wouldyourather-test-e-01"
-        },
-        {
-          "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-e-01",
-          "cue": [
-            {
-              "en": "A great job with low pay or a bad job with high pay?",
-              "es": "¿Un gran trabajo con baja remuneración o un mal trabajo con alta remuneración?",
-              "pt": "Um ótimo emprego com salário baixo ou um péssimo emprego com salário alto?",
-              "bn": "কম বেতনের একটি দারুণ চাকরি নাকি বেশি বেতনের একটি খারাপ চাকরি?",
-              "fr": "Un super travail mal payé ou un mauvais travail bien payé ?",
-              "hi": "कम वेतन वाली बढ़िया नौकरी या ज़्यादा वेतन वाली खराब नौकरी?"
-            },
-            {
-              "en": "Which is better: a wonderful job with low pay or a horrible job with high pay?",
-              "es": "¿Qué es mejor: un trabajo maravilloso con baja remuneración o un trabajo horrible con alta remuneración?",
-              "pt": "O que é melhor: um emprego maravilhoso com salário baixo ou um emprego horrível com salário alto?",
-              "bn": "কোনটি ভালো: কম বেতনের একটি চমৎকার চাকরি নাকি বেশি বেতনের একটি ভীতিজনক চাকরি?",
-              "fr": "Qu'est-ce qui est mieux : un super travail mal payé ou un horrible travail bien payé ?",
-              "hi": "कौन सा बेहतर है: कम वेतन वाली शानदार नौकरी या ज्यादा वेतन वाली भयानक नौकरी?"
-            },
-            {
-              "en": "Would you rather have a job you love that pays a low salary or have a job you hate that pays a high salary?",
-              "es": "¿Preferirías tener un trabajo que amas que paga un salario bajo o tener un trabajo que odias que paga un salario alto?",
-              "pt": "Você prefere ter um emprego que ama que paga um salário baixo ou ter um emprego que odeia que paga um salário alto?",
-              "bn": "আপনি কি এমন একটি চাকরি করতে পছন্দ করবেন যা আপনি ভালোবাসেন যার কম বেতন দেয় নাকি এমন একটি চাকরি করতে পছন্দ করবেন যা আপনি ঘৃণা করেন যার বেশি বেতন দেয়?",
-              "fr": "Préférerais-tu avoir un travail que tu aimes avec un petit salaire ou avoir un travail que tu détestes avec un gros salaire ?",
-              "hi": "आप ऐसी नौकरी पसंद करेंगे जो आपको पसंद हो लेकिन वेतन कम हो या ऐसी नौकरी जो आपको पसंद न हो लेकिन वेतन ज्यादा हो?"
-            },
-            {
-              "en": "Given the choice between having a job you love that pays a low salary and having a job you hate that pays a high salary, which would you choose?",
-              "es": "Dada la opción entre tener un trabajo que amas que paga un salario bajo y tener un trabajo que odias que paga un salario alto, ¿cuál elegirías?",
-              "pt": "Dada a escolha entre ter um emprego que você ama que paga um salário baixo e ter um emprego que você odeia que paga um salário alto, qual você escolheria?",
-              "bn": "কম বেতন দেয় এমন একটি চাকরি যা আপনি ভালোবাসেন এবং বেশি বেতন দেয় এমন একটি চাকরি যা আপনি ঘৃণা করেন তার মধ্যে পছন্দ দেওয়া হলে, আপনি কোনটি বেছে নেবেন?",
-              "fr": "Si tu avais le choix entre avoir un travail que tu aimes avec un petit salaire et avoir un travail que tu détestes avec un gros salaire, que choisirais-tu ?",
-              "hi": "अगर आपको चुनाव करना पड़े कि आप एक ऐसी नौकरी करें जो आपको पसंद है लेकिन कम वेतन देती है, और एक ऐसी नौकरी करें जो आपको पसंद नहीं है लेकिन ज़्यादा वेतन देती है, तो आप कौन सी चुनेंगे?"
-            }
-          ],
-          "publishLessonId": "e",
-          "subtitles": {
-            "en": "1\n00:00:00,000 --> 00:00:06,250\nA great job with low pay or a bad job with high pay?\n\n2\n00:00:06,250 --> 00:00:13,100\nWhich is better: a wonderful job with low pay or a horrible job with high pay?\n\n3\n00:00:13,100 --> 00:00:20,750\nWould you rather have a job you love that pays a low salary or have a job you hate that pays a high salary?\n\n4\n00:00:20,750 --> 00:00:29,800\nGiven the choice between having a job you love that pays a low salary and having a job you hate that pays a high salary, which would you choose?",
-            "es": "1\n00:00:00,000 --> 00:00:06,250\n¿Un gran trabajo con mal sueldo o un mal trabajo con buen sueldo?\n\n2\n00:00:06,250 --> 00:00:13,100\n¿Qué es mejor: un trabajo maravilloso con mal sueldo o un trabajo horrible con buen sueldo?\n\n3\n00:00:13,100 --> 00:00:20,750\n¿Preferirías tener un trabajo que amas que paga un salario bajo o tener un trabajo que odias que paga un salario alto?\n\n4\n00:00:20,750 --> 00:00:29,800\nDada la opción entre tener un trabajo que amas que paga un salario bajo y tener un trabajo que odias que paga un salario alto, ¿cuál elegirías?",
-            "pt": "1\n00:00:00,000 --> 00:00:06,250\nUm ótimo emprego com salário baixo ou um emprego ruim com salário alto?\n\n2\n00:00:06,250 --> 00:00:13,100\nO que é melhor: um trabalho maravilhoso com salário baixo ou um trabalho horrível com salário alto?\n\n3\n00:00:13,100 --> 00:00:20,750\nVocê prefere ter um emprego que ama que paga um salário baixo ou ter um emprego que odeia que paga um salário alto?\n\n4\n00:00:20,750 --> 00:00:29,800\nDada a escolha entre ter um emprego que você ama que paga um salário baixo e ter um emprego que você odeia que paga um salário alto, qual você escolheria?",
-            "bn": "1\n00:00:00,000 --> 00:00:06,250\nকম বেতনের দারুণ চাকরি নাকি বেশি বেতনের খারাপ চাকরি?\n\n2\n00:00:06,250 --> 00:00:13,100\nকোনটি ভালো: কম বেতনের চমৎকার চাকরি নাকি বেশি বেতনের বাজে চাকরি?\n\n3\n00:00:13,100 --> 00:00:20,750\nআপনি কি এমন চাকরি পছন্দ করবেন যা আপনি ভালোবাসেন কিন্তু কম বেতন দেয়, নাকি এমন চাকরি যা আপনি ঘৃণা করেন কিন্তু বেশি বেতন দেয়?\n\n4\n00:00:20,750 --> 00:00:29,800\nকম বেতনের ভালো চাকরি এবং বেশি বেতনের বাজে চাকরির মধ্যে বেছে নিতে হলে, আপনি কোনটি বেছে নেবেন?",
-            "fr": "1\n00:00:00,000 --> 00:00:06,250\nUn super travail mal payé ou un mauvais travail bien payé ?\n\n2\n00:00:06,250 --> 00:00:13,100\nQu'est-ce qui est mieux : un super travail mal payé ou un horrible travail bien payé ?\n\n3\n00:00:13,100 --> 00:00:20,750\nPréférerais-tu avoir un travail que tu aimes avec un petit salaire ou avoir un travail que tu détestes avec un gros salaire ?\n\n4\n00:00:20,750 --> 00:00:29,800\nSi tu avais le choix entre avoir un travail que tu aimes avec un petit salaire et avoir un travail que tu détestes avec un gros salaire, que choisirais-tu ?",
-            "hi": "1\n00:00:00,000 --> 00:00:06,250\nकम वेतन वाली बढ़िया नौकरी या ज़्यादा वेतन वाली खराब नौकरी?\n\n2\n00:00:06,250 --> 00:00:13,100\nकौन सा बेहतर है: कम वेतन वाली शानदार नौकरी या ज्यादा वेतन वाली भयानक नौकरी?\n\n3\n00:00:13,100 --> 00:00:20,750\nआप ऐसी नौकरी पसंद करेंगे जो आपको पसंद हो लेकिन वेतन कम हो या ऐसी नौकरी जो आपको पसंद न हो लेकिन वेतन ज्यादा हो?\n\n4\n00:00:20,750 --> 00:00:29,800\nअगर आपको चुनाव करना पड़े कि आप एक ऐसी नौकरी करें जो आपको पसंद है लेकिन कम वेतन देती है, और एक ऐसी नौकरी करें जो आपको पसंद नहीं है लेकिन ज़्यादा वेतन देती है, तो आप कौन सी चुनेंगे?"
-          }
         },
         {
           "responseType": "branching",
@@ -2951,6 +3695,203 @@
           ]
         },
         {
+          "responseType": "branching",
+          "simpleVideoUrl": "{friendCode}{selfCode}-wouldyourather-test-e-02",
+          "chooseStep": [
+            {
+              "nextStep": 1,
+              "text": {
+                "en": "Rich with no privacy",
+                "es": "Rico sin privacidad",
+                "pt": "Rico sem privacidade",
+                "bn": "গোপনীয়তা ছাড়া ধনী",
+                "fr": "Riche, sans vie privée",
+                "hi": "अमीर, बिना निजता के"
+              }
+            },
+            {
+              "nextStep": 2,
+              "text": {
+                "en": "Poor with complete privacy",
+                "es": "Pobre con privacidad total",
+                "pt": "Pobre com privacidade total",
+                "bn": "সম্পূর্ণ গোপনীয়তা সহ গরিব",
+                "fr": "Pauvre, avec vie privée",
+                "hi": "गरीब, पूरी निजता के साथ"
+              }
+            }
+          ]
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-f-03",
+          "cue": [
+            {
+              "en": "Rich with no privacy.",
+              "es": "Rico sin privacidad.",
+              "pt": "Rico sem privacidade.",
+              "bn": "গোপনীয়তা ছাড়া ধনী।",
+              "fr": "Riche sans vie privée.",
+              "hi": "बिना निजता के अमीर।"
+            },
+            {
+              "en": "Being rich with no privacy is better than being poor with complete privacy.",
+              "es": "Ser rico sin privacidad es mejor que ser pobre con privacidad completa.",
+              "pt": "Ser rico sem privacidade é melhor do que ser pobre com privacidade total.",
+              "bn": "সম্পূর্ণ গোপনীয়তা সহ গরিব হওয়ার চেয়ে গোপনীয়তা ছাড়া ধনী হওয়া ভালো।",
+              "fr": "Être riche sans vie privée, c'est mieux qu'être pauvre avec une vie privée totale.",
+              "hi": "बिना निजता के अमीर होना पूरी निजता के साथ गरीब होने से बेहतर है।"
+            },
+            {
+              "en": "I would rather be rich but have no privacy than be poor but have complete privacy.",
+              "es": "Preferiría ser rico pero no tener privacidad que ser pobre pero tener privacidad completa.",
+              "pt": "Eu prefiro ser rico, mas não ter privacidade, a ser pobre, mas ter privacidade total.",
+              "bn": "আমি সম্পূর্ণ গোপনীয়তা সহ গরিব হওয়ার চেয়ে গোপনীয়তা ছাড়া ধনী হতে পছন্দ করব।",
+              "fr": "Je préférerais être riche sans vie privée plutôt que d'être pauvre mais avec une vie privée totale.",
+              "hi": "मैं अमीर होकर बिना निजता के रहना गरीब होकर पूरी निजता रखने से ज़्यादा पसंद करूंगा।"
+            },
+            {
+              "en": "Given the choice between being rich but having no privacy and being poor but having complete privacy, I would choose to be rich.",
+              "es": "Dada la opción entre ser rico pero no tener privacidad y ser pobre pero tener privacidad completa, elegiría ser rico.",
+              "pt": "Dada a escolha entre ser rico, mas não ter privacidade, e ser pobre, mas ter privacidade total, eu escolheria ser rico.",
+              "bn": "ধনী হওয়া কিন্তু কোনো গোপনীয়তা না থাকা এবং গরিব হওয়া কিন্তু সম্পূর্ণ গোপনীয়তা থাকার মধ্যে পছন্দ দেওয়া হলে, আমি ধনী হওয়া বেছে নেব।",
+              "fr": "Si je devais choisir entre être riche mais sans vie privée et être pauvre mais avec une vie privée totale, je choisirais d'être riche.",
+              "hi": "अमीर होने पर बिना निजता के और गरीब होने पर पूरी निजता के साथ जीने के बीच चुनाव दिया जाए, तो मैं अमीर होना चुनूँगा।"
+            }
+          ],
+          "nextStep": 2,
+          "subtitles": {
+            "en": "1\n00:00:00,000 --> 00:00:02,750\nRich with no privacy.\n\n2\n00:00:02,750 --> 00:00:07,800\nBeing rich with no privacy is better than being poor with complete privacy.\n\n3\n00:00:07,800 --> 00:00:14,050\nI would rather be rich but have no privacy than be poor but have complete privacy.\n\n4\n00:00:14,050 --> 00:00:22,100\nGiven the choice between being rich but having no privacy and being poor but having complete privacy, I would choose to be rich.",
+            "es": "1\n00:00:00,000 --> 00:00:02,750\nRich with no privacy.\n\n2\n00:00:02,750 --> 00:00:07,800\nSer rico sin privacidad es mejor que ser pobre con total privacidad.\n\n3\n00:00:07,800 --> 00:00:14,050\nPreferiría ser rico pero no tener privacidad que ser pobre pero tener total privacidad.\n\n4\n00:00:14,050 --> 00:00:22,100\nDada la opción entre ser rico pero no tener privacidad y ser pobre pero tener total privacidad, elegiría ser rico.",
+            "pt": "1\n00:00:00,000 --> 00:00:02,750\nRico sem privacidade.\n\n2\n00:00:02,750 --> 00:00:07,800\nSer rico sem privacidade é melhor do que ser pobre com privacidade total.\n\n3\n00:00:07,800 --> 00:00:14,050\nEu preferiria ser rico, mas não ter privacidade, do que ser pobre, mas ter total privacidade.\n\n4\n00:00:14,050 --> 00:00:22,100\nDada a escolha entre ser rico, mas não ter privacidade, e ser pobre, mas ter total privacidade, eu escolheria ser rico.",
+            "bn": "1\n00:00:00,000 --> 00:00:02,750\nগোপনীয়তা ছাড়া ধনী।\n\n2\n00:00:02,750 --> 00:00:07,800\nসম্পূর্ণ গোপনীয়তাসহ দরিদ্র হওয়ার চেয়ে গোপনীয়তা ছাড়া ধনী হওয়া ভালো।\n\n3\n00:00:07,800 --> 00:00:14,050\nসম্পূর্ণ গোপনীয়তাসহ দরিদ্র থাকার চেয়ে আমি গোপনীয়তা ছাড়া ধনী হতে পছন্দ করব।\n\n4\n00:00:14,050 --> 00:00:22,100\nগোপনীয়তাহীন ধনী হওয়া এবং সম্পূর্ণ গোপনীয়তাসহ দরিদ্র হওয়ার মধ্যে বেছে নিতে হলে, আমি ধনী হওয়াটাই বেছে নেব।",
+            "fr": "1\n00:00:00,000 --> 00:00:02,750\nRiche sans vie privée.\n\n2\n00:00:02,750 --> 00:00:07,800\nÊtre riche sans vie privée, c'est mieux qu'être pauvre avec une vie privée totale.\n\n3\n00:00:07,800 --> 00:00:14,050\nJe préférerais être riche sans vie privée plutôt que d'être pauvre mais avec une vie privée totale.\n\n4\n00:00:14,050 --> 00:00:22,100\nSi je devais choisir entre être riche mais sans vie privée et être pauvre mais avec une vie privée totale, je choisirais d'être riche.",
+            "hi": "1\n00:00:00,000 --> 00:00:02,750\nबिना निजता के अमीर।\n\n2\n00:00:02,750 --> 00:00:07,800\nबिना निजता के अमीर होना पूरी निजता के साथ गरीब होने से बेहतर है।\n\n3\n00:00:07,800 --> 00:00:14,050\nमैं अमीर होकर बिना निजता के रहना गरीब होकर पूरी निजता रखने से ज़्यादा पसंद करूंगा।\n\n4\n00:00:14,050 --> 00:00:22,100\nअमीर होने पर बिना निजता के और गरीब होने पर पूरी निजता के साथ जीने के बीच चुनाव दिया जाए, तो मैं अमीर होना चुनूँगा।"
+          }
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-f-04",
+          "cue": [
+            {
+              "en": "Poor with complete privacy.",
+              "es": "Pobre con privacidad completa.",
+              "pt": "Pobre com privacidade total.",
+              "bn": "সম্পূর্ণ গোপনীয়তা সহ গরিব।",
+              "fr": "Pauvre avec une vie privée totale.",
+              "hi": "पूरी निजता के साथ गरीब।"
+            },
+            {
+              "en": "Being poor with complete privacy is better than being rich with no privacy.",
+              "es": "Ser pobre con privacidad completa es mejor que ser rico sin privacidad.",
+              "pt": "Ser pobre com privacidade total é melhor do que ser rico sem privacidade.",
+              "bn": "গোপনীয়তা ছাড়া ধনী হওয়ার চেয়ে সম্পূর্ণ গোপনীয়তা সহ গরিব হওয়া ভালো।",
+              "fr": "Être pauvre avec une vie privée totale, c'est mieux qu'être riche sans vie privée.",
+              "hi": "पूरी निजता के साथ गरीब होना बिना निजता के अमीर होने से बेहतर है।"
+            },
+            {
+              "en": "I would rather be poor but have complete privacy than be rich but have no privacy.",
+              "es": "Preferiría ser pobre pero tener privacidad completa que ser rico pero no tener privacidad.",
+              "pt": "Eu prefiro ser pobre, mas ter privacidade total, a ser rico, mas não ter privacidade.",
+              "bn": "আমি গোপনীয়তা ছাড়া ধনী হওয়ার চেয়ে সম্পূর্ণ গোপনীয়তা সহ গরিব হতে পছন্দ করব।",
+              "fr": "Je préférerais être pauvre mais garder ma vie privée plutôt que d'être riche sans vie privée.",
+              "hi": "मैं गरीब होकर पूरी निजता रखना अमीर होकर बिना निजता के रहने से ज़्यादा पसंद करूंगा।"
+            },
+            {
+              "en": "Given the choice between being rich but having no privacy and being poor but having complete privacy, I would choose to be poor.",
+              "es": "Dada la opción entre ser rico pero no tener privacidad y ser pobre pero tener privacidad completa, elegiría ser pobre.",
+              "pt": "Dada a escolha entre ser rico, mas não ter privacidade, e ser pobre, mas ter privacidade total, eu escolheria ser pobre.",
+              "bn": "ধনী হওয়া কিন্তু কোনো গোপনীয়তা না থাকা এবং গরিব হওয়া কিন্তু সম্পূর্ণ গোপনীয়তা থাকার মধ্যে পছন্দ দেওয়া হলে, আমি গরিব হওয়া বেছে নেব।",
+              "fr": "Si je devais choisir entre être riche mais sans vie privée et être pauvre mais avec une vie privée totale, je choisirais d'être pauvre.",
+              "hi": "अमीर होने पर बिना निजता के और गरीब होने पर पूरी निजता के साथ जीने के बीच चुनाव दिया जाए, तो मैं गरीब होना चुनूँगा।"
+            }
+          ],
+          "nextStep": 1,
+          "subtitles": {
+            "en": "1\n00:00:00,000 --> 00:00:03,150\nPoor with complete privacy.\n\n2\n00:00:03,150 --> 00:00:09,700\nBeing poor with complete privacy is better than being rich with no privacy.\n\n3\n00:00:09,700 --> 00:00:15,950\nI would rather be poor but have complete privacy than be rich but have no privacy.\n\n4\n00:00:15,950 --> 00:00:24,600\nGiven the choice between being rich but having no privacy and being poor but having complete privacy, I would choose to be poor.",
+            "es": "1\n00:00:00,000 --> 00:00:03,150\nPoor with complete privacy.\n\n2\n00:00:03,150 --> 00:00:09,700\nSer pobre con total privacidad es mejor que ser rico sin privacidad.\n\n3\n00:00:09,700 --> 00:00:15,950\nPreferiría ser pobre pero tener total privacidad que ser rico pero no tener privacidad.\n\n4\n00:00:15,950 --> 00:00:24,600\nDada la opción entre ser rico pero no tener privacidad y ser pobre pero tener total privacidad, elegiría ser pobre.",
+            "pt": "1\n00:00:00,000 --> 00:00:03,150\nPobre com privacidade total.\n\n2\n00:00:03,150 --> 00:00:09,700\nSer pobre com privacidade total é melhor do que ser rico sem privacidade.\n\n3\n00:00:09,700 --> 00:00:15,950\nEu preferiria ser pobre, mas ter total privacidade, do que ser rico, mas não ter privacidade.\n\n4\n00:00:15,950 --> 00:00:24,600\nDada a escolha entre ser rico, mas não ter privacidade, e ser pobre, mas ter total privacidade, eu escolheria ser pobre.",
+            "bn": "1\n00:00:00,000 --> 00:00:03,150\nসম্পূর্ণ গোপনীয়তাসহ দরিদ্র।\n\n2\n00:00:03,150 --> 00:00:09,700\nগোপনীয়তাহীন ধনী হওয়ার চেয়ে সম্পূর্ণ গোপনীয়তাসহ দরিদ্র হওয়া ভালো।\n\n3\n00:00:09,700 --> 00:00:15,950\nগোপনীয়তা ছাড়া ধনী হওয়ার চেয়ে সম্পূর্ণ গোপনীয়তাসহ দরিদ্র হওয়া আমি বেশি পছন্দ করব।\n\n4\n00:00:15,950 --> 00:00:24,600\nগোপনীয়তাহীন ধনী হওয়া এবং সম্পূর্ণ গোপনীয়তাসহ দরিদ্র হওয়ার মধ্যে বেছে নিতে হলে, আমি দরিদ্র হওয়াটাই বেছে নেব।",
+            "fr": "1\n00:00:00,000 --> 00:00:03,150\nPauvre avec une vie privée totale.\n\n2\n00:00:03,150 --> 00:00:09,700\nÊtre pauvre avec une vie privée totale, c'est mieux qu'être riche sans vie privée.\n\n3\n00:00:09,700 --> 00:00:15,950\nJe préférerais être pauvre mais garder ma vie privée plutôt que d'être riche sans vie privée.\n\n4\n00:00:15,950 --> 00:00:24,600\nSi je devais choisir entre être riche mais sans vie privée et être pauvre mais avec une vie privée totale, je choisirais d'être pauvre.",
+            "hi": "1\n00:00:00,000 --> 00:00:03,150\nपूरी निजता के साथ गरीब।\n\n2\n00:00:03,150 --> 00:00:09,700\nपूरी निजता के साथ गरीब होना बिना निजता के अमीर होने से बेहतर है।\n\n3\n00:00:09,700 --> 00:00:15,950\nमैं गरीब होकर पूरी निजता रखना अमीर होकर बिना निजता के रहने से ज़्यादा पसंद करूंगा।\n\n4\n00:00:15,950 --> 00:00:24,600\nअमीर होने पर बिना निजता के और गरीब होने पर पूरी निजता के साथ जीने के बीच चुनाव दिया जाए, तो मैं गरीब होना चुनूँगा।"
+          }
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-e-03",
+          "cue": [
+            {
+              "en": "A week without your phone or a week without music?",
+              "es": "¿Una semana sin tu teléfono o una semana sin música?",
+              "pt": "Uma semana sem o seu telefone ou uma semana sem música?",
+              "bn": "ফোন ছাড়া এক সপ্তাহ নাকি গান ছাড়া এক সপ্তাহ?",
+              "fr": "Une semaine sans ton téléphone ou une semaine sans musique ?",
+              "hi": "आपके फ़ोन के बिना एक हफ़्ता या संगीत के बिना एक हफ़्ता?"
+            },
+            {
+              "en": "Which is better: a week without your phone or a week without music?",
+              "es": "¿Qué es mejor: una semana sin tu teléfono o una semana sin música?",
+              "pt": "O que é melhor: uma semana sem o seu telefone ou uma semana sem música?",
+              "bn": "কোনটি ভালো: ফোন ছাড়া এক সপ্তাহ নাকি গান ছাড়া এক সপ্তাহ?",
+              "fr": "Qu'est-ce qui est mieux : une semaine sans ton téléphone ou une semaine sans musique ?",
+              "hi": "कौन सा बेहतर है: अपने फोन के बिना एक हफ्ता या संगीत के बिना एक हफ्ता?"
+            },
+            {
+              "en": "Would you rather go a week without your phone or go a week without listening to any music?",
+              "es": "¿Preferirías pasar una semana sin tu teléfono o pasar una semana sin escuchar nada de música?",
+              "pt": "Você prefere passar uma semana sem o seu telefone ou passar uma semana sem ouvir nenhuma música?",
+              "bn": "আপনি কি ফোন ছাড়া এক সপ্তাহ কাটাতে চান নাকি কোনো গান না শুনে এক সপ্তাহ কাটাতে চান?",
+              "fr": "Préférerais-tu passer une semaine sans ton téléphone ou passer une semaine sans écouter de musique ?",
+              "hi": "आप एक हफ्ता अपने फोन के बिना बिताना पसंद करेंगे या एक हफ्ता कोई संगीत सुने बिना बिताना पसंद करेंगे?"
+            },
+            {
+              "en": "Given the choice between going a week without your phone and going a week without listening to any music, which would you choose?",
+              "es": "Dada la opción entre pasar una semana sin tu teléfono y pasar una semana sin escuchar nada de música, ¿cuál elegirías?",
+              "pt": "Dada a escolha entre passar uma semana sem o seu telefone e passar uma semana sem ouvir nenhuma música, qual você escolheria?",
+              "bn": "ফোন ছাড়া এক সপ্তাহ কাটানো এবং কোনো গান না শুনে এক সপ্তাহ কাটানোর মধ্যে পছন্দ দেওয়া হলে, আপনি কোনটি বেছে নেবেন?",
+              "fr": "Si tu avais le choix entre passer une semaine sans ton téléphone et passer une semaine sans écouter de musique, que choisirais-tu ?",
+              "hi": "एक सप्ताह अपने फ़ोन के बिना रहने और एक सप्ताह कोई संगीत सुने बिना रहने के बीच चुनाव दिया जाए, तो आप क्या चुनेंगे?"
+            }
+          ],
+          "publishLessonId": "e",
+          "subtitles": {
+            "en": "1\n00:00:00,000 --> 00:00:03,750\nA week without your phone or a week without music?\n\n2\n00:00:03,750 --> 00:00:09,300\nWhich is better: a week without your phone or a week without music?\n\n3\n00:00:09,300 --> 00:00:15,950\nWould you rather go a week without your phone or go a week without listening to any music?\n\n4\n00:00:15,950 --> 00:00:23,200\nGiven the choice between going a week without your phone and going a week without listening to any music, which would you choose?",
+            "es": "1\n00:00:00,000 --> 00:00:03,750\n¿Una semana sin tu teléfono o una semana sin música?\n\n2\n00:00:03,750 --> 00:00:09,300\n¿Qué es mejor: una semana sin tu teléfono o una semana sin música?\n\n3\n00:00:09,300 --> 00:00:15,950\n¿Preferirías pasar una semana sin tu teléfono o pasar una semana sin escuchar música?\n\n4\n00:00:15,950 --> 00:00:23,200\nDada la opción entre pasar una semana sin tu teléfono y pasar una semana sin escuchar música, ¿cuál elegirías?",
+            "pt": "1\n00:00:00,000 --> 00:00:03,750\nUma semana sem o seu telefone ou uma semana sem música?\n\n2\n00:00:03,750 --> 00:00:09,300\nO que é melhor: uma semana sem o seu telefone ou uma semana sem música?\n\n3\n00:00:09,300 --> 00:00:15,950\nVocê prefere ficar uma semana sem o seu telefone ou ficar uma semana sem ouvir nenhuma música?\n\n4\n00:00:15,950 --> 00:00:23,200\nDada a escolha entre passar uma semana sem o seu telefone e passar uma semana sem ouvir nenhuma música, qual você escolheria?",
+            "bn": "1\n00:00:00,000 --> 00:00:03,750\nফোন ছাড়া এক সপ্তাহ নাকি গান ছাড়া এক সপ্তাহ?\n\n2\n00:00:03,750 --> 00:00:09,300\nকোনটি ভালো: ফোন ছাড়া এক সপ্তাহ নাকি গান ছাড়া এক সপ্তাহ?\n\n3\n00:00:09,300 --> 00:00:15,950\nআপনি কি ফোন ছাড়া এক সপ্তাহ কাটাতে পছন্দ করবেন নাকি কোনো গান শোনা ছাড়া এক সপ্তাহ কাটাতে পছন্দ করবেন?\n\n4\n00:00:15,950 --> 00:00:23,200\nফোন ছাড়া এক সপ্তাহ কাটানো এবং কোনো গান শোনা ছাড়া এক সপ্তাহ কাটানোর মধ্যে বেছে নিতে হলে, আপনি কোনটি বেছে নেবেন?",
+            "fr": "1\n00:00:00,000 --> 00:00:03,750\nUne semaine sans ton téléphone ou une semaine sans musique ?\n\n2\n00:00:03,750 --> 00:00:09,300\nQu'est-ce qui est mieux : une semaine sans ton téléphone ou une semaine sans musique ?\n\n3\n00:00:09,300 --> 00:00:15,950\nPréférerais-tu passer une semaine sans ton téléphone ou passer une semaine sans écouter de musique ?\n\n4\n00:00:15,950 --> 00:00:23,200\nSi tu avais le choix entre passer une semaine sans ton téléphone et passer une semaine sans écouter de musique, que choisirais-tu ?",
+            "hi": "1\n00:00:00,000 --> 00:00:03,750\nआपके फ़ोन के बिना एक हफ़्ता या संगीत के बिना एक हफ़्ता?\n\n2\n00:00:03,750 --> 00:00:09,300\nकौन सा बेहतर है: अपने फोन के बिना एक हफ्ता या संगीत के बिना एक हफ्ता?\n\n3\n00:00:09,300 --> 00:00:15,950\nआप एक हफ्ता अपने फोन के बिना बिताना पसंद करेंगे या एक हफ्ता कोई संगीत सुने बिना बिताना पसंद करेंगे?\n\n4\n00:00:15,950 --> 00:00:23,200\nएक सप्ताह अपने फ़ोन के बिना रहने और एक सप्ताह कोई संगीत सुने बिना रहने के बीच चुनाव दिया जाए, तो आप क्या चुनेंगे?"
+          }
+        },
+        {
+          "responseType": "branching",
+          "simpleVideoUrl": "{friendCode}{selfCode}-wouldyourather-test-e-03",
+          "chooseStep": [
+            {
+              "nextStep": 1,
+              "text": {
+                "en": "A week without your phone",
+                "es": "Una semana sin tu teléfono",
+                "pt": "Uma semana sem o seu telefone",
+                "bn": "ফোন ছাড়া এক সপ্তাহ",
+                "fr": "Une semaine sans téléphone",
+                "hi": "आपके फोन के बिना एक हफ्ता"
+              }
+            },
+            {
+              "nextStep": 2,
+              "text": {
+                "en": "A week without music",
+                "es": "Una semana sin música",
+                "pt": "Uma semana sem música",
+                "bn": "গান ছাড়া এক সপ্তাহ",
+                "fr": "Une semaine sans musique",
+                "hi": "संगीत के बिना एक हफ्ता"
+              }
+            }
+          ]
+        },
+        {
           "responseType": "friendClosedResponse",
           "simpleVideoUrl": "wouldyourather-f-05",
           "cue": [
@@ -3042,6 +3983,269 @@
             "bn": "1\n00:00:00,000 --> 00:00:02,350\nগান ছাড়া এক সপ্তাহ।\n\n2\n00:00:02,350 --> 00:00:07,600\nফোন ছাড়া এক সপ্তাহ কাটানোর চেয়ে গান ছাড়া এক সপ্তাহ কাটানো ভালো।\n\n3\n00:00:07,600 --> 00:00:13,850\nফোন ছাড়া এক সপ্তাহ কাটানোর চেয়ে আমি কোনো গান শোনা ছাড়া এক সপ্তাহ কাটাতে পছন্দ করব।\n\n4\n00:00:13,850 --> 00:00:22,800\nফোন ছাড়া এক সপ্তাহ কাটানো এবং কোনো গান শোনা ছাড়া এক সপ্তাহ কাটানোর মধ্যে বেছে নিতে হলে, আমি গান শোনা ছাড়া এক সপ্তাহ কাটানোই বেছে নেব।",
             "fr": "1\n00:00:00,000 --> 00:00:02,350\nUne semaine sans musique.\n\n2\n00:00:02,350 --> 00:00:07,600\nPasser une semaine sans musique, c'est mieux que passer une semaine sans mon téléphone.\n\n3\n00:00:07,600 --> 00:00:13,850\nJe préférerais passer une semaine sans écouter de musique plutôt que de passer une semaine sans mon téléphone.\n\n4\n00:00:13,850 --> 00:00:22,800\nSi je devais choisir entre passer une semaine sans mon téléphone et passer une semaine sans écouter de musique, je choisirais de passer une semaine sans écouter de musique.",
             "hi": "1\n00:00:00,000 --> 00:00:02,350\nसंगीत के बिना एक हफ़्ता।\n\n2\n00:00:02,350 --> 00:00:07,600\nएक हफ्ता संगीत के बिना रहना मेरे फोन के बिना एक हफ्ता रहने से बेहतर है।\n\n3\n00:00:07,600 --> 00:00:13,850\nमैं एक हफ्ता बिना कोई संगीत सुने रहना मेरे फोन के बिना एक हफ्ता रहने से ज़्यादा पसंद करूंगा।\n\n4\n00:00:13,850 --> 00:00:22,800\nएक सप्ताह अपने फ़ोन के बिना रहने और एक सप्ताह कोई संगीत सुने बिना रहने के बीच चुनाव दिया जाए, तो मैं एक सप्ताह कोई संगीत सुने बिना रहना चुनूँगा।"
+          }
+        },
+        {
+          "responseType": "branching",
+          "simpleVideoUrl": "{friendCode}{selfCode}-wouldyourather-test-e-03",
+          "chooseStep": [
+            {
+              "nextStep": 1,
+              "text": {
+                "en": "A week without your phone",
+                "es": "Una semana sin tu teléfono",
+                "pt": "Uma semana sem o seu telefone",
+                "bn": "ফোন ছাড়া এক সপ্তাহ",
+                "fr": "Une semaine sans téléphone",
+                "hi": "आपके फोन के बिना एक हफ्ता"
+              }
+            },
+            {
+              "nextStep": 2,
+              "text": {
+                "en": "A week without music",
+                "es": "Una semana sin música",
+                "pt": "Uma semana sem música",
+                "bn": "গান ছাড়া এক সপ্তাহ",
+                "fr": "Une semaine sans musique",
+                "hi": "संगीत के बिना एक हफ्ता"
+              }
+            }
+          ]
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-f-05",
+          "cue": [
+            {
+              "en": "A week without your phone.",
+              "es": "Una semana sin tu teléfono.",
+              "pt": "Uma semana sem o seu telefone.",
+              "bn": "ফোন ছাড়া এক সপ্তাহ।",
+              "fr": "Une semaine sans ton téléphone.",
+              "hi": "आपके फ़ोन के बिना एक हफ़्ता।"
+            },
+            {
+              "en": "Going a week without my phone is better than going a week without music.",
+              "es": "Pasar una semana sin mi teléfono es mejor que pasar una semana sin música.",
+              "pt": "Passar uma semana sem o meu telefone é melhor do que passar uma semana sem música.",
+              "bn": "গান ছাড়া এক সপ্তাহ কাটানোর চেয়ে আমার ফোন ছাড়া এক সপ্তাহ কাটানো ভালো।",
+              "fr": "Passer une semaine sans mon téléphone, c'est mieux que passer une semaine sans musique.",
+              "hi": "मेरे फोन के बिना एक हफ्ता रहना संगीत के बिना एक हफ्ता रहने से बेहतर है।"
+            },
+            {
+              "en": "I would rather go a week without my phone than go a week without listening to any music.",
+              "es": "Preferiría pasar una semana sin mi teléfono que pasar una semana sin escuchar nada de música.",
+              "pt": "Eu prefiro passar uma semana sem o meu telefone a passar uma semana sem ouvir nenhuma música.",
+              "bn": "আমি কোনো গান না শুনে এক সপ্তাহ কাটানোর চেয়ে আমার ফোন ছাড়া এক সপ্তাহ কাটাতে পছন্দ করব।",
+              "fr": "Je préférerais passer une semaine sans mon téléphone plutôt que de passer une semaine sans écouter de musique.",
+              "hi": "मैं मेरे फोन के बिना एक हफ्ता रहना बिना कोई संगीत सुने एक हफ्ता रहने से ज़्यादा पसंद करूंगा।"
+            },
+            {
+              "en": "Given the choice between going a week without your phone and going a week without listening to any music, I would choose to go a week without my phone.",
+              "es": "Dada la opción entre pasar una semana sin tu teléfono y pasar una semana sin escuchar nada de música, elegiría pasar una semana sin mi teléfono.",
+              "pt": "Dada a escolha entre passar uma semana sem o seu telefone e passar uma semana sem ouvir nenhuma música, eu escolheria passar uma semana sem o meu telefone.",
+              "bn": "ফোন ছাড়া এক সপ্তাহ কাটানো এবং কোনো গান না শুনে এক সপ্তাহ কাটানোর মধ্যে পছন্দ দেওয়া হলে, আমি আমার ফোন ছাড়া এক সপ্তাহ কাটানো বেছে নেব।",
+              "fr": "Si je devais choisir entre passer une semaine sans mon téléphone et passer une semaine sans écouter de musique, je choisirais de passer une semaine sans mon téléphone.",
+              "hi": "एक सप्ताह अपने फ़ोन के बिना रहने और एक सप्ताह कोई संगीत सुने बिना रहने के बीच चुनाव दिया जाए, तो मैं एक सप्ताह अपने फ़ोन के बिना रहना चुनूँगा।"
+            }
+          ],
+          "nextStep": 2,
+          "subtitles": {
+            "en": "1\n00:00:00,000 --> 00:00:02,650\nA week without your phone.\n\n2\n00:00:02,650 --> 00:00:08,300\nGoing a week without my phone is better than going a week without music.\n\n3\n00:00:08,300 --> 00:00:14,350\nI would rather go a week without my phone than go a week without listening to any music.\n\n4\n00:00:14,350 --> 00:00:23,500\nGiven the choice between going a week without your phone and going a week without listening to any music, I would choose to go a week without my phone.",
+            "es": "1\n00:00:00,000 --> 00:00:02,650\nA week without your phone.\n\n2\n00:00:02,650 --> 00:00:08,300\nPasar una semana sin mi teléfono es mejor que pasar una semana sin música.\n\n3\n00:00:08,300 --> 00:00:14,350\nPreferiría pasar una semana sin mi teléfono que pasar una semana sin escuchar música.\n\n4\n00:00:14,350 --> 00:00:23,500\nDada la opción entre pasar una semana sin tu teléfono y pasar una semana sin escuchar música, elegiría pasar una semana sin mi teléfono.",
+            "pt": "1\n00:00:00,000 --> 00:00:02,650\nUma semana sem o seu telefone.\n\n2\n00:00:02,650 --> 00:00:08,300\nPassar uma semana sem o meu telefone é melhor do que passar uma semana sem música.\n\n3\n00:00:08,300 --> 00:00:14,350\nEu preferiria passar uma semana sem o meu telefone do que passar uma semana sem ouvir nenhuma música.\n\n4\n00:00:14,350 --> 00:00:23,500\nDada a escolha entre passar uma semana sem o seu telefone e passar uma semana sem ouvir nenhuma música, eu escolheria passar uma semana sem o meu telefone.",
+            "bn": "1\n00:00:00,000 --> 00:00:02,650\nফোন ছাড়া এক সপ্তাহ।\n\n2\n00:00:02,650 --> 00:00:08,300\nগান ছাড়া এক সপ্তাহ কাটানোর চেয়ে ফোন ছাড়া এক সপ্তাহ কাটানো ভালো।\n\n3\n00:00:08,300 --> 00:00:14,350\nকোনো গান শোনা ছাড়া এক সপ্তাহ কাটানোর চেয়ে আমি ফোন ছাড়া এক সপ্তাহ কাটাতে পছন্দ করব।\n\n4\n00:00:14,350 --> 00:00:23,500\nফোন ছাড়া এক সপ্তাহ কাটানো এবং কোনো গান শোনা ছাড়া এক সপ্তাহ কাটানোর মধ্যে বেছে নিতে হলে, আমি ফোন ছাড়া এক সপ্তাহ কাটানোই বেছে নেব।",
+            "fr": "1\n00:00:00,000 --> 00:00:02,650\nUne semaine sans ton téléphone.\n\n2\n00:00:02,650 --> 00:00:08,300\nPasser une semaine sans mon téléphone, c'est mieux que passer une semaine sans musique.\n\n3\n00:00:08,300 --> 00:00:14,350\nJe préférerais passer une semaine sans mon téléphone plutôt que de passer une semaine sans écouter de musique.\n\n4\n00:00:14,350 --> 00:00:23,500\nSi je devais choisir entre passer une semaine sans mon téléphone et passer une semaine sans écouter de musique, je choisirais de passer une semaine sans mon téléphone.",
+            "hi": "1\n00:00:00,000 --> 00:00:02,650\nआपके फ़ोन के बिना एक हफ़्ता।\n\n2\n00:00:02,650 --> 00:00:08,300\nमेरे फोन के बिना एक हफ्ता रहना संगीत के बिना एक हफ्ता रहने से बेहतर है।\n\n3\n00:00:08,300 --> 00:00:14,350\nमैं मेरे फोन के बिना एक हफ्ता रहना बिना कोई संगीत सुने एक हफ्ता रहने से ज़्यादा पसंद करूंगा।\n\n4\n00:00:14,350 --> 00:00:23,500\nएक सप्ताह अपने फ़ोन के बिना रहने और एक सप्ताह कोई संगीत सुने बिना रहने के बीच चुनाव दिया जाए, तो मैं एक सप्ताह अपने फ़ोन के बिना रहना चुनूँगा।"
+          }
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-f-06",
+          "cue": [
+            {
+              "en": "A week without music.",
+              "es": "Una semana sin música.",
+              "pt": "Uma semana sem música.",
+              "bn": "গান ছাড়া এক সপ্তাহ।",
+              "fr": "Une semaine sans musique.",
+              "hi": "संगीत के बिना एक हफ़्ता।"
+            },
+            {
+              "en": "Going a week without music is better than going a week without my phone.",
+              "es": "Pasar una semana sin música es mejor que pasar una semana sin mi teléfono.",
+              "pt": "Passar uma semana sem música é melhor do que passar uma semana sem o meu telefone.",
+              "bn": "আমার ফোন ছাড়া এক সপ্তাহ কাটানোর চেয়ে গান ছাড়া এক সপ্তাহ কাটানো ভালো।",
+              "fr": "Passer une semaine sans musique, c'est mieux que passer une semaine sans mon téléphone.",
+              "hi": "एक हफ्ता संगीत के बिना रहना मेरे फोन के बिना एक हफ्ता रहने से बेहतर है।"
+            },
+            {
+              "en": "I would rather go a week without listening to any music than go a week without my phone.",
+              "es": "Preferiría pasar una semana sin escuchar nada de música que pasar una semana sin mi teléfono.",
+              "pt": "Eu prefiro passar uma semana sem ouvir nenhuma música a passar uma semana sem o meu telefone.",
+              "bn": "আমি আমার ফোন ছাড়া এক সপ্তাহ কাটানোর চেয়ে কোনো গান না শুনে এক সপ্তাহ কাটাতে পছন্দ করব।",
+              "fr": "Je préférerais passer une semaine sans écouter de musique plutôt que de passer une semaine sans mon téléphone.",
+              "hi": "मैं एक हफ्ता बिना कोई संगीत सुने रहना मेरे फोन के बिना एक हफ्ता रहने से ज़्यादा पसंद करूंगा।"
+            },
+            {
+              "en": "Given the choice between going a week without your phone and going a week without listening to any music, I would choose to go a week without listening to any music.",
+              "es": "Dada la opción entre pasar una semana sin tu teléfono y pasar una semana sin escuchar nada de música, elegiría pasar una semana sin escuchar nada de música.",
+              "pt": "Dada a escolha entre passar uma semana sem o seu telefone e passar uma semana sem ouvir nenhuma música, eu escolheria passar uma semana sem ouvir nenhuma música.",
+              "bn": "ফোন ছাড়া এক সপ্তাহ কাটানো এবং কোনো গান না শুনে এক সপ্তাহ কাটানোর মধ্যে পছন্দ দেওয়া হলে, আমি কোনো গান না শুনে এক সপ্তাহ কাটানো বেছে নেব।",
+              "fr": "Si je devais choisir entre passer une semaine sans mon téléphone et passer une semaine sans écouter de musique, je choisirais de passer une semaine sans écouter de musique.",
+              "hi": "एक सप्ताह अपने फ़ोन के बिना रहने और एक सप्ताह कोई संगीत सुने बिना रहने के बीच चुनाव दिया जाए, तो मैं एक सप्ताह कोई संगीत सुने बिना रहना चुनूँगा।"
+            }
+          ],
+          "nextStep": 1,
+          "subtitles": {
+            "en": "1\n00:00:00,000 --> 00:00:02,350\nA week without music.\n\n2\n00:00:02,350 --> 00:00:07,600\nGoing a week without music is better than going a week without my phone.\n\n3\n00:00:07,600 --> 00:00:13,850\nI would rather go a week without listening to any music than go a week without my phone.\n\n4\n00:00:13,850 --> 00:00:22,800\nGiven the choice between going a week without your phone and going a week without listening to any music, I would choose to go a week without listening to any music.",
+            "es": "1\n00:00:00,000 --> 00:00:02,350\nA week without music.\n\n2\n00:00:02,350 --> 00:00:07,600\nPasar una semana sin música es mejor que pasar una semana sin mi teléfono.\n\n3\n00:00:07,600 --> 00:00:13,850\nPreferiría pasar una semana sin escuchar música que pasar una semana sin mi teléfono.\n\n4\n00:00:13,850 --> 00:00:22,800\nDada la opción entre pasar una semana sin tu teléfono y pasar una semana sin escuchar música, elegiría pasar una semana sin escuchar música.",
+            "pt": "1\n00:00:00,000 --> 00:00:02,350\nUma semana sem música.\n\n2\n00:00:02,350 --> 00:00:07,600\nPassar uma semana sem música é melhor do que passar uma semana sem o meu telefone.\n\n3\n00:00:07,600 --> 00:00:13,850\nEu preferiria passar uma semana sem ouvir nenhuma música do que passar uma semana sem o meu telefone.\n\n4\n00:00:13,850 --> 00:00:22,800\nDada a escolha entre passar uma semana sem o seu telefone e passar uma semana sem ouvir nenhuma música, eu escolheria passar uma semana sem ouvir nenhuma música.",
+            "bn": "1\n00:00:00,000 --> 00:00:02,350\nগান ছাড়া এক সপ্তাহ।\n\n2\n00:00:02,350 --> 00:00:07,600\nফোন ছাড়া এক সপ্তাহ কাটানোর চেয়ে গান ছাড়া এক সপ্তাহ কাটানো ভালো।\n\n3\n00:00:07,600 --> 00:00:13,850\nফোন ছাড়া এক সপ্তাহ কাটানোর চেয়ে আমি কোনো গান শোনা ছাড়া এক সপ্তাহ কাটাতে পছন্দ করব।\n\n4\n00:00:13,850 --> 00:00:22,800\nফোন ছাড়া এক সপ্তাহ কাটানো এবং কোনো গান শোনা ছাড়া এক সপ্তাহ কাটানোর মধ্যে বেছে নিতে হলে, আমি গান শোনা ছাড়া এক সপ্তাহ কাটানোই বেছে নেব।",
+            "fr": "1\n00:00:00,000 --> 00:00:02,350\nUne semaine sans musique.\n\n2\n00:00:02,350 --> 00:00:07,600\nPasser une semaine sans musique, c'est mieux que passer une semaine sans mon téléphone.\n\n3\n00:00:07,600 --> 00:00:13,850\nJe préférerais passer une semaine sans écouter de musique plutôt que de passer une semaine sans mon téléphone.\n\n4\n00:00:13,850 --> 00:00:22,800\nSi je devais choisir entre passer une semaine sans mon téléphone et passer une semaine sans écouter de musique, je choisirais de passer une semaine sans écouter de musique.",
+            "hi": "1\n00:00:00,000 --> 00:00:02,350\nसंगीत के बिना एक हफ़्ता।\n\n2\n00:00:02,350 --> 00:00:07,600\nएक हफ्ता संगीत के बिना रहना मेरे फोन के बिना एक हफ्ता रहने से बेहतर है।\n\n3\n00:00:07,600 --> 00:00:13,850\nमैं एक हफ्ता बिना कोई संगीत सुने रहना मेरे फोन के बिना एक हफ्ता रहने से ज़्यादा पसंद करूंगा।\n\n4\n00:00:13,850 --> 00:00:22,800\nएक सप्ताह अपने फ़ोन के बिना रहने और एक सप्ताह कोई संगीत सुने बिना रहने के बीच चुनाव दिया जाए, तो मैं एक सप्ताह कोई संगीत सुने बिना रहना चुनूँगा।"
+          }
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-e-01",
+          "cue": [
+            {
+              "en": "A great job with low pay or a bad job with high pay?",
+              "es": "¿Un gran trabajo con baja remuneración o un mal trabajo con alta remuneración?",
+              "pt": "Um ótimo emprego com salário baixo ou um péssimo emprego com salário alto?",
+              "bn": "কম বেতনের একটি দারুণ চাকরি নাকি বেশি বেতনের একটি খারাপ চাকরি?",
+              "fr": "Un super travail mal payé ou un mauvais travail bien payé ?",
+              "hi": "कम वेतन वाली बढ़िया नौकरी या ज़्यादा वेतन वाली खराब नौकरी?"
+            },
+            {
+              "en": "Which is better: a wonderful job with low pay or a horrible job with high pay?",
+              "es": "¿Qué es mejor: un trabajo maravilloso con baja remuneración o un trabajo horrible con alta remuneración?",
+              "pt": "O que é melhor: um emprego maravilhoso com salário baixo ou um emprego horrível com salário alto?",
+              "bn": "কোনটি ভালো: কম বেতনের একটি চমৎকার চাকরি নাকি বেশি বেতনের একটি ভীতিজনক চাকরি?",
+              "fr": "Qu'est-ce qui est mieux : un super travail mal payé ou un horrible travail bien payé ?",
+              "hi": "कौन सा बेहतर है: कम वेतन वाली शानदार नौकरी या ज्यादा वेतन वाली भयानक नौकरी?"
+            },
+            {
+              "en": "Would you rather have a job you love that pays a low salary or have a job you hate that pays a high salary?",
+              "es": "¿Preferirías tener un trabajo que amas que paga un salario bajo o tener un trabajo que odias que paga un salario alto?",
+              "pt": "Você prefere ter um emprego que ama que paga um salário baixo ou ter um emprego que odeia que paga um salário alto?",
+              "bn": "আপনি কি এমন একটি চাকরি করতে পছন্দ করবেন যা আপনি ভালোবাসেন যার কম বেতন দেয় নাকি এমন একটি চাকরি করতে পছন্দ করবেন যা আপনি ঘৃণা করেন যার বেশি বেতন দেয়?",
+              "fr": "Préférerais-tu avoir un travail que tu aimes avec un petit salaire ou avoir un travail que tu détestes avec un gros salaire ?",
+              "hi": "आप ऐसी नौकरी पसंद करेंगे जो आपको पसंद हो लेकिन वेतन कम हो या ऐसी नौकरी जो आपको पसंद न हो लेकिन वेतन ज्यादा हो?"
+            },
+            {
+              "en": "Given the choice between having a job you love that pays a low salary and having a job you hate that pays a high salary, which would you choose?",
+              "es": "Dada la opción entre tener un trabajo que amas que paga un salario bajo y tener un trabajo que odias que paga un salario alto, ¿cuál elegirías?",
+              "pt": "Dada a escolha entre ter um emprego que você ama que paga um salário baixo e ter um emprego que você odeia que paga um salário alto, qual você escolheria?",
+              "bn": "কম বেতন দেয় এমন একটি চাকরি যা আপনি ভালোবাসেন এবং বেশি বেতন দেয় এমন একটি চাকরি যা আপনি ঘৃণা করেন তার মধ্যে পছন্দ দেওয়া হলে, আপনি কোনটি বেছে নেবেন?",
+              "fr": "Si tu avais le choix entre avoir un travail que tu aimes avec un petit salaire et avoir un travail que tu détestes avec un gros salaire, que choisirais-tu ?",
+              "hi": "अगर आपको चुनाव करना पड़े कि आप एक ऐसी नौकरी करें जो आपको पसंद है लेकिन कम वेतन देती है, और एक ऐसी नौकरी करें जो आपको पसंद नहीं है लेकिन ज़्यादा वेतन देती है, तो आप कौन सी चुनेंगे?"
+            }
+          ],
+          "publishLessonId": "e",
+          "subtitles": {
+            "en": "1\n00:00:00,000 --> 00:00:06,250\nA great job with low pay or a bad job with high pay?\n\n2\n00:00:06,250 --> 00:00:13,100\nWhich is better: a wonderful job with low pay or a horrible job with high pay?\n\n3\n00:00:13,100 --> 00:00:20,750\nWould you rather have a job you love that pays a low salary or have a job you hate that pays a high salary?\n\n4\n00:00:20,750 --> 00:00:29,800\nGiven the choice between having a job you love that pays a low salary and having a job you hate that pays a high salary, which would you choose?",
+            "es": "1\n00:00:00,000 --> 00:00:06,250\n¿Un gran trabajo con mal sueldo o un mal trabajo con buen sueldo?\n\n2\n00:00:06,250 --> 00:00:13,100\n¿Qué es mejor: un trabajo maravilloso con mal sueldo o un trabajo horrible con buen sueldo?\n\n3\n00:00:13,100 --> 00:00:20,750\n¿Preferirías tener un trabajo que amas que paga un salario bajo o tener un trabajo que odias que paga un salario alto?\n\n4\n00:00:20,750 --> 00:00:29,800\nDada la opción entre tener un trabajo que amas que paga un salario bajo y tener un trabajo que odias que paga un salario alto, ¿cuál elegirías?",
+            "pt": "1\n00:00:00,000 --> 00:00:06,250\nUm ótimo emprego com salário baixo ou um emprego ruim com salário alto?\n\n2\n00:00:06,250 --> 00:00:13,100\nO que é melhor: um trabalho maravilhoso com salário baixo ou um trabalho horrível com salário alto?\n\n3\n00:00:13,100 --> 00:00:20,750\nVocê prefere ter um emprego que ama que paga um salário baixo ou ter um emprego que odeia que paga um salário alto?\n\n4\n00:00:20,750 --> 00:00:29,800\nDada a escolha entre ter um emprego que você ama que paga um salário baixo e ter um emprego que você odeia que paga um salário alto, qual você escolheria?",
+            "bn": "1\n00:00:00,000 --> 00:00:06,250\nকম বেতনের দারুণ চাকরি নাকি বেশি বেতনের খারাপ চাকরি?\n\n2\n00:00:06,250 --> 00:00:13,100\nকোনটি ভালো: কম বেতনের চমৎকার চাকরি নাকি বেশি বেতনের বাজে চাকরি?\n\n3\n00:00:13,100 --> 00:00:20,750\nআপনি কি এমন চাকরি পছন্দ করবেন যা আপনি ভালোবাসেন কিন্তু কম বেতন দেয়, নাকি এমন চাকরি যা আপনি ঘৃণা করেন কিন্তু বেশি বেতন দেয়?\n\n4\n00:00:20,750 --> 00:00:29,800\nকম বেতনের ভালো চাকরি এবং বেশি বেতনের বাজে চাকরির মধ্যে বেছে নিতে হলে, আপনি কোনটি বেছে নেবেন?",
+            "fr": "1\n00:00:00,000 --> 00:00:06,250\nUn super travail mal payé ou un mauvais travail bien payé ?\n\n2\n00:00:06,250 --> 00:00:13,100\nQu'est-ce qui est mieux : un super travail mal payé ou un horrible travail bien payé ?\n\n3\n00:00:13,100 --> 00:00:20,750\nPréférerais-tu avoir un travail que tu aimes avec un petit salaire ou avoir un travail que tu détestes avec un gros salaire ?\n\n4\n00:00:20,750 --> 00:00:29,800\nSi tu avais le choix entre avoir un travail que tu aimes avec un petit salaire et avoir un travail que tu détestes avec un gros salaire, que choisirais-tu ?",
+            "hi": "1\n00:00:00,000 --> 00:00:06,250\nकम वेतन वाली बढ़िया नौकरी या ज़्यादा वेतन वाली खराब नौकरी?\n\n2\n00:00:06,250 --> 00:00:13,100\nकौन सा बेहतर है: कम वेतन वाली शानदार नौकरी या ज्यादा वेतन वाली भयानक नौकरी?\n\n3\n00:00:13,100 --> 00:00:20,750\nआप ऐसी नौकरी पसंद करेंगे जो आपको पसंद हो लेकिन वेतन कम हो या ऐसी नौकरी जो आपको पसंद न हो लेकिन वेतन ज्यादा हो?\n\n4\n00:00:20,750 --> 00:00:29,800\nअगर आपको चुनाव करना पड़े कि आप एक ऐसी नौकरी करें जो आपको पसंद है लेकिन कम वेतन देती है, और एक ऐसी नौकरी करें जो आपको पसंद नहीं है लेकिन ज़्यादा वेतन देती है, तो आप कौन सी चुनेंगे?"
+          }
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-e-02",
+          "cue": [
+            {
+              "en": "Rich with no privacy or poor with complete privacy?",
+              "es": "¿Rico sin privacidad o pobre con privacidad completa?",
+              "pt": "Rico sem privacidade ou pobre com privacidade total?",
+              "bn": "গোপনীয়তা ছাড়া ধনী নাকি সম্পূর্ণ গোপনীয়তা সহ গরিব?",
+              "fr": "Riche sans vie privée ou pauvre avec une vie privée totale ?",
+              "hi": "बिना निजता के अमीर या पूरी निजता के साथ गरीब?"
+            },
+            {
+              "en": "Which is better: rich with no privacy or poor with complete privacy?",
+              "es": "¿Qué es mejor: rico sin privacidad o pobre con privacidad completa?",
+              "pt": "O que é melhor: rico sem privacidade ou pobre com privacidade total?",
+              "bn": "কোনটি ভালো: গোপনীয়তা ছাড়া ধনী নাকি সম্পূর্ণ গোপনীয়তা সহ গরিব?",
+              "fr": "Qu'est-ce qui est mieux : être riche sans vie privée ou être pauvre avec une vie privée totale ?",
+              "hi": "कौन सा बेहतर है: बिना निजता के अमीर या पूरी निजता के साथ गरीब?"
+            },
+            {
+              "en": "Would you rather be rich but have no privacy or be poor but have complete privacy?",
+              "es": "¿Preferirías ser rico pero no tener privacidad o ser pobre pero tener privacidad completa?",
+              "pt": "Você prefere ser rico, mas não ter privacidade, ou ser pobre, mas ter privacidade total?",
+              "bn": "আপনি কি ধনী হতে চান কিন্তু কোনো গোপনীয়তা নেই নাকি গরিব হতে চান কিন্তু সম্পূর্ণ গোপনীয়তা আছে?",
+              "fr": "Préférerais-tu être riche mais sans vie privée ou être pauvre mais avec une vie privée totale ?",
+              "hi": "आप अमीर होना पसंद करेंगे लेकिन कोई निजता न हो या गरीब होना पसंद करेंगे लेकिन पूरी निजता हो?"
+            },
+            {
+              "en": "Given the choice between being rich but having no privacy and being poor but having complete privacy, which would you choose?",
+              "es": "Dada la opción entre ser rico pero no tener privacidad y ser pobre pero tener privacidad completa, ¿cuál elegirías?",
+              "pt": "Dada a escolha entre ser rico, mas não ter privacidade, e ser pobre, mas ter privacidade total, qual você escolheria?",
+              "bn": "ধনী হওয়া কিন্তু কোনো গোপনীয়তা না থাকা এবং গরিব হওয়া কিন্তু সম্পূর্ণ গোপনীয়তা থাকার মধ্যে পছন্দ দেওয়া হলে, আপনি কোনটি বেছে নেবেন?",
+              "fr": "Si tu avais le choix entre être riche mais sans vie privée et être pauvre mais avec une vie privée totale, que choisirais-tu ?",
+              "hi": "अमीर होने पर बिना निजता के और गरीब होने पर पूरी निजता के साथ जीने के बीच चुनाव दिया जाए, तो आप क्या चुनेंगे?"
+            }
+          ],
+          "publishLessonId": "e",
+          "subtitles": {
+            "en": "1\n00:00:00,000 --> 00:00:06,250\nRich with no privacy or poor with complete privacy?\n\n2\n00:00:06,250 --> 00:00:11,300\nWhich is better: rich with no privacy or poor with complete privacy?\n\n3\n00:00:11,300 --> 00:00:17,850\nWould you rather be rich but have no privacy or be poor but have complete privacy?\n\n4\n00:00:17,850 --> 00:00:27,100\nGiven the choice between being rich but having no privacy and being poor but having complete privacy, which would you choose?",
+            "es": "1\n00:00:00,000 --> 00:00:06,250\n¿Rico sin privacidad o pobre con total privacidad?\n\n2\n00:00:06,250 --> 00:00:11,300\n¿Qué es mejor: rico sin privacidad o pobre con total privacidad?\n\n3\n00:00:11,300 --> 00:00:17,850\n¿Preferirías ser rico pero no tener privacidad o ser pobre pero tener total privacidad?\n\n4\n00:00:17,850 --> 00:00:27,100\nDada la opción entre ser rico pero no tener privacidad y ser pobre pero tener total privacidad, ¿cuál elegirías?",
+            "pt": "1\n00:00:00,000 --> 00:00:06,250\nRico sem privacidade ou pobre com privacidade total?\n\n2\n00:00:06,250 --> 00:00:11,300\nO que é melhor: rico sem privacidade ou pobre com privacidade total?\n\n3\n00:00:11,300 --> 00:00:17,850\nVocê prefere ser rico, mas não ter privacidade, ou ser pobre, mas ter total privacidade?\n\n4\n00:00:17,850 --> 00:00:27,100\nDada a escolha entre ser rico, mas não ter privacidade, e ser pobre, mas ter total privacidade, qual você escolheria?",
+            "bn": "1\n00:00:00,000 --> 00:00:06,250\nগোপনীয়তা ছাড়া ধনী নাকি সম্পূর্ণ গোপনীয়তাসহ দরিদ্র?\n\n2\n00:00:06,250 --> 00:00:11,300\nকোনটি ভালো: গোপনীয়তা ছাড়া ধনী নাকি সম্পূর্ণ গোপনীয়তাসহ দরিদ্র?\n\n3\n00:00:11,300 --> 00:00:17,850\nআপনি কি ধনী হতে পছন্দ করবেন কিন্তু কোনো গোপনীয়তা থাকবে না নাকি দরিদ্র হবেন কিন্তু সম্পূর্ণ গোপনীয়তা থাকবে?\n\n4\n00:00:17,850 --> 00:00:27,100\nগোপনীয়তাহীন ধনী হওয়া এবং সম্পূর্ণ গোপনীয়তাসহ দরিদ্র হওয়ার মধ্যে বেছে নিতে হলে, আপনি কোনটি বেছে নেবেন?",
+            "fr": "1\n00:00:00,000 --> 00:00:06,250\nRiche sans vie privée ou pauvre avec une vie privée totale ?\n\n2\n00:00:06,250 --> 00:00:11,300\nQu'est-ce qui est mieux : être riche sans vie privée ou être pauvre avec une vie privée totale ?\n\n3\n00:00:11,300 --> 00:00:17,850\nPréférerais-tu être riche mais sans vie privée ou être pauvre mais avec une vie privée totale ?\n\n4\n00:00:17,850 --> 00:00:27,100\nSi tu avais le choix entre être riche mais sans vie privée et être pauvre mais avec une vie privée totale, que choisirais-tu ?",
+            "hi": "1\n00:00:00,000 --> 00:00:06,250\nबिना निजता के अमीर या पूरी निजता के साथ गरीब?\n\n2\n00:00:06,250 --> 00:00:11,300\nकौन सा बेहतर है: बिना निजता के अमीर या पूरी निजता के साथ गरीब?\n\n3\n00:00:11,300 --> 00:00:17,850\nआप अमीर होना पसंद करेंगे लेकिन कोई निजता न हो या गरीब होना पसंद करेंगे लेकिन पूरी निजता हो?\n\n4\n00:00:17,850 --> 00:00:27,100\nअमीर होने पर बिना निजता के और गरीब होने पर पूरी निजता के साथ जीने के बीच चुनाव दिया जाए, तो आप क्या चुनेंगे?"
+          }
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-e-03",
+          "cue": [
+            {
+              "en": "A week without your phone or a week without music?",
+              "es": "¿Una semana sin tu teléfono o una semana sin música?",
+              "pt": "Uma semana sem o seu telefone ou uma semana sem música?",
+              "bn": "ফোন ছাড়া এক সপ্তাহ নাকি গান ছাড়া এক সপ্তাহ?",
+              "fr": "Une semaine sans ton téléphone ou une semaine sans musique ?",
+              "hi": "आपके फ़ोन के बिना एक हफ़्ता या संगीत के बिना एक हफ़्ता?"
+            },
+            {
+              "en": "Which is better: a week without your phone or a week without music?",
+              "es": "¿Qué es mejor: una semana sin tu teléfono o una semana sin música?",
+              "pt": "O que é melhor: uma semana sem o seu telefone ou uma semana sem música?",
+              "bn": "কোনটি ভালো: ফোন ছাড়া এক সপ্তাহ নাকি গান ছাড়া এক সপ্তাহ?",
+              "fr": "Qu'est-ce qui est mieux : une semaine sans ton téléphone ou une semaine sans musique ?",
+              "hi": "कौन सा बेहतर है: अपने फोन के बिना एक हफ्ता या संगीत के बिना एक हफ्ता?"
+            },
+            {
+              "en": "Would you rather go a week without your phone or go a week without listening to any music?",
+              "es": "¿Preferirías pasar una semana sin tu teléfono o pasar una semana sin escuchar nada de música?",
+              "pt": "Você prefere passar uma semana sem o seu telefone ou passar uma semana sem ouvir nenhuma música?",
+              "bn": "আপনি কি ফোন ছাড়া এক সপ্তাহ কাটাতে চান নাকি কোনো গান না শুনে এক সপ্তাহ কাটাতে চান?",
+              "fr": "Préférerais-tu passer une semaine sans ton téléphone ou passer une semaine sans écouter de musique ?",
+              "hi": "आप एक हफ्ता अपने फोन के बिना बिताना पसंद करेंगे या एक हफ्ता कोई संगीत सुने बिना बिताना पसंद करेंगे?"
+            },
+            {
+              "en": "Given the choice between going a week without your phone and going a week without listening to any music, which would you choose?",
+              "es": "Dada la opción entre pasar una semana sin tu teléfono y pasar una semana sin escuchar nada de música, ¿cuál elegirías?",
+              "pt": "Dada a escolha entre passar uma semana sem o seu telefone e passar uma semana sem ouvir nenhuma música, qual você escolheria?",
+              "bn": "ফোন ছাড়া এক সপ্তাহ কাটানো এবং কোনো গান না শুনে এক সপ্তাহ কাটানোর মধ্যে পছন্দ দেওয়া হলে, আপনি কোনটি বেছে নেবেন?",
+              "fr": "Si tu avais le choix entre passer une semaine sans ton téléphone et passer une semaine sans écouter de musique, que choisirais-tu ?",
+              "hi": "एक सप्ताह अपने फ़ोन के बिना रहने और एक सप्ताह कोई संगीत सुने बिना रहने के बीच चुनाव दिया जाए, तो आप क्या चुनेंगे?"
+            }
+          ],
+          "publishLessonId": "e",
+          "subtitles": {
+            "en": "1\n00:00:00,000 --> 00:00:03,750\nA week without your phone or a week without music?\n\n2\n00:00:03,750 --> 00:00:09,300\nWhich is better: a week without your phone or a week without music?\n\n3\n00:00:09,300 --> 00:00:15,950\nWould you rather go a week without your phone or go a week without listening to any music?\n\n4\n00:00:15,950 --> 00:00:23,200\nGiven the choice between going a week without your phone and going a week without listening to any music, which would you choose?",
+            "es": "1\n00:00:00,000 --> 00:00:03,750\n¿Una semana sin tu teléfono o una semana sin música?\n\n2\n00:00:03,750 --> 00:00:09,300\n¿Qué es mejor: una semana sin tu teléfono o una semana sin música?\n\n3\n00:00:09,300 --> 00:00:15,950\n¿Preferirías pasar una semana sin tu teléfono o pasar una semana sin escuchar música?\n\n4\n00:00:15,950 --> 00:00:23,200\nDada la opción entre pasar una semana sin tu teléfono y pasar una semana sin escuchar música, ¿cuál elegirías?",
+            "pt": "1\n00:00:00,000 --> 00:00:03,750\nUma semana sem o seu telefone ou uma semana sem música?\n\n2\n00:00:03,750 --> 00:00:09,300\nO que é melhor: uma semana sem o seu telefone ou uma semana sem música?\n\n3\n00:00:09,300 --> 00:00:15,950\nVocê prefere ficar uma semana sem o seu telefone ou ficar uma semana sem ouvir nenhuma música?\n\n4\n00:00:15,950 --> 00:00:23,200\nDada a escolha entre passar uma semana sem o seu telefone e passar uma semana sem ouvir nenhuma música, qual você escolheria?",
+            "bn": "1\n00:00:00,000 --> 00:00:03,750\nফোন ছাড়া এক সপ্তাহ নাকি গান ছাড়া এক সপ্তাহ?\n\n2\n00:00:03,750 --> 00:00:09,300\nকোনটি ভালো: ফোন ছাড়া এক সপ্তাহ নাকি গান ছাড়া এক সপ্তাহ?\n\n3\n00:00:09,300 --> 00:00:15,950\nআপনি কি ফোন ছাড়া এক সপ্তাহ কাটাতে পছন্দ করবেন নাকি কোনো গান শোনা ছাড়া এক সপ্তাহ কাটাতে পছন্দ করবেন?\n\n4\n00:00:15,950 --> 00:00:23,200\nফোন ছাড়া এক সপ্তাহ কাটানো এবং কোনো গান শোনা ছাড়া এক সপ্তাহ কাটানোর মধ্যে বেছে নিতে হলে, আপনি কোনটি বেছে নেবেন?",
+            "fr": "1\n00:00:00,000 --> 00:00:03,750\nUne semaine sans ton téléphone ou une semaine sans musique ?\n\n2\n00:00:03,750 --> 00:00:09,300\nQu'est-ce qui est mieux : une semaine sans ton téléphone ou une semaine sans musique ?\n\n3\n00:00:09,300 --> 00:00:15,950\nPréférerais-tu passer une semaine sans ton téléphone ou passer une semaine sans écouter de musique ?\n\n4\n00:00:15,950 --> 00:00:23,200\nSi tu avais le choix entre passer une semaine sans ton téléphone et passer une semaine sans écouter de musique, que choisirais-tu ?",
+            "hi": "1\n00:00:00,000 --> 00:00:03,750\nआपके फ़ोन के बिना एक हफ़्ता या संगीत के बिना एक हफ़्ता?\n\n2\n00:00:03,750 --> 00:00:09,300\nकौन सा बेहतर है: अपने फोन के बिना एक हफ्ता या संगीत के बिना एक हफ्ता?\n\n3\n00:00:09,300 --> 00:00:15,950\nआप एक हफ्ता अपने फोन के बिना बिताना पसंद करेंगे या एक हफ्ता कोई संगीत सुने बिना बिताना पसंद करेंगे?\n\n4\n00:00:15,950 --> 00:00:23,200\nएक सप्ताह अपने फ़ोन के बिना रहने और एक सप्ताह कोई संगीत सुने बिना रहने के बीच चुनाव दिया जाए, तो आप क्या चुनेंगे?"
           }
         }
       ]
