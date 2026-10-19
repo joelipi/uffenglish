@@ -1,6 +1,11 @@
 {
   "courseId": "wouldyourather",
   "courseName": "Get $1 million or $5 million?",
+  "tags": [
+    "preferences",
+    "money",
+    "getting to know you"
+  ],
   "courseHeroImage": "src/assets/img/wouldyouratherhero.jpg",
   "courseMission": {
     "mission": {
