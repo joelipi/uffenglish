@@ -7,7 +7,7 @@ description: >
   Output: Pass/Fail report with file:line findings committed to git.
 mode: subagent
 temperature: 0
-model: deepseek/deepseek-flash
+model: opencode-go/beam-free
 variant: low
 tools:
   edit: false
