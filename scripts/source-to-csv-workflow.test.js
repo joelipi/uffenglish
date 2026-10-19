@@ -37,7 +37,7 @@ function assertSourceToCsvContract(text) {
     expect(commit).toContain('uses: ./.github/actions/bot-commit/');
     expect(commit).toContain('bot-name: uff-authoring-bot');
     expect(commit).toContain('[skip authoring]');
-    expect(commit).toContain('add-paths: public/wouldyourather.master.csv');
+    expect(commit).toContain('add-paths: public/*.master.csv');
     expect(commit).toContain('node scripts/generate-master-csv.mjs');
 
     const guard = ifLine(text, 'source-to-csv.yml');

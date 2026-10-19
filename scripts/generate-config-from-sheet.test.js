@@ -272,7 +272,7 @@ describe('generate-config-from-sheet CLI', () => {
         // The default input is the committed store, not a URL: the CLI must
         // resolve it from MASTER_CSV_REL, and the file must exist in the repo.
         const cli = readFileSync(SCRIPT, 'utf8');
-        expect(cli).toContain('path.join(ROOT, MASTER_CSV_REL)');
+        expect(cli).toContain(".endsWith('.master.csv')");
         expect(existsSync(path.join(ROOT, 'public/wouldyourather.master.csv'))).toBe(true);
     });
 });
@@ -455,7 +455,7 @@ describe('generate-config-from-sheet master format', () => {
 describe('committed master CSV input (story 065, Task 6)', () => {
     const assertDiskContract = (cli) => {
         expect(cli).toContain("MASTER_CSV_REL = 'public/wouldyourather.master.csv'");
-        expect(cli).toContain('path.join(ROOT, MASTER_CSV_REL)');
+        expect(cli).toContain(".endsWith('.master.csv')");
         expect(cli).not.toContain('SHEET_URL');
         expect(cli).not.toContain('docs.google.com');
         expect(cli).not.toContain('--from-api');
@@ -471,7 +471,7 @@ describe('committed master CSV input (story 065, Task 6)', () => {
     it('the guard can fail on each pinned token', () => {
         const good = readFileSync(SCRIPT, 'utf8');
         expect(() => assertDiskContract(
-            good.replace("MASTER_CSV_REL = 'public/wouldyourather.master.csv'", "MASTER_CSV_REL = 'public/other.csv'")
+            good.replace(".endsWith('.master.csv')", ".endsWith('.csv')")
         )).toThrow();
         for (const injected of [
             "\n// export const SHEET_URL = 'x';\n",
