@@ -13,7 +13,8 @@
     /* Bootstrap 5.3 theme variables, set to the app's palette. */
     --bs-body-bg: #0b1a2a;
     --bs-body-color: #e9ecef;
-    --bs-body-font-family: 'Inter', 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    /* One source of truth for the body stack (src/modules/theme/brand-fonts.js). */
+    --bs-body-font-family: var(--font-body);
     --bs-emphasis-color: #ffffff;
     --bs-emphasis-color-rgb: 255, 255, 255;
     --bs-secondary-color: #adb5bd;
@@ -121,8 +122,10 @@
 
 .uff-navbar .navbar-brand img,
 .uff-home-bs img.uff-logo {
-    height: 40px;
+    height: auto;
     width: auto;
+    max-height: 40px;
+    max-width: 100%;
     display: block;
     filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.35));
 }
@@ -135,7 +138,8 @@
 }
 
 .uff-navbar .navbar-brand {
-    flex-shrink: 0;
+    flex: 0 1 auto;
+    max-width: 50%;
     margin-right: 0.5rem;
     min-width: 0;
 }
@@ -144,11 +148,13 @@
     flex-wrap: nowrap;
     min-width: 0;
     margin-left: auto;
+    max-width: 50%;
+    flex: 1 1 0;
 }
 
 .uff-navbar .form-select {
     min-width: 0;
-    max-width: 38vw;
+    max-width: 50%;
     overflow: hidden;
     text-overflow: ellipsis;
 }
@@ -160,7 +166,8 @@
 @media (max-width: 400px) {
     .uff-navbar .navbar-brand img,
     .uff-home-bs img.uff-logo {
-        height: 32px;
+        max-height: 32px;
+        max-width: 100%;
     }
 }
 

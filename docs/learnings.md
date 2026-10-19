@@ -118,13 +118,6 @@
 
 ---
 
-## Cloudflare Pages serves `public/x.html` at `/x` and 308-redirects `/x.html`
-**Date**: 2026-10-04
-**Area**: build | workflow
-**What happened**: A vendored static page at `public/recorder.html` was marked `noindex` with a `public/_headers` rule scoped to `/recorder.html`, but Cloudflare Pages permanently redirects `/recorder.html` to the extensionless `/recorder` and serves the file there — so the header attached to the redirect response, not the page. A guard that scanned only the literal `recorder.html` token likewise missed an extensionless `/recorder` link. The code reviewer caught both.
-**Takeaway**: Static HTML in `public/` is served at its extensionless path (`public/landing.html` → `/landing`); a request for `/x.html` 308s to `/x`. Put `_headers` selectors on the served path (`/x`, optionally also `/x.html` for the redirect), and when guarding that a page stays unlinked, scan for both forms with a bounded pattern (`/\/x(?![\w.-])|x\.html/`, so a bare `MediaRecorder` is not a hit). An unlisted file is obscurity, not access control — noindex + unlinked does not stop someone who knows the URL; use Cloudflare Access if the page must be truly private.
-
----
 
 ## The apex was never really on Pages: an `active` custom domain over a stale origin A record
 **Date**: 2026-10-07
@@ -188,3 +181,94 @@
 **Takeaway**: A completion counter must be keyed on the lesson that **finished**, not on what comes after it. Split the two concerns the single `lessonId` parameter was overloading: "resume target" (the next lesson, or the completed one when it is terminal) and "counted lesson" (an explicit `completedLessonId` option). Baseline the increment off `max(userData, store)` and write both after each completion, or consecutive completions in one session overwrite each other. `incrementCount` was already an accepted option but never read — an option that no code honours is a latent trap, so gate the increment on it and add a test that a plain `saveLessonProgress` call does **not** bump the count. Finally, pin the completion contract at the call site that was wrong (a `handleSuccessStep` test with a `nextLessonId`-less lesson), not only on the helper — the helper's tests all passed while the reported bug was still live.
 
 **Correction (same day)**: the first version of this fix made the increment idempotent per lesson via the `counted_lessons` set — wrong product rule. Learners re-do the same lessons with friends over and over, and each genuine re-completion earns credit. The only guard is the phantom completion: landing on the success step directly (page load, reload, signup redirect) without traversing the lesson. That guard is the existing `stepLoadedFromRestore` flag — set `true` only by `loadLessonContent` (the direct path) and cleared by every in-app advance (`loadNextStep`/`jumpToStep`) — so `handleSuccessStep` passes `incrementCount: !stepLoadedFromRestore`. `counted_lessons` stays the UNIQUE set (unique count = its length); the total counter counts every genuine completion, repeats included.
+
+---
+
+## A `canvas.captureStream()` recording of a static canvas is a 0-byte file
+**Date**: 2026-10-12
+**Area**: testing | build
+**What happened**: The tutorial placeholders (`scripts/generate-tutorial-placeholders.mjs`) wrote five 0-byte mp4s. The recorder code was correct in isolation (a 320×480 canvas recorded fine), so the failure looked like a codec or headless problem; bisecting the page showed it was the *painting*, not the recording: Chrome emits a canvas frame only when the canvas **changes**, so a page that draws once at load and then records produces a dataavailable event with an empty blob. A/B in one browser process — no draw after `captureStream()` = 0 bytes, draw after = 3.8 KB, `requestAnimationFrame` repaint loop = 17 KB for the same 2.5 s. Two side findings from the same session: Playwright's bundled ffmpeg is a stripped build (`--enable-muxer=webm`, vp8 only, no H.264/drawtext), so it cannot author or transcode an mp4 fixture, and `key={...}`-free JSX renders `controls` as `controls=""` which `toHaveAttribute('controls', '')` matches.
+**Takeaway**: When recording a canvas with `MediaRecorder`, repaint for the entire take (a `requestAnimationFrame` loop, cancelled before `stop()`), and treat a suspiciously tiny output as "no frames were emitted" rather than "bad codec". Diagnose page-level recording bugs by bisecting the *page* (draw vs no draw, RAF vs static) inside one browser process — it is far faster than iterating on the encoder settings. Verify the artifact with a container probe (`mediabunny` `Input` reads `codedWidth`/`computeDuration` with no WebCodecs), not with file size.
+
+## The `user_notifications` dedupe makes a re-answer an UPDATE, and mark-as-read is also an UPDATE
+
+**Date**: 2026-10-13
+**Area**: architecture | supabase
+**What happened**: `record_friend_response()` (005) upserts on `(recipient_id, actor_id, type)`, so a second answer refreshes `created_at` and clears `read_at` via `ON CONFLICT DO UPDATE` — but the recipient clearing `read_at` is *also* an UPDATE on the same row. An `AFTER INSERT OR UPDATE` trigger on that table (e.g. story 063's push webhook) therefore fired on "mark as read" and would have pushed an old notification; an insert-only trigger would silently drop every re-answer.
+**Takeaway**: distinguish the two writes in the trigger itself:
+`after insert or update on public.user_notifications for each row when (tg_op = 'INSERT' or new.created_at is distinct from old.created_at)`.
+`read_at` is the only other writable column (005 grants `update (read_at)` only), so `created_at` is the reliable "this is a new/refreshed notification" signal. Any future consumer of this table needs the same guard.
+
+---
+
+## The app's legal links live in exactly four surfaces — and `public/landing.html` is not one of them
+
+**Date**: 2026-10-14
+**Area**: architecture | workflow
+**What happened**: Tasked with "remove the privacy/terms links from the footer of the app", a survey found exactly one footer in the React app: the shared `LegalFooter` component, whose entire content was the two links, rendered by both `HomeLanding.jsx` (public homepage) and `HomeScreen.jsx` (dashboard) — the codebase itself calls it "the homepage/dashboard legal footer". Separately, `public/landing.html` (a legacy static WordPress-derived page, served at `/landing`) has its own footer links opening self-contained inline legal modals; it is not part of the React app and was left untouched.
+**Takeaway**: The React app's Privacy/Terms links exist in exactly four surfaces: the (now removed) `LegalFooter`, the `HomeScreen` user-menu drawer, the sign-up surfaces via `LegalLinks` (opens in a new tab — the modals are store-driven `<dialog>`s), and the public `/privacy` + `/terms` routes (`routes.jsx` + `PUBLIC_ROUTES`). When touching any of them, `grep -rn "/privacy\|/terms" src/` finds all four in one shot. `public/landing.html` is a separate legacy page with its own inline-modals legal content — scope it explicitly, don't assume "the footer of the app" includes it.
+
+---
+
+## This workspace's `vitest run` has 4 pre-existing failures from missing node_modules packages
+
+**Date**: 2026-10-14
+**Area**: build | testing
+**What happened**: A full `npx vitest run` in this worktree fails 4 test files (201 files: 4 failed / 197 passed) with 2793 tests passing: `scripts/lib/pwa-build-output.test.js` (its `npm run build` child fails loading `vite.config.js`), `functions/api/push/send.test.js`, `src/components/pwa/pwa-install-contract.test.jsx` and `src/components/pwa/pwa-install-wiring.test.jsx`. All four are module-resolution errors — `vite-plugin-pwa`, `@block65/webcrypto-web-push` and `@khmyznikov/pwa-install` are absent from the shared `node_modules` (`ls node_modules/<pkg>` confirms). Nothing in `package.json` or the repo source changed.
+**Takeaway**: These 4 failures are the sandbox baseline, not a regression — compare against this count before investigating a "new" failure, and when a verify gate fails on these files, prove the cause is a missing package rather than debugging the source. The failures are collection-time (no tests run), so the "Test Files X failed / Tests Y passed" summary is the quickest signal.
+
+---
+
+## A PurgeCSS guard must model `vite-plugin-purgecss`'s real call, not a content glob
+**Date**: 2026-10-16
+**Area**: build | testing
+**What happened**: A guard for the brand typography's `:lang()` heading rules called `new PurgeCSS().purge({ content: ['**/*.{js,css,html,…}'], css: ['src/assets/css/app.css'], safelist })`. That reported the rules being stripped from production, which I diagnosed as a production-only bug, "fixed" with a `/^:lang/` safelist entry, and wrote into the commit message. `vite-plugin-purgecss` does not glob anything: it passes `content: [{ raw: transformedIndexHtml + ' ' + Object.entries(bundle).map(([,a]) => a.code).join('; '), extension: 'html' }]` and `css: [{ raw: bundle[file].source }]` — one raw string. Modelled that way, the rules survive with an **empty** safelist, because `shouldKeepSelector()` returns true for any selector node parented by a pseudo (so `h1/h2/h3` inside `:is(…)` always survive, and `:lang(x)` hits `default: continue`) and the leading `#root` is in the content. There was no bug and the safelist entry was noise.
+**Takeaway**: Copy the call out of `node_modules/vite-plugin-purgecss/dist/index.js` before writing any PurgeCSS guard — a `content` glob scans the stylesheet under purge into its own content set, so selectors survive for the wrong reason and the guard stays green even with the fix removed. When a guard reports a production-only bug, reproduce it against the real plugin call *and* check whether the guard still fails with the proposed fix reverted.
+
+---
+
+## `git commit --amend` after a reviewer committed to the branch swallows their report
+**Date**: 2026-10-16
+**Area**: workflow
+**What happened**: The code-reviewer subagent commits its report to the branch (`docs/reviews/<topic>-review.md`). I then ran `git commit --amend` to fix a wrong commit message, which amended **the reviewer's** commit — folding its report into my message and orphaning my original commit. The branch ended up containing my work twice.
+**Takeaway**: After any subagent commits to the branch, never `--amend` the tip. To fix your own commit message, `git reset --soft <the commit before yours>` and recommit your files (leaving the reviewer's report to its own commit), or amend before the reviewer runs.
+
+---
+
+## In vitest's jsdom env, `new URL(x, import.meta.url)` throws but `fileURLToPath(import.meta.url)` works
+**Date**: 2026-10-17
+**Area**: testing
+**What happened**: A source-guard test under `src/**` resolved a sibling file with `readFileSync(fileURLToPath(new URL('./Foo.jsx', import.meta.url)))` and failed with `TypeError: The URL must be of scheme file`. The same file worked when rewritten to the repo's existing convention, `path.dirname(fileURLToPath(import.meta.url))` + `path.join(HERE, 'Foo.jsx')`, which `src/modules/user/email-confirmation-migration.test.js` and `src/modules/video/recorder-page.test.js` already use.
+**Takeaway**: Under `vitest.config.js`'s `environment: 'jsdom'`, the global `URL` is jsdom's, so `new URL()` against `import.meta.url` can resolve to a non-`file:` URL. Use `path.dirname(fileURLToPath(import.meta.url))` in every `src/**` test that reads a sibling file — it is the established convention and works in both environments. Functions tests can use either, since they opt into `// @vitest-environment node`.
+
+---
+
+## `recorder-page.test.js` fails on ANY uncommitted file, including sandbox agent config
+**Date**: 2026-10-17
+**Area**: workflow
+**What happened**: `src/modules/video/recorder-page.test.js`'s "implementation diff touches only the allowlist" guard runs `git diff --name-only HEAD` plus `git status --porcelain`, so it reports failure for files that have nothing to do with the branch. In this sandbox four tracked `.opencode/agents/*.md` files are left modified (a model-routing override injected at session start), which made that one guard red on a fully green branch and cost a debugging detour each time it was seen.
+**Takeaway**: That guard is a worktree-hygiene check, not a branch check — commit your work first so `git diff HEAD` is empty, then `git stash push -- .opencode/` to confirm the real state and `git stash pop` immediately. Do **not** `git checkout` the `.opencode/` edits to make it pass: they are injected before the session starts and discarding them is discarding work you did not create. When attributing this failure, confirm with `git diff --name-only HEAD` that no story file is in the diff. Adding your changed path to the guard's allowlist is *not* the fix for a dirty worktree: the list only matters while files are uncommitted, so the entry is dead once you commit and it permanently widens a guard that can then never flag that path again — commit, re-run, and leave the list alone.
+
+---
+
+## A share-code shape gate must update the Playwright fixture codes used as path segments
+**Date**: 2026-10-18
+**Area**: testing | routing
+**What happened**: Story 071 made `/:shareCode` render the 404 page unless the segment matches `isShareCodeSegment` (generator `ALPHABET`, 4–5 chars). The full vitest suite and the new routing tests were green, but the code reviewer caught that two currently-running Playwright specs open `page.goto(\`/${SHARE_CODE}\`)` with fixtures `friendtest1` (10 chars, contains `1`) and `owner1` (6 chars, contains `1`), so both now land on the 404 and their `await expect(page.getByText('User not found')).toBeVisible()` never resolves. The unit fixtures elsewhere (`owner1`/`viewer1` in query keys, `?shareCode=` query params) are unaffected — only the path segment is shape-checked.
+**Takeaway**: When narrowing what a route accepts, grep `tests/**` for the fixture value used as a path segment, not just for the fixture name: a code used in a query param or a query key is fine, but the same literal in `page.goto('/<code>')` must satisfy the new predicate. Run the affected spec (`npx playwright test tests/<spec>.js`) after the unit suite, because the guard only fails at page load.
+
+---
+
+## A subagent `model:` pin that names an unavailable model fails as "Insufficient Balance"
+**Date**: 2026-10-18
+**Area**: workflow | tooling
+**What happened**: `.opencode/agents/code-reviewer.md` (and the other three agent files) had been repointed at `deepseek/deepseek-flash`, a model ID that is not in this environment's catalog at all. Every `subagent` call to `@code-reviewer` died instantly with `Insufficient Balance` or `Insufficient unified billing credits`, which reads like an account problem rather than a bad model id. The same thing happened for `cloudflare-ai-gateway/anthropic/*` (gateway out of credit); `opencode/beam-free` ran fine.
+**Takeaway**: Before blaming the account, check `tools.opencode.models()` for the pinned id, then re-run the subagent with an explicit `model:` parameter from the catalog (this session's own provider, or a `*-free` id) to get the verdict. The commit that carries the unusable pin is separate from the work — don't let it block the review loop, and don't revert `.opencode/agents/*.md` either (see the `recorder-page.test.js` worktree-hygiene entry above).
+
+---
+
+## `new Intl.Collator('und')` is NOT the CLDR root collation in V8
+**Date**: 2026-10-18
+**Area**: i18n
+**What happened**: Ordering the language dropdowns by endonym needed the Unicode default collation. `new Intl.Collator('und').resolvedOptions().locale` returns `en-US` with collation `default` in V8 — 'und' is the CLDR root tag but the engine silently substitutes the default locale instead of switching collation tables, so it only *looks* like the root. `new Intl.Collator('en')` produces the same order for real language names (English tailoring only touches punctuation and spacing, not script or letter order), which is why the app pins `'en'`.
+**Takeaway**: Pin the collator to a fixed locale and say why — leaving it on the runtime default reorders the menu per user (Swedish puts `å` after `z`). Don't describe `'en'` as "the CLDR root locale" in a comment; a reviewer reading both comments will find them contradictory.

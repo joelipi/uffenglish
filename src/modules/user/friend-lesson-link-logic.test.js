@@ -12,6 +12,9 @@ import {
     listActiveFriendLinks,
     groupActiveFriendLinks,
     buildFriendPracticeView,
+    buildVisitorPracticeView,
+    listFriendCourseIds,
+    buildChainHeads,
     resolveFriendLessonLink,
 } from './friend-lesson-link-logic.js';
 
@@ -321,6 +324,149 @@ describe('buildFriendPracticeView', () => {
             'friendchain:a': { courseId: 'friendchain', recordedLessonId: 'a', lessonId: 'b', shareCode: 'x', addedAt: iso(NOW - 48 * HOUR) },
         }, NOW);
         expect(expired).toEqual({ mode: 'expired', groups: [], isTicking: false });
+    });
+});
+
+describe('listFriendCourseIds / buildChainHeads', () => {
+    it('lists the unique course ids referenced by the links, ascending', () => {
+        expect(listFriendCourseIds({
+            'b:x': { courseId: 'b' },
+            'a:x': { courseId: 'a' },
+            'a:y': { courseId: 'a' },
+        })).toEqual(['a', 'b']);
+    });
+
+    it('returns [] for missing / junk input', () => {
+        expect(listFriendCourseIds(null)).toEqual([]);
+        expect(listFriendCourseIds('x')).toEqual([]);
+        expect(listFriendCourseIds([{ courseId: 'a' }])).toEqual([]);
+        expect(listFriendCourseIds({ bad: null, empty: { courseId: '' } })).toEqual([]);
+    });
+
+    it('maps each { courseId, config } to its first shareCta lesson', () => {
+        const heads = buildChainHeads([
+            { courseId: 'friendchain', config: { lessons: [{ lessonId: 'a', recapOverlay: 'shareCta' }, { lessonId: 'b', recapOverlay: 'shareCta' }] } },
+            { courseId: 'nocourse', config: { lessons: [{ lessonId: 'z' }] } },
+        ]);
+        expect(heads.get('friendchain')).toBe('a');
+        expect(heads.has('nocourse')).toBe(false);
+    });
+
+    it('returns an empty Map for junk input', () => {
+        expect(buildChainHeads(null).size).toBe(0);
+        expect(buildChainHeads([null, { courseId: 'x' }]).size).toBe(0);
+    });
+});
+
+describe('buildVisitorPracticeView', () => {
+    // friendchain and friend both head at 'a'; the second chain lesson is 'c'.
+    const heads = new Map([['friendchain', 'a'], ['other', 'a']]);
+    const entryA = {
+        courseId: 'friendchain', courseName: 'Friend Chain', recordedLessonId: 'a',
+        lessonId: 'b', shareCode: 'owner1', addedAt: iso(NOW - HOUR), lessonTitle: 'Ask',
+    };
+    const entryC = {
+        courseId: 'friendchain', courseName: 'Friend Chain', recordedLessonId: 'c',
+        lessonId: 'd', shareCode: 'owner1', addedAt: iso(NOW - 2 * HOUR), lessonTitle: 'Follow Up',
+    };
+    const mixedLinks = { 'friendchain:a': entryA, 'friendchain:c': entryC };
+    const emptyViewer = { shareCode: 'viewer1', counted_lessons: [], notifications: [], ownerShareCode: 'owner1' };
+    const recordedLessons = (view) => view.groups.flatMap((g) => g.entries.map((e) => e.recordedLessonId));
+
+    it('logged-out: lists only chain-head entries, newest first, flagged not-together', () => {
+        const view = buildVisitorPracticeView({ friendLinks: mixedLinks, nowMs: NOW, viewer: null, chainHeads: heads });
+        expect(view.mode).toBe('active');
+        expect(view.isTicking).toBe(true);
+        const entries = view.groups.flatMap((g) => g.entries);
+        expect(entries.map((e) => e.recordedLessonId)).toEqual(['a']);
+        expect(entries[0].completedTogether).toBe(false);
+    });
+
+    it('logged-out: fails open for a course absent from chainHeads', () => {
+        const missing = {
+            courseId: 'missing', courseName: 'Missing', recordedLessonId: 'z',
+            lessonId: 'y', shareCode: 'owner1', addedAt: iso(NOW - HOUR),
+        };
+        const view = buildVisitorPracticeView({
+            friendLinks: { 'missing:z': missing, 'friendchain:c': entryC },
+            nowMs: NOW, viewer: null, chainHeads: heads,
+        });
+        expect(recordedLessons(view)).toEqual(['z']);
+    });
+
+    it('logged-in: an inbox row naming the owner features the owner recorded lesson first', () => {
+        const viewer = {
+            ...emptyViewer,
+            notifications: [{ type: 'friend_response', course_id: 'friendchain', lesson_id: 'c', payload: { actorShareCode: 'owner1' } }],
+        };
+        const view = buildVisitorPracticeView({ friendLinks: mixedLinks, nowMs: NOW, viewer, chainHeads: heads });
+        // featuring entry first, then the chain head; 'c' has no recorder match.
+        expect(recordedLessons(view)).toEqual(['c', 'a']);
+        const featuring = view.groups.flatMap((g) => g.entries).find((e) => e.recordedLessonId === 'c');
+        expect(featuring.completedTogether).toBe(false);
+    });
+
+    it('logged-in: a counted key features the entry and badges it as completed together', () => {
+        const viewer = { ...emptyViewer, counted_lessons: ['friendchain_c'] };
+        const view = buildVisitorPracticeView({ friendLinks: mixedLinks, nowMs: NOW, viewer, chainHeads: heads });
+        expect(recordedLessons(view)).toEqual(['c', 'a']);
+        const featuring = view.groups.flatMap((g) => g.entries).find((e) => e.recordedLessonId === 'c');
+        expect(featuring.completedTogether).toBe(true);
+    });
+
+    it('logged-in: joins on recordedLessonId, never the follow-on lessonId', () => {
+        // The viewer's mentions point at 'd' (entry.lessonId); they must not
+        // feature entry 'c' (recordedLessonId 'c').
+        const viewer = {
+            ...emptyViewer,
+            counted_lessons: ['friendchain_d'],
+            notifications: [{ type: 'friend_response', course_id: 'friendchain', lesson_id: 'd', payload: { actorShareCode: 'owner1' } }],
+        };
+        const view = buildVisitorPracticeView({ friendLinks: mixedLinks, nowMs: NOW, viewer, chainHeads: heads });
+        expect(recordedLessons(view)).toEqual(['a']);
+    });
+
+    it('logged-in: an entry both featuring and chain-head appears once, in the featuring group', () => {
+        const viewer = { ...emptyViewer, counted_lessons: ['friendchain_a'] };
+        const view = buildVisitorPracticeView({
+            friendLinks: { 'friendchain:a': entryA }, nowMs: NOW, viewer, chainHeads: heads,
+        });
+        expect(recordedLessons(view)).toEqual(['a']);
+        expect(view.groups.flatMap((g) => g.entries)).toHaveLength(1);
+        expect(view.groups[0].entries[0].completedTogether).toBe(true);
+    });
+
+    it('logged-in with no featuring entries: only chain-head lessons, matching the logged-out list', () => {
+        const loggedIn = buildVisitorPracticeView({ friendLinks: mixedLinks, nowMs: NOW, viewer: emptyViewer, chainHeads: heads });
+        const loggedOut = buildVisitorPracticeView({ friendLinks: mixedLinks, nowMs: NOW, viewer: null, chainHeads: heads });
+        expect(recordedLessons(loggedIn)).toEqual(recordedLessons(loggedOut));
+        const entries = loggedIn.groups.flatMap((g) => g.entries);
+        expect(entries.every((e) => e.completedTogether === false)).toBe(true);
+    });
+
+    it('is expired with the unchanged shape for empty / expired input', () => {
+        expect(buildVisitorPracticeView({ friendLinks: {}, nowMs: NOW, viewer: emptyViewer, chainHeads: heads }))
+            .toEqual({ mode: 'expired', groups: [], isTicking: false });
+        expect(buildVisitorPracticeView({ friendLinks: null, nowMs: NOW, viewer: null }))
+            .toEqual({ mode: 'expired', groups: [], isTicking: false });
+        expect(buildVisitorPracticeView({
+            friendLinks: { 'friendchain:a': { ...entryA, addedAt: iso(NOW - 48 * HOUR) } },
+            nowMs: NOW, viewer: emptyViewer, chainHeads: heads,
+        })).toEqual({ mode: 'expired', groups: [], isTicking: false });
+    });
+
+    it('is expired when the visitor filter leaves nothing (only non-head links)', () => {
+        const view = buildVisitorPracticeView({
+            friendLinks: { 'friendchain:c': entryC }, nowMs: NOW, viewer: null, chainHeads: heads,
+        });
+        expect(view.mode).toBe('expired');
+        expect(view.groups).toEqual([]);
+    });
+
+    it('delegates to buildFriendPracticeView without a viewer and without chainHeads', () => {
+        const links = { 'friendchain:a': entryA };
+        expect(buildVisitorPracticeView({ friendLinks: links, nowMs: NOW }))
+            .toEqual(buildFriendPracticeView(links, NOW));
     });
 });
 

@@ -9,6 +9,7 @@ import { resolveCurrentLessonId } from '../modules/lesson/lesson-routing.js';
 import { saveLessonProgress } from '../modules/user/user-profile.js';
 import { loadLessonContent } from '../modules/lesson/lesson-loader.js';
 import Strings from '../data/strings.js';
+import { getAppLanguageFor } from '../modules/bilingual/config-normalizer.js';
 import { trackEvent } from '../modules/utils/posthog.js';
 import { getVideoUrl, getPosterUrl } from '../modules/video/video-url.js';
 import { planLessonPreload, preloadLessonVideos } from '../modules/video/lesson-preload.js';
@@ -59,7 +60,7 @@ export function useInitializeLesson({ forceRestart = false } = {}) {
                 error: error.message,
             });
             appStore.getState().setIsLoaded(true);
-            appStore.getState().setCriticalErrorMessage(Strings.get('lesson_load_error', userData?.native_language));
+            appStore.getState().setCriticalErrorMessage(Strings.get('lesson_load_error', getAppLanguageFor(userData)));
             return { success: false, error };
         }
     }, [forceRestart]);

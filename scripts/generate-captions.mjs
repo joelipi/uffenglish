@@ -2,7 +2,7 @@
 // scripts/generate-captions.mjs
 // Generates six-language SRT captions for newly added simpleVideoUrl steps
 // (stories/009-auto-caption-simple-videos). Local Whisper transcribes the
-// audio (no cloud STT), DeepSeek translates to es/pt/fr/hi/bn, and
+// audio (no cloud STT), Gemini translates to es/pt/fr/hi/bn, and
 // jsonc-parser injects the caption objects into src/config/*.json without
 // disturbing existing bytes.
 //
@@ -10,7 +10,7 @@
 //   node scripts/generate-captions.mjs --base <sha> --head <sha> --files "src/config/a.json src/config/b.json"
 //   node scripts/generate-captions.mjs --base <sha> --head <sha> --files "src/config/a.json" --dry-run
 //
-// Requires DEEPSEEK_API_KEY and ffmpeg on PATH. The Whisper model is cached
+// Requires GOOGLE_API_KEY and ffmpeg on PATH. The Whisper model is cached
 // under $CAPTION_MODEL_CACHE (or os.tmpdir()/uff-caption-model) so it lives
 // outside the repo and is actions/cache-able.
 
@@ -25,7 +25,7 @@ import {
     WHISPER_MODEL,
     CAPTION_LANGUAGES,
 } from './lib/caption-utils.js';
-import { translateSrt } from './lib/deepseek.js';
+import { translateSrt } from './lib/gemini.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -46,7 +46,7 @@ Flags:
   --dry-run        Print planned edits without writing any file
   --help, -h       Show this help
 
-Requires DEEPSEEK_API_KEY and ffmpeg on PATH.`;
+Requires GOOGLE_API_KEY and ffmpeg on PATH.`;
 const USAGE = 'Usage: node scripts/generate-captions.mjs --base <sha> --head <sha> --files "src/config/a.json" [--dry-run]';
 
 function run(bin, args) {
@@ -137,8 +137,8 @@ async function main() {
         console.error(USAGE);
         process.exit(1);
     }
-    if (!process.env.DEEPSEEK_API_KEY) {
-        console.error('ERROR: DEEPSEEK_API_KEY is not set. Set it before running the caption generator.');
+    if (!process.env.GOOGLE_API_KEY) {
+        console.error('ERROR: GOOGLE_API_KEY is not set. Set it before running the caption generator.');
         process.exit(1);
     }
 

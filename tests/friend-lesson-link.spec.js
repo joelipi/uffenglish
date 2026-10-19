@@ -8,7 +8,9 @@ import { test, expect } from '@playwright/test';
 // 48h countdown is deterministic.
 
 const FIXED_NOW = '2026-09-24T12:00:00.000Z';
-const SHARE_CODE = 'friendtest1';
+// Must satisfy isShareCodeSegment: /:shareCode falls through to the 404 page
+// for a segment the generator could not have minted.
+const SHARE_CODE = 'k9gy';
 
 const PROFILE = {
     id: 'u1',
@@ -60,7 +62,7 @@ test.describe('public-profile friend-challenge links', () => {
         await expect(link).toHaveText('Make 3 questions');
         await expect(link).toHaveAttribute(
             'href',
-            'https://ultrafastfluency.com/course/friend/lesson/b?shareCode=friendtest1'
+            'https://ultrafastfluency.com/course/friend/lesson/b?shareCode=k9gy'
         );
 
         const fontSize = await link.evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
@@ -77,7 +79,10 @@ test.describe('public-profile friend-challenge links', () => {
             .toHaveText('Available for 47h 0m');
     });
 
-    test('renders one labelled link per recorded lesson, under a course heading', async ({ page }) => {
+    test('logged-out visitor sees only the chain-head link, under a course heading', async ({ page }) => {
+        // Story 064: logged-out visitors see only chain-head (`a`) lessons;
+        // the `c` entry is filtered at read time (chain head comes from the
+        // real friendchain.json config served by the dev server).
         await seedProfile(page, {
             'friendchain:a': entry('friendchain', 'Friend Chain', 'a', 'b', 'Ask', '2026-09-24T11:00:00.000Z'),
             'friendchain:c': entry('friendchain', 'Friend Chain', 'c', 'd', 'Follow Up', '2026-09-24T10:00:00.000Z'),
@@ -86,17 +91,12 @@ test.describe('public-profile friend-challenge links', () => {
         await expect(page.getByTestId('friend-lesson-link-group-heading')).toHaveText('Friend Chain');
 
         const links = page.getByTestId('friend-lesson-link');
-        await expect(links).toHaveCount(2);
+        await expect(links).toHaveCount(1);
         await expect(links.nth(0)).toHaveAttribute(
             'href',
-            'https://ultrafastfluency.com/course/friendchain/lesson/b?shareCode=friendtest1'
-        );
-        await expect(links.nth(1)).toHaveAttribute(
-            'href',
-            'https://ultrafastfluency.com/course/friendchain/lesson/d?shareCode=friendtest1'
+            'https://ultrafastfluency.com/course/friendchain/lesson/b?shareCode=k9gy'
         );
         await expect(links.nth(0)).toHaveText('Ask');
-        await expect(links.nth(1)).toHaveText('Follow Up');
     });
 
     test('shows the expired state once the 48h window has passed', async ({ page }) => {

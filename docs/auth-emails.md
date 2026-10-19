@@ -10,7 +10,7 @@ in production, and it is not localized.
 
 We replace it with Supabase's **Send Email Hook**: GoTrue POSTs a signed webhook
 to `functions/api/auth-email-hook.js` instead of sending, and that Function sends
-the email through **Resend** with the same localized copy as the welcome email.
+the email through **Zoho CPaaS** with the same localized copy as the welcome email.
 
 ## Flow
 
@@ -22,9 +22,9 @@ the email through **Resend** with the same localized copy as the welcome email.
 3. It resolves the language (`user_metadata.native_language`, falling back to
    the `user_profiles.native_language` lookup with the service role) and builds
    the email (`src/modules/user/auth-email-content.js`).
-4. It sends via Resend. Unlike the welcome-email endpoint this is **not
+4. It sends via Zoho CPaaS. Unlike the welcome-email endpoint this is **not
    fail-open**: a missing provider key returns `500` (a silent `200` would leave
-   the user with no reset link), and a Resend failure returns `502`.
+   the user with no reset link), and a Zoho CPaaS failure returns `502`.
 
 The email button links to Supabase's own verify endpoint
 (`https://<project>.supabase.co/auth/v1/verify?token=<hash>&type=<action>&redirect_to=<url>`),
@@ -42,7 +42,7 @@ keys plus an `ACTION_SUBJECT_KEYS` entry to localize one.
 
 ## Setup (one-time, out of band)
 
-1. `RESEND_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY` and the new
+1. `ZOHO_CPAAS_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY` and the new
    **`SEND_EMAIL_HOOK_SECRET`** must be set as **Pages secrets** (dashboard).
 2. In the Supabase dashboard → **Auth → Hooks → Send Email**: enable it, set the
    URL to `https://<your-domain>/api/auth-email-hook`, generate the secret, and

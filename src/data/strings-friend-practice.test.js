@@ -10,10 +10,19 @@ const KEYS = {
     profile_friend_lessons_expired: "All this user's lessons have expired after 48 hours, start a new lesson and send them the link to get them back into practicing English.",
     profile_friend_practice_free: 'Practice English Free',
     friend_courses_heading: 'Choose a conversation to have with your friends and practice English with them free.',
-    friend_courses_step_1: 'Complete the first mini lesson in under five minutes.',
+    // Story 070: signup is lazy, so step 1 now names the account the lesson
+    // creates. The under-five-minutes promise is kept — it is what makes
+    // deferring the account unalarming.
+    friend_courses_step_1: "Complete the first mini lesson in under five minutes. You'll create your free account at the end.",
     friend_courses_step_2: 'Share your special link with friends, family, and colleagues so that they can reply to you and continue the conversation.',
     friend_courses_empty: 'No friend courses are available right now. Please check back soon.',
     friend_courses_lesson_count: '{count} lessons',
+    // The signed-out notice at the top of /courses (story 070). Listing them
+    // here also puts them under the getBilingual localized-value check below,
+    // which reports a genuinely missing locale as null rather than falling
+    // back to English.
+    courses_guest_notice_title: "You're not signed in",
+    courses_guest_notice_body: 'New here? Complete a mini lesson in under five minutes and create your free account at the end.',
 };
 
 const LANGS = ['es', 'pt', 'fr', 'hi', 'bn'];

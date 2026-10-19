@@ -1,18 +1,52 @@
 // --- modules/video-source.js ---
-// Pure friend-vs-system video classification, shared by the URL resolver
+// Friend/UGC-vs-system video classification, shared by the URL resolver
 // (video-url.js) and the recap planner (video-processor-logic.js).
 // No browser globals, no URL construction — safe for any platform.
+// (Not stateless: the share-code registry below is module state, set once the
+// codes are known.)
+//
+// A UGC slug starts with a share code: `{recorder}-{inviter}-{course}-...`
+// (the recorder is whoever recorded the clip, the inviter is the code that
+// invited them; the same code twice when self-initiated). UGC covers both a
+// friend's recorded clip and the concatenated end-of-lesson recap.
+//
+// UGC is identified by MATCHING THE CODES ACTUALLY IN PLAY, never by the slug's
+// shape: a share code and a course/word segment are both just [a-z0-9] runs, so
+// a shape rule would misclassify system slugs like gt2's hyphenated English
+// phrases ("do-you-think-youre-a-good-friend"). The app knows its own code and
+// the friend's code at every call site that matters; the rest of the app uses
+// the registry set once the codes are known.
 
-// A friend/UGC clip is identified by its slug ending in "-response-NN"
-// (e.g. "{shareCode}-model-m-w-response-01" after {friendCode} substitution).
-// This is the same convention getVideoUrl uses to route UGC to the /videos/
-// namespace (48h TTL) instead of the teacher /assets/videos/ namespace.
-export const FRIEND_VIDEO_REGEX = /-response-\d+$/i;
+// The share codes currently in play: the user's own and the friend's.
+let knownShareCodes = [];
 
-export function isFriendVideoSlug(slug) {
-    return typeof slug === 'string' && FRIEND_VIDEO_REGEX.test(slug);
+/** Replace the set of share codes considered "in play". */
+export function setKnownShareCodes(codes) {
+    knownShareCodes = (codes || [])
+        .filter((c) => typeof c === 'string' && c.trim() !== '')
+        .map((c) => c.trim().toLowerCase());
 }
 
-export function remoteSource(slug) {
-    return isFriendVideoSlug(slug) ? 'friend' : 'system';
+/**
+ * Whether a slug is a UGC clip: it starts with one of the codes in play.
+ *
+ * @param {string} slug
+ * @param {string[]} [codes] defaults to the registry set by setKnownShareCodes
+ * @returns {boolean}
+ */
+export function isUgcSlug(slug, codes = knownShareCodes) {
+    if (typeof slug !== 'string' || slug === '') return false;
+    // An unresolved friend reference (pre-{friendCode}-substitution) is UGC too;
+    // it is a placeholder, not a shape guess.
+    if (slug.includes('{friendCode}')) return true;
+    if (!Array.isArray(codes) || codes.length === 0) return false;
+    const lower = slug.toLowerCase();
+    return codes.some((c) => c && lower.startsWith(`${String(c).toLowerCase()}-`));
+}
+
+// Historical name (predates recaps counting as UGC too). Same behaviour.
+export const isFriendVideoSlug = isUgcSlug;
+
+export function remoteSource(slug, codes) {
+    return isUgcSlug(slug, codes) ? 'friend' : 'system';
 }

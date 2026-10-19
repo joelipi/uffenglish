@@ -4,12 +4,14 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createRoot } from 'react-dom/client';
 import { act } from 'react';
+import { waitForSignupChain } from './signup-chain-wait.js';
 
 // Tracks every insert, tagged with the table it targeted.
-const { insertCalls, setQueryDataSpy, recordFriendCompletionSpy } = vi.hoisted(() => ({
+const { insertCalls, setQueryDataSpy, recordFriendCompletionSpy, emailSpy } = vi.hoisted(() => ({
     insertCalls: [],
     setQueryDataSpy: vi.fn(),
     recordFriendCompletionSpy: vi.fn(async () => ({ recorded: true })),
+    emailSpy: vi.fn(async () => ({ valid: true, reason: 'ok', suggestion: '' })),
 }));
 
 vi.mock('../../modules/api/supabase.js', () => ({
@@ -21,16 +23,23 @@ vi.mock('../../modules/api/supabase.js', () => ({
             }),
         },
         from: (table) => ({
+            // useSignupForm writes the profile with upsert (it must be
+            // idempotent — the geo collector writes the same row), so record
+            // there. insert stays stubbed for any other caller.
+            upsert: (row) => {
+                insertCalls.push({ table, row });
+                return Promise.resolve({ error: null });
+            },
             insert: (row) => {
                 insertCalls.push({ table, row });
                 return Promise.resolve({ error: null });
             },
-            upsert: () => Promise.resolve({ error: null }),
         }),
     },
 }));
 
 vi.mock('../../modules/api/api.js', () => ({
+    mintShareCodeMutation: vi.fn(async () => ({ data: 'abcde', error: null })),
     queryClient: { setQueryData: setQueryDataSpy, invalidateQueries: vi.fn() },
     fetchGeoInfo: vi.fn(async () => ({ ip: '1.2.3.4' })),
     recordFriendCompletion: (...args) => recordFriendCompletionSpy(...args),
@@ -40,6 +49,14 @@ vi.mock('../../modules/user/email-confirmation.js', () => ({
     sendWelcomeEmail: vi.fn(async () => ({ sent: true })),
 }));
 
+// The zero-cost email screen runs inside handleSubmit. Mocked so this spec
+// stays hermetic — unmocked it would attempt a real fetch and pass only because
+// the client wrapper fails OPEN, which is not what this test is about.
+vi.mock('../../modules/auth/email-validation-logic.js', () => ({
+    checkEmailAddress: emailSpy,
+    normalizeEmail: (raw) => (typeof raw === 'string' ? raw.trim().toLowerCase() : ''),
+}));
+
 import { useSignupForm } from './SignupForm.jsx';
 import { appStore } from '../../modules/store/store.js';
 import { nextLessonCompletion } from '../../modules/user/lesson-count-logic.js';
@@ -47,8 +64,10 @@ import { nextLessonCompletion } from '../../modules/user/lesson-count-logic.js';
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 // Minimal harness — the repo tests components with react-dom/client in jsdom.
+// `captcha: false` keeps these tests focused on lesson crediting; the gate
+// itself is covered by SignupForm.turnstile.test.jsx.
 function Harness() {
-    const form = useSignupForm({ nativeLanguage: 'ES' });
+    const form = useSignupForm({ nativeLanguage: 'ES', captcha: false });
     const click = (id, fn) => (
         <button data-testid={id} onClick={() => fn()}>{id}</button>
     );
@@ -56,12 +75,17 @@ function Harness() {
         <div>
             {click('first', () => form.setFirstName('Jo'))}
             {click('last', () => form.setLastName('Kim'))}
-            {click('email', () => form.setEmail('jo@example.com'))}
+            {click('email', () => form.handleEmailChange('jo@example.com'))}
             {click('password', () => form.setPassword('password123'))}
             {click('submit', () => form.handleSubmit({ preventDefault() {} }))}
+            {/* handleSubmit holds loading true across the whole async chain and
+                clears it only in its finally: the real end-of-chain signal. */}
+            <div data-testid="loading">{String(form.loading)}</div>
         </div>
     );
 }
+
+const read = (id) => container.querySelector(`[data-testid="${id}"]`).textContent;
 
 async function submitSignup() {
     await act(async () => { host.render(<Harness />); });
@@ -72,8 +96,10 @@ async function submitSignup() {
         });
     }
     // The submit handler is fully async (auth + profile insert); let its
-    // microtasks drain before asserting on what it wrote.
-    await act(async () => { await new Promise((r) => setTimeout(r, 50)); });
+    // microtasks drain before asserting on what it wrote. `loading` clearing is
+    // the end-of-chain signal; the helper throws rather than falling through, so
+    // a hung chain fails here instead of vacuously passing an empty-insert check.
+    await waitForSignupChain(() => read('loading') === 'false');
 }
 
 // The signup profile row is identified by the form data; other inserts in the
@@ -91,6 +117,7 @@ beforeEach(() => {
     insertCalls.length = 0;
     setQueryDataSpy.mockClear();
     recordFriendCompletionSpy.mockClear();
+    emailSpy.mockReset().mockResolvedValue({ valid: true, reason: 'ok', suggestion: '' });
     appStore.setState({ pendingFriendCredits: [] });
     container = document.createElement('div');
     document.body.appendChild(container);

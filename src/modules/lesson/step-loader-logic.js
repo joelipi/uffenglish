@@ -9,7 +9,7 @@
 import { appStore, setCurrentVideoPlayer } from '../store/store.js';
 import Strings from '../../data/strings.js';
 import { loadVideoForStep } from '../video/video-loader.js';
-import { resolveConfigLanguage } from '../bilingual/config-normalizer.js';
+import { getAppLanguage } from '../bilingual/config-normalizer.js';
 import { Media } from '../media/media.js';
 import { saveLessonProgress } from '../user/user-profile.js';
 import { resolveFriendCredit } from '../user/friend-credit-logic.js';
@@ -47,7 +47,7 @@ export function handleStepCore(step) {
 
     appStore.getState().setMediaVisible(true);
 
-    loadVideoForStep(step, null, resolveConfigLanguage(appStore.getState().guestNativeLanguage, appStore.getState().userData?.native_language));
+    loadVideoForStep(step, null, getAppLanguage());
 
     appStore.getState().setSystemMessage({ type: 'info', text: step.step });
 }
@@ -56,7 +56,7 @@ export function handleStepCore(step) {
 
 export function handleTextStep(step, submitAnswerPrecheck) {
     appStore.getState().setTextInputPlaceholder(
-        Strings.get('placeholder_type_answer', appStore.getState().userData?.native_language) || 'Type your answer here...'
+        Strings.get('placeholder_type_answer', getAppLanguage()) || 'Type your answer here...'
     );
     setTextInputSubmitCallback(
         (val, btn) => submitAnswerPrecheck(val, typeof step.cue === 'object' ? step.cue.en : step.cue, step, btn, step.explanation, { pauseCount: null, netDuration: null })
@@ -85,7 +85,7 @@ export function handleUnitComplete(step) {
     state.setLastLessonFluencyAvg(lessonAverage);
 
     if (step.simpleVideoUrl) {
-        loadVideoForStep(step, null, resolveConfigLanguage(state.guestNativeLanguage, state.userData?.native_language));
+        loadVideoForStep(step, null, getAppLanguage(state));
     }
 
     trackEvent('unit_complete', {

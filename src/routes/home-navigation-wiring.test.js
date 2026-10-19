@@ -10,24 +10,26 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const read = (rel) => readFileSync(path.join(__dirname, rel), 'utf8');
 
 const loginRoute = read('./LoginRoute.jsx');
-const signupRoute = read('./SignupRoute.jsx');
 const homeScreen = read('../components/homescreen/HomeScreen.jsx');
 const lessonContainer = read('../components/LessonContainer.jsx');
 const userProfile = read('../components/profile/UserProfile.jsx');
 const publicProfile = read('../components/profile/PublicProfile.jsx');
 const notificationsSpec = read('../../tests/notifications.spec.js');
 
-describe('LoginRoute / SignupRoute post-auth redirect', () => {
+describe('LoginRoute post-auth redirect', () => {
     it('defaults the redirect to /home', () => {
         expect(loginRoute).toContain("searchParams.get('redirect') || '/home'");
-        expect(signupRoute).toContain("searchParams.get('redirect') || '/home'");
     });
 
     it('no longer defaults the redirect to /', () => {
         expect(loginRoute).not.toContain("searchParams.get('redirect') || '/'");
-        expect(signupRoute).not.toContain("searchParams.get('redirect') || '/'");
     });
 });
+
+// Story 070 closed the standalone signup page. Its assertions live in ONE place
+// — `routes.test.js` (route table + component source) and `SignupRoute.test.jsx`
+// (behaviour) — rather than repeated here as a third home, so a future edit to
+// `SignupRoute.jsx` has a single guard to satisfy.
 
 describe('HomeScreen dashboard menu Home link', () => {
     const menuAt = homeScreen.indexOf("Strings.get('home_home'");

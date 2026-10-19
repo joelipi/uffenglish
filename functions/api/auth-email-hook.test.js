@@ -1,5 +1,5 @@
 // Unit tests for the Supabase Send Email Hook endpoint. The webhook signature
-// is produced with node:crypto and `fetch` is stubbed — no real GoTrue/Resend
+// is produced with node:crypto and `fetch` is stubbed — no real GoTrue/Zoho CPaaS
 // call is made.
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { createHmac } from 'node:crypto';
@@ -11,7 +11,7 @@ const SECRET = `v1,whsec_${SECRET_B64}`;
 function makeEnv(overrides = {}) {
     return {
         SEND_EMAIL_HOOK_SECRET: SECRET,
-        RESEND_API_KEY: 're_test',
+        ZOHO_CPAAS_API_KEY: 're_test',
         EMAIL_FROM: 'UFF <welcome@uff.example>',
         SUPABASE_URL: 'https://proj.supabase.co',
         SUPABASE_SERVICE_ROLE_KEY: 'service-key',
@@ -53,7 +53,7 @@ function installFetch({ profileLanguage = null, resendOk = true } = {}) {
         if (url.includes('/rest/v1/user_profiles')) {
             return { ok: true, status: 200, json: async () => [{ native_language: profileLanguage }] };
         }
-        if (url.includes('api.resend.com/emails')) {
+        if (url.includes('cpaas.zoho.com/v1.1/email')) {
             return { ok: resendOk, status: resendOk ? 200 : 422, json: async () => ({ id: 'e1' }) };
         }
         throw new Error(`unexpected fetch: ${url}`);
@@ -63,7 +63,7 @@ function installFetch({ profileLanguage = null, resendOk = true } = {}) {
 }
 
 const sentEmail = (calls) =>
-    JSON.parse(calls.find((c) => c.url.includes('api.resend.com/emails')).options.body);
+    JSON.parse(calls.find((c) => c.url.includes('cpaas.zoho.com/v1.1/email')).options.body);
 
 afterEach(() => {
     vi.unstubAllGlobals();
@@ -80,16 +80,16 @@ describe('onRequestPost — auth email hook', () => {
         expect(fetchStub).not.toHaveBeenCalled();
     });
 
-    it('sends a localized password-reset email through Resend', async () => {
+    it('sends a localized password-reset email through Zoho CPaaS', async () => {
         const { calls } = installFetch();
         const res = await onRequestPost({ request: makeRequest(RECOVERY_PAYLOAD), env: makeEnv() });
 
         expect(res.status).toBe(200);
         const payload = sentEmail(calls);
-        expect(payload.to).toEqual(['a@b.com']);
+        expect(payload.to).toEqual([{ email_address: { address: 'a@b.com' } }]);
         expect(payload.subject).toBe('Restablece tu contraseña');
-        expect(payload.html).toContain('https://proj.supabase.co/auth/v1/verify?token=th-123&amp;type=recovery');
-        expect(payload.html).toContain('redirect_to=');
+        expect(payload.htmlbody).toContain('https://proj.supabase.co/auth/v1/verify?token=th-123&amp;type=recovery');
+        expect(payload.htmlbody).toContain('redirect_to=');
         // The hook never calls GoTrue's user endpoint or leaks the token.
         expect(calls.some((c) => c.url.includes('/auth/v1/user'))).toBe(false);
     });
@@ -115,7 +115,7 @@ describe('onRequestPost — auth email hook', () => {
         });
         const res = await onRequestPost({ request: makeRequest(body), env: makeEnv() });
         expect(res.status).toBe(200);
-        expect(sentEmail(calls).to).toEqual(['new@b.com']);
+        expect(sentEmail(calls).to).toEqual([{ email_address: { address: 'new@b.com' } }]);
     });
 
     it('sends two emails for a secure email change (both token pairs)', async () => {
@@ -132,25 +132,25 @@ describe('onRequestPost — auth email hook', () => {
         const res = await onRequestPost({ request: makeRequest(body), env: makeEnv() });
         expect(res.status).toBe(200);
 
-        const resend = calls.filter((c) => c.url.includes('api.resend.com/emails'));
+        const resend = calls.filter((c) => c.url.includes('cpaas.zoho.com/v1.1/email'));
         expect(resend).toHaveLength(2);
-        expect(resend.map((c) => JSON.parse(c.options.body).to)).toEqual([['old@b.com'], ['new@b.com']]);
+        expect(resend.map((c) => JSON.parse(c.options.body).to)).toEqual([[{ email_address: { address: 'old@b.com' } }], [{ email_address: { address: 'new@b.com' } }]]);
         // Current address uses token_hash_new; new address uses token_hash.
-        expect(JSON.parse(resend[0].options.body).html).toContain('token=hash-cur');
-        expect(JSON.parse(resend[1].options.body).html).toContain('token=hash-new');
+        expect(JSON.parse(resend[0].options.body).htmlbody).toContain('token=hash-cur');
+        expect(JSON.parse(resend[1].options.body).htmlbody).toContain('token=hash-new');
     });
 
     it('fails loud (500) when the email provider is not configured', async () => {
         const { fetchStub } = installFetch();
         const res = await onRequestPost({
             request: makeRequest(RECOVERY_PAYLOAD),
-            env: makeEnv({ RESEND_API_KEY: undefined }),
+            env: makeEnv({ ZOHO_CPAAS_API_KEY: undefined }),
         });
         expect(res.status).toBe(500);
         expect(fetchStub).not.toHaveBeenCalled();
     });
 
-    it('returns 502 when Resend rejects the send', async () => {
+    it('returns 502 when Zoho CPaaS rejects the send', async () => {
         installFetch({ resendOk: false });
         const res = await onRequestPost({ request: makeRequest(RECOVERY_PAYLOAD), env: makeEnv() });
         expect(res.status).toBe(502);

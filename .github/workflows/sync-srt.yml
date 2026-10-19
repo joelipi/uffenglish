@@ -1,11 +1,10 @@
-name: Sync SRT to Master Sheet
+name: Sync SRT to Master CSV
 
 # Manual, or called by the one-click pipeline.yml chain (`workflow_call`). The
 # Modal render persists the pipeline-computed `srt` column to R2; this Action
-# downloads that CSV and writes the column back into the operator's master sheet
-# for record-keeping. The sheet -- not the repo -- is the output, so there is no
-# commit step and no push-capable bot token. `pipeline.yml` owns the
-# `render-complete` trigger.
+# downloads that CSV, merges the column into the committed master CSV, and
+# commits the file. The repo — not a remote sheet — is the output.
+# `pipeline.yml` owns the `render-complete` trigger.
 on:
   workflow_dispatch:
   workflow_call:
@@ -13,19 +12,29 @@ on:
 permissions:
   contents: read
 
-# One global group: this mutates the single shared remote sheet, so two
-# concurrent runs could race the same cells. `queue: max` (not the default single
-# pending slot) keeps queued renders instead of cancelling the older pending run.
+# Shared with every workflow that mutates the committed CSV, so two writers
+# can never interleave a read-modify-write on the same file. `queue: max` (not
+# the default single pending slot) keeps queued renders instead of cancelling
+# the older pending run.
 concurrency:
-  group: sync-srt
+  group: master-csv
   cancel-in-progress: false
   queue: max
 
 jobs:
   sync:
     runs-on: ubuntu-latest
+    # Null-safe across all events — and intentionally inert here: this workflow
+    # has no `push` trigger (only `workflow_dispatch`/`workflow_call`, where
+    # `head_commit` is always null), so the actor check does the work and the
+    # `head_commit` clause only guards a future push trigger. The guard must
+    # also skip the bot's own commit (loop guard).
+    if: github.actor != 'github-actions[bot]' && !contains(github.event.head_commit.message || '', '[skip srt]')
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GH_NEW_TOKEN }}
       - uses: actions/setup-node@v4
         with: { node-version: 20, cache: npm }
       - run: npm ci
@@ -38,8 +47,28 @@ jobs:
           set -euo pipefail
           npx wrangler r2 object get "$R2_PRIVATE_BUCKET/pipeline-assets/video_data.csv" \
             --file=/tmp/video_data.csv
-      - name: Write srt into the master sheet
-        env:
-          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
-          GOOGLE_SHEET_ID: ${{ vars.GOOGLE_SHEET_ID || secrets.GOOGLE_SHEET_ID }}
-        run: node scripts/write-srt-to-sheet.mjs --csv=/tmp/video_data.csv
+      - name: Write srt into the master CSV
+        run: |
+          set -o pipefail
+          node scripts/write-srt-to-csv.mjs --csv=/tmp/video_data.csv 2>&1 | tee /tmp/srt.log
+      - name: Commit master CSV
+        uses: ./.github/actions/bot-commit/
+        with:
+          bot-name: uff-srt-bot
+          commit-message: "chore(srt): write pipeline SRT into the master CSV [skip srt]"
+          add-paths: public/wouldyourather.master.csv
+          no-change-echo: no srt changes
+          regenerate: |
+            set -euo pipefail
+            npx wrangler r2 object get "$R2_PRIVATE_BUCKET/pipeline-assets/video_data.csv" --file=/tmp/video_data.csv
+            node scripts/write-srt-to-csv.mjs --csv=/tmp/video_data.csv 2>&1 | tee -a /tmp/srt.log
+          r2-api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          r2-account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          r2-bucket: ${{ vars.R2_PRIVATE_BUCKET || secrets.R2_PRIVATE_BUCKET }}
+      - name: Summarize
+        if: always()
+        run: |
+          {
+            echo "## SRT write-back"
+            grep -E '^(WROTE|wrote|no srt)' /tmp/srt.log || echo "No srt lines (check the run output)."
+          } >> "$GITHUB_STEP_SUMMARY"

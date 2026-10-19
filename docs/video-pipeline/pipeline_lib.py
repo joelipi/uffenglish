@@ -66,6 +66,14 @@ def published_poster_key(slug):
     return f"{PUBLISHED_VIDEO_PREFIX}{slug}.jpg" if is_valid_slug(slug) else None
 
 
+def social_video_key(slug):
+    return f"{PIPELINE_ASSET_PREFIX}social/{slug}.mp4" if is_valid_slug(slug) else None
+
+
+def social_poster_key(slug):
+    return f"{PIPELINE_ASSET_PREFIX}social/{slug}.jpg" if is_valid_slug(slug) else None
+
+
 def pipeline_asset_key(rel_path) -> str:
     normalized = str(rel_path or "").replace("\\", "/").lstrip("/")
     return f"{PIPELINE_ASSET_PREFIX}{normalized}"
@@ -166,18 +174,20 @@ def build_srt_from_segments(segments, start_cursor=0.0, start_index=0):
 
 
 # --------------------------------------------------------------------------- #
-# Published authoring sheet (story 052)
+# Committed master CSV (story 065)
 # --------------------------------------------------------------------------- #
 
-# The published master CSV the recorder reads (``public/recorder.html``
-# ``spreadsheet_url``) and the config generator defaults to
-# (``scripts/generate-config-from-sheet.mjs`` ``SHEET_URL``). Byte-identical to
-# both; ``tests/test_pipeline_parity.py`` asserts it so the render cannot read a
-# different sheet than the rest of the stack.
-SHEET_URL = (
-    "https://docs.google.com/spreadsheets/d/e/"
-    "2PACX-1vQZ7jFMJNnmylDoHxaqb1W8VyXi0OV4pSubCbqMGYkRgGimqWx3cs74n43-cFxqfue4KCiqWlhzvPkK"
-    "/pub?gid=242913338&single=true&output=csv"
+# The committed master CSV the recorder reads same-origin
+# (``public/recorder.html`` ``spreadsheet_url``) and the config generator reads
+# from disk (``scripts/generate-config-from-sheet.mjs`` ``MASTER_CSV_REL``).
+# The render fetches it over HTTP from ``raw.githubusercontent.com`` (fresh on
+# ``main`` the moment the bot commit lands — never waits on a Pages deploy).
+# ``tests/test_pipeline_parity.py`` asserts the three readers agree on the same
+# committed path, so the render cannot read different content than the rest of
+# the stack.
+MASTER_CSV_URL = (
+    "https://raw.githubusercontent.com/joelipi/uffenglish/main"
+    "/public/wouldyourather.master.csv"
 )
 
 # The published-CSV URL answers with one of these (Google sends a 307 to a
@@ -191,13 +201,14 @@ MAX_SHEET_REDIRECTS = 5
 # --------------------------------------------------------------------------- #
 
 def resolve_sheet_url(environ=None) -> str:
-    """The published sheet CSV URL: ``PIPELINE_SHEET_URL`` when set, else ``SHEET_URL``.
+    """The master CSV URL: ``PIPELINE_SHEET_URL`` when set, else ``MASTER_CSV_URL``.
 
     The override keeps story 040's "change content without a ``modal deploy``"
-    property: an operator can point the render at another published CSV.
+    property: an operator can point the render at another CSV (e.g. a branch
+    copy on ``raw.githubusercontent.com`` for testing).
     """
     env = os.environ if environ is None else environ
-    return env.get("PIPELINE_SHEET_URL") or SHEET_URL
+    return env.get("PIPELINE_SHEET_URL") or MASTER_CSV_URL
 
 
 def resolve_work_dir(environ=None) -> Path:
@@ -298,7 +309,7 @@ def select_rows(rows, only=None):
 
 
 def plan_publish(rows, web_listing, only=None):
-    """Ordered publish plan for the rendered ``output/web`` contents.
+    """Ordered publish plan for the rendered ``output/social`` + ``output/web``.
 
     One entry per CSV row in scope, pointing at that step's **concatenated**
     video — never the per-take ``processed_*`` intermediates, which the app does
@@ -311,11 +322,17 @@ def plan_publish(rows, web_listing, only=None):
       ``<video_file>_full{VIDEO_EXTENSION}``);
     - a row with neither is skipped.
 
-    An entry is kept only when its ``web_name`` is actually present in
-    ``web_listing`` (the caller passes ``os.listdir(WEB_DIR)``); entries are
-    deduped by slug (first wins) in first-seen order. Slugs that fail validation
-    are never emitted. The published R2 key stays ``assets/videos/<slug>.mp4`` —
-    the ``_full`` suffix is only the internal output name.
+    Each entry carries the app-facing public web keys **and** the private
+    social twin keys (the CRF-18 master the operator posts). An entry is kept
+    only when its ``web_name`` is actually present in ``web_listing`` (the
+    caller passes ``os.listdir(WEB_DIR)``); the social keys ride along
+    unconditionally, because the social master and the web output are written
+    from one compositing pass (``write_web_from_master``) and therefore exist
+    or fail together — the social upload itself re-checks the file on disk.
+    Entries are deduped by slug (first wins) in first-seen order. Slugs that
+    fail validation are never emitted. The published R2 keys stay
+    ``assets/videos/<slug>.mp4`` and ``pipeline-assets/social/<slug>.mp4`` — the
+    ``_full`` suffix is only the internal output name.
     """
     listing = set(web_listing or [])
     seen = set()
@@ -326,7 +343,9 @@ def plan_publish(rows, web_listing, only=None):
             return
         video_key = published_video_key(slug)
         poster_key = published_poster_key(slug)
-        if not video_key or not poster_key:
+        social_key = social_video_key(slug)
+        social_still_key = social_poster_key(slug)
+        if not video_key or not poster_key or not social_key or not social_still_key:
             return
         seen.add(slug)
         plan.append({
@@ -334,6 +353,8 @@ def plan_publish(rows, web_listing, only=None):
             "web_name": web_name,
             "video_key": video_key,
             "poster_key": poster_key,
+            "social_video_key": social_key,
+            "social_poster_key": social_still_key,
         })
 
     for row in select_rows(rows, only):
@@ -345,6 +366,55 @@ def plan_publish(rows, web_listing, only=None):
         if video_file:
             add(video_file, f"{video_file}_full{VIDEO_EXTENSION}")
 
+    return plan
+
+
+def plan_publish_phrase_takes(web_listing, only=None):
+    """Publish plan for the per-take phrase-only web videos.
+
+    These are written to ``output/web/<take>.mp4`` (no ``processed_``/``_full``
+    suffix) and are the files the app serves for a take. They have no CSV row,
+    so they are discovered from the web listing rather than from sheet rows.
+    """
+    listing = set(web_listing or [])
+    allowed = None
+    if only is not None:
+        allowed = set(only)
+    seen = set()
+    plan = []
+
+    def add(slug, web_name):
+        if slug in seen or not is_valid_slug(slug) or web_name not in listing:
+            return
+        video_key = published_video_key(slug)
+        poster_key = published_poster_key(slug)
+        social_key = social_video_key(slug)
+        social_still_key = social_poster_key(slug)
+        if not video_key or not poster_key:
+            return
+        seen.add(slug)
+        plan.append({
+            "slug": slug,
+            "web_name": web_name,
+            "video_key": video_key,
+            "poster_key": poster_key,
+            "social_video_key": social_key,
+            "social_poster_key": social_still_key,
+        })
+
+    for name in sorted(listing):
+        if not name.endswith(VIDEO_EXTENSION):
+            continue
+        slug = name[:-len(VIDEO_EXTENSION)]
+        if not is_valid_slug(slug):
+            continue
+        # Only phrase-only take files: no `_full` step outputs, no `processed_`
+        # intermediates, no join outputs already handled by plan_publish.
+        if slug.endswith("_full") or slug.startswith("processed_"):
+            continue
+        if allowed is not None and name not in allowed and slug not in allowed:
+            continue
+        add(slug, name)
     return plan
 
 
@@ -535,20 +605,20 @@ def _response_header(response, name):
 
 
 def fetch_sheet_csv(url, fetch_impl) -> str:
-    """Fetch a published-sheet CSV over HTTP, following redirects.
+    """Fetch the master CSV over HTTP, following redirects.
 
     ``fetch_impl(url)`` returns an HTTP response object with ``.status``,
     ``.headers`` and ``.read()``. Production passes ``urllib.request.urlopen``,
     which already follows redirects itself; the explicit loop below exists for
     injected/opaque fetchers and to surface a redirect loop deterministically
-    rather than relying on the caller's redirect handler. Google's published-CSV
-    URL answers with a 307 to a ``googleusercontent.com`` host, so a fetch that
-    stops at the first response would read an empty redirect body.
+    rather than relying on the caller's redirect handler. A fetch that stops
+    at the first response would read an empty redirect body, so redirects are
+    followed explicitly.
 
     Raises ``RuntimeError`` on a non-2xx final response, a redirect without a
-    ``Location`` header, too many redirects, an empty body (the published sheet
-    always has a header row), or an HTML body (a sign-in / publish-error page) so
-    a broken publish fails loudly instead of feeding HTML/empty text into pandas.
+    ``Location`` header, too many redirects, an empty body (the committed CSV
+    always has a header row), or an HTML body (a 404 page) so a broken URL
+    fails loudly instead of feeding HTML/empty text into pandas.
     """
     current = url
     response = None
@@ -578,12 +648,12 @@ def fetch_sheet_csv(url, fetch_impl) -> str:
     content_type = str(_response_header(response, "Content-Type") or "").lower()
     if "text/html" in content_type or text.lstrip().startswith("<"):
         raise RuntimeError(
-            "sheet fetch: got HTML, not CSV — is the sheet published to the web as CSV? "
+            "sheet fetch: got HTML, not CSV — is the master CSV URL correct? "
             f"(Content-Type: {content_type or 'unknown'})"
         )
     if not text.strip():
         raise RuntimeError(
-            "sheet fetch: empty sheet response — the published sheet must have a header row"
+            "sheet fetch: empty CSV response — the committed master CSV must have a header row"
         )
     return text
 

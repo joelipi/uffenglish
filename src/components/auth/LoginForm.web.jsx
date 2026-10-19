@@ -17,7 +17,7 @@ export default function LoginForm({ onLoginSuccess, onSignupLink, onForgotPasswo
 
     return (
         <>
-            <h2 className="text-center mb-4" style={{ fontFamily: "'Orbitron', sans-serif", color: 'yellow' }}>
+            <h2 className="text-center mb-4" style={{ color: 'white' }}>
                 {Strings.get('auth_login_title', lang)}
             </h2>
             {error && <div className="alert alert-danger" role="alert">{error}</div>}
@@ -51,8 +51,8 @@ export default function LoginForm({ onLoginSuccess, onSignupLink, onForgotPasswo
             </form>
 
             <div className="text-center mt-3">
-                <p>{Strings.get('auth_no_account', lang)} <a href="#" onClick={(e) => { e.preventDefault(); onSignupLink?.(); }}>{Strings.get('auth_sign_up_link', lang)}</a></p>
-                <p><a href="#" onClick={(e) => { e.preventDefault(); onForgotPassword?.(); }}>{Strings.get('auth_forgot_password', lang)}</a></p>
+                <p>{Strings.get('auth_no_account', lang)} <a className="auth-link" href="#" onClick={(e) => { e.preventDefault(); onSignupLink?.(); }}>{Strings.get('auth_sign_up_link', lang)}</a></p>
+                <p><a className="auth-link" href="#" onClick={(e) => { e.preventDefault(); onForgotPassword?.(); }}>{Strings.get('auth_forgot_password', lang)}</a></p>
             </div>
         </>
     );

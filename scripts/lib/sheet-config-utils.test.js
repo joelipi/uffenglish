@@ -5,6 +5,11 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
     parseCsv,
+    serializeCsv,
+    csvField,
+    serializeWithHeaderLine,
+    rawHeaderLine,
+    incompleteVideoSteps,
     isVideoRow,
     buildSteps,
     buildCourseConfig,
@@ -13,6 +18,7 @@ import {
     findMissingColumns,
     isValidCourseId,
     isMasterFormat,
+    appSlug,
     RESPONSE_TYPES,
     RECAP_SOURCES,
     RECAP_OVERLAYS,
@@ -393,7 +399,7 @@ describe('buildCourseConfig', () => {
             'demo,Demo Course,a,Lesson A,none,shareCta,lessonIntro,demo-intro,demo-intro01,1,,,,',
             'demo,Demo Course,a,Lesson A,none,shareCta,viewAndContinue,demo-v1,demo-v101,2,,,,Welcome.',
             'demo,Demo Course,a,Lesson A,none,shareCta,friendClosedResponse,demo-q,demo-q01,3,"Would you rather X?",,,',
-            'demo,Demo Course,b,Lesson B,friend,shareCta,viewAndContinue,ab-model-w-response-01,ab1,1,,,,Hello.',
+            'demo,Demo Course,b,Lesson B,friend,shareCta,viewAndContinue,{friendCode}ab-model-w-01,ab1,1,,,,Hello.',
         ].join('\n');
         const { rows } = parseCsv(csv);
         const config = buildCourseConfig(rows);
@@ -414,9 +420,9 @@ describe('buildCourseConfig', () => {
                     lessonId: 'b', recapSources: 'friend', recapOverlay: 'shareCta',
                     title: { en: 'Lesson B' },
                     steps: [
-                        // Story 057: a friend/UGC slug (`-response-NN`) gets no app
-                        // `subtitles` even when `subtitle_text` is non-blank.
-                        { responseType: 'viewAndContinue', simpleVideoUrl: 'ab-model-w-response-01' },
+                        // Story 057: a friend/UGC step (a `{friendCode}` key) gets
+                        // no app `subtitles` even when `subtitle_text` is non-blank.
+                        { responseType: 'viewAndContinue', simpleVideoUrl: '{friendCode}{selfCode}-ab-model-w-01' },
                     ],
                 },
             ],
@@ -425,7 +431,7 @@ describe('buildCourseConfig', () => {
 });
 
 // Story 049, Task 4: the language columns are consumed into the existing
-// `{en,es,pt,bn}` objects, additively (back-compat: no columns -> `{en}`).
+// `{en,es,pt,bn,fr,hi}` objects, additively (back-compat: no columns -> `{en}`).
 describe('buildCourseConfig localization columns', () => {
     const base = {
         course_id: 'c', course_name: 'C', lesson_id: 'a', lesson_title: 'Lesson A',
@@ -625,7 +631,7 @@ describe('lesson level patterns (a1..c1) and courseMission', () => {
         const config = buildCourseConfig([{
             course_id: 'wouldyourather', course_name: 'Preferences in English A1➡B2',
             lesson_id: 'a', lesson_title: 'Ask',
-            mission: 'talk about preferences between 2-3 options',
+            mission: 'talk about preferences',
             a1: 'X or Y',
             a2: 'which is better, noun X or noun Y',
             b1: 'would rather + [verb stem X] or [verb stem Y]',
@@ -634,7 +640,7 @@ describe('lesson level patterns (a1..c1) and courseMission', () => {
             video_file: 'v', filename: 'f1', order: '1', response_type: 'viewAndContinue',
         }]);
         expect(config.courseMission).toEqual({
-            mission: { en: 'talk about preferences between 2-3 options' },
+            mission: { en: 'talk about preferences' },
             A1: { en: 'X or Y' },
             A2: { en: 'which is better, noun X or noun Y' },
             B1: { en: 'would rather + [verb stem X] or [verb stem Y]' },
@@ -647,28 +653,66 @@ describe('lesson level patterns (a1..c1) and courseMission', () => {
         });
     });
 
-    // The checked-in wouldyourather courseMission carries the specified
-    // course-level copy ("...between 2-3 options"), which intentionally
-    // differs from lesson a's own mission ("talk about preferences"). The
-    // generator mapping above is identity, so this file is reproducible once
-    // the sheet's lesson-a mission/a1..c1 cells carry this text (pre-translate,
-    // English-only); until that sheet update lands, regenerating from the
-    // current sheet would revert courseMission.mission to the lesson text.
+    // The checked-in wouldyourather courseMission carries the source's
+    // course-level copy. The Oct-14 source edit set the course mission to
+    // lesson a's own text ("talk about preferences"), so regeneration now
+    // reproduces this file exactly (pre-translate, English-only).
     it('checked-in wouldyourather courseMission carries the specified course copy', () => {
         const real = JSON.parse(readFileSync(
             path.join(__dirname, '../../src/config/wouldyourather.json'), 'utf8'));
-        expect(real.courseMission).toEqual({
-            mission: { en: 'talk about preferences between 2-3 options' },
-            A1: { en: 'X or Y' },
-            A2: { en: 'which is better, noun X or noun Y' },
-            B1: { en: 'would rather + [verb stem X] or [verb stem Y]' },
-            B2: { en: 'given the choice between [gerund verb X] and [gerund verb Y]' },
-            C1: { en: 'if I had to choose between [gerund verb X] and [gerund verb Y], my preference would be to [infinitive verb]' },
+        expect(real.courseMission.mission).toEqual({
+            en: 'talk about preferences',
+            es: 'hablar sobre preferencias',
+            pt: 'falar sobre preferências',
+            bn: 'পছন্দ সম্পর্কে কথা বলুন',
+            fr: 'parler de préférences',
+            hi: 'पसंद के बारे में बात करें',
         });
+        expect(real.courseMission.A1).toEqual({ en: 'X or Y' });
+        expect(real.courseMission.C1).toEqual({ en: 'if I had to choose between [gerund verb X] and [gerund verb Y], my preference would be to [infinitive verb]' });
         expect(real.lessons[0].a1).toEqual({ en: 'X or Y' });
         expect(real.lessons[0].c1).toEqual({
             en: 'if I had to choose between [gerund verb X] and [gerund verb Y], my preference would be to [infinitive verb]',
         });
+    });
+});
+
+describe('courseHeroImage from the bridge hero column', () => {
+    const heroBase = {
+        course_id: 'h', course_name: 'Hero', lesson_id: 'a', lesson_title: 'Ask',
+        mission: 'Talk', video_file: 'v', filename: 'f1', order: '1', response_type: 'viewAndContinue',
+    };
+
+    it('emits courseHeroImage between the scalars and the mission (authoring)', () => {
+        const config = buildCourseConfig([{ ...heroBase, hero: 'src/assets/img/h.jpg' }]);
+        expect(Object.keys(config).slice(0, 4)).toEqual(
+            ['courseId', 'courseName', 'courseHeroImage', 'courseMission']);
+        expect(config.courseHeroImage).toBe('src/assets/img/h.jpg');
+    });
+
+    it('emits courseHeroImage on the master path', () => {
+        const config = buildCourseConfig([{
+            course_id: 'h', course_name: 'Hero', lesson_id: 'a', lesson_title: 'Ask',
+            response_type: 'friendClosedResponse', video_file: 'v', filename: 'f',
+            order: '1', phrase: 'Q', hero: 'src/assets/img/h.jpg',
+        }]);
+        expect(config.courseHeroImage).toBe('src/assets/img/h.jpg');
+    });
+
+    it('omits courseHeroImage when the column is blank on both paths', () => {
+        expect('courseHeroImage' in buildCourseConfig([{ ...heroBase }])).toBe(false);
+        expect('courseHeroImage' in buildCourseConfig([{
+            course_id: 'h', course_name: 'Hero', lesson_id: 'a', lesson_title: 'Ask',
+            response_type: 'friendClosedResponse', video_file: 'v', filename: 'f',
+            order: '1', phrase: 'Q',
+        }])).toBe(false);
+    });
+
+    it('throws on conflicting hero values (authoring course-scalar rule)', () => {
+        expect(() => buildCourseConfig([
+            { ...heroBase, hero: 'one.jpg' },
+            { ...heroBase, video_file: 'w', filename: 'f2', order: '2', hero: 'two.jpg' },
+        ])).toThrow(/conflicting "hero"/);
     });
 });
 
@@ -766,13 +810,33 @@ describe('canonical vocabulary parity with the browser modules', () => {
         expect(RECAP_OVERLAYS).toEqual(arr('RECAP_OVERLAYS'));
     });
 
-    it('FRIEND_VIDEO_REGEX matches video-source.js', () => {
+    it('the generator and the runtime classifier agree on what a friend clip is', () => {
+        // A sheet-level friend ref carries no share code yet (it is a
+        // `{friendCode}` placeholder), while the runtime classifier matches the
+        // share codes in play. Both must treat the placeholder as UGC, so a
+        // config-side friend step can never be mistaken for a system clip.
+        const gen = read('./sheet-config-utils.js');
+        expect(gen).toContain("includes('{friendCode}')");
         const src = read('../../src/modules/video/video-source.js');
-        const m = /export const FRIEND_VIDEO_REGEX = \/(.+)\/i;/.exec(src);
-        expect(m).not.toBeNull();
-        const re = new RegExp(m[1], 'i');
-        expect(re.test('ab-model-w-response-01')).toBe(true);
-        expect(re.test('testvideoa01')).toBe(false);
+        expect(src).toContain("slug.includes('{friendCode}')");
+        expect(src).toContain('export function isUgcSlug');
+    });
+
+    it('appSlug rewrites a legacy -response-NN ref to the two-code form', () => {
+        expect(appSlug('{friendCode}wouldyourather-a-response-01'))
+            .toBe('{friendCode}{selfCode}-wouldyourather-a-01');
+    });
+
+    it('appSlug adds a missing viewer slot to an already-new ref', () => {
+        expect(appSlug('{friendCode}ab-model-w-01'))
+            .toBe('{friendCode}{selfCode}-ab-model-w-01');
+        expect(appSlug('{friendCode}{selfCode}-ab-model-w-01'))
+            .toBe('{friendCode}{selfCode}-ab-model-w-01');
+    });
+
+    it('appSlug leaves non-friend slugs untouched', () => {
+        expect(appSlug('wouldyourather-a-01')).toBe('wouldyourather-a-01');
+        expect(appSlug('')).toBe('');
     });
 });
 
@@ -1099,15 +1163,14 @@ describe('master format (overlay master)', () => {
         expect(steps(rows)[0]).toEqual({ cue: '', responseType: 'lessonIntro', introBackgroundVideoUrl: 'intro' });
     });
 
-    it('appends a synthesized success step from success_video + success_srt', () => {
+    it('does NOT synthesize a success step — it is code-owned now', () => {
         const rows = [{
             ...base, video_file: 'v', filename: 'f', order: '1', phrase: 'Q',
             success_video: 'success', success_srt: 'the end', success_srt_es: 'el fin',
         }];
-        const all = steps(rows);
-        expect(all[all.length - 1]).toEqual({
-            responseType: 'success', simpleVideoUrl: 'success', subtitles: { en: 'the end', es: 'el fin' },
-        });
+        // The success step is injected by the app (success-step-logic.js) per
+        // lesson type, so the sheet's success_* columns never reach the config.
+        expect(steps(rows).some((s) => s.responseType === 'success')).toBe(false);
     });
 
     it('omits a synthesized step when its video column is blank', () => {
@@ -1155,7 +1218,7 @@ describe('master format (overlay master)', () => {
     });
 });
 
-// Story 057: a friend/UGC step (`-response-NN`) already carries its speaker's
+// Story 057: a friend/UGC step (a `{friendCode}` key) already carries its speaker's
 // caption burned into the video, so the generator emits no `subtitles` for it —
 // regardless of `srt`/`srt_<lang>`/`subtitle_text`. Skipping the subtitle call
 // also skips `srt_<lang>` timing validation, so a stray translation on a friend
@@ -1202,7 +1265,7 @@ describe('friend UGC steps never emit app subtitles', () => {
 
     it('omits subtitles on an authoring friend step with an srt', () => {
         const [step] = buildSteps([{
-            ...authoringBase, video_file: 'ab12-x-a-response-01',
+            ...authoringBase, video_file: '{friendCode}ab12-x-a-01',
             filename: 'f', order: '1', srt: SRT,
         }]);
         expect('subtitles' in step).toBe(false);
@@ -1210,7 +1273,7 @@ describe('friend UGC steps never emit app subtitles', () => {
 
     it('omits subtitles on an authoring friend step with only subtitle_text', () => {
         const [step] = buildSteps([{
-            ...authoringBase, video_file: 'ab12-x-a-response-01',
+            ...authoringBase, video_file: '{friendCode}ab12-x-a-01',
             filename: 'f', order: '1', subtitle_text: 'plain',
         }]);
         expect('subtitles' in step).toBe(false);
@@ -1228,7 +1291,7 @@ describe('friend UGC steps never emit app subtitles', () => {
         const csv = [
             'course_id,course_name,lesson_id,lesson_title,recap_sources,response_type,video_file,filename,order,srt',
             'alpha,Alpha,a,Lesson A,none,viewAndContinue,alpha-v1,alpha1,1,Hi',
-            'friend,Friend,b,Lesson B,friend,friendClosedResponse,ab-x-b-response-01,ab1,1,Hello',
+            'friend,Friend,b,Lesson B,friend,friendClosedResponse,{friendCode}ab-x-b-01,ab1,1,Hello',
         ].join('\n');
         const results = buildCourseConfigs(parseCsv(csv).rows);
         const alpha = results.find((r) => r.courseId === 'alpha');
@@ -1240,7 +1303,7 @@ describe('friend UGC steps never emit app subtitles', () => {
     it('never reports srt as missing for a friend step (unchanged)', () => {
         const rows = [{
             ...COURSE, response_type: 'friendClosedResponse',
-            video_file: 'ab-x-b-response-01', filename: 'f', order: '1',
+            video_file: '{friendCode}ab-x-b-01', filename: 'f', order: '1',
         }];
         expect(findMissingColumns(rows).filter((m) => m.column === 'srt')).toEqual([]);
     });
@@ -1250,12 +1313,12 @@ describe('docs/video-pipeline/sample-sheet.csv round-trip', () => {
     const samplePath = path.join(__dirname, '../../docs/video-pipeline/sample-sheet.csv');
     const csv = readFileSync(samplePath, 'utf8');
 
-    it('headers include all 21 authoring localization columns (phrase is master-only)', () => {
+    it('headers include all 35 authoring localization columns (phrase is master-only)', () => {
         const { headers } = parseCsv(csv);
         const authoringFields = LOCALIZATION_FIELDS.filter((f) => f.field !== 'phrase');
         const expected = authoringFields.flatMap((f) =>
             SHEET_LANGUAGES.map((l) => localizedColumn(f.field, l)));
-        expect(expected).toHaveLength(21);
+        expect(expected).toHaveLength(35);
         for (const col of expected) expect(headers).toContain(col);
         for (const col of ['next_step', 'choose_step_next', 'choose_step_text']) {
             expect(headers).toContain(col);
@@ -1282,10 +1345,11 @@ describe('docs/video-pipeline/sample-sheet.csv round-trip', () => {
             { nextStep: 2, text: { en: 'Go to the mountains' } },
         ]);
         // The branching step is at index 3; each alternative carries nextStep so
-        // both land on the success step (index 6).
+        // both land on the end of the lesson — where the app appends the
+        // code-owned success step (index = lesson.steps.length).
         const branchIndex = lesson.steps.indexOf(branch);
         expect(branchIndex).toBe(3);
-        const successIndex = lesson.steps.findIndex((s) => s.responseType === 'success');
+        const successIndex = lesson.steps.length; // the app appends success here
         expect(successIndex).toBe(6);
         for (const choice of branch.chooseStep) {
             expect(branchIndex + choice.nextStep).toBeLessThan(successIndex + 1);
@@ -1319,5 +1383,93 @@ describe('publishLessonId (responders become challengers)', () => {
             video_file: 'q', filename: 'q1', order: '1', response_type: 'friendClosedResponse', cue: 'Q',
         }])[0];
         expect(step).not.toHaveProperty('publishLessonId');
+    });
+});
+
+describe('serializeCsv (the file-commit writers)', () => {
+    it('quotes commas, quotes, and newlines like the parser reads them', () => {
+        expect(csvField('plain')).toBe('plain');
+        expect(csvField('a,b')).toBe('"a,b"');
+        expect(csvField('say "hi"')).toBe('"say ""hi"""');
+        expect(csvField('l1\nl2')).toBe('"l1\nl2"');
+        expect(csvField(undefined)).toBe('');
+    });
+
+    it('round-trips through parseCsv with header order preserved', () => {
+        const headers = ['b', 'a'];
+        const rows = [
+            { a: '1', b: 'x,y' },
+            { a: 'multi\nline', b: '' },
+            { a: 'q"q', b: 'plain' },
+        ];
+        const { headers: backHeaders, rows: backRows } = parseCsv(serializeCsv(headers, rows));
+        expect(backHeaders).toEqual(headers);
+        expect(backRows).toEqual(rows);
+    });
+
+    it('resolves a row missing a header to "" (never "undefined")', () => {
+        const { rows } = parseCsv(serializeCsv(['a', 'b'], [{ a: 'x' }]));
+        expect(rows).toEqual([{ a: 'x', b: '' }]);
+    });
+});
+
+describe('serializeWithHeaderLine (header-casing-preserving rewrites)', () => {    it('keeps the exact header bytes while quoting body cells', () => {
+        const out = serializeWithHeaderLine('a,BgSound,c', ['a', 'bgsound', 'c'], [
+            { a: 'x,y', bgsound: 'S', c: '' },
+        ]);
+        expect(out).toBe('a,BgSound,c\n"x,y",S,\n');
+    });
+
+    it('reads the first physical line even with quoted commas and CRLF', () => {
+        expect(rawHeaderLine('"a,b",c\r\n1,2\r\n')).toBe('"a,b",c');
+        expect(rawHeaderLine('a,b\n1,2\n')).toBe('a,b');
+    });
+
+    it('round-trips a rewrite with zero diff when no cell changes', () => {
+        const text = 'a,BgSound\n"x,y",S\nplain,T\n';
+        const { headers, rows } = parseCsv(text);
+        expect(serializeWithHeaderLine(rawHeaderLine(text), headers, rows)).toBe(text);
+    });
+});
+
+describe('incompleteVideoSteps (render completeness gate)', () => {
+    const ROW = (over = {}) => ({
+        course_id: 'c', course_name: 'C', lesson_id: 'a', lesson_title: 'A',
+        response_type: 'friendClosedResponse', order: '1', phrase: 'Q',
+        video_file: 'v', filename: 'f', ...over,
+    });
+
+    it('returns [] when every step carries an srt', () => {
+        const rows = [ROW({ video_file: 'v1', filename: 'f1', srt: 'S1' }), ROW({ video_file: 'v2', filename: 'f2', srt: 'S2' })];
+        expect(incompleteVideoSteps(rows)).toEqual([]);
+    });
+
+    it('reports steps lacking srt with lesson and key', () => {
+        const rows = [ROW({ video_file: 'v1', filename: 'f1', srt: 'S1' }), ROW({ video_file: 'v2', filename: 'f2', srt: '' })];
+        expect(incompleteVideoSteps(rows)).toEqual([{ lesson: 'a', key: 'v2' }]);
+    });
+
+    it('groups by join like the builder (one srt covers the joined step)', () => {
+        const rows = [
+            ROW({ join: 'j', video_file: 'v1', filename: 'f1', srt: '' }),
+            ROW({ join: 'j', video_file: 'v2', filename: 'f2', srt: 'S' }),
+        ];
+        expect(incompleteVideoSteps(rows)).toEqual([]);
+    });
+
+    it('ignores success rows, friend clips, and blank-lesson rows', () => {
+        const rows = [
+            ROW({ video_file: 'ok', filename: 'ok1', srt: 'S' }),
+            ROW({ video_file: 'sv', filename: 'sv1', response_type: 'success', srt: '' }),
+            ROW({ video_file: '{friendCode}x', filename: '', srt: '' }),
+            ROW({ video_file: 'loose', filename: 'loose1', lesson_id: '', srt: '' }),
+        ];
+        expect(incompleteVideoSteps(rows)).toEqual([]);
+    });
+
+    it('returns [] for authoring shape and for empty input', () => {
+        const authoring = [{ course_id: 'c', lesson_id: 'a', video_file: 'v', filename: 'f', cue: 'Q', response_type: 'viewAndContinue', order: '1' }];
+        expect(incompleteVideoSteps(authoring)).toEqual([]);
+        expect(incompleteVideoSteps([])).toEqual([]);
     });
 });

@@ -66,7 +66,9 @@ const answerFlowTransitions = {
     'recording/answering':                       ['processing/transcribing', 'feedback'],
     'processing/transcribing':                   ['review', 'transcription preflight-rejected', 'recording/answering', 'feedback'],
     'transcription preflight-rejected':          ['recording/answering'],
-    review:                                      ['feedback', 'loading'],
+    // 'recording/answering' is the "record again" ✕ on the Whisper review
+    // overlay: one press now restarts the take (camera → 3-2-1 → recording).
+    review:                                      ['feedback', 'loading', 'recording/answering'],
     'simpleVideo-decisionTime-viewAndContinue':      ['simpleVideo', 'feedback'],
     'simpleVideo-decisionTime-response':             ['simpleVideo', 'recording/answering'],
     'viewAndContinueVideo':                           ['simpleVideo-decisionTime-viewAndContinue'],
@@ -108,6 +110,7 @@ export const appStore = createStore(
             pendingLessonNavigation: null,
             pauseAllVideosTrigger: 0,
             pendingVideoPlayType: null,  // 'interactive' | 'simple' | 'success' | null
+            recordingCountdown: null,    // null | 3 | 2 | 1 — 3-2-1 pre-roll overlay; 'mic' is NOT a value
 
 // --- Session-scoped State (not persisted, reset per lesson) ---
             isAudioEnabled: false,
@@ -231,6 +234,7 @@ export const appStore = createStore(
             setWhisperReady: (val) => set({ isWhisperReady: val }),
             setWhisperEngineFailed: (val) => set({ isWhisperEngineFailed: val }),
             setMicActive: (val) => set({ isMicActive: val }),
+            setRecordingCountdown: (val) => set({ recordingCountdown: val }),
             setTextMode: (val) => set({ isTextMode: val }),
             setPlaybackMuted: (val) => set({ isPlaybackMuted: val }),
             setCameraOff: (val) => set({ isCameraOff: val }),

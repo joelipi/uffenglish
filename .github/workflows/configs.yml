@@ -1,15 +1,16 @@
 name: Generate Course Configs
 
-# Best-effort: generate one src/config/<courseId>.json per course the sheet
-# defines and commit them. A course with any missing required column is skipped
-# whole and REPORTED (annotation + job summary); the job stays green so nothing
-# downstream is blocked. The video render is a separate path (Modal), so a skip
-# here never affects it.
+# Best-effort: generate one src/config/<courseId>.json per course the
+# committed master CSV defines and commit them. A course with any missing
+# required column is skipped whole and REPORTED (annotation + job summary);
+# the job stays green so nothing downstream is blocked. The video render is a
+# separate path (Modal), so a skip here never affects it.
 #
-# Read via the Sheets API (`--from-api`) so a chained run sees the `srt` /
-# `phrase_*` cells the preceding jobs just wrote — the published CSV lags by
-# minutes. Trigger: the manual "Run workflow" button, or the one-click
-# pipeline.yml chain (`workflow_call`); pipeline.yml owns `render-complete`.
+# The CSV is read from disk: a chained run checks out the repo fresh after the
+# preceding job's push, so it always sees the `srt` / `phrase_*` cells the
+# earlier jobs just committed — no API, no publish lag. Trigger: the manual
+# "Run workflow" button, or the one-click pipeline.yml chain
+# (`workflow_call`); pipeline.yml owns `render-complete`.
 on:
   workflow_dispatch:
   workflow_call:
@@ -17,10 +18,12 @@ on:
 permissions:
   contents: read
 
-# `queue: max` keeps queued runs (instead of GitHub cancelling the older pending
-# one), so a burst of renders never drops a config regeneration.
+# Shared with every workflow that touches the committed master CSV, so a
+# config run never reads a half-written file. `queue: max` keeps queued runs
+# (instead of GitHub cancelling the older pending one), so a burst of renders
+# never drops a config regeneration.
 concurrency:
-  group: configs-${{ github.ref }}
+  group: master-csv
   cancel-in-progress: false
   queue: max
 
@@ -39,12 +42,9 @@ jobs:
         with: { node-version: 20, cache: npm }
       - run: npm ci
       - name: Generate configs
-        env:
-          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
-          GOOGLE_SHEET_ID: ${{ vars.GOOGLE_SHEET_ID || secrets.GOOGLE_SHEET_ID }}
         run: |
           set -o pipefail
-          node scripts/generate-config-from-sheet.mjs --check --from-api 2>&1 | tee /tmp/configs.log
+          node scripts/generate-config-from-sheet.mjs --check --require-videos 2>&1 | tee /tmp/configs.log
       - name: Report skips
         if: always()
         run: |
@@ -52,7 +52,7 @@ jobs:
             echo "## Config generation"
             grep '^SKIP course ' /tmp/configs.log || echo "No skipped courses."
           } >> "$GITHUB_STEP_SUMMARY"
-          # Missing-column skips are the only real problems (the sheet needs
+          # Missing-column skips are the only real problems (the CSV needs
           # fixing) -> annotate as errors. Structural/invalid-courseId skips are
           # summarized but not annotated. Overwrite is unconditional now (story
           # 047), so there is no "already exists" skip.
@@ -60,13 +60,12 @@ jobs:
             echo "::error::$line"
           done
       - name: Commit configs
-        run: |
-          git config user.name "uff-configs-bot"
-          git config user.email "11131426+joelipi@users.noreply.github.com"
-          git add src/config scripts/lib/generated-configs.json
-          if git diff --cached --quiet; then
-            echo "no config changes"
-          else
-            git commit -m "chore(configs): regenerate course configs from the sheet [skip configs]"
-            git push origin "HEAD:${{ github.ref_name }}"
-          fi
+        uses: ./.github/actions/bot-commit/
+        with:
+          bot-name: uff-configs-bot
+          commit-message: "chore(configs): regenerate course configs from the master CSV [skip configs]"
+          add-paths: src/config scripts/lib/generated-configs.json
+          no-change-echo: no config changes
+          regenerate: |
+            set -euo pipefail
+            node scripts/generate-config-from-sheet.mjs --check --require-videos 2>&1 | tee -a /tmp/configs.log

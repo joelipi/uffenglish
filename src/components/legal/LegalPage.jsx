@@ -3,15 +3,12 @@
 // document, styled to match the rest of the dark UFF UI.
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { useStore } from 'zustand';
-import { appStore } from '../../modules/store/store.js';
 import Strings from '../../data/strings.js';
+import { useNativeLanguage } from '../../hooks/use-native-language.js';
 import LegalDocument from './LegalDocument.jsx';
 
 export default function LegalPage({ markdown, titleKey }) {
-    const guestLang = useStore(appStore, (state) => state.guestNativeLanguage);
-    const userLang = useStore(appStore, (state) => state.userData?.native_language);
-    const lang = guestLang || userLang || 'en';
+    const lang = useNativeLanguage();
 
     const containerStyle = {
         height: '100dvh',
@@ -22,7 +19,7 @@ export default function LegalPage({ markdown, titleKey }) {
         overflow: 'hidden',
         backgroundColor: '#0b1a2a',
         color: 'white',
-        fontFamily: "'Inter', 'Plus Jakarta Sans', sans-serif",
+        fontFamily: 'var(--font-body)',
     };
 
     const topBarStyle = {

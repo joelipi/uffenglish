@@ -6,7 +6,7 @@ import { listFriendCourses } from './friend-courses-logic.js';
 // `src/config/*.json` added by another story intentionally fails this test
 // until it is listed here (the repo's pinned-list convention).
 const REAL_COURSE_IDS = [
-    'friend', 'friendchain', 'gt2', 'model', 't', 'test', 'test-api', 'wouldrather', 'wouldyourather',
+    'friend', 'friendchain', 'gt2', 'model', 't', 'test', 'test-api', 'wouldrather', 'wouldyourather', 'wouldyourather-test',
 ];
 
 describe('configCourseId', () => {

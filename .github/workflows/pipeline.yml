@@ -1,7 +1,7 @@
 name: One-Click Pipeline
 
 # Fired by the Modal render's `render-complete` repository_dispatch (story 051),
-# or manually. Runs the three sheet actions in order as reusable workflows:
+# or manually. Runs the three master-CSV actions in order as reusable workflows:
 # SRT write-back -> translation -> config generation. Ordering and failure
 # propagation are expressed by `needs:` (no cross-workflow token, no polling);
 # each called workflow stays independently runnable from the Actions UI.
@@ -31,7 +31,7 @@ jobs:
     secrets: inherit
   translate:
     needs: srt
-    uses: ./.github/workflows/translate-sheet.yml
+    uses: ./.github/workflows/translate-master.yml
     secrets: inherit
   configs:
     needs: translate

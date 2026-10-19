@@ -37,31 +37,35 @@ postDiag('wasmPaths: ' + env.backends.onnx.wasm.wasmPaths);
 postDiag('numThreads: ' + env.backends.onnx.wasm.numThreads);
 
 // ── Step 6: Rest of worker (unchanged from here) ──────────────────────
-
-const DEMO_CACHE_NAME = 'uff-whisper-demo-cache-v1';
-const DEMO_MODEL_FILES = [
-    'onnx/encoder_model_quantized.onnx',
-    'onnx/decoder_model_merged_quantized.onnx',
-];
-
-async function loadAndCacheFile(filePath) {
-    const url = `https://r2.ultrafastfluency.com/whisper/onnx-community/whisper-tiny.en/${filePath}`;
-    const cache = await caches.open(DEMO_CACHE_NAME);
-    let response = await cache.match(url);
-
-    if (response) {
-        postDiag(`CACHE HIT: ${filePath}`);
-        return response;
-    }
-
-    postDiag(`CACHE MISS: Downloading ${filePath}...`);
-    response = await fetch(url, { mode: 'cors' });
-    if (!response.ok) throw new Error(`HTTP Error ${response.status} for ${filePath}`);
-
-    const buffer = await response.arrayBuffer();
-    await cache.put(url, new Response(buffer, { headers: response.headers }));
-    return await cache.match(url);
-}
+//
+// Model caching is deliberately NOT hand-rolled here. Transformers.js already
+// fetches every file it needs (config.json, tokenizer.json and both ONNX
+// graphs — ~41 MB) and caches it via the Cache API under `transformers-cache`
+// (see env.useBrowserCache above), so later loads read from cache.
+//
+// This worker used to pre-download the two ONNX graphs itself (~9.7 MB encoder,
+// ~29.3 MB decoder), in sequence, into a separate `uff-whisper-demo-cache-v1`
+// bucket, immediately before booting the pipeline.
+//
+// That pass could not do what it was written to do: Transformers.js opens its
+// own `transformers-cache` bucket, so pipeline() never saw those entries. What
+// it actually cost, on the critical path to a working mic:
+//
+//   - it serialised the wait — the 9.7 MB file had to finish before the 29.3 MB
+//     one started, and neither began until both were done, before pipeline()
+//     even ran;
+//   - it buffered the whole 29.3 MB decoder through JS heap via
+//     response.arrayBuffer() just to hand it to the cache — a ~29 MB spike on a
+//     phone that buys nothing;
+//   - on a device that had never loaded the model it also transferred the same
+//     ~41 MB a second time (the R2 objects carry only ETag/Last-Modified, no
+//     Cache-Control, so a revisit may hit the HTTP cache heuristically — hence
+//     "may", not "always").
+//
+// pipeline() fetches and caches in one pass, so removing the loop drops the
+// serialised pre-pass, the heap spike and the unread bucket write together.
+// Offline reuse is unaffected: env.useBrowserCache still populates
+// transformers-cache, which is what later loads read.
 
 postDiag('HW: mem=' + (navigator.deviceMemory || '?') + 'GB, cores=' + navigator.hardwareConcurrency);
 
@@ -105,11 +109,7 @@ async function bootWhisperEngine() {
 
         const devices = ['wasm'];
 
-        postDiag('Pre-caching ' + DEMO_MODEL_FILES.length + ' ONNX files sequentially...');
-        for (const file of DEMO_MODEL_FILES) {
-            await loadAndCacheFile(file);
-        }
-        postDiag('ONNX files cached, booting pipeline...');
+        postDiag('Booting pipeline (it fetches + caches the model files itself)...');
 
         let lastError = null;
         for (const device of devices) {

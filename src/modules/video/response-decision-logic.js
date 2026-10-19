@@ -4,7 +4,7 @@
 // useInteractiveVideo.js / DecisionButtons.jsx so both response paths agree
 // on which response types are "closed" (repeat exactly) vs open.
 
-import { BRANCH_OVERLAY_PHASE, BRANCH_OVERLAY_TEXT_KEY } from '../lesson/branch-choice-logic.js';
+import { BRANCH_OVERLAY_PHASE, getBranchHeadingKey } from '../lesson/branch-choice-logic.js';
 
 const CLOSED_RESPONSE_TYPES = ['closedResponse', 'friendClosedResponse'];
 
@@ -23,9 +23,11 @@ export function getResponseAnswerLabelKey(responseType) {
 /**
  * The overlay heading shown over a simple-video decision screen. Owns every
  * phase-to-copy decision so the player component holds no inline ternary.
+ * `branchDepth` is the branching choice depth (0 = the first row of buttons), so
+ * each nested row gets its own instructional headline.
  */
-export function getSimpleVideoOverlayTextKey(appPhase, currentVideo) {
-    if (appPhase === BRANCH_OVERLAY_PHASE) return BRANCH_OVERLAY_TEXT_KEY;
+export function getSimpleVideoOverlayTextKey(appPhase, currentVideo, branchDepth = 0) {
+    if (appPhase === BRANCH_OVERLAY_PHASE) return getBranchHeadingKey(branchDepth);
     if (appPhase === 'simpleVideo-decisionTime-response') return getResponseOverlayTextKey(currentVideo?.responseType);
     if (appPhase === 'lessonSuccess-decisionTime') return 'video_continue_create';
     return 'video_continue';

@@ -3,7 +3,9 @@ import { Outlet, useParams } from 'react-router-dom';
 import { useStore } from 'zustand';
 import { useQuery } from '@tanstack/react-query';
 import { appStore } from '../modules/store/store.js';
-import { normalizeConfig, resolveConfigLanguage, isConfigLanguageSettled } from '../modules/bilingual/config-normalizer.js';
+import { normalizeConfig, getAppLanguage, isConfigLanguageSettled } from '../modules/bilingual/config-normalizer.js';
+import { applySuccessSteps } from '../modules/lesson/success-step.web.js';
+import { setKnownShareCodes } from '../modules/video/video-source.js';
 import { useAppBootstrap } from '../hooks/use-app-bootstrap-webonly.js';
 
 export default function AppLayout() {
@@ -24,6 +26,15 @@ export default function AppLayout() {
         staleTime: Infinity,
         enabled: !!courseId && !configData,
     });
+    const friendCode = useStore(appStore, state => state.friendCode);
+
+    // Side effect: keep the UGC classifier's code registry current. The
+    // classifier matches the share codes in play (never the slug's shape), so
+    // the registry must track link changes even when the config is already
+    // loaded (a second friend link in one session must not leave stale codes).
+    useEffect(() => {
+        setKnownShareCodes([friendCode, userData?.shareCode]);
+    }, [friendCode, userData?.shareCode]);
 
     // Side effect: normalize and store config once the language is settled.
     // The guest modal opens AFTER the fetch resolves, so normalizing on fetch
@@ -31,12 +42,18 @@ export default function AppLayout() {
     // Waiting for the language to settle normalizes exactly once, with the right
     // language, and never re-normalizes (which would restart the lesson).
     // Guest language wins over the profile language, matching the rest of the
-    // app (guestNativeLanguage || userData.native_language || 'en').
+    // app (see getAppLanguage).
     useEffect(() => {
         if (!fetchedConfig || !userData || configData) return;
         if (!isConfigLanguageSettled({ isLoggedIn, guestLang })) return;
         const courseLevel = fetchedConfig.courseLevel || 'A0';
-        normalizeConfig(fetchedConfig, resolveConfigLanguage(guestLang, userData?.native_language));
+        const lang = getAppLanguage();
+        // normalizeConfig must run first: it migrates legacy `questions` to
+        // `steps`, which the success injection below needs to exist.
+        normalizeConfig(fetchedConfig, lang);
+        // The success step is code-owned (not authored per course): give every
+        // lesson the canonical video + captions for its type.
+        applySuccessSteps(fetchedConfig, lang);
         appStore.getState().setCourseData({ courseId, configData: fetchedConfig, courseLevel });
     }, [fetchedConfig, userData, guestLang, isLoggedIn]); // eslint-disable-line react-hooks/exhaustive-deps
 

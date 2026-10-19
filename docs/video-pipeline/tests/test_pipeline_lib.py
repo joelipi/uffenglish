@@ -170,6 +170,29 @@ class PlanPublishTest(unittest.TestCase):
             self.assertEqual(entry["video_key"], f"assets/videos/{entry['slug']}.mp4")
             self.assertEqual(entry["poster_key"], f"assets/videos/{entry['slug']}.jpg")
 
+    # Story 068: the plan also carries the private social twin keys.
+    def test_entries_carry_social_twin_keys(self):
+        plan = lib.plan_publish(self.rows, [self.step_01, self.step_02])
+        for entry in plan:
+            self.assertEqual(entry["social_video_key"],
+                             f"pipeline-assets/social/{entry['slug']}.mp4")
+            self.assertEqual(entry["social_poster_key"],
+                             f"pipeline-assets/social/{entry['slug']}.jpg")
+            # The twins live in the private bucket by the shared prefix rule.
+            self.assertTrue(lib.is_private_key(entry["social_video_key"]))
+            self.assertTrue(lib.is_private_key(entry["social_poster_key"]))
+            self.assertEqual(lib.bucket_for_key(entry["social_video_key"]), "private")
+
+    def test_joined_step_carries_one_social_entry(self):
+        rows = [
+            {"filename": "lesson_01", "video_file": "step_a", "join": "lessonFinal"},
+            {"filename": "lesson_02", "video_file": "step_b", "join": "lessonFinal"},
+        ]
+        plan = lib.plan_publish(rows, ["lessonFinal.mp4"])
+        self.assertEqual(len(plan), 1)
+        self.assertEqual(plan[0]["social_video_key"],
+                         "pipeline-assets/social/lessonFinal.mp4")
+
 
 class PlanPublishSourceGuardTest(unittest.TestCase):
     """Guard: ``plan_publish`` targets the concatenated ``_full`` step/join videos
@@ -202,7 +225,7 @@ class PlanPublishSourceGuardTest(unittest.TestCase):
 
 
 class IntroPosterTest(unittest.TestCase):
-    """Lesson intros come from the sheet's `intro_video` column, never a CSV
+    """Lesson intros come from the master CSV's `intro_video` column, never a CSV
     row, so they miss `plan_publish` and the render plans their posters
     separately (story 055)."""
 
@@ -292,14 +315,18 @@ class EnvSeamTest(unittest.TestCase):
 
 
 class SheetUrlTest(unittest.TestCase):
-    """Story 052: the render's sheet URL, with an env override."""
+    """Story 065: the render's master CSV URL, with an env override."""
 
-    def test_defaults_to_the_published_master(self):
-        self.assertEqual(lib.resolve_sheet_url({}), lib.SHEET_URL)
-        self.assertIn("2PACX-1vQZ7jFMJNnmylDoHxaqb1W8VyXi0OV4pSubCbqMGYkRgGimqWx3cs74n43-cFxqfue4KCiqWlhzvPkK",
-                      lib.SHEET_URL)
-        self.assertIn("gid=242913338", lib.SHEET_URL)
-        self.assertTrue(lib.SHEET_URL.endswith("output=csv"))
+    def test_defaults_to_the_committed_master_csv(self):
+        self.assertEqual(lib.resolve_sheet_url({}), lib.MASTER_CSV_URL)
+        self.assertTrue(
+            lib.MASTER_CSV_URL.startswith("https://raw.githubusercontent.com/"),
+            lib.MASTER_CSV_URL,
+        )
+        self.assertTrue(
+            lib.MASTER_CSV_URL.endswith("public/wouldyourather.master.csv"),
+            lib.MASTER_CSV_URL,
+        )
 
     def test_pipeline_sheet_url_overrides_the_default(self):
         self.assertEqual(
@@ -320,8 +347,8 @@ class _FakeResponse:
 
 
 class FetchSheetCsvTest(unittest.TestCase):
-    """Story 052: fetch the published CSV, following redirects, and fail loudly
-    on a broken publish instead of feeding HTML/empty bodies into pandas."""
+    """Story 065: fetch the master CSV, following redirects, and fail loudly
+    on a broken URL instead of feeding HTML/empty bodies into pandas."""
 
     CSV = "filename,phrase\nlesson_01,Hi\n"
 
@@ -331,14 +358,14 @@ class FetchSheetCsvTest(unittest.TestCase):
         def fetch_impl(url):
             calls.append(url)
             if len(calls) == 1:
-                return _FakeResponse(307, b"", {"Location": "https://doc-0s.googleusercontent.com/abc"})
+                return _FakeResponse(307, b"", {"Location": "https://raw.githubusercontent.com/joelipi/uffenglish/media-abc"})
             return _FakeResponse(200, self.CSV.encode("utf-8"),
                                  {"Content-Type": "text/csv; charset=utf-8"})
 
-        text = lib.fetch_sheet_csv("https://docs.google.com/spreadsheets/d/e/X/pub?output=csv", fetch_impl)
+        text = lib.fetch_sheet_csv("https://raw.githubusercontent.com/joelipi/uffenglish/main/public/wouldyourather.master.csv", fetch_impl)
         self.assertEqual(text, self.CSV)
-        self.assertEqual(calls[0], "https://docs.google.com/spreadsheets/d/e/X/pub?output=csv")
-        self.assertEqual(calls[1], "https://doc-0s.googleusercontent.com/abc")
+        self.assertEqual(calls[0], "https://raw.githubusercontent.com/joelipi/uffenglish/main/public/wouldyourather.master.csv")
+        self.assertEqual(calls[1], "https://raw.githubusercontent.com/joelipi/uffenglish/media-abc")
 
     def test_follows_a_relative_redirect(self):
         calls = []
@@ -358,7 +385,7 @@ class FetchSheetCsvTest(unittest.TestCase):
                                  {"Content-Type": "text/html; charset=utf-8"})
 
         with self.assertRaises(RuntimeError) as ctx:
-            lib.fetch_sheet_csv("https://docs.google.com/x", fetch_impl)
+            lib.fetch_sheet_csv("https://example.com/x.csv", fetch_impl)
         self.assertIn("HTML", str(ctx.exception))
 
     def test_raises_on_html_without_a_content_type(self):
@@ -366,14 +393,14 @@ class FetchSheetCsvTest(unittest.TestCase):
             return _FakeResponse(200, b"  <html>not published</html>", {})
 
         with self.assertRaises(RuntimeError):
-            lib.fetch_sheet_csv("https://docs.google.com/x", fetch_impl)
+            lib.fetch_sheet_csv("https://example.com/x.csv", fetch_impl)
 
     def test_raises_on_an_empty_body(self):
         def fetch_impl(url):
             return _FakeResponse(200, b"", {"Content-Type": "text/csv; charset=utf-8"})
 
         with self.assertRaises(RuntimeError) as ctx:
-            lib.fetch_sheet_csv("https://docs.google.com/x", fetch_impl)
+            lib.fetch_sheet_csv("https://example.com/x.csv", fetch_impl)
         self.assertIn("empty", str(ctx.exception).lower())
 
     def test_raises_on_a_whitespace_only_body(self):
@@ -381,14 +408,14 @@ class FetchSheetCsvTest(unittest.TestCase):
             return _FakeResponse(200, b"\n  \n", {"Content-Type": "text/csv"})
 
         with self.assertRaises(RuntimeError):
-            lib.fetch_sheet_csv("https://docs.google.com/x", fetch_impl)
+            lib.fetch_sheet_csv("https://example.com/x.csv", fetch_impl)
 
     def test_raises_on_a_non_2xx_final_response(self):
         def fetch_impl(url):
             return _FakeResponse(404, b"not found", {"Content-Type": "text/plain"})
 
         with self.assertRaises(RuntimeError) as ctx:
-            lib.fetch_sheet_csv("https://docs.google.com/x", fetch_impl)
+            lib.fetch_sheet_csv("https://example.com/x.csv", fetch_impl)
         self.assertIn("404", str(ctx.exception))
 
     def test_raises_on_a_redirect_without_a_location(self):
@@ -396,14 +423,14 @@ class FetchSheetCsvTest(unittest.TestCase):
             return _FakeResponse(307, b"", {})
 
         with self.assertRaises(RuntimeError):
-            lib.fetch_sheet_csv("https://docs.google.com/x", fetch_impl)
+            lib.fetch_sheet_csv("https://example.com/x.csv", fetch_impl)
 
     def test_raises_when_redirects_never_resolve(self):
         def fetch_impl(url):
             return _FakeResponse(307, b"", {"Location": "https://example.com/loop"})
 
         with self.assertRaises(RuntimeError):
-            lib.fetch_sheet_csv("https://docs.google.com/x", fetch_impl)
+            lib.fetch_sheet_csv("https://example.com/x.csv", fetch_impl)
 
 
 class WebBudgetTest(unittest.TestCase):

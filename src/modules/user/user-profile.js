@@ -1,8 +1,127 @@
 // modules/user-profile.js
 // IMPORTANT! THIS SCRIPT USES VERSION 24 OF THE APPWRITE SDK, WHICH HAS MANY BREAKING CHANGES FROM EARLIER VERSIONS. DO NOT USE THE SYNTAX OR METHODS OF EARLIER VERSIONS WITHOUT CHECKING THEY ARE STILL VALID IN VERSION 24.
-import { syncUserMetaDataMutation, getCurrentUser } from '../api/api.js';
+import { syncUserMetaDataMutation, getCurrentUser, fetchProfileIdentityRow } from '../api/api.js';
 import { appStore } from '../store/store.js';
 import { nextLessonCompletion } from './lesson-count-logic.js';
+import { profileIsIncomplete, planProfileRepair } from './profile-repair-logic.js';
+import { mintShareCode } from '../utils/share-code-mint.js';
+
+/**
+ * Fold a freshly written profile payload into the store's copy of the user, so
+ * the rest of this session sees the share code the repair just generated.
+ * Share links read `userData.shareCode`, and the bootstrap only seeds the store
+ * once (its `initStarted` guard), so without this a repaired account would emit
+ * `undefined` in share URLs and R2 keys until a full page reload.
+ */
+function mergeRepairedProfileIntoStore(payload) {
+    const current = appStore.getState().userData;
+    if (!current || current.$id !== payload.id) return;
+    appStore.getState().setCourseData({
+        userData: {
+            ...current,
+            ...(payload.email && { email: payload.email }),
+            ...(payload.share_code && { share_code: payload.share_code, shareCode: payload.share_code }),
+            ...(payload.join_date && { join_date: payload.join_date }),
+            ...(payload.account_status && { account_status: payload.account_status }),
+        },
+    });
+}
+
+/**
+ * Repair a profile row that is missing or incomplete, instead of writing a
+ * fragment into it.
+ *
+ * Every write to `user_profiles` is an upsert, which PostgREST resolves to a
+ * bare INSERT when no row exists — so writing only `course_progress` against an
+ * account with no profile CREATED one with a NULL email and no share code. That
+ * is how the ghost rows in the database were produced.
+ *
+ * This NEVER destroys data. It fills only fields that are absent, never rotates
+ * an existing share code (links are already published to R2 and printed), and
+ * never invents an english level (that would overwrite a real answer).
+ * profile-repair-logic.js owns those rules as pure functions.
+ *
+ * Detection uses an explicit `maybeSingle()` read rather than the shape of the
+ * object handed in: `useUserProfile` returns its core-data fallback both when the
+ * row is missing AND when the read fails, so inferring from that object would
+ * repair a healthy profile on every transient network error. The read is skipped
+ * when the object POSITIVELY shows a complete row — a signal the fallback can
+ * never produce — which keeps the common case off the network entirely, since
+ * this runs ahead of the preloader on every course boot.
+ *
+ * Returns `{ confirmed, payload }`. `confirmed` is the single source of truth for
+ * "the row exists" and is false only when we genuinely cannot tell; `payload` is
+ * what was written, or null. A status rather than a bare value matters: an
+ * earlier version returned null for four different outcomes and the caller then
+ * re-derived the answer from the very object this read exists to distrust.
+ */
+export async function ensureCompleteProfileRow(userData) {
+    const userId = userData?.$id;
+    if (!userId || userId === 'guest') return { confirmed: false, payload: null, reason: 'guest' };
+
+    // Fast path: a positive complete signal, which the core-data fallback can
+    // never produce. The safety rests on an INVARIANT about the producers, not
+    // on profileIsIncomplete itself (which is merely "not provably incomplete"
+    // for anything that is not a row):
+    //   - useUserProfile's core-data fallback carries email + join_date but
+    //     NEVER share_code or account_status;
+    //   - the guest object is rejected above by its $id;
+    //   - mergeRepairedProfileIntoStore only adds these after a real write.
+    // So nothing can look complete unless a row (or a repair of one) supplied
+    // it. Do not add these keys to a fallback object — that would make this fast
+    // path confirm a row no write ever created.
+    if (!profileIsIncomplete(userData)) return { confirmed: true, payload: null };
+
+    const { row, error } = await fetchProfileIdentityRow(userId);
+    // A failed read is not evidence of a missing row: do nothing, do not guess.
+    if (error) {
+        console.warn('[user-profile] Profile read failed — skipping repair:', error?.message || error);
+        return { confirmed: false, payload: null, reason: 'read-failed' };
+    }
+    if (row && !profileIsIncomplete(row)) {
+        // Confirmed complete, but the object handed in was the core-data
+        // fallback (its own query failed at a different moment), so this session
+        // still does not know the share code. Merge it rather than leave share
+        // links emitting undefined until the next reload.
+        mergeRepairedProfileIntoStore({
+            id: row.id || userId,
+            ...(row.share_code && { share_code: row.share_code }),
+            ...(row.join_date && { join_date: row.join_date }),
+            ...(row.account_status && { account_status: row.account_status }),
+        });
+        return { confirmed: true, payload: null };
+    }
+
+    const user = await getCurrentUser();
+    if (!user || !user.$id || user.$id === 'guest') {
+        return { confirmed: false, payload: null, reason: 'no-session' };
+    }
+    // The id to repair came from userData, while the email/name/timestamp used to
+    // fill it come from this later session read. If the session changed
+    // underneath us, filling one account's row from another would write a user's
+    // address onto someone else's profile.
+    if (user.$id !== userId) {
+        return { confirmed: false, payload: null, reason: 'session-mismatch' };
+    }
+
+    // A candidate share code is generated up front and usually discarded:
+    // the plan includes it only when the row has none to protect. Mint it on
+    // the server (reserved-word + uniqueness checked); if the RPC is
+    // unreachable, fall back to the reserved-filtered local generator.
+    const needsShareCode = !row || !row.share_code;
+    const candidateShareCode = needsShareCode ? await mintShareCode() : null;
+
+    const plan = planProfileRepair({ row, user, shareCode: candidateShareCode });
+    if (plan.action === 'none') return { confirmed: true, payload: null };
+
+    await syncUserMetaDataMutation(plan.payload, userId);
+    console.log(
+        `${plan.action === 'insert' ? 'Created' : 'Repaired'} profile row for ${userId}`
+        + ` (${Object.keys(plan.payload).length - 1} field(s))`,
+    );
+    mergeRepairedProfileIntoStore(plan.payload);
+    return { confirmed: true, payload: plan.payload };
+}
 
 /**
  * Syncs metadata to Appwrite. 
@@ -30,6 +149,24 @@ export async function saveCourseToUserProfile(courseId, userData) {
         return true;
     }
     try {
+        // Repair BEFORE writing progress. Without this the write below upserts
+        // `course_progress` alone, which fabricates a NULL-email row for any
+        // account whose profile is missing — the exact ghost row this exists to
+        // prevent. `confirmed` is the single source of truth for "the row exists":
+        // if we cannot establish that, the progress write is exactly the write
+        // that would deepen a fragment, so we stop instead.
+        let outcome;
+        try {
+            outcome = await ensureCompleteProfileRow(userData);
+        } catch (repairError) {
+            console.error('[user-profile] Profile repair failed — skipping progress write:', repairError);
+            return null;
+        }
+        if (!outcome.confirmed) {
+            console.warn('[user-profile] Profile row unconfirmed — skipping progress write.');
+            return null;
+        }
+
         let progressMap = {};
         if (userData?.course_progress) {
             try { progressMap = JSON.parse(userData.course_progress); } catch (e) { }

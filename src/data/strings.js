@@ -570,6 +570,14 @@ const strings = {
         hi: "बोलिए।",
         bn: "বলুন।"
     },
+    'speak_slowly_and_carefully': {
+        en: "SPEAK SLOWLY AND CAREFULLY.",
+        es: "HABLA LENTO Y CON CUIDADO.",
+        pt: "FALE DEVAGAR E COM CUIDADO.",
+        fr: "PARLEZ LENTEMENT ET AVEC SOIN.",
+        hi: "धीरे और सावधानी से बोलें।",
+        bn: "ধীরে এবং সাবধানে বলুন।"
+    },
     'status_connecting': {
         en: "WAIT! Connecting...",
         es: "¡ESPEREMOS! Conectando...",
@@ -889,6 +897,7 @@ const strings = {
     'sign_in': {
         en: "Sign In",
         es: "Iniciar sesión",
+        pt: "Entrar",
         fr: "Se connecter",
         hi: "साइन इन",
         bn: "সাইন ইন"
@@ -908,6 +917,32 @@ const strings = {
         fr: "Conditions d'utilisation",
         hi: "सेवा की शर्तें",
         bn: "সেবার শর্তাবলী"
+    },
+    'signup_consent_prefix': {
+        en: "By signing up, I accept the",
+        es: "Al registrarme, acepto los",
+        pt: "Ao me cadastrar, aceito os",
+        fr: "En m'inscrivant, j'accepte les",
+        hi: "साइन अप करके, मैं",
+        bn: "সাইন আপ করে, আমি"
+    },
+    'signup_consent_middle': {
+        en: "and acknowledge the",
+        es: "y reconozco la",
+        pt: "e reconheço a",
+        fr: "et je reconnais la",
+        hi: "और",
+        bn: "এবং"
+    },
+    'signup_consent_suffix': {
+        en: ".",
+        es: ".",
+        pt: ".",
+        fr: ".",
+        // Leading space: these suffixes are words that follow the privacy
+        // link directly, while the Latin suffixes are bare periods.
+        hi: " से सहमत हूँ।",
+        bn: " মেনে চলতে সম্মত আছি।"
     },
     'legal_back': {
         en: "Back",
@@ -1052,6 +1087,55 @@ const strings = {
         hi: "जारी रखें",
         bn: "চালিয়ে যান"
     },
+    // Home menu entry that opens the PWA install dialog
+    // (src/components/pwa/PWAInstallButton.web.jsx). Native-speaker review of
+    // the non-English drafts is a follow-up, exactly as for story 056/059.
+    'pwa_install_cta': {
+        en: "Install app",
+        es: "Instalar aplicación",
+        pt: "Instalar aplicativo",
+        fr: "Installer l'application",
+        hi: "ऐप इंस्टॉल करें",
+        bn: "অ্যাপ ইনস্টল করুন"
+    },
+    // Apple-platform variant of the install entry label ("Add to Home Screen":
+    // iOS has no install prompt — the app is added from the Share sheet).
+    // Draft translations; native-speaker review is a follow-up, as above.
+    'pwa_install_cta_apple': {
+        en: "Add to Home Screen",
+        es: "Añadir a la pantalla de inicio",
+        pt: "Adicionar à tela inicial",
+        fr: "Ajouter à l'écran d'accueil",
+        hi: "होम स्क्रीन पर जोड़ें",
+        bn: "হোম স্ক্রিনে যোগ করুন"
+    },
+    // Non-dismissible install banner (src/components/pwa/PWAInstallBanner.web.jsx)
+    // pinned to the top of /home, /profile and /courses. Draft translations;
+    // native-speaker review is a follow-up, as above.
+    'pwa_banner_title': {
+        en: "NEXT STEP",
+        es: "SIGUIENTE PASO",
+        pt: "PRÓXIMO PASSO",
+        fr: "PROCHAINE ÉTAPE",
+        hi: "अगला कदम",
+        bn: "পরবর্তী পদক্ষেপ"
+    },
+    'pwa_banner_body_install': {
+        en: "Install this app, the UFF app, NOW.\nFREE.\nNo credit card or payment authorization required.",
+        es: "Instala esta aplicación, la aplicación UFF, AHORA.\nGRATIS.\nNo se requiere tarjeta de crédito ni autorización de pago.",
+        pt: "Instale este aplicativo, o aplicativo UFF, AGORA.\nGRÁTIS.\nNão é necessário cartão de crédito nem autorização de pagamento.",
+        fr: "Installez cette application, l'application UFF, MAINTENANT.\nGRATUIT.\nAucune carte de crédit ni autorisation de paiement requise.",
+        hi: "इस ऐप को, UFF ऐप, अभी इंस्टॉल करें।\nमुफ़्त।\nकिसी क्रेडिट कार्ड या भुगतान प्राधिकरण की आवश्यकता नहीं है।",
+        bn: "এই অ্যাপটি, UFF অ্যাপ, এখনই ইনস্টল করুন।\nবিনামূল্যে।\nকোনো ক্রেডিট কার্ড বা পেমেন্ট অনুমোদনের প্রয়োজন নেই।"
+    },
+    'pwa_banner_body_apple': {
+        en: "Add this app, the UFF app, to your Home Screen NOW.\nFREE.\nNo credit card or payment authorization required.",
+        es: "Añade esta aplicación, la aplicación UFF, a tu pantalla de inicio AHORA.\nGRATIS.\nNo se requiere tarjeta de crédito ni autorización de pago.",
+        pt: "Adicione este aplicativo, o aplicativo UFF, à sua tela inicial AGORA.\nGRÁTIS.\nNão é necessário cartão de crédito nem autorização de pagamento.",
+        fr: "Ajoutez cette application, l'application UFF, à votre écran d'accueil MAINTENANT.\nGRATUIT.\nAucune carte de crédit ni autorisation de paiement requise.",
+        hi: "इस ऐप को, UFF ऐप, अपनी होम स्क्रीन पर जोड़ें।\nमुफ़्त।\nकिसी क्रेडिट कार्ड या भुगतान प्राधिकरण की आवश्यकता नहीं है।",
+        bn: "এই অ্যাপটি, UFF অ্যাপ, আপনার হোম স্ক্রিনে যোগ করুন।\nবিনামূল্যে।\nকোনো ক্রেডিট কার্ড বা পেমেন্ট অনুমোদনের প্রয়োজন নেই।"
+    },
     'home_courses_load_error': {
         en: "Failed to load courses. Please try again later.",
         es: "Error al cargar los cursos. Inténtalo de nuevo más tarde.",
@@ -1077,6 +1161,41 @@ const strings = {
         es: "Usuario no encontrado",
         hi: "उपयोगकर्ता नहीं मिला",
         bn: "ব্যবহারকারী পাওয়া যায়নি"
+    },
+    // The real 404 page (src/routes/NotFoundRoute.jsx): shown for paths that
+    // are neither a route nor a share-code-shaped segment. Deliberately says
+    // "page", not "user" — a mistyped path is not a missing person.
+    'not_found_heading': {
+        en: "Page not found",
+        es: "Página no encontrada",
+        pt: "Página não encontrada",
+        fr: "Page introuvable",
+        hi: "पेज नहीं मिला",
+        bn: "পৃষ্ঠাটি পাওয়া যায়নি"
+    },
+    'not_found_body': {
+        en: "We couldn't find that page. The link may be mistyped or no longer active.",
+        es: "No pudimos encontrar esa página. Puede que el enlace esté mal escrito o ya no esté activo.",
+        pt: "Não encontramos essa página. O link pode estar mal digitado ou não estar mais ativo.",
+        fr: "Nous n'avons pas trouvé cette page. Le lien est peut-être mal saisi ou n'est plus actif.",
+        hi: "हमें वह पेज नहीं मिला। हो सकता है लिंक गलत लिखा हो या अब सक्रिय न हो।",
+        bn: "আমরা সেই পৃষ্ঠাটি খুঁজে পাইনি। লিংকটি হয়তো ভুল লেখা বা আর সক্রিয় নয়।"
+    },
+    'not_found_courses': {
+        en: "Browse courses",
+        es: "Ver cursos",
+        pt: "Ver cursos",
+        fr: "Voir les cours",
+        hi: "पाठ्यक्रम देखें",
+        bn: "কোর্স দেখুন"
+    },
+    'not_found_home': {
+        en: "Go home",
+        es: "Ir al inicio",
+        pt: "Ir para o início",
+        fr: "Retour à l'accueil",
+        hi: "होम पर जाएँ",
+        bn: "হোমে যান"
     },
     'profile_member_since': {
         en: "Member since {date}",
@@ -1284,6 +1403,77 @@ const strings = {
         hi: "मुफ़्त अंग्रेज़ी का अभ्यास करें",
         bn: "বিনামূল্যে ইংরেজি চর্চা করুন"
     },
+    // Visitor-aware friend-practice area: the logged-out visitor invite (login
+    // is one link, continuing as a guest is one anchor down to the list) and
+    // the badge on a lesson the visitor and the profile owner both completed.
+    'profile_login_to_see_together': {
+        en: "Log in to see lessons you've done together.",
+        es: "Inicia sesión para ver las lecciones que han hecho juntos.",
+        pt: "Faça login para ver as lições que vocês fizeram juntos.",
+        fr: "Connectez-vous pour voir les leçons que vous avez faites ensemble.",
+        hi: "आपने साथ में जो पाठ किए हैं उन्हें देखने के लिए लॉग इन करें।",
+        bn: "আপনারা একসাথে যে পাঠগুলো করেছেন তা দেখতে লগ ইন করুন।"
+    },
+    'profile_guest_start_free': {
+        en: "No account yet? You can start practicing free.",
+        es: "¿Aún no tienes una cuenta? Puedes empezar a practicar gratis.",
+        pt: "Ainda não tem uma conta? Você pode começar a praticar grátis.",
+        fr: "Pas encore de compte ? Vous pouvez commencer à vous entraîner gratuitement.",
+        hi: "अभी तक खाता नहीं है? आप मुफ़्त में अभ्यास शुरू कर सकते हैं।",
+        bn: "এখনও অ্যাকাউন্ট নেই? আপনি বিনামূল্যে অনুশীলন শুরু করতে পারেন।"
+    },
+    'profile_completed_together': {
+        en: "You did this together",
+        es: "Lo hicieron juntos",
+        pt: "Vocês fizeram juntos",
+        fr: "Vous l'avez fait ensemble",
+        hi: "आपने यह साथ में पूरा किया",
+        bn: "আপনারা এটি একসাথে সম্পন্ন করেছেন"
+    },
+    // Friends directory page (`/friends`): everyone the viewer has completed
+    // at least one lesson with, keyed off the friend-credit arrays.
+    'home_friends': {
+        en: "Friends",
+        es: "Amigos",
+        hi: "दोस्त",
+        bn: "বন্ধুরা"
+    },
+    'friends_heading': {
+        en: "Friends",
+        es: "Amigos",
+        hi: "दोस्त",
+        bn: "বন্ধুরা"
+    },
+    'friends_subheading': {
+        en: "This is everyone you've completed at least one lesson with. You both need to complete the same lesson. To add someone as a friend, send them your profile link so they can finish a lesson with you.",
+        es: "Estas son todas las personas con las que has completado al menos una lección. Ambos deben completar la misma lección. Para agregar a alguien como amigo, envíale el enlace de tu perfil para que pueda terminar una lección contigo.",
+        hi: "ये वे सभी लोग हैं जिनके साथ आपने कम से कम एक पाठ पूरा किया है। आप दोनों को एक ही पाठ पूरा करना होगा। किसी को मित्र के रूप में जोड़ने के लिए, उन्हें अपनी प्रोफ़ाइल का लिंक भेजें ताकि वे आपके साथ पाठ पूरा कर सकें।",
+        bn: "এরা সবাই যাদের সাথে আপনি অন্তত একটি পাঠ সম্পন্ন করেছেন। আপনাদের দুজনকেই একই পাঠ সম্পন্ন করতে হবে। কাউকে বন্ধু হিসেবে যোগ করতে, তাকে আপনার প্রোফাইল লিঙ্ক পাঠান যাতে সে আপনার সাথে একটি পাঠ শেষ করতে পারে।"
+    },
+    'friends_callout': {
+        en: "UFF does not have messaging functionality or search directory, by design, to prevent misuse. Contact your friends directly however you normally do (messaging apps, phone, email).",
+        es: "UFF no tiene mensajería ni directorio de búsqueda, por diseño, para evitar el mal uso. Contacta a tus amigos directamente como lo haces normalmente (apps de mensajes, teléfono, correo).",
+        hi: "दुरुपयोग रोकने के लिए UFF में जानबूझकर संदेश सुविधा या खोज निर्देशिका नहीं है। अपने दोस्तों से सीधे उसी तरह संपर्क करें जैसे आप सामान्यतः करते हैं (संदेश ऐप, फ़ोन, ईमेल)।",
+        bn: "অপব্যবহার রোধে UFF-এ ইচ্ছাকৃতভাবে বার্তা বা খোঁজ ডিরেক্টরি নেই। আপনার বন্ধুদের সাথে সরাসরি সেভাবেই যোগাযোগ করুন যেভাবে আপনি সাধারণত করেন (মেসেজিং অ্যাপ, ফোন, ইমেইল)।"
+    },
+    'friends_joint_badge': {
+        en: "Has lessons to do together",
+        es: "Tiene lecciones para hacer juntos",
+        hi: "साथ में करने के लिए पाठ हैं",
+        bn: "একসাথে করার পাঠ আছে"
+    },
+    'friends_empty': {
+        en: "You haven't completed a lesson with anyone yet. Share your profile link so a friend can finish a lesson with you.",
+        es: "Aún no has completado una lección con nadie. Comparte el enlace de tu perfil para que un amigo pueda terminar una lección contigo.",
+        hi: "आपने अभी तक किसी के साथ कोई पाठ पूरा नहीं किया है। अपनी प्रोफ़ाइल का लिंक साझा करें ताकि कोई मित्र आपके साथ पाठ पूरा कर सके।",
+        bn: "আপনি এখনও কারো সাথে কোনো পাঠ সম্পন্ন করেননি। আপনার প্রোফাইল লিঙ্ক শেয়ার করুন যাতে একজন বন্ধু আপনার সাথে একটি পাঠ শেষ করতে পারে।"
+    },
+    'friends_login_required': {
+        en: "Log in to see your friends.",
+        es: "Inicia sesión para ver a tus amigos.",
+        hi: "अपने दोस्तों को देखने के लिए लॉग इन करें।",
+        bn: "আপনার বন্ধুদের দেখতে লগ ইন করুন।"
+    },
     // Public course-listings page (`/courses`): the heading + onboarding steps
     // shown above the list of available friend courses.
     'friend_courses_heading': {
@@ -1294,13 +1484,17 @@ const strings = {
         hi: "अपने दोस्तों के साथ करने के लिए एक बातचीत चुनें और उनके साथ मुफ़्त अंग्रेज़ी का अभ्यास करें।",
         bn: "আপনার বন্ধুদের সাথে করার জন্য একটি কথোপকথন বেছে নিন এবং তাদের সাথে বিনামূল্যে ইংরেজি চর্চা করুন।"
     },
+    // Story 070: signup is lazy — the account is created at the end of the first
+    // lesson. The under-five-minutes promise stays, because that is what makes
+    // deferring the account unalarming; the second sentence names the outcome
+    // so nobody finishes the lesson expecting a form that is not there.
     'friend_courses_step_1': {
-        en: "Complete the first mini lesson in under five minutes.",
-        es: "Completa la primera mini lección en menos de cinco minutos.",
-        pt: "Complete a primeira mini lição em menos de cinco minutos.",
-        fr: "Terminez la première mini-leçon en moins de cinq minutes.",
-        hi: "पहला मिनी पाठ पाँच मिनट से कम समय में पूरा करें।",
-        bn: "পাঁচ মিনিটের কম সময়ে প্রথম মিনি পাঠ সম্পন্ন করুন।"
+        en: "Complete the first mini lesson in under five minutes. You'll create your free account at the end.",
+        es: "Completa la primera mini lección en menos de cinco minutos. Al final crearás tu cuenta gratuita.",
+        pt: "Complete a primeira mini lição em menos de cinco minutos. No final você criará sua conta gratuita.",
+        fr: "Terminez la première mini-leçon en moins de cinq minutes. Vous créerez votre compte gratuit à la fin.",
+        hi: "पहला मिनी पाठ पाँच मिनट से कम समय में पूरा करें। अंत में आपका मुफ़्त खाता बन जाएगा।",
+        bn: "পাঁচ মিনিটের কম সময়ে প্রথম মিনি পাঠ সম্পন্ন করুন। শেষে আপনার বিনামূল্যে অ্যাকাউন্ট তৈরি হবে।"
     },
     'friend_courses_step_2': {
         en: "Share your special link with friends, family, and colleagues so that they can reply to you and continue the conversation.",
@@ -1309,6 +1503,26 @@ const strings = {
         fr: "Partagez votre lien spécial avec vos amis, votre famille et vos collègues pour qu'ils puissent vous répondre et poursuivre la conversation.",
         hi: "अपना विशेष लिंक दोस्तों, परिवार और सहकर्मियों के साथ साझा करें ताकि वे आपको जवाब दे सकें और बातचीत जारी रख सकें।",
         bn: "আপনার বিশেষ লিঙ্ক বন্ধু, পরিবার ও সহকর্মীদের সাথে শেয়ার করুন যাতে তারা আপনাকে উত্তর দিতে পারে এবং কথোপকথন চালিয়ে যেতে পারে।"
+    },
+    // Story 070: the signed-out notice at the top of /courses. Shown to guests
+    // only, so it says where they are (not signed in), how to get the account
+    // (finish the lesson), and how to sign in if they already have one. The
+    // sign-in link reuses the existing `sign_in` copy rather than a new string.
+    'courses_guest_notice_title': {
+        en: "You're not signed in",
+        es: "No has iniciado sesión",
+        pt: "Você não está com a sessão iniciada",
+        fr: "Vous n'êtes pas connecté",
+        hi: "आप साइन इन नहीं हैं",
+        bn: "আপনি সাইন ইন করেননি"
+    },
+    'courses_guest_notice_body': {
+        en: "New here? Complete a mini lesson in under five minutes and create your free account at the end.",
+        es: "¿Eres nuevo? Completa una mini lección en menos de cinco minutos y crea tu cuenta gratuita al final.",
+        pt: "Novo por aqui? Complete uma mini lição em menos de cinco minutos e crie sua conta gratuita no final.",
+        fr: "Nouveau ici ? Terminez une mini-leçon en moins de cinq minutes et créez votre compte gratuit à la fin.",
+        hi: "नए हैं? पाँच मिनट से कम समय में एक मिनी पाठ पूरा करें और अंत में अपना मुफ़्त खाता बनाएँ।",
+        bn: "নতুন? পাঁচ মিনিটের কম সময়ে একটি মিনি পাঠ সম্পন্ন করুন এবং শেষে আপনার বিনামূল্যে অ্যাকাউন্ট তৈরি করুন।"
     },
     'friend_courses_empty': {
         en: "No friend courses are available right now. Please check back soon.",
@@ -1368,6 +1582,58 @@ const strings = {
         fr: "Un ami",
         hi: "एक मित्र",
         bn: "একজন বন্ধু"
+    },
+    // Web push (story 063). The push BODY reuses notifications_friend_response
+    // above (already translated); only the push-specific title and the opt-in
+    // prompt are new. Native-speaker review of the non-English drafts is a
+    // follow-up, as for stories 056/059/062.
+    'push_friend_response_title': {
+        en: "New video with your questions",
+        es: "Nuevo video con tus preguntas",
+        pt: "Novo vídeo com as suas perguntas",
+        fr: "Nouvelle vidéo avec vos questions",
+        hi: "आपके सवालों के साथ नया वीडियो",
+        bn: "আপনার প্রশ্নগুলো নিয়ে নতুন ভিডিও"
+    },
+    'push_optin_title': {
+        en: "Turn on notifications",
+        es: "Activar notificaciones",
+        pt: "Ativar notificações",
+        fr: "Activer les notifications",
+        hi: "सूचनाएँ चालू करें",
+        bn: "বিজ্ঞপ্তি চালু করুন"
+    },
+    'push_optin_body': {
+        en: "Get notified when a friend answers your questions.",
+        es: "Recibe un aviso cuando un amigo responda tus preguntas.",
+        pt: "Receba um aviso quando um amigo responder às suas perguntas.",
+        fr: "Recevez une notification quand un ami répond à vos questions.",
+        hi: "जब कोई मित्र आपके सवालों का जवाब दे, तो सूचना पाएँ।",
+        bn: "কোনো বন্ধু আপনার প্রশ্নের উত্তর দিলে আপনি বিজ্ঞপ্তি পাবেন।"
+    },
+    'push_optin_enable': {
+        en: "Enable",
+        es: "Activar",
+        pt: "Ativar",
+        fr: "Activer",
+        hi: "चालू करें",
+        bn: "চালু করুন"
+    },
+    'push_optin_dismiss': {
+        en: "Not now",
+        es: "Ahora no",
+        pt: "Agora não",
+        fr: "Plus tard",
+        hi: "अभी नहीं",
+        bn: "এখন নয়"
+    },
+    'push_optin_denied_hint': {
+        en: "Notifications are blocked. Allow them for this site in your browser settings.",
+        es: "Las notificaciones están bloqueadas. Permítelas para este sitio en los ajustes del navegador.",
+        pt: "As notificações estão bloqueadas. Permita-as para este site nas configurações do navegador.",
+        fr: "Les notifications sont bloquées. Autorisez-les pour ce site dans les réglages du navigateur.",
+        hi: "सूचनाएँ अवरुद्ध हैं। ब्राउज़र सेटिंग में इस साइट के लिए उन्हें अनुमति दें।",
+        bn: "বিজ্ঞপ্তি ব্লক করা আছে। ব্রাউজার সেটিংসে এই সাইটের জন্য অনুমতি দিন।"
     },
     'profile_updated': {
         en: "Profile updated successfully.",
@@ -1436,6 +1702,46 @@ const strings = {
         fr: "Adresse e-mail",
         hi: "ईमेल पता",
         bn: "ইমেইল ঠিকানা"
+    },
+    'auth_email_error_required': {
+        en: "Please enter your email address.",
+        es: "Introduce tu correo electrónico.",
+        pt: "Digite seu endereço de e-mail.",
+        fr: "Veuillez saisir votre adresse e-mail.",
+        hi: "कृपया अपना ईमेल पता दर्ज करें।",
+        bn: "অনুগ্রহ করে আপনার ইমেইল ঠিকানা লিখুন।"
+    },
+    'auth_email_error_invalid': {
+        en: "That email address doesn't look right. Please check it and try again.",
+        es: "Ese correo electrónico no parece correcto. Compruébalo e inténtalo de nuevo.",
+        pt: "Esse endereço de e-mail não parece correto. Verifique e tente novamente.",
+        fr: "Cette adresse e-mail semble incorrecte. Vérifiez-la et réessayez.",
+        hi: "यह ईमेल पता सही नहीं लगता। कृपया इसे जाँचकर फिर से प्रयास करें।",
+        bn: "এই ইমেইল ঠিকানাটি সঠিক মনে হচ্ছে না। অনুগ্রহ করে যাচাই করে আবার চেষ্টা করুন।"
+    },
+    'auth_email_error_disposable': {
+        en: "Please use a permanent email address — temporary inboxes aren't allowed.",
+        es: "Usa una dirección de correo permanente: no se permiten buzones temporales.",
+        pt: "Use um endereço de e-mail permanente — caixas temporárias não são permitidas.",
+        fr: "Utilisez une adresse e-mail permanente — les boîtes jetables ne sont pas autorisées.",
+        hi: "कृपया स्थायी ईमेल पते का उपयोग करें — अस्थायी इनबॉक्स स्वीकार्य नहीं हैं।",
+        bn: "অনুগ্রহ করে একটি স্থায়ী ইমেইল ঠিকানা ব্যবহার করুন — অস্থায়ী ইনবক্স গ্রহণযোগ্য নয়।"
+    },
+    'auth_email_error_typo': {
+        en: "That email domain looks misspelled — did you mean {suggestion}?",
+        es: "Ese dominio de correo parece mal escrito: ¿quisiste decir {suggestion}?",
+        pt: "Esse domínio de e-mail parece escrito errado — você quis dizer {suggestion}?",
+        fr: "Ce domaine e-mail semble mal orthographié — vouliez-vous dire {suggestion} ?",
+        hi: "इस ईमेल डोमेन की वर्तनी गलत लगती है — क्या आपका मतलब {suggestion} है?",
+        bn: "এই ইমেইল ডোমেইনটি ভুল বানানের মনে হচ্ছে — আপনি কি {suggestion} বোঝাতে চেয়েছেন?"
+    },
+    'auth_email_error_no_mail': {
+        en: "That email domain can't receive mail. Please use a different address.",
+        es: "Ese dominio de correo no puede recibir mensajes. Usa otra dirección.",
+        pt: "Esse domínio de e-mail não consegue receber mensagens. Use outro endereço.",
+        fr: "Ce domaine e-mail ne peut pas recevoir de messages. Utilisez une autre adresse.",
+        hi: "यह ईमेल डोमेन संदेश प्राप्त नहीं कर सकता। कृपया कोई अन्य पता उपयोग करें।",
+        bn: "এই ইমেইল ডোমেইন বার্তা গ্রহণ করতে পারে না। অনুগ্রহ করে অন্য ঠিকানা ব্যবহার করুন।"
     },
     'auth_password_label': {
         en: "Password",
@@ -2051,12 +2357,31 @@ const strings = {
     },
     // Branching step: heading over the multiple-choice buttons.
     'video_choose_how_respond': {
-        en: "Choose how you will respond.",
+        en: "Choose what you will say.",
         es: "Elige cómo vas a responder.",
         pt: "Escolha como você vai responder.",
         fr: "Choisissez comment vous allez répondre.",
         hi: "चुनें कि आप कैसे उत्तर देंगे।",
         bn: "আপনি কীভাবে উত্তর দেবেন তা বেছে নিন।"
+    },
+    // Branching step: heading over the NESTED (second-or-deeper) row of buttons,
+    // shown once the learner has picked a group at the previous level.
+    'video_choose_exactly': {
+        en: "Now choose exactly what you want to say.",
+        es: "Ahora elige exactamente lo que quieres decir.",
+        pt: "Agora escolha exatamente o que você quer dizer.",
+        fr: "Choisissez maintenant exactement ce que vous voulez dire.",
+        hi: "अब ठीक वही चुनें जो आप कहना चाहते हैं।",
+        bn: "এখন আপনি ঠিক কী বলতে চান তা বেছে নিন।"
+    },
+    // Branching step: return from a nested choice level to the previous one.
+    'branch_back': {
+        en: "BACK",
+        es: "ATRÁS",
+        pt: "VOLTAR",
+        fr: "RETOUR",
+        hi: "वापस",
+        bn: "পিছনে"
     },
     // Shown over the lesson-success video once it ends, so the learner knows
     // the revealed button creates the recap video they can share.
@@ -2271,12 +2596,12 @@ const strings = {
         bn: "আপনার বন্ধুদের সাথে চিরকাল বিনামূল্যে ইংরেজি বলার চর্চা করুন।"
     },
     'home_landing_devices_heading': {
-        en: "Anyone, anywhere, any device.",
-        es: "Cualquiera, en cualquier lugar, en cualquier dispositivo.",
-        pt: "Qualquer pessoa, em qualquer lugar, em qualquer dispositivo.",
-        fr: "Qui que vous soyez, où que vous soyez, sur n'importe quel appareil.",
-        hi: "कोई भी, कहीं भी, कोई भी डिवाइस।",
-        bn: "যে কেউ, যেকোনো জায়গায়, যেকোনো ডিভাইসে।"
+        en: "Anywhere, Any Device.",
+        es: 'En cualquier lugar, en cualquier dispositivo.',
+        pt: 'Em qualquer lugar, em qualquer dispositivo.',
+        fr: "N'importe où, n'importe quel appareil.",
+        hi: 'कहीं भी, कोई भी डिवाइस।',
+        bn: 'যেকোনো জায়গায়, যেকোনো ডিভাইস।',
     },
     'home_landing_devices_body': {
         en: "It works on any recent device (since about 2020): phone, tablet, or computer. You don't even have to install an app!",

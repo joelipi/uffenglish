@@ -3,21 +3,34 @@ import * as mediaAdapter from './speech.web.js';
 import { createWhisperAdapter } from '../../workers/whisper/app-vad-asr-web.js';
 import { updateSpeechRecording } from '../storage/storage.js';
 import { createSpeechOrchestrator } from './speech-orchestrator.js';
-import { getIsPWAMode } from '../user/demo-mode-webonly.js';
 import { appStore } from '../store/store.js';
 
-const isPWAMode = getIsPWAMode();
-console.warn(`[speech] PWA mode ${isPWAMode ? 'ACTIVE (Sherpa-ONNX full Whisper + VAD)' : 'OFF (Transformers.js tiny.en — default)'}`);
+// TEMPORARY: PWA mode and the bare web app both run the light pipeline.
+//
+// The full PWA pipeline (whisper-worker-web.js — Sherpa-ONNX full Whisper + VAD)
+// fetches a ~110 MB package (sherpa-onnx-wasm-main-vad-asr.wasm + .data, the
+// latter alone ~99 MB) and holds it as WASM memory. Many devices cannot handle
+// that, and a user who installed the PWA is not necessarily on a machine that
+// can — so selecting it on PWA mode alone was a bet the device could lose, with
+// an OOM or a very long first load as the failure mode.
+//
+// For now both paths use the light Transformers.js tiny.en pipeline
+// (whisper-worker-demo.js, ~41 MB, no real VAD). Revisit this: reintroduce the
+// heavy pipeline behind an explicit device-capability gate
+// (navigator.deviceMemory / hardwareConcurrency, ideally a one-time probe)
+// rather than behind PWA mode, so an installed app on a weak phone gets the
+// light pipeline instead of the one it cannot survive.
+//
+// whisper-worker-web.js stays in place, untouched, for that gate to select.
+console.warn('[speech] Speech pipeline: Transformers.js tiny.en (light) for all users');
 
 function createWhisperWorker() {
-    const w = isPWAMode
-        ? new Worker(new URL('../../workers/whisper/whisper-worker-web.js', import.meta.url))
-        : new Worker(
-            new URL('../../workers/whisper/whisper-worker-demo.js', import.meta.url),
-            { type: 'module' },
-        );
+    const w = new Worker(
+        new URL('../../workers/whisper/whisper-worker-demo.js', import.meta.url),
+        { type: 'module' },
+    );
     w.onerror = (err) => {
-        console.error(`[speech] Worker failed to load (${isPWAMode ? 'pwa' : 'default'}):`, err);
+        console.error('[speech] Worker failed to load (light):', err);
         try { import('../utils/posthog.js').then(m => m.captureException?.(err instanceof Error ? err : new Error(String(err)), { source: 'whisper-worker-onerror' })); } catch {}
     };
     return w;

@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import {
-    GO_LESSON_PATH,
     normalizeShareCode,
     planShareCodeSubmit,
     shareCodeErrorStringKey,
@@ -47,12 +46,6 @@ describe('planShareCodeSubmit', () => {
 
     it('errors empty with no arguments', () => {
         expect(planShareCodeSubmit()).toEqual({ action: 'error', reason: 'empty' });
-    });
-});
-
-describe('GO_LESSON_PATH', () => {
-    it('points at the Would You Rather ask lesson', () => {
-        expect(GO_LESSON_PATH).toBe('/course/wouldrather/lesson/a');
     });
 });
 

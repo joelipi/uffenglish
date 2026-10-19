@@ -14,7 +14,7 @@ const UPLOAD_PATH = '/api/upload-segment';
  *
  * @param {object} params
  * @param {Blob} params.blob       The mp4 video bytes (Content-Type video/mp4).
- * @param {string} params.key      R2 object key, e.g. "videos/{shareCode}-{lessonId}-response-01.mp4".
+ * @param {string} params.key      R2 object key, e.g. "videos/{recorder}-{inviter}-{courseId}-{lessonId}-01.mp4".
  * @param {string} params.jwt      Appwrite JWT from account.createJWT() (sent
  *                                   for compatibility; the Function ignores it).
  * @param {string} params.shareCode The user's shareCode (sent in a header so

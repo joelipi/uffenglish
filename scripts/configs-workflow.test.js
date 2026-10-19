@@ -1,17 +1,16 @@
 // scripts/configs-workflow.test.js
-// Story 046 (+051): source guard for .github/workflows/configs.yml. The Action is
-// the only thing that commits generated configs, so its shape (triggers, bot
-// token, loop guard, --check --from-api run, skip reporting, diff-only commit, no
-// --force) is pinned.
+// Story 046 (+051, 065): source guard for .github/workflows/configs.yml. The
+// Action is the only thing that commits generated configs, so its shape
+// (triggers, bot token, loop guard, --check run over the committed CSV, skip
+// reporting, diff-only commit, no --force) is pinned.
 //
 // AGENTS.md guard hygiene: tokens asserted over the whole file must appear
-// exactly once. `--from-api` also appears in the header comment, so the run
-// assertions are scoped to the "Generate configs" step block, not the file.
+// exactly once.
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { concurrencyBlock, ifLine } from './lib/workflow-guard-utils.js';
+import { concurrencyBlock, ifLine, stepBlock } from './lib/workflow-guard-utils.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -19,7 +18,7 @@ const WORKFLOW = path.join(ROOT, '.github/workflows/configs.yml');
 
 const read = () => readFileSync(WORKFLOW, 'utf8');
 
-const RUN_COMMAND = 'node scripts/generate-config-from-sheet.mjs --check --from-api';
+const RUN_COMMAND = 'node scripts/generate-config-from-sheet.mjs --check --require-videos';
 
 /** The "Generate configs" step block (its env + run), so a header-comment
  * occurrence of a token cannot keep an assertion green. */
@@ -37,7 +36,13 @@ function assertConfigsContract(text) {
     // pipeline.yml owns `render-complete`; configs no longer accepts it.
     expect(text).not.toContain('repository_dispatch');
     expect(text).toContain('token: ${{ secrets.GH_NEW_TOKEN }}');
-    expect(text).toContain('git push origin "HEAD:${{ github.ref_name }}"');
+    const commit = stepBlock(text, 'Commit configs', 'configs.yml');
+    expect(commit).toContain('uses: ./.github/actions/bot-commit/');
+    expect(commit).toContain('bot-name: uff-configs-bot');
+    expect(commit).toContain('[skip configs]');
+    expect(commit).toContain('add-paths: src/config scripts/lib/generated-configs.json');
+    expect(commit).toContain('node scripts/generate-config-from-sheet.mjs --check --require-videos');
+
     // The loop guard's `if:` line, scoped: `[skip configs]` also appears in the
     // bot's commit message, so a whole-file assertion could stay green while the
     // guard is broken.
@@ -45,18 +50,19 @@ function assertConfigsContract(text) {
     expect(guard).toContain("github.actor != 'github-actions[bot]'");
     expect(guard).toContain("github.event.head_commit.message || ''");
     expect(guard).toContain('[skip configs]');
-    // One group per ref; `queue: max` keeps queued runs instead of cancelling the
-    // older pending one.
+    // Shared group with every CSV writer; `queue: max` keeps queued runs
+    // instead of cancelling the older pending one.
     const conc = concurrencyBlock(text, 'configs.yml');
-    expect(conc).toContain('group: configs-${{ github.ref }}');
+    expect(conc).toContain('group: master-csv');
     expect(conc).toContain('cancel-in-progress: false');
     expect(conc).toContain('queue: max');
-    // The run step (not the comment) must read via the API with the service
-    // account and the sheet id.
+    // The run step reads the committed CSV from disk: no API flags, no
+    // service account, no sheet id.
     const block = runBlock(text);
     expect(block).toContain(RUN_COMMAND);
-    expect(block).toContain('GOOGLE_SERVICE_ACCOUNT_JSON');
-    expect(block).toContain('GOOGLE_SHEET_ID');
+    expect(block).not.toContain('--from-api');
+    expect(text).not.toContain('GOOGLE_');
+    expect(text).not.toContain('SHEET_URL');
 }
 
 describe('configs.yml source guard', () => {
@@ -71,7 +77,7 @@ describe('configs.yml source guard', () => {
         expect(text).not.toContain('repository_dispatch');
     });
 
-    it('runs the generator with --check --from-api in the run step', () => {
+    it('runs the generator with --check over the committed CSV in the run step', () => {
         expect(runBlock(read())).toContain(RUN_COMMAND);
     });
 
@@ -79,9 +85,9 @@ describe('configs.yml source guard', () => {
         expect(read()).toContain('token: ${{ secrets.GH_NEW_TOKEN }}');
     });
 
-    it('uses the configs bot identity', () => {
-        expect(read()).toContain('11131426+joelipi@users.noreply.github.com');
-        expect(read()).toContain('uff-configs-bot');
+    it('uses the configs bot identity via the shared action', () => {
+        const commit = stepBlock(read(), 'Commit configs', 'configs.yml');
+        expect(commit).toContain('bot-name: uff-configs-bot');
     });
 
     it('has the null-safe actor + [skip configs] loop guard', () => {
@@ -111,11 +117,11 @@ describe('configs.yml source guard', () => {
         expect(text).toContain("grep 'missing required column'");
     });
 
-    it('commits configs + the allow-list only on a diff', () => {
-        const text = read();
-        expect(text).toContain('git add src/config scripts/lib/generated-configs.json');
-        expect(text).toContain('git diff --cached --quiet');
-        expect(text).toContain('git push origin "HEAD:${{ github.ref_name }}"');
+    it('commits configs + the allow-list through the shared action', () => {
+        const commit = stepBlock(read(), 'Commit configs', 'configs.yml');
+        expect(commit).toContain('uses: ./.github/actions/bot-commit/');
+        expect(commit).toContain('add-paths: src/config scripts/lib/generated-configs.json');
+        expect(commit).toContain('chore(configs): regenerate course configs from the master CSV [skip configs]');
     });
 
     it('never passes --force (the Action never overwrites)', () => {
@@ -127,8 +133,9 @@ describe('configs.yml source guard', () => {
         expect(() => assertConfigsContract(good)).not.toThrow();
         const tokens = [
             'workflow_call:', 'secrets.GH_NEW_TOKEN', '[skip configs]',
-            RUN_COMMAND, 'GOOGLE_SERVICE_ACCOUNT_JSON', 'GOOGLE_SHEET_ID',
-            'git push origin "HEAD:${{ github.ref_name }}"', 'queue: max',
+            RUN_COMMAND, 'group: master-csv',
+            'uses: ./.github/actions/bot-commit/',
+            'bot-name: uff-configs-bot', 'queue: max',
         ];
         for (const token of tokens) {
             const mutated = good.split(token).join('SENTINEL_REMOVED');
@@ -145,12 +152,12 @@ describe('configs.yml source guard', () => {
         expect(() => assertConfigsContract(mutated)).toThrow();
     });
 
-    it('scopes --from-api to the run step: dropping it from the command still fails', () => {
+    it('re-adding the API path trips the absences', () => {
         const good = read();
-        // Remove the flag from the run command only; the header comment keeps a
-        // `--from-api` occurrence, which used to keep a whole-file guard green.
-        const mutated = good.replace('mjs --check --from-api', 'mjs --check');
-        expect(mutated).toContain('--from-api');
+        // Appending `--from-api` to the run command trips the scoped absence
+        // (the header comment carries no such token to hide behind).
+        const mutated = good.replace('mjs --check --require-videos 2>&1', 'mjs --check --require-videos --from-api 2>&1');
+        expect(mutated).not.toBe(good);
         expect(() => assertConfigsContract(mutated)).toThrow();
     });
 });

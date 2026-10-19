@@ -12,6 +12,8 @@ import {
     statusKey,
     publishedVideoKey,
     publishedPosterKey,
+    socialVideoKey,
+    socialPosterKey,
     pipelineAssetKey,
     PRIVATE_KEY_PREFIXES,
     isPrivateKey,
@@ -67,12 +69,30 @@ describe('pipeline-keys — object keys', () => {
         expect(publishedPosterKey('lesson_01')).toBe('assets/videos/lesson_01.jpg');
     });
 
+    // Story 068: the private social twins the operator posts from.
+    it('maps a slug to its private social video/poster pair', () => {
+        expect(socialVideoKey('lesson_01')).toBe('pipeline-assets/social/lesson_01.mp4');
+        expect(socialPosterKey('lesson_01')).toBe('pipeline-assets/social/lesson_01.jpg');
+        for (const key of [socialVideoKey('lesson_01'), socialPosterKey('lesson_01')]) {
+            expect(key.startsWith('pipeline-assets/social/')).toBe(true);
+            expect(isPrivateKey(key)).toBe(true);
+        }
+    });
+
     it('maps a relative asset path into pipeline-assets/', () => {
         expect(pipelineAssetKey('fonts/Kalam-Bold.ttf')).toBe('pipeline-assets/fonts/Kalam-Bold.ttf');
     });
 
     it('normalizes Windows separators in asset paths', () => {
         expect(pipelineAssetKey('fonts\\Kalam-Bold.ttf')).toBe('pipeline-assets/fonts/Kalam-Bold.ttf');
+    });
+
+    it('rejects the same invalid slugs for every key helper', () => {
+        for (const bad of ['../evil', 'a/b', 'x.mp4', '', 'a' + 'a'.repeat(100)]) {
+            expect(isValidPipelineSlug(bad)).toBe(false);
+            expect(socialVideoKey(bad)).toBe(null);
+            expect(socialPosterKey(bad)).toBe(null);
+        }
     });
 
     it('exposes the job-id pattern used by the render/status Functions', () => {

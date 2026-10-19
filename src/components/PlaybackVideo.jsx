@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { appStore } from '../modules/store/store.js';
 import { usePlaybackVideo } from '../hooks/usePlaybackVideo.js';
+import { useVideoSpeed } from '../hooks/useVideoSpeed.js';
+import VideoSpeedToggle from './VideoSpeedToggle.jsx';
 
 // Intentional navigator sniff — guarded with typeof checks. In React Native
 // navigator is undefined → isIOS is false (native video player handles iOS specifics).
@@ -13,6 +15,8 @@ export default function PlaybackVideo() {
     const observerRef = useRef(null);
     const prevClearTrigger = useRef(videoClearTrigger);
     const prevPlayTrigger = useRef(videoPlayTrigger);
+    // Speed toggle (1x -> 0.8x -> 0.6x -> 1x), reset per recording.
+    const [playbackRate, handleSpeedCycle] = useVideoSpeed(videoRef, blob);
 
     const handleVideoEnded = () => {
         const video = videoRef.current;
@@ -132,6 +136,7 @@ export default function PlaybackVideo() {
                     appStore.getState().setPlaybackMuted(next);
                 }}
                 style={{ cursor: 'pointer' }} />
+            <VideoSpeedToggle rate={playbackRate} onCycle={handleSpeedCycle} />
         </div>
     );
 }

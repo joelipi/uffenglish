@@ -12,7 +12,7 @@ describe('buildShareFilename', () => {
             courseId: 'wouldyourather',
             lessonId: 'a',
             fileExtension: 'mp4',
-        })).toBe('gs5i8-wouldyourather-a-complete.mp4');
+        })).toBe('gs5i8-gs5i8-wouldyourather-a-complete.mp4');
     });
 
     it('ignores the recorder extension for the R2-backed name (always mp4)', () => {
@@ -21,7 +21,7 @@ describe('buildShareFilename', () => {
             courseId: 'wouldyourather',
             lessonId: 'a',
             fileExtension: 'webm',
-        })).toBe('gs5i8-wouldyourather-a-complete.mp4');
+        })).toBe('gs5i8-gs5i8-wouldyourather-a-complete.mp4');
     });
 
     it('embeds both contributors when a pair code is resolved', () => {
@@ -34,13 +34,21 @@ describe('buildShareFilename', () => {
         })).toBe('q9uki-gs5i8-wouldyourather-b-complete.mp4');
     });
 
-    it('drops a pair code equal to the exporter', () => {
+    it('repeats the recorder code when no pair code is resolved', () => {
         expect(buildShareFilename({
             shareCode: 'gs5i8',
-            pairShareCode: 'GS5I8',
             courseId: 'wouldyourather',
             lessonId: 'b',
-        })).toBe('gs5i8-wouldyourather-b-complete.mp4');
+        })).toBe('gs5i8-gs5i8-wouldyourather-b-complete.mp4');
+    });
+
+    it('preserves code case (the upload Function matches case-sensitively)', () => {
+        expect(buildShareFilename({
+            shareCode: 'gs5i8',
+            pairShareCode: 'Q9UKI',
+            courseId: 'wouldyourather',
+            lessonId: 'b',
+        })).toBe('gs5i8-Q9UKI-wouldyourather-b-complete.mp4');
     });
 
     it('falls back to the timestamped local name when the share code is missing', () => {

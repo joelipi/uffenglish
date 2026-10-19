@@ -46,6 +46,17 @@ describe('HomeLanding', () => {
         expect(q('landing-account-link').textContent).toBe('Sign In');
     });
 
+    it('renders the Privacy/Terms footer on the public homepage', () => {
+        // The public homepage (/) keeps its legal footer; the dashboard
+        // (/home) renders none — see legal-wiring.test.js.
+        render();
+        const footer = container.querySelector('[data-testid="legal-footer"]');
+        expect(footer).not.toBeNull();
+        expect(footer.tagName).toBe('FOOTER');
+        const hrefs = [...footer.querySelectorAll('a')].map((a) => a.getAttribute('href'));
+        expect(hrefs).toEqual(['/privacy', '/terms']);
+    });
+
     it('links a logged-in visitor to /home with the Home label', () => {
         render({ isLoggedIn: true });
         expect(q('landing-account-link').getAttribute('href')).toBe('/home');
@@ -341,12 +352,12 @@ describe('HomeLanding', () => {
         const select = q('landing-language-select');
         expect(select.tagName).toBe('SELECT');
         const options = Array.from(select.querySelectorAll('option'));
-        expect(options.map((o) => o.value)).toEqual(['EN', 'ES', 'PT', 'FR', 'HI', 'BN']);
+        expect(options.map((o) => o.value)).toEqual(['EN', 'ES', 'FR', 'PT', 'HI', 'BN']);
         expect(options.map((o) => o.textContent)).toEqual([
             'English',
             'Español',
-            'Português',
             'Français',
+            'Português',
             'हिन्दी',
             'বাংলা',
         ]);
@@ -400,7 +411,7 @@ describe('HomeLanding', () => {
         expect(section.className).toContain('uff-showcase-gradient');
         const icons = q('any-device-icons');
         expect(icons).not.toBeNull();
-        for (const name of ['android', 'ios', 'windows', 'mac', 'linux', 'chromebook']) {
+        for (const name of ['smartphone', 'laptop', 'tablet']) {
             const icon = q(`any-device-icon-${name}`);
             expect(icon).not.toBeNull();
             expect(icon.querySelector('i.bi')).not.toBeNull();
@@ -410,7 +421,7 @@ describe('HomeLanding', () => {
         }
         // Icons come before the heading and body in DOM order.
         expect(section.innerHTML.indexOf('any-device-icons')).toBeLessThan(section.innerHTML.indexOf('any-device-heading'));
-        expect(q('any-device-heading').textContent).toBe('Anyone, anywhere, any device.');
+        expect(q('any-device-heading').textContent).toBe('Anywhere, Any Device.');
         expect(q('any-device-text').textContent).toBe("It works on any recent device (since about 2020): phone, tablet, or computer. You don't even have to install an app!");
     });
 

@@ -6,15 +6,53 @@
          they render before this file downloads.
    ============================================================================= */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+/* NOTE: the Google Fonts <link> lives in index.html <head> (preconnect +
+   stylesheet, display=swap). This stylesheet deliberately does not pull the
+   fonts in itself. An at-rule import is only discovered once THIS file has
+   downloaded and been parsed, so the preconnect in the head cannot start the
+   font request any earlier, and until the import resolves the import itself
+   holds up this stylesheet's declarations. Fetching the same URL from two
+   places also leaves two independent copies of the kit to keep in step.
+   The stacks below are generated from src/modules/theme/brand-fonts.js, and
+   brand-fonts-wiring.test.js fails if the two drift apart. */
 
 *, *::before, *::after { box-sizing: border-box; }
 
-body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; font-size: 1rem; font-weight: 400; line-height: 1.5; color: #212529; background-color: #fff; -webkit-text-size-adjust: 100%; -moz-tab-size: 4; tab-size: 4; }
-.app-container { background-color: #000; }
+body { margin: 0; font-family: var(--font-body); font-size: 1rem; font-weight: 400; line-height: 1.5; color: #212529; background-color: #fff; -webkit-text-size-adjust: 100%; -moz-tab-size: 4; tab-size: 4; }
+/* `background-image: none` is not cosmetic: index.html paints the preloader
+   gradient on `.app-container` for the very first frame, and setting only
+   `background-color` leaves that gradient image in place underneath. It is
+   invisible while `#root` covers the container, but any route that exposes the
+   container (a frame smaller than the viewport) shows a blue bar where the
+   black surround is meant to be. */
+.app-container { background-color: #000; background-image: none; }
 
 :root {
   --bs-body-color: #212529;
+
+  /* --- Brand typography (see src/modules/theme/brand-fonts.js) -------------
+     --font-body and --font-heading both end in the universal fallback tail
+     (system-ui → OS-native faces → Noto Sans → sans-serif), so a character no
+     loaded font covers still renders from a face that does. Swapping the brand
+     heading kit (e.g. to Tomorrow, Chakra Petch or Saira) means editing
+     --font-heading and HEADING_FONT_FAMILY in that module — nothing else in the
+     codebase names the family. */
+  --font-body: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans', sans-serif;
+  --font-heading: 'Titillium Web', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans', sans-serif;
+
+  /* Stylistic :lang() heading overrides. A heading that falls back to the OS
+     face loses the forward-leaning feel the kit is built around, so each major
+     non-Latin alphabet gets its own geometric/tech face. Noto Sans sits in the
+     shared tail above, so a character even these lack still resolves.
+
+     Each variable is named after the face it holds (brand-fonts.js derives the
+     name), which is why zh-Hant/zh-HK/zh-TW share one: they share one family. */
+  --font-heading-zen-kaku-gothic-new: 'Zen Kaku Gothic New', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans', sans-serif;
+  --font-heading-noto-sans-sc: 'Noto Sans SC', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans', sans-serif;
+  --font-heading-noto-sans-tc: 'Noto Sans TC', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans', sans-serif;
+  --font-heading-khand: Khand, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans', sans-serif;
+  --font-heading-hind-siliguri: 'Hind Siliguri', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans', sans-serif;
+
   /*--bs-border-radius: 0.375rem; --bs-border-radius-pill: 50rem;*/
   --bs-border-width: 1px; --bs-border-color: #dee2e6;
   --bs-box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15);
@@ -25,6 +63,49 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
   --bs-warning-rgb: 255,193,7; --bs-info-rgb: 13,202,240;
   --bs-light-rgb: 248,249,250; --bs-success-rgb: 25,135,84;
 }
+
+/* --- Headings: the display face, italic for forward momentum ---
+   h1 takes the 900 face, h2/h3 the 700 — the two weights the kit loads. The
+   italic is a real face at 700; Titillium Web has no italic 900 on Google
+   Fonts, so h1's slant is synthesised by the browser (see
+   HEADING_ITALIC_WEIGHTS in src/modules/theme/brand-fonts.js).
+
+   The selectors are anchored to #root deliberately. The homepage loads real
+   Bootstrap 5.3.8 (src/generated/homepage-bootstrap.css), whose reboot emits
+   `.uff-home-bs h1, … h6 { font-weight: 500 }` — specificity (0,1,1), which
+   beats a bare `h1` (0,0,1) and loads *after* this file. A bare selector would
+   therefore leave every homepage heading at 500. #root is (1,0,1), so the brand
+   weights win regardless of stylesheet order; the app renders no portals, so
+   every heading lives under it.
+
+   `font-style` is deliberately not restated in the :lang() rules below. The
+   existing global `[lang]:not([lang="en"]):not([lang="EN"]) { font-style:
+   italic }` already italicises localized strings, and the video-overlay
+   surfaces opt back out with `font-style: normal !important`; re-declaring it
+   here would fight both. Those rules only swap the family.
+
+   The :lang() rules below repeat the #root anchor for the same reason: an id
+   outranks any number of pseudo-classes, so an unanchored `:lang()` rule would
+   lose to the bare `#root h1, …` rule above and leave a heading that is itself
+   in that language on the Latin face. */
+#root h1, #root h2, #root h3 { font-family: var(--font-heading); font-style: italic; font-weight: 700; }
+#root h1 { font-weight: 900; }
+
+/* Stylistic :lang() overrides. Each rule covers a heading that is itself in
+   that language AND a localized <span lang="…"> inside a heading — this app
+   renders translations as spans (e.g. <h2><span lang="hi">…</span></h2>), and
+   those spans inherit font-family from the heading, so matching only the
+   heading would leave them on the OS face.
+
+   Traditional Chinese is listed after the generic zh rule because the generic
+   subtag also matches the zh-Hant/zh-HK/zh-TW subtags, and the later,
+   equal-specificity rule wins. */
+#root :is(h1, h2, h3):lang(ja), #root :is(h1, h2, h3) :lang(ja) { font-family: var(--font-heading-zen-kaku-gothic-new); }
+#root :is(h1, h2, h3):lang(zh), #root :is(h1, h2, h3) :lang(zh) { font-family: var(--font-heading-noto-sans-sc); }
+#root :is(h1, h2, h3):lang(zh-Hant), #root :is(h1, h2, h3):lang(zh-HK), #root :is(h1, h2, h3):lang(zh-TW),
+#root :is(h1, h2, h3) :lang(zh-Hant), #root :is(h1, h2, h3) :lang(zh-HK), #root :is(h1, h2, h3) :lang(zh-TW) { font-family: var(--font-heading-noto-sans-tc); }
+#root :is(h1, h2, h3):lang(hi), #root :is(h1, h2, h3) :lang(hi) { font-family: var(--font-heading-khand); }
+#root :is(h1, h2, h3):lang(bn), #root :is(h1, h2, h3) :lang(bn) { font-family: var(--font-heading-hind-siliguri); }
 
 /* --- Display --- */
 .d-none { display: none !important; }
@@ -185,6 +266,16 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
 .btn-link { --bs-btn-font-weight: 400; --bs-btn-color: #f8f9fa; --bs-btn-bg: transparent; --bs-btn-border-color: transparent; --bs-btn-hover-color: #adb5bd; --bs-btn-hover-bg: transparent; --bs-btn-hover-border-color: transparent; --bs-btn-active-color: #adb5bd; --bs-btn-active-bg: transparent; --bs-btn-active-border-color: transparent; --bs-btn-disabled-color: #6c757d; --bs-btn-disabled-bg: transparent; --bs-btn-disabled-border-color: transparent; --bs-btn-box-shadow: none; --bs-btn-active-shadow: none; text-decoration: underline; }
 .btn-link:hover, .btn-link:focus-visible { color: var(--bs-btn-hover-color); background-color: transparent; border-color: transparent; }
 
+/* Auth navigation links (signup / login / forgot-password / back-to-login).
+   These render on dark-blue surfaces (AuthLayout card #1a3a5a, bg-dark
+   modals), where the default browser link blue is unreadable, so they
+   are bold white with an underline, lightening on hover. No `!important`
+   needed: app.css has no bare-anchor rule, the homepage stylesheets scope
+   theirs under `.uff-home-bs` (never an ancestor of the auth routes), and a
+   class already beats the user-agent link color. */
+.auth-link { color: #ffffff; font-weight: 700; text-decoration: underline; }
+.auth-link:hover, .auth-link:focus-visible { color: #adb5bd; }
+
 /* --- Cards --- */
 .card {
   --bs-card-spacer-y: 1rem;
@@ -270,7 +361,7 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
   top: 35%;
   left: 50%;
   transform: translate(-50%, -50%);
-  font-family: 'Orbitron', monospace;
+  font-family: var(--font-heading);
   font-size: 2.5em;
   font-weight: bold;
   color: #ff4757;
@@ -354,7 +445,17 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
     container-name: player;
 }
 
-/* Tablet and up Breakpoint */
+/* Tablet and up Breakpoint.
+
+   The frame is EXACTLY the viewport height. Do not cap it (e.g. with a
+   `max-height: …vh`) to "leave screen real estate": every route inside the
+   frame is laid out against the viewport height — the landing page lifts the
+   frame to `height: 100dvh` with its own internal scroll (home-landing.css
+   `#root:has(> .uff-home-bs)`) — so a cap makes that shell taller than its
+   clipping frame. The bottom of the page is then cut off, the shell scrolls
+   behind the frame edge, and the `.app-container` (see above) shows through
+   as bars above and below. Oversized overlays are capped individually
+   instead (e.g. `#hint-hangman-card`). */
 @media (min-width: 576px) {
     .video-frame {
         height: 100vh;
@@ -510,6 +611,35 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
     z-index: 30;
 }
 
+/* Friend-closed-response recording overlay: legend + phrase (English only)
+   shown as subtitles on the camera preview, kept above the bottom mic button. */
+.recording-phrase-overlay {
+    position: absolute;
+    bottom: 150px;
+    left: 0;
+    right: 0;
+    z-index: 40;
+    text-align: center;
+    padding: 0 24px;
+    pointer-events: none;
+}
+
+.recording-phrase-legend {
+    color: #fff;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 8px;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+}
+
+.recording-phrase-text {
+    color: #fff;
+    font-size: 1.2rem;
+    line-height: 1.3;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+}
+
 #webcam-preview {
     width: 100%;
     height: 100%;
@@ -653,12 +783,15 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
     justify-content: flex-end;
 }
 
-/* Branching multiple-choice decision row: Replay (left), a vertical stack of
-   text buttons (center, wider), Watch Tutorial (right). */
+/* Branching multiple-choice decision row: a full-width, scrollable stack of
+   text buttons on top, with the Replay / Watch Tutorial buttons in a footer
+   row beneath them so the buttons can use the whole screen width while leaving
+   room for the corner controls. */
 .branch-choice-row {
     display: flex;
-    justify-content: space-around;
-    align-items: flex-end;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: stretch;
     width: 100%;
     gap: 8px;
 }
@@ -666,14 +799,44 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    justify-content: flex-end;
-    flex: 2 1 0;
+    justify-content: flex-start;
+    flex: 0 0 auto;
     min-width: 0;
+    min-height: 0;
+    width: 100%;
+    gap: 4px;
+    /* The button area is the only scrollable region: a permanently visible
+       scrollbar makes it obvious more choices exist. flex-start keeps the
+       first button at the top instead of pinning the list to the bottom. */
+    max-height: 50vh;
+    overflow-y: scroll;
+    overflow-x: hidden;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.6) transparent;
+}
+.branch-choice-col::-webkit-scrollbar {
+    width: 8px;
+}
+.branch-choice-col::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: 4px;
+}
+.branch-choice-col::-webkit-scrollbar-track {
+    background: transparent;
+}
+.branch-choice-footer {
+    display: flex;
+    justify-content: space-around;
+    align-items: flex-end;
+    width: 100%;
     gap: 8px;
+    margin-top: 8px;
 }
 .branch-choice-btn {
     width: 100%;
     padding: 8px 10px;
+    font-size: 1.1rem;
     border-radius: 8px;
     background: var(--uff-btn-bg);
     border: var(--uff-btn-border);
@@ -709,6 +872,32 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
     display: block;
     font-weight: 500;
     opacity: 0.85;
+    margin-top: 2px;
+}
+/* A GROUP button (one that reveals a deeper row of choices) gets a chevron on
+   the right. The label stays centred like a leaf button so the two remain
+   visually consistent; the caret sits in the reserved padding. */
+.branch-choice-group-btn {
+    position: relative;
+    padding-right: 28px;
+}
+.branch-choice-btn .branch-choice-caret {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.9rem;
+    opacity: 0.85;
+}
+/* Back from a nested level to the previous one. Centred like the call buttons
+   so it never reads as one of the choice answers. */
+.branch-choice-back-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-weight: 600;
+    opacity: 0.9;
 }
 /*
 @container player (min-width: 420px) {
@@ -842,21 +1031,25 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
 /* Primary rectangular CTAs share the overlay buttons' luminous edge: the
    same white halo ring (btnGlowPulse) the glowing overlay call buttons
    carry in their ::before. One shared base rule covers the solid theme
-   buttons and the homepage primaries (both stylesheets are loaded on the
-   homepage; app.css is global so it also covers auth/modals). The host
-   positioning contains the negative-z halo (same precedent as .call-btn);
-   `border-radius: inherit` keeps it shape-agnostic across
-   rounded-rectangle and pill buttons. No floatBob here — the edge is the
-   halo; bobbing static form buttons reads as broken layout. */
+   buttons, the homepage primaries (both stylesheets are loaded on the
+   homepage; app.css is global so it also covers auth/modals) and the
+   tutorial modal Continue (which mirrors the homepage primary outside the
+   .uff-home-bs scope). The host positioning contains the negative-z halo
+   (same precedent as .call-btn); `border-radius: inherit` keeps it
+   shape-agnostic across rounded-rectangle and pill buttons. No floatBob
+   here — the edge is the halo; bobbing static form buttons reads as broken
+   layout. */
 .btn-primary,
 .btn-secondary,
 .btn-success,
+.tutorial-modal-continue,
 .uff-home-bs .btn-uff-primary,
 .uff-home-bs .btn-uff-topbar {
     position: relative;
     z-index: 0;
 }
 .btn-primary::before, .btn-secondary::before, .btn-success::before,
+.tutorial-modal-continue::before,
 .uff-home-bs .btn-uff-primary::before, .uff-home-bs .btn-uff-topbar::before {
     content: '';
     position: absolute;
@@ -870,9 +1063,11 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
 }
 /* Homepage buttons keep the halo but never pulse: only the main overlay
    call buttons pulse. The doubled scope class outranks the shared base, so
-   this wins regardless of source order. */
+   this wins regardless of source order. The tutorial Continue is a static
+   form button too, so it joins the no-pulse rule. */
 .uff-home-bs.uff-home-bs .btn-uff-primary::before,
-.uff-home-bs.uff-home-bs .btn-uff-topbar::before {
+.uff-home-bs.uff-home-bs .btn-uff-topbar::before,
+.tutorial-modal-continue::before {
     animation: none;
 }
 /* A disabled primary must not glow: same precedent as the pending success
@@ -1111,14 +1306,14 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
     animation: riseThroughWater 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
     z-index: 1;
 }
-/* Branching overlay: the "Choose how you will respond." headline sits below
+/* Branching overlay: the "Choose what you will say." headline sits below
    the blurred header band (the top ~18.5% of the frame — see .video-header-blur)
    and above the stacked choice buttons in the bottom band, which the layout
    keeps within the bottom 40% (60% from the bottom) and so never reach the
    headline's new home. */
 .ivp-overlay.ivp-overlay-branch {
     align-items: flex-start;
-    padding-top: 24vh;
+    padding-top: 16vh;
     padding-bottom: 45vh;
 }
 .ivp-overlay.ivp-overlay-branch .ivp-overlay-content {
@@ -1318,20 +1513,17 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
     text-shadow: 0 1px 3px rgba(0, 0, 0, 0.65);
 }
 
-/* Only Share glows — Replay and Continue stay flat so the primary action stands
-   out (same idea as the disabled glow on #replayBtn / #tutorialBtn). */
+/* Only Replay stays flat so the Share and Continue actions stand out
+   (same idea as the disabled glow on #replayBtn / #tutorialBtn). */
 #state-lesson-success #repeatButtonSuccess,
-#state-lesson-success #repeatButtonSuccess::before,
-#state-lesson-success #continueButtonSuccess,
-#state-lesson-success #continueButtonSuccess::before {
+#state-lesson-success #repeatButtonSuccess::before {
     animation: none !important;
 }
-#state-lesson-success #repeatButtonSuccess::before,
-#state-lesson-success #continueButtonSuccess::before {
+#state-lesson-success #repeatButtonSuccess::before {
     box-shadow: none !important;
 }
 
-/* Share is the primary action — bigger than Replay and Continue. */
+/* Share and Continue are the primary actions — bigger than Replay. */
 #state-lesson-success .call-btn-primary .call-btn {
     width: 76px;
     height: 76px;
@@ -2248,8 +2440,10 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
 
 /* --- Hangman hint card (friendClosedResponse feedback) --- */
 #hint-hangman-card {
-    max-width: 22rem;
+    max-width: min(22rem, 90%);
     width: max-content;
+    max-height: 70vh;
+    overflow-y: auto;
     font-family: inherit;
     font-size: 1rem;
     line-height: 1.5;
@@ -2582,4 +2776,208 @@ ul.incorrectWords li::before {
 
 .btn-bounce {
     animation: button-bounce 1s;
+}
+
+/* Tutorial modal — full-screen scrollable takeover. Scoped entirely under
+   .tutorial-modal-* so no lesson route is restyled. */
+.tutorial-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(0, 0, 0, 0.8);
+    overflow-y: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+
+.tutorial-modal-content {
+    position: relative;
+    width: min(440px, 100%);
+    max-height: 90vh;
+    overflow-y: auto;
+    background-color: #1a3a5a;
+    border-radius: 16px;
+    padding: 20px 16px 24px;
+    color: #fff;
+    text-align: center;
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.55);
+}
+
+/* Same visual language as the app's top-left close X (#closePage): white,
+   1.5rem, no button chrome — pinned to the card's upper-right corner. */
+.tutorial-modal-close {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    z-index: 3;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: white;
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.tutorial-modal-close:hover {
+    opacity: 0.7;
+}
+
+/* Portrait 9:16 video wrapper — the subtitle band sits inside it. */
+.tutorial-modal-video-wrap {
+    position: relative;
+    width: 100%;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #000;
+}
+
+.tutorial-modal-video {
+    display: block;
+    width: 100%;
+    aspect-ratio: 9 / 16;
+    background: #000;
+}
+
+/* Subtitle band over the video's bottom. Reuses the lesson player's subtitle
+   classes (.ivp-subtitle-scroll-container / .ivp-subtitles); the geometry
+   override below is needed because the shared classes position themselves
+   against the lesson frame, not this wrapper. Scoped to the wrapper so no
+   lesson subtitle is affected. */
+.tutorial-modal-video-wrap .tutorial-modal-subtitles.ivp-subtitle-scroll-container {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    height: auto;
+    max-height: 45%;
+    overflow-y: auto;
+    padding: 28px 14px 12px;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.72) 45%, rgba(0, 0, 0, 0.85) 100%);
+    z-index: 2;
+}
+
+.tutorial-modal-subtitle-text.ivp-subtitles {
+    display: block;
+    position: static;
+    min-height: 0;
+    padding: 0;
+    color: #fff;
+    font-size: 0.95rem;
+    line-height: 1.35;
+    text-align: center;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+    word-break: break-word;
+}
+
+/* Localized Continue sits directly under the video. It mirrors the homepage
+   primary CTA (.uff-home-bs .btn-uff-primary in home-landing.css) exactly —
+   white solid, dark bold text, 8px rectangle, generous padding — and must
+   never regain the round .call-btn geometry, which crushes the label into a
+   60px circle. The white halo edge comes from the shared static-halo group
+   below (joined, not copied, so the treatment cannot drift). */
+.tutorial-modal-continue {
+    display: block;
+    width: 100%;
+    margin-top: 16px;
+    padding: 0.875rem 1.25rem;
+    background-color: var(--uff-btn-bg);
+    background-image: none;
+    border: var(--uff-btn-border);
+    border-radius: 8px;
+    color: var(--uff-btn-fg);
+    font-weight: 700;
+    font-size: 1.25rem;
+    line-height: 1.5;
+    text-align: center;
+    box-shadow: var(--uff-btn-shadow);
+    cursor: pointer;
+    transition: filter 0.15s ease, transform 0.15s ease;
+}
+
+.tutorial-modal-continue:hover,
+.tutorial-modal-continue:focus {
+    color: var(--uff-btn-fg);
+    background-color: var(--uff-btn-bg);
+    background-image: none;
+    filter: brightness(0.96);
+}
+
+.tutorial-modal-continue:active {
+    transform: scale(0.99);
+    color: var(--uff-btn-fg);
+    background-color: var(--uff-btn-bg);
+}
+
+/* =========================================
+   VIDEO SPEED TOGGLE (speedometer pill)
+   Overlay pill on the non-interactive video surfaces that lack a scrubber
+   row (TutorialModal, PlaybackVideo, SuccessVideo, and SimpleVideoPlayer
+   before metadata loads): SimpleVideoPlayer seats it inline in the
+   scrubber row instead (see .video-speed-toggle-inline below).
+   InteractiveVideoPlayer is deliberately excluded (its playbackRate is
+   scoring-coupled).
+   Top-anchored at 20% of the frame: the lesson header paints ABOVE this
+   toggle (top-overlay content z-index 35, header blur z-index 34, toggle
+   z-index 30), so the pill must sit clear below them — the header reaches
+   18.5% on branching steps (VIDEO_HEADER_RATIO) and the stats cluster
+   covers the top ~52px. At 20% the pill clears both and stays tappable.
+   ========================================= */
+.video-speed-toggle {
+    position: absolute;
+    top: calc(20% + env(safe-area-inset-top, 0px));
+    right: 12px;
+    z-index: 30;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 9999px;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    pointer-events: auto;
+}
+
+.video-speed-toggle-active {
+    background: rgba(58, 143, 213, 0.85);
+    border-color: rgba(255, 255, 255, 0.7);
+}
+
+/* White speedometer glyph — inherits the pill's white color like every
+   other app icon (bootstrap-icons ships no snail). */
+.video-speed-toggle-icon {
+    font-size: 16px;
+    line-height: 1;
+    display: inline-flex;
+}
+
+/* Inline variant: a flex child of the SimpleVideoPlayer scrubber row
+   (same line as the scrubber, to its right) instead of an overlay. It
+   inherits the scrubber's stacking, so under a decision-phase click-block
+   it is covered like the scrubber itself — intended, the clip is gated
+   there anyway. */
+.video-speed-toggle-inline {
+    position: static;
+    padding: 4px 10px;
+    flex-shrink: 0;
+}
+
+.video-speed-toggle-label {
+    font-variant-numeric: tabular-nums;
+    min-width: 2.2em;
+    text-align: center;
 }

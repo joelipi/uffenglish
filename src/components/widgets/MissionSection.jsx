@@ -51,6 +51,22 @@ export default function MissionSection({ responseType }) {
                             <span className="roleOther-text"><BilingualText translationData={lesson.roleOther} userLang={lang} spanPrefix=" " /></span>
                         </>
                     )}
+                    {[
+                        ['a1', 'A1'],
+                        ['a2', 'A2'],
+                        ['b1', 'B1'],
+                        ['b2', 'B2'],
+                        ['c1', 'C1'],
+                    ]
+                        .filter(([key]) => !!lesson[key])
+                        .map(([key, code]) => (
+                            <React.Fragment key={key}>
+                                <span className="mission-label">
+                                    <span className="course-meta-key" style={{ fontWeight: 700, fontSize: '14px', lineHeight: 1 }}>{code}</span>
+                                </span>
+                                <span className="course-meta-text"><BilingualText translationData={lesson[key]} userLang={lang} spanPrefix=" " /></span>
+                            </React.Fragment>
+                        ))}
                 </div>
                 <div className="mission-toggle-icon">
                     <i className={'bi ' + (expanded ? 'bi-chevron-up' : 'bi-chevron-down')} id="mission-carat"></i>

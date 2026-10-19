@@ -1,10 +1,12 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store/store.js';
 import { useSignupForm } from './SignupForm.jsx';
+import TurnstileCaptcha from './TurnstileCaptcha.web.jsx';
+import { emailValidationErrorKey } from '../../modules/auth/email-validation-logic.js';
 import Strings from '../../data/strings.js';
 import { SIGNUP_LANGUAGES } from '../../data/languages.js';
-import LegalLinks from '../legal/LegalLinks.jsx';
+import SignupConsent from '../legal/SignupConsent.jsx';
 
 const ENGLISH_LEVELS = [
     { value: '', label: 'Select...', disabled: true },
@@ -19,9 +21,16 @@ const ENGLISH_LEVELS = [
 ];
 
 export default function SignupForm({ onSignupSuccess, onLoginLink }) {
+    const turnstileRef = useRef(null);
     const userData = useStore(appStore, (state) => state.userData);
     const guestNativeLang = useStore(appStore, (state) => state.guestNativeLanguage);
-    const storedNativeLang = userData?.native_language || guestNativeLang || '';
+    // Guest-first like the rest of the app (a guest choice wins over the
+    // mirrored profile value), with the browser language as the last resort
+    // before English for direct /signup deep links that never saw the guest
+    // modal's silent browser-language adoption. Kept inline (not the shared
+    // hook) because the hook defaults to 'en', which would kill the navigator
+    // fallback.
+    const storedNativeLang = guestNativeLang || userData?.native_language || '';
 
     const lang = (storedNativeLang || navigator.language || 'en').split('-')[0].toLowerCase();
 
@@ -31,7 +40,7 @@ export default function SignupForm({ onSignupSuccess, onLoginLink }) {
         lastName,
         setLastName,
         email,
-        setEmail,
+        handleEmailChange,
         password,
         setPassword,
         nativeLanguage,
@@ -39,9 +48,20 @@ export default function SignupForm({ onSignupSuccess, onLoginLink }) {
         userLevel,
         setUserLevel,
         error,
+        emailError,
+        emailSuggestion,
         loading,
         handleSubmit,
-    } = useSignupForm({ onSignupSuccess });
+    } = useSignupForm({
+        onSignupSuccess,
+        // A fresh token per submit — Turnstile tokens are single-use and expire
+        // after ~5 minutes, so the one captured at render may be stale.
+        getCaptchaToken: () => {
+            const captcha = turnstileRef.current;
+            if (!captcha) return Promise.reject(new Error('Human verification is not ready yet. Please try again.'));
+            return captcha.getToken();
+        },
+    });
 
     // Prepopulate native language from the user's already-set language selection
     useEffect(() => {
@@ -52,10 +72,18 @@ export default function SignupForm({ onSignupSuccess, onLoginLink }) {
 
     return (
         <>
-            <h2 className="text-center mb-4" style={{ fontFamily: "'Orbitron', sans-serif", color: 'yellow' }}>
+            <h2 className="text-center mb-4" style={{ color: 'white' }}>
                 {Strings.get('auth_signup_title', lang)}
             </h2>
             {error && <div className="alert alert-danger" role="alert">{error}</div>}
+            {/* The email screen hands back a reason CODE; this is where it
+                becomes language. Kept separate from `error` so a rejected
+                address never reads as a generic submit failure. */}
+            {emailError && (
+                <div className="alert alert-danger" role="alert" data-testid="email-error">
+                    {Strings.get(emailValidationErrorKey(emailError), lang, { suggestion: emailSuggestion })}
+                </div>
+            )}
 
             <form onSubmit={handleSubmit}>
                 <div className="row mb-3">
@@ -89,7 +117,7 @@ export default function SignupForm({ onSignupSuccess, onLoginLink }) {
                         className="form-control"
                         id="email"
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        onChange={(e) => handleEmailChange(e.target.value)}
                         required
                     />
                 </div>
@@ -139,16 +167,18 @@ export default function SignupForm({ onSignupSuccess, onLoginLink }) {
                     </select>
                 </div>
 
+                <SignupConsent lang={lang} />
+
+                <TurnstileCaptcha ref={turnstileRef} />
+
                 <button type="submit" className="btn btn-primary w-100" disabled={loading}>
                     {loading ? Strings.get('auth_creating_account', lang) : Strings.get('auth_signup_title', lang)}
                 </button>
             </form>
 
             <div className="text-center mt-3">
-                <p>{Strings.get('auth_already_account', lang)} <a href="#" onClick={(e) => { e.preventDefault(); onLoginLink?.(); }}>{Strings.get('auth_log_in_link', lang)}</a></p>
+                <p>{Strings.get('auth_already_account', lang)} <a className="auth-link" href="#" onClick={(e) => { e.preventDefault(); onLoginLink?.(); }}>{Strings.get('auth_log_in_link', lang)}</a></p>
             </div>
-
-            <LegalLinks lang={lang} />
         </>
     );
 }

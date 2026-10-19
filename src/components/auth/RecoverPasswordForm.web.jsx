@@ -16,7 +16,7 @@ export default function RecoverPasswordForm({ onBackToLogin }) {
 
     return (
         <>
-            <h2 className="text-center mb-4" style={{ fontFamily: "'Orbitron', sans-serif", color: 'yellow' }}>
+            <h2 className="text-center mb-4" style={{ color: 'yellow' }}>
                 {Strings.get('auth_recover_title', lang)}
             </h2>
             {error && <div className="alert alert-danger" role="alert">{error}</div>}
@@ -42,7 +42,7 @@ export default function RecoverPasswordForm({ onBackToLogin }) {
             </form>
 
             <div className="text-center mt-3">
-                <p><a href="#" onClick={(e) => { e.preventDefault(); onBackToLogin?.(); }}>{Strings.get('auth_back_to_login', lang)}</a></p>
+                <p><a className="auth-link" href="#" onClick={(e) => { e.preventDefault(); onBackToLogin?.(); }}>{Strings.get('auth_back_to_login', lang)}</a></p>
             </div>
         </>
     );

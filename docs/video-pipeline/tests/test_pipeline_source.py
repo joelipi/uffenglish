@@ -29,6 +29,104 @@ def slice_between(text: str, start: str, end: str) -> str:
     return text[i:j]
 
 
+def assert_title_band_pins(overlay: str) -> None:
+    """Story 068 title-pill pins, asserted over raw overlay source.
+
+    Exists as a module function so the mutation proof can check a mutated copy
+    instead of re-reading the file (which would always pass).
+    """
+    assert "BODY_TOP = COMPACT_BLUR_RATIO" in overlay, "title band must derive from the blur ratio"
+    assert "TITLE_TOP = 0.07" in overlay, "title must keep the chrome margin"
+    assert "body_min = max(10, int(video_height * 0.018))" in overlay, "body floor pin"
+    assert "title_base = max(12, int(body_min * 1.5))" in overlay, "title must be 1.5x the body floor"
+    assert "title_base = max(10, int(video_height * 0.05))" not in overlay, "old oversized base"
+    # The clamp and its divisor (the CSS line-height) — without them the base
+    # can exceed its block height and the shrink loop fires every render.
+    assert "title_base = min(title_base, max(12, int(_title_height_cap / 1.6)))" in overlay, \
+        "base must be clamped to the band height"
+
+
+def extract_overlay_constants():
+    """Read the overlay's numeric constants out of ``create_overlay_html``.
+
+    The module cannot be imported in CI (it needs moviepy/cv2/modal), so the
+    arithmetic property tests below re-derive the layout from the source's own
+    literal assignments instead of asserting on their spelling. Raises
+    AssertionError with the missing name so a rename fails loudly.
+    """
+    overlay = slice_between(read(), "def create_overlay_html", "def add_background_sound")
+    module_text = read()
+    values = {}
+    # COMPACT_BLUR_RATIO lives at module level; APP_CAPTION_TOP is assigned
+    # inside create_overlay_html (indented), so search both scopes.
+    for name in ("COMPACT_BLUR_RATIO", "APP_CAPTION_TOP"):
+        match = re.search(rf"^{name}\s*=\s*([0-9.]+)", module_text, re.M) \
+            or re.search(rf"^\s+{name}\s*=\s*([0-9.]+)", module_text, re.M)
+        if not match:
+            raise AssertionError(f"{name} not found in video_pipeline.py")
+        values[name] = float(match.group(1))
+    for name, pattern in (
+        ("TITLE_TOP", r"TITLE_TOP\s*=\s*([0-9.]+)"),
+        ("BODY_TOP", r"BODY_TOP\s*=\s*([0-9.]+|COMPACT_BLUR_RATIO)"),
+        ("TITLE_PADDING_COEF", r"TITLE_PADDING_Y\s*=\s*max\(4, int\(video_height \* ([0-9.]+)\)\)"),
+        ("BODY_MIN_COEF", r"body_min\s*=\s*max\(10, int\(video_height \* ([0-9.]+)\)\)"),
+        ("TITLE_RATIO", r"title_base\s*=\s*max\(12, int\(body_min \* ([0-9.]+)\)\)"),
+    ):
+        match = re.search(pattern, overlay)
+        if not match:
+            raise AssertionError(f"{name} literal not found in create_overlay_html")
+        values[name] = values.get("COMPACT_BLUR_RATIO") if match.group(1) == "COMPACT_BLUR_RATIO" else (
+            float(match.group(1)) if re.match(r"^[0-9.]+$", match.group(1)) else match.group(1)
+        )
+    return values
+
+
+# The CSS line-height the .title rule uses; the clamp divides the band budget
+# by it so one line box always fits.
+TITLE_LINE_HEIGHT = 1.6
+
+
+def title_band_parts(height: int):
+    """Every number the title-pill math derives, at one frame height.
+
+    Width plays no part (the band is a fraction of the height), so it is not a
+    parameter. Mirrors ``create_overlay_html`` exactly — including the float
+    truncation of ``BODY_TOP - TITLE_TOP`` — so a property test needs no import
+    of the (cv2-dependent) module.
+    """
+    c = extract_overlay_constants()
+    padding = max(4, int(height * c["TITLE_PADDING_COEF"]))
+    body_min = max(10, int(height * c["BODY_MIN_COEF"]))
+    desired_base = max(12, int(body_min * c["TITLE_RATIO"]))
+    cap = int((c["BODY_TOP"] - c["TITLE_TOP"]) * height - 2 * padding - 2)
+    return {
+        "padding": padding,
+        "body_min": body_min,
+        "desired_base": desired_base,
+        "cap": cap,
+        "base": min(desired_base, max(12, int(cap / TITLE_LINE_HEIGHT))),
+        "block_height": max(12, cap),
+        "bottom": c["TITLE_TOP"] * height + max(12, cap) + 2 * padding,
+        "blur_line": c["BODY_TOP"] * height,
+    }
+
+
+def pill_bottom_ratio(height: int):
+    """(pill_bottom_px, blur_line_px, title_base, body_min) for one frame.
+
+    The pill is ``top + max-height + 2 * padding`` tall and must end at or
+    below the blur line.
+    """
+    p = title_band_parts(height)
+    return p["bottom"], p["blur_line"], p["base"], p["body_min"]
+
+
+def title_box_budget(height: int):
+    """(line_box_px, cap_px) for the pill at one frame height."""
+    parts = title_band_parts(height)
+    return parts["desired_base"] * TITLE_LINE_HEIGHT, parts["block_height"]
+
+
 def module_defined_names(tree: ast.AST) -> set:
     """Every top-level name the module binds: imports, defs, assignments."""
     names = set()
@@ -253,6 +351,55 @@ class SyntaxGuardTest(unittest.TestCase):
         ast.parse(read())
 
 
+class TitleBandParityGuardTest(unittest.TestCase):
+    """Story 068 Task 2 (Python side): the pipeline's title band and the app's
+    compact blur are the SAME number, read from both sources.
+
+    The JS mirror test (`src/modules/video/video-header-logic.test.js`) already
+    compares both files; this guard pins the other direction so a Python-only
+    edit cannot drift unnoticed. Raw text on both sides (no comment stripping:
+    the files carry CSS/JS with `//`)."""
+
+    JS = Path(REPO_ROOT) / "src" / "modules" / "video" / "video-header-logic.js"
+
+    @staticmethod
+    def _py_ratio(py_text: str):
+        match = re.search(r"^COMPACT_BLUR_RATIO\s*=\s*([0-9.]+)", py_text, re.M)
+        if not match:
+            raise AssertionError("COMPACT_BLUR_RATIO not found in video_pipeline.py")
+        return match.group(1)
+
+    @staticmethod
+    def _js_ratio(js_text: str):
+        match = re.search(r"VIDEO_HEADER_COMPACT_RATIO\s*=\s*([0-9.]+)", js_text)
+        if not match:
+            raise AssertionError("VIDEO_HEADER_COMPACT_RATIO not found in video-header-logic.js")
+        return match.group(1)
+
+    def _assert_parity(self, js_text: str, py_text: str) -> None:
+        self.assertEqual(self._js_ratio(js_text), self._py_ratio(py_text),
+                         "pipeline COMPACT_BLUR_RATIO != app VIDEO_HEADER_COMPACT_RATIO")
+
+    def test_title_band_matches_the_app_blur(self):
+        self._assert_parity(self.JS.read_text(encoding="utf-8"), read())
+
+    def test_guard_fails_when_the_js_ratio_drifts(self):
+        js = self.JS.read_text(encoding="utf-8")
+        mutated = js.replace("VIDEO_HEADER_COMPACT_RATIO = 0.12",
+                             "VIDEO_HEADER_COMPACT_RATIO = 0.15")
+        self.assertNotEqual(mutated, js)
+        with self.assertRaises(AssertionError):
+            self._assert_parity(mutated, read())
+
+    def test_guard_fails_when_the_py_ratio_drifts(self):
+        # In-memory like the sibling JS case — never a write-then-restore on
+        # the checked-in source (a crash between them leaves the file mutated).
+        py = read().replace("COMPACT_BLUR_RATIO = 0.12", "COMPACT_BLUR_RATIO = 0.15")
+        self.assertNotEqual(py, read())
+        with self.assertRaises(AssertionError):
+            self._assert_parity(self.JS.read_text(encoding="utf-8"), py)
+
+
 class OverlayBandGuardTest(unittest.TestCase):
     """create_overlay_html keeps every burned block above the app's captions.
 
@@ -278,8 +425,114 @@ class OverlayBandGuardTest(unittest.TestCase):
         self.assertIn("(APP_CAPTION_TOP - FOOTER_TOP) * video_height", footer)
 
 
+class OverlayTitleBandGuardTest(unittest.TestCase):
+    """The title pill fits inside the band the app blurs over a normal step.
+
+    The app draws only a compact blur (`VIDEO_HEADER_COMPACT_RATIO` in
+    src/modules/video/video-header-logic.js) above an ordinary video, so a
+    burned title poking past that line renders unblurred under the progress /
+    mission overlay. Story 068 restyles the pill to 1.5x the body legibility
+    floor and derives the whole band from the blur ratio.
+    """
+
+    def test_band_bottom_is_the_compact_blur_ratio(self):
+        overlay = slice_between(read(), "def create_overlay_html", "def add_background_sound")
+        # One variable ties the pipeline's band to the app's blur layer.
+        assert "BODY_TOP = COMPACT_BLUR_RATIO" in overlay
+        assert "COMPACT_BLUR_RATIO = 0.12" in read()
+
+    def test_line_height_constant_matches_the_emitted_css(self):
+        # The clamp divides by this; the CSS sets it. Pin them together so a
+        # CSS change cannot silently desynchronize the constant.
+        overlay = slice_between(read(), "def create_overlay_html", "def add_background_sound")
+        title_block = slice_between(overlay, ".title {{", "}}")
+        css = re.search(r"line-height:\s*([0-9.]+)", title_block)
+        self.assertIsNotNone(css)
+        self.assertEqual(float(css.group(1)), TITLE_LINE_HEIGHT)
+        self.assertIn(f"int(_title_height_cap / {TITLE_LINE_HEIGHT})", overlay)
+    def test_title_top_keeps_the_chrome_margin(self):
+        assert "TITLE_TOP = 0.07" in slice_between(
+            read(), "def create_overlay_html", "def add_background_sound")
+
+    def test_title_base_is_one_and_a_half_times_the_body_floor(self):
+        overlay = slice_between(read(), "def create_overlay_html", "def add_background_sound")
+        # body_min is defined by the overlay (1.8% of height); the pill's base
+        # size derives from it instead of a raw frame fraction.
+        assert "body_min = max(10, int(video_height * 0.018))" in overlay
+        assert "title_base = max(12, int(body_min * 1.5))" in overlay
+        assert "title_base = max(10, int(video_height * 0.05))" not in overlay
+
+    def test_title_height_budget_accounts_for_the_pill_padding(self):
+        # The cap subtracts both padding margins so the rendered block (text +
+        # 2 * padding) cannot cross the band bottom.
+        overlay = slice_between(read(), "def create_overlay_html", "def add_background_sound")
+        self.assertIn("_title_height_cap = int((BODY_TOP - TITLE_TOP) * video_height",
+                      overlay)
+        self.assertIn("- 2 * TITLE_PADDING_Y - 2)", overlay)
+        # The base is capped to the line box that box can hold.
+        self.assertIn("title_base = min(title_base, max(12, int(_title_height_cap / 1.6)))",
+                      overlay)
+
+    # Arithmetic property, not string pins: the pill (text + 2*padding) must
+    # end at or below the compact-blur line on real frame sizes.
+    def test_pill_bottom_sits_inside_the_blur_line(self):
+        for height in (1280, 1920, 693, 2844):
+            bottom, blur, _, _ = pill_bottom_ratio(height)
+            self.assertLessEqual(bottom, blur,
+                                 f"height {height}: pill bottom {bottom} > blur {blur}")
+
+    def test_title_base_is_1_5x_body_floor_unless_the_cap_binds(self):
+        for height in (1280, 1920):
+            parts = title_band_parts(height)
+            expected = min(parts["desired_base"],
+                           max(12, int(parts["cap"] / TITLE_LINE_HEIGHT)))
+            self.assertEqual(parts["base"], expected,
+                             f"height {height}: {parts['base']} != {expected}")
+
+    def test_clamp_is_necessary_at_720(self):
+        # At 720x1280 the authored 1.5x base does NOT fit the blur band on its
+        # own, so the clamp is load-bearing (this is why it exists at all).
+        line_box, cap = title_box_budget(1280)
+        self.assertGreater(line_box, cap + 1,
+                           "if 1.5x base now fits, the clamp may be removable")
+
+    def test_base_cap_pin_fails_without_the_clamp(self):
+        source = read()
+        clamp = "    title_base = min(title_base, max(12, int(_title_height_cap / 1.6)))\n"
+        self.assertIn(clamp, source)
+        with self.assertRaises(AssertionError):
+            self._assert_clamp(source.replace(clamp, ""))
+
+    def _assert_clamp(self, overlay_text):
+        overlay = slice_between(overlay_text, "def create_overlay_html",
+                                "def add_background_sound")
+        assert "title_base = min(title_base, max(12, int(_title_height_cap / 1.6)))" \
+            in overlay
+
+    def test_guard_can_fail_on_each_pin(self):
+        good = slice_between(read(), "def create_overlay_html", "def add_background_sound")
+        mutations = [
+            good.replace("BODY_TOP = COMPACT_BLUR_RATIO", "BODY_TOP = 0.17"),
+            good.replace("TITLE_TOP = 0.07", "TITLE_TOP = 0.02"),
+            good.replace("title_base = max(12, int(body_min * 1.5))",
+                         "title_base = max(12, int(video_height * 0.05))"),
+            # The clamp divisor is the CSS line-height: drifting it breaks the
+            # invariant the pin exists to catch.
+            good.replace("int(_title_height_cap / 1.6)",
+                         "int(_title_height_cap / 1.5)"),
+        ]
+        for mutated in mutations:
+            self.assertNotEqual(mutated, good)
+            with self.assertRaises(AssertionError):
+                assert_title_band_pins(mutated)
+
+    def test_pins_hold_for_the_real_source(self):
+        assert_title_band_pins(
+            slice_between(read(), "def create_overlay_html", "def add_background_sound"))
+
+
 class OverlayTitleAndAsideGuardTest(unittest.TestCase):
-    """The title is a wrapping white pill and the aside is capped at half width.
+    """The title is a wrapping white pill and the aside spans title-bottom..captions at 60% width.
 
     A regression here shipped the title as a full-bleed white slab (no vertical
     padding, corners clipped) and a 70%-wide aside. These guards pin the
@@ -297,11 +550,20 @@ class OverlayTitleAndAsideGuardTest(unittest.TestCase):
         self.assertIn("padding: {TITLE_PADDING_Y}px 40px", span)
         self.assertIn("border-radius: 36px", span)
 
-    def test_aside_is_capped_at_half_the_width(self):
+    def test_aside_extends_from_title_bottom_to_captions_at_sixty_percent_width(self):
         overlay = slice_between(read(), "def create_overlay_html", "def add_background_sound")
         aside = slice_between(overlay, "aside {{", "}}")
-        self.assertIn("max-width: {video_width * 0.50}px", aside)
-        self.assertNotIn("width: {video_width * 0.70}px", aside)
+        self.assertIn("top: {video_height * 0.20}px", aside)
+        self.assertIn("max-width: {video_width * 0.60}px", aside)
+        self.assertIn("max-height: {(APP_CAPTION_TOP - 0.20) * video_height}px", aside)
+        self.assertNotIn("top: {TITLE_TOP * video_height}px", aside)
+        self.assertNotIn("max-width: {video_width * 0.70}px", aside)
+
+    def test_aside_shrinks_to_fit_overlong_text(self):
+        overlay = slice_between(read(), "def create_overlay_html", "def add_background_sound")
+        self.assertIn("document.querySelectorAll('aside')", overlay)
+        self.assertIn("el.scrollHeight > el.clientHeight", overlay)
+        self.assertIn("el.scrollWidth > el.clientWidth", overlay)
 
 
 if __name__ == "__main__":

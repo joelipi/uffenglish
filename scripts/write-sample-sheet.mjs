@@ -16,16 +16,16 @@ const HEADER = [
     'subtitle_text', 'srt', 'recap_sources', 'recap_overlay',
     // Story 049 localization targets (one column per language per field). Blank
     // in the sample: a fresh import shows the operator where translations land,
-    // and `translate-sheet.mjs` fills them.
-    'lesson_title_es', 'lesson_title_pt', 'lesson_title_bn',
-    'mission_es', 'mission_pt', 'mission_bn',
-    'cue_es', 'cue_pt', 'cue_bn',
-    'cue_alt_es', 'cue_alt_pt', 'cue_alt_bn',
-    'choose_step_text_es', 'choose_step_text_pt', 'choose_step_text_bn',
-    'subtitle_text_es', 'subtitle_text_pt', 'subtitle_text_bn',
+    // and `translate-master-csv.mjs` fills them.
+    'lesson_title_es', 'lesson_title_pt', 'lesson_title_bn', 'lesson_title_fr', 'lesson_title_hi',
+    'mission_es', 'mission_pt', 'mission_bn', 'mission_fr', 'mission_hi',
+    'cue_es', 'cue_pt', 'cue_bn', 'cue_fr', 'cue_hi',
+    'cue_alt_es', 'cue_alt_pt', 'cue_alt_bn', 'cue_alt_fr', 'cue_alt_hi',
+    'choose_step_text_es', 'choose_step_text_pt', 'choose_step_text_bn', 'choose_step_text_fr', 'choose_step_text_hi',
+    'subtitle_text_es', 'subtitle_text_pt', 'subtitle_text_bn', 'subtitle_text_fr', 'subtitle_text_hi',
     // SRT cue-text translations (timings preserved); blank so the translator
     // fills them and the app localizes captions.
-    'srt_es', 'srt_pt', 'srt_bn',
+    'srt_es', 'srt_pt', 'srt_bn', 'srt_fr', 'srt_hi',
 ];
 
 const MISSION = 'Ask and answer with WOULD YOU RATHER.';

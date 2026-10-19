@@ -21,7 +21,7 @@
 import { DEFAULT_SUPABASE_URL, DEFAULT_SUPABASE_ANON_KEY } from '../../src/modules/api/supabase-constants.js';
 import { buildWelcomeEmail } from '../../src/modules/user/welcome-email-content.js';
 import { resolveEmailLanguage } from '../../src/modules/user/email-language.js';
-import { sendViaResend } from './resend-send.js';
+import { sendViaZoho, resolveApiKey } from './zoho-send.js';
 
 export const TOKEN_BYTES = 32;
 export const TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
@@ -108,9 +108,10 @@ export async function onRequestPost({ request, env }) {
     }
 
     // Non-blocking by design: without a provider key we skip sending rather
-    // than fail the caller. RESEND_API_KEY is a Pages secret (dashboard).
-    if (!env.RESEND_API_KEY) {
-        console.warn('[welcome-email] RESEND_API_KEY unset — skipping send');
+    // than fail the caller. ZOHO_CPAAS_API_KEY is a Pages secret (dashboard).
+    const apiKey = resolveApiKey(env);
+    if (!apiKey) {
+        console.warn('[welcome-email] ZOHO_CPAAS_API_KEY unset — skipping send');
         return jsonResponse({ sent: false, reason: 'email-not-configured' });
     }
     // Tokens are written with the service role so a user cannot mint their own
@@ -143,7 +144,7 @@ export async function onRequestPost({ request, env }) {
     const siteUrl =
         env.SITE_URL || request.headers.get('Origin') || new URL(request.url).origin;
     const confirmUrl = buildConfirmUrl(siteUrl, token);
-    const from = env.EMAIL_FROM || 'Ultrafast Fluency <onboarding@resend.dev>';
+    const from = env.EMAIL_FROM || 'Ultrafast Fluency <welcome@ultrafastfluency.com>';
 
     // Localize to the learner's native language (stashed in user_metadata at
     // signup), falling back to Accept-Language then English. Copy lives in the
@@ -154,8 +155,8 @@ export async function onRequestPost({ request, env }) {
     });
     const { subject, html, text } = buildWelcomeEmail(language, confirmUrl);
 
-    const result = await sendViaResend({
-        apiKey: env.RESEND_API_KEY,
+    const result = await sendViaZoho({
+        apiKey,
         from,
         to: [user.email],
         subject,
@@ -163,7 +164,7 @@ export async function onRequestPost({ request, env }) {
         text,
     });
     if (!result.ok) {
-        console.error(`[welcome-email] Resend send failed (${result.status})`);
+        console.error(`[welcome-email] Zoho CPaaS send failed (${result.status})`);
         return jsonResponse({
             sent: false,
             reason: result.status ? `provider-${result.status}` : 'provider-error',

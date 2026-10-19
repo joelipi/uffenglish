@@ -4,10 +4,14 @@ import { supabase } from '../../modules/api/supabase.js';
 import { useUserProfile, useSyncUserMetaData, invalidateUserAndAuthCache, queryClient } from '../../modules/api/api.js';
 import { getAvatarBlobUrl, revokeAvatarBlobUrl } from '../../modules/avatar/avatar.service.js';
 import Strings from '../../data/strings.js';
+import { useNativeLanguage } from '../../hooks/use-native-language.js';
 import defaultProfilePic from '../../assets/img/userprofile.png';
 import { trackEvent } from '../../modules/utils/posthog.js';
+import { COURSE_LISTINGS_PATH } from '../../modules/courses/friend-courses-logic.js';
 import { useAvatarUpload } from '../../modules/avatar/use-avatar-upload.js';
 import AvatarCropper from '../widgets/AvatarCropper.jsx';
+import PWAInstallBanner from '../pwa/PWAInstallBanner.web.jsx';
+import PushNotificationsOptIn from '../notifications/PushNotificationsOptIn.web.jsx';
 import { PROFILE_LANGUAGES, LOCALE_MAP } from '../../data/languages.js';
 import { calculateCurrentStreak } from '../../modules/user/user-profile.js';
 
@@ -78,7 +82,9 @@ export default function UserProfile() {
         setAvatarUrl(null);
     }, [profile?.profilePictureUrl]);
 
-    const lang = profile?.native_language?.toLowerCase() || 'en';
+    // The editor localizes in the edited profile's language, guest-first like
+    // the rest of the app (a guest choice still wins when one exists).
+    const lang = useNativeLanguage(profile?.native_language);
     const isGuest = profile?.$id === 'guest';
     const displayName = profile?.display_name || '';
     const email = profile?.email || '';
@@ -272,7 +278,7 @@ export default function UserProfile() {
         overflowY: 'auto',
         backgroundColor: '#0b1a2a',
         color: 'white',
-        fontFamily: "'Plus Jakarta Sans', sans-serif",
+        fontFamily: 'var(--font-body)',
         paddingBottom: '40px',
     };
 
@@ -366,7 +372,10 @@ export default function UserProfile() {
                             {Strings.get('profile_guest_message', lang)}
                         </p>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxWidth: '300px', margin: '0 auto' }}>
-                            <Link to="/signup" style={{ ...btnPrimaryStyle, textDecoration: 'none', textAlign: 'center', display: 'block' }}>
+                            {/* Story 070: signup is closed, so the guest
+                                profile's account CTA goes to the course list where the
+                                lesson creates the account at its end. */}
+                            <Link to={COURSE_LISTINGS_PATH} style={{ ...btnPrimaryStyle, textDecoration: 'none', textAlign: 'center', display: 'block' }}>
                                 {Strings.get('guest_modal_signup', lang)}
                             </Link>
                             <Link to="/login" style={{ ...btnPrimaryStyle, textDecoration: 'none', textAlign: 'center', display: 'block' }}>
@@ -387,6 +396,9 @@ export default function UserProfile() {
                 </button>
                 <span style={{ fontSize: '18px', fontWeight: 600 }}>{Strings.get('profile_title', lang)}</span>
             </div>
+
+            <PWAInstallBanner lang={lang} userId={profile?.$id} />
+            <PushNotificationsOptIn lang={lang} variant="prompt" userId={profile?.$id} />
 
             <div style={{ padding: '24px 16px', maxWidth: '640px', margin: '0 auto' }}>
 

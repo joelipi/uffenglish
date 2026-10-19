@@ -10,11 +10,11 @@
 // `video_file` (the step's simpleVideoUrl). Grouping is by COLUMN VALUE, never
 // by row position, so rows may be sorted freely.
 //
-// English is always emitted. When the sheet also carries the per-language
+// English is always emitted. When the CSV also carries the per-language
 // columns (`lesson_title_es`, `mission_pt`, `cue_es`, `cue_alt_es`,
 // `choose_step_text_es`, `subtitle_text_bn`, `srt_es`, … — the columns the
-// translate-sheet Action fills), they are consumed into the existing
-// `{en,es,pt,bn}` objects. The language columns are optional: a sheet with none
+// translate-master-csv Action fills), they are consumed into the existing
+// `{en,es,pt,bn,fr,hi}` objects. The language columns are optional: a sheet with none
 // of them still generates English-only output. Subtitles come from `srt`
 // (localized by `srt_<lang>`, timings preserved) or, when `srt` is blank,
 // `subtitle_text` (localized by `subtitle_text_<lang>`).
@@ -27,11 +27,34 @@ import {
     unescapeSrt,
     validateSrtCell,
 } from './sheet-translate-utils.js';
-// A friend/UGC clip (`-response-NN`) has its speaker's caption burned into the
-// video, so it must get no app `subtitles` — the player would draw a second
-// caption over it. The shared pure predicate keeps this rule identical to the
-// runtime classifier (video-source.js).
-import { isFriendVideoSlug } from '../../src/modules/video/video-source.js';
+// A friend/UGC clip has its speaker's caption burned into the video, so it must
+// get no app `subtitles` — the player would draw a second caption over it. In
+// the sheet a friend clip is the step whose key is a `{friendCode}` reference,
+// so it is identified by that placeholder (the runtime UGC classifier in
+// video-source.js matches share codes, which a sheet-level ref does not have).
+function isFriendVideoSlug(key) {
+    return String(key ?? '').includes('{friendCode}');
+}
+
+// A friend clip's sheet key is `{friendCode}<course>-<lesson>-response-NN`; the
+// app's UGC key is `{recorder}-{inviter}-<course>-<lesson>-<step>` (see
+// buildUgcSegmentKey). The emitted slug therefore carries BOTH code placeholders
+// — `{friendCode}` (the friend who recorded it) then `{selfCode}` (the viewer who
+// invited them), resolved at load time by config-normalizer.js. Exported for the
+// normalizer/builder contract test.
+export function appSlug(key) {
+    const s = String(key ?? '');
+    if (!s.startsWith('{friendCode}')) return s;
+    let rest = s.slice('{friendCode}'.length);
+    // Legacy `-response-NN` suffix becomes the bare step number…
+    const match = /^(.*)-response-(\d+)$/.exec(rest);
+    if (match) rest = `${match[1]}-${match[2]}`;
+    // …and a ref authored without the viewer slot gains it, so the emitted slug
+    // always carries both codes and can match a two-code key.
+    if (!rest.startsWith('{selfCode}')) rest = `{selfCode}-${rest}`;
+    return `{friendCode}${rest}`;
+}
+
 
 // English source columns are looked up in the shared field map, so a field
 // removed or renamed in sheet-translate-utils.js fails loudly here instead of
@@ -140,6 +163,61 @@ export function parseCsv(text) {
         rows.push(row);
     }
     return { headers, rows };
+}
+
+/**
+ * Quote one CSV field (RFC-4180): fields containing a comma, quote, or newline
+ * are wrapped in quotes with `"` escaped as `""`. Shared by the bridge and the
+ * file-commit writers so every CSV the repo owns is serialized one way.
+ */
+export function csvField(value) {
+    const s = String(value ?? '');
+    return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+/**
+ * Serialize header-keyed rows to RFC-4180 CSV text in `headers` order. A row
+ * missing a header resolves it to "". The inverse of `parseCsv` for dense rows
+ * (both sides agree on lower-cased header keys).
+ */
+export function serializeCsv(headers, rows) {
+    const cols = [...(headers || [])];
+    const lines = [cols.map(csvField).join(',')];
+    for (const row of rows || []) {
+        lines.push(cols.map((h) => csvField(row?.[h])).join(','));
+    }
+    return `${lines.join('\n')}\n`;
+}
+
+/**
+ * The exact first physical line of CSV text, without splitting a quoted
+ * header cell on an embedded newline. Pure.
+ */
+export function rawHeaderLine(text) {
+    const source = String(text ?? '');
+    let inQuotes = false;
+    for (let i = 0; i < source.length; i++) {
+        const ch = source[i];
+        if (ch === '"') {
+            if (source[i + 1] === '"') i++;
+            else inQuotes = !inQuotes;
+        } else if ((ch === '\n' || ch === '\r') && !inQuotes) {
+            return source.slice(0, i);
+        }
+    }
+    return source;
+}
+
+/**
+ * Serialize rows under an existing header line, preserving its exact bytes.
+ * `parseCsv` normalizes header keys (trim + lower-case), but the committed
+ * file's casing is load-bearing — the pipeline reads `bgSound` case-
+ * sensitively — so a file-commit writer must never rewrite the header row.
+ * Body cells are RFC-4180-quoted in `headers` (normalized) order. Pure.
+ */
+export function serializeWithHeaderLine(headerLine, headers, rows) {
+    const body = serializeCsv(headers, rows).split('\n').slice(1).join('\n');
+    return `${headerLine}\n${body}`;
 }
 
 /**
@@ -475,7 +553,7 @@ function sortByOrder(rows) {
 }
 
 /**
- * The master step's `cue`: an ordered array of `{en, es?, pt?, bn?}`, one
+ * The master step's `cue`: an ordered array of `{en, es?, pt?, bn?, fr?, hi?}`, one
  * element per non-blank `phrase` row, ordered by `Order` within each
  * `video_file` sub-group and concatenated in sub-group first-seen order.
  */
@@ -519,7 +597,7 @@ function buildMasterSteps(lessonRows) {
                 );
             }
         }
-        const step = { responseType, simpleVideoUrl: key };
+        const step = { responseType, simpleVideoUrl: appSlug(key) };
         const cue = masterCueFor(subgroups);
         if (cue !== undefined) step.cue = cue;
         const chooseStep = chooseStepFor(stepRows, key, responseType);
@@ -555,7 +633,11 @@ function buildMasterSteps(lessonRows) {
  */
 export function buildSteps(lessonRows, options = {}) {
     const master = options.master ?? headerKeys(lessonRows).includes('phrase');
-    return master ? buildMasterSteps(lessonRows) : buildAuthoringSteps(lessonRows);
+    const steps = master ? buildMasterSteps(lessonRows) : buildAuthoringSteps(lessonRows);
+    // The end-of-lesson success step is code-owned: the app injects it per lesson
+    // type (src/modules/lesson/success-step-logic.js), so a sheet success row or
+    // success_* column never produces a config step.
+    return steps.filter((step) => step.responseType !== 'success');
 }
 
 function buildAuthoringSteps(lessonRows) {
@@ -595,12 +677,12 @@ function buildAuthoringSteps(lessonRows) {
         if (responseType === 'lessonIntro') {
             step.cue = '';
             step.responseType = 'lessonIntro';
-            step.introBackgroundVideoUrl = videoFile;
+            step.introBackgroundVideoUrl = appSlug(videoFile);
         } else {
             const cue = cueFor(groupRows, videoFile);
             if (cue !== undefined) step.cue = cue;
             step.responseType = responseType;
-            step.simpleVideoUrl = videoFile;
+            step.simpleVideoUrl = appSlug(videoFile);
         }
         const chooseStep = chooseStepFor(groupRows, videoFile, responseType);
         if (chooseStep !== undefined) step.chooseStep = chooseStep;
@@ -608,8 +690,8 @@ function buildAuthoringSteps(lessonRows) {
         if (nextStep !== undefined) step.nextStep = nextStep;
         const publishLessonId = singleValue(groupRows, 'publish_lesson_id', `video_file "${videoFile}"`);
         if (publishLessonId) step.publishLessonId = publishLessonId;
-        // A friend/UGC step (`-response-NN`) gets no app `subtitles`: its clip
-        // already carries the speaker's caption burned in. Skipping the call
+        // A friend/UGC step (a `{friendCode}` key) gets no app `subtitles`: its
+        // clip already carries the speaker's caption burned in. Skipping the call
         // also skips the `srt_<lang>` timing check and the `subtitle_text`
         // fallback.
         if (!isFriendVideoSlug(videoFile)) {
@@ -639,6 +721,9 @@ export function buildCourseConfig(rows) {
     // non-empty wins, disagreement errors").
     const courseId = singleValue(videoRows, 'course_id', 'course');
     const courseName = singleValue(videoRows, 'course_name', 'course');
+    // Course banner (source `hero` via the bridge `hero` column): same
+    // first-wins/conflict rule as the other course scalars; blank omits it.
+    const hero = singleValue(videoRows, 'hero', 'course');
     if (!courseId) throw new Error('missing course_id column value');
     if (!courseName) throw new Error('missing course_name column value');
 
@@ -685,38 +770,39 @@ export function buildCourseConfig(rows) {
     });
 
     const courseMission = courseMissionFromLessons(lessons);
-    return courseMission
-        ? { courseId, courseName, courseMission, lessons }
-        : { courseId, courseName, lessons };
-}
-
-/**
- * The synthesized `success` step's subtitles from the course-scoped
- * `success_srt`/`success_srt_<lang>` columns (first non-blank). The value is
- * taken verbatim (unlike the pipeline's JSON-escaped `srt` column), matching the
- * canonical config the seed writes. Blank English -> undefined.
- */
-function successSubtitlesFor(rows) {
-    const en = firstNonBlank(rows, 'success_srt');
-    if (!en) return undefined;
-    const obj = { en };
-    for (const lang of SHEET_LANGUAGES) {
-        const v = firstNonBlank(rows, localizedColumn('success_srt', lang));
-        if (v) obj[lang] = v;
-    }
-    return obj;
+    return withHero({ courseId, courseName }, hero, courseMission, lessons);
 }
 
 /**
  * Assemble a course config from overlay-master rows: course/lesson scalars are
  * first-non-blank across the course/lesson, steps come from `buildMasterSteps`
- * (`join`/`video_file` grouping, `phrase` cue array), and the `lessonIntro` /
- * `success` steps are synthesized from `intro_video` / `success_video` when
- * present.
+ * (`join`/`video_file` grouping, `phrase` cue array), and the `lessonIntro` step
+ * is synthesized from `intro_video` when present.
+ *
+ * The end-of-lesson `success` step is NOT emitted: it is code-owned now (see
+ * src/modules/lesson/success-step-logic.js), injected by the app per lesson type
+ * with its own bundled captions. The sheet's `success_video`/`success_srt`
+ * columns are therefore unused by the generator.
  */
+/**
+ * Insert the optional `courseHeroImage` between the course scalars and the
+ * mission/lessons: the listings page resolves it against bundled assets
+ * (friend-course-configs.js). Both builder paths share it so the key order
+ * stays stable whichever shape the CSV carries.
+ */
+export function withHero(head, hero, courseMission, lessons) {
+    const out = { ...head };
+    if (hero) out.courseHeroImage = hero;
+    if (courseMission) out.courseMission = courseMission;
+    out.lessons = lessons;
+    return out;
+}
+
 function buildMasterCourseConfig(videoRows) {
     const courseId = firstNonBlank(videoRows, 'course_id');
     const courseName = firstNonBlank(videoRows, 'course_name');
+    // Course banner: first non-blank wins, like every master-path scalar.
+    const hero = firstNonBlank(videoRows, 'hero');
     if (!courseId) throw new Error('missing course_id column value');
     if (!courseName) throw new Error('missing course_name column value');
 
@@ -761,22 +847,16 @@ function buildMasterCourseConfig(videoRows) {
 
         const introVideo = firstNonBlank(rowsForLesson, 'intro_video');
         if (introVideo) {
-            lesson.steps.unshift({ cue: '', responseType: 'lessonIntro', introBackgroundVideoUrl: introVideo });
+            lesson.steps.unshift({ cue: '', responseType: 'lessonIntro', introBackgroundVideoUrl: appSlug(introVideo) });
         }
-        const successVideo = firstNonBlank(rowsForLesson, 'success_video');
-        if (successVideo) {
-            const successStep = { responseType: 'success', simpleVideoUrl: successVideo };
-            const subtitles = successSubtitlesFor(rowsForLesson);
-            if (subtitles !== undefined) successStep.subtitles = subtitles;
-            lesson.steps.push(successStep);
-        }
+        // No success step is emitted: it is code-owned (see
+        // src/modules/lesson/success-step-logic.js) and injected by the app per
+        // lesson type, so the sheet's success_video/success_srt are unused here.
         return lesson;
     });
 
     const courseMission = courseMissionFromLessons(lessons);
-    return courseMission
-        ? { courseId, courseName, courseMission, lessons }
-        : { courseId, courseName, lessons };
+    return withHero({ courseId, courseName }, hero, courseMission, lessons);
 }
 
 /** Deterministically order + dedupe a missing-columns list, as `findMissingColumns` reports it. */
@@ -921,20 +1001,62 @@ export function findMissingColumns(rows) {
 }
 
 /**
- * Assemble every course the sheet defines. Partitions the video rows by the
- * `course_id` column value (first-seen order), then builds each independently:
- * a course with any missing required column is skipped whole (all-or-nothing),
- * and a structural error in one course never blocks another.
+ * Steps of one course's rows still waiting on the render: a step is complete
+ * when at least one of its rows carries a non-blank `srt`. The render writes
+ * SRT only for groups it concatenated, and the write-back never clears — so a
+ * missing `srt` means that step has no published video yet. Grouping mirrors
+ * the builder EXACTLY (master: `join` else `video_file` within a lesson).
+ * Never throws; skipped silently:
+ * - `success` rows (code-owned step, never rendered),
+ * - friend/UGC steps (`{friendCode}` keys carry burned-in captions, never `srt`),
+ * - rows with a blank `lesson_id` (unattributable to any lesson),
+ * - authoring-shape courses entirely (their subtitles come from
+ *   `subtitle_text`, which needs no render),
+ * - `intro_video` slugs (the synthesized lessonIntro step reuses an
+ *   already-gated step video — `sourceToRows` points it at the lesson's first
+ *   video — so no independent render ever owes it an `srt`).
+ * Pure; returns `[{ lesson, key }]` in first-seen order.
+ */
+export function incompleteVideoSteps(rows) {
+    const videoRows = (rows || []).filter(isVideoRow);
+    if (!isMasterFormat(headerKeys(videoRows))) return [];
+    const lessonOrder = [];
+    const lessonRows = new Map();
+    for (const row of videoRows) {
+        const lessonId = cell(row, 'lesson_id').trim();
+        if (!lessonId) continue;
+        if (!lessonRows.has(lessonId)) { lessonRows.set(lessonId, []); lessonOrder.push(lessonId); }
+        lessonRows.get(lessonId).push(row);
+    }
+    const missing = [];
+    for (const lessonId of lessonOrder) {
+        for (const { key, subgroups } of groupMasterRowsByKey(lessonRows.get(lessonId))) {
+            const stepRows = subgroups
+                .flatMap((group) => group.rows)
+                .filter((row) => cell(row, 'response_type').trim() !== 'success');
+            if (stepRows.length === 0) continue;
+            if (isFriendVideoSlug(key)) continue;
+            if (!stepRows.some((row) => cell(row, 'srt').trim())) {
+                missing.push({ lesson: lessonId, key });
+            }
+        }
+    }
+    return missing;
+}
+
+/**
+ * Partition video rows by the `course_id` column value (first-seen order).
+ * `course_id` is course-scoped and may be filled once (blank on later rows),
+ * so a blank cell belongs to the most recent non-blank value above it. A
+ * leading blank still forms the `""` partition and is reported missing.
+ * Pure; shared by the builder and the `--require-videos` completeness check
+ * so the two can never partition differently.
  *
  * @param {Array<Record<string,string>>} rows parsed rows
- * @returns {Array<{courseId: string, config?: object, error?: {kind: 'missing-columns', missing: Array<{column,where}>} | {kind: 'error', message: string}}>}
+ * @returns {Array<{courseId: string, rows: Array<Record<string,string>>}>}
  */
-export function buildCourseConfigs(rows) {
+export function partitionRowsByCourse(rows) {
     const videoRows = (rows || []).filter(isVideoRow);
-
-    // `course_id` is course-scoped and may be filled once (blank on later rows),
-    // so a blank cell belongs to the most recent non-blank value above it. A
-    // leading blank still forms the `""` partition and is reported missing.
     const order = [];
     const partitions = new Map();
     let currentCourseId = '';
@@ -945,9 +1067,20 @@ export function buildCourseConfigs(rows) {
         if (!partitions.has(courseId)) { partitions.set(courseId, []); order.push(courseId); }
         partitions.get(courseId).push(row);
     }
+    return order.map((courseId) => ({ courseId, rows: partitions.get(courseId) }));
+}
 
-    return order.map((courseId) => {
-        const partitionRows = partitions.get(courseId);
+/**
+ * Assemble every course the sheet defines. Partitions the video rows by the
+ * `course_id` column value (first-seen order), then builds each independently:
+ * a course with any missing required column is skipped whole (all-or-nothing),
+ * and a structural error in one course never blocks another.
+ *
+ * @param {Array<Record<string,string>>} rows parsed rows
+ * @returns {Array<{courseId: string, config?: object, error?: {kind: 'missing-columns', missing: Array<{column,where}>} | {kind: 'error', message: string}}>}
+ */
+export function buildCourseConfigs(rows) {
+    return partitionRowsByCourse(rows).map(({ courseId, rows: partitionRows }) => {
         const missing = findMissingColumns(partitionRows);
         if (missing.length > 0) {
             return { courseId, error: { kind: 'missing-columns', missing } };

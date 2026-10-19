@@ -199,8 +199,8 @@ describe('HomeLandingContainer language + carousel wiring', () => {
 
 describe('showcase-videos module', () => {
     it('resolves URLs through the shared video-url builders', () => {
-        expect(showcaseVideos).toContain('getVideoUrl');
-        expect(showcaseVideos).toContain('getPosterUrl');
+        expect(showcaseVideos).toContain('getPermanentVideoUrl');
+        expect(showcaseVideos).toContain('getPermanentPosterUrl');
         expect(showcaseVideos).toContain("from './video-url.js'");
     });
 });

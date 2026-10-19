@@ -116,11 +116,11 @@
         {
           "cue": "",
           "responseType": "lessonIntro",
-          "introBackgroundVideoUrl": "{friendCode}friendchain-a-response-01"
+          "introBackgroundVideoUrl": "{friendCode}{selfCode}-friendchain-a-01"
         },
         {
           "responseType": "viewAndContinue",
-          "simpleVideoUrl": "{friendCode}friendchain-a-response-01"
+          "simpleVideoUrl": "{friendCode}{selfCode}-friendchain-a-01"
         },
         {
           "cue": {
@@ -134,7 +134,7 @@
         },
         {
           "responseType": "viewAndContinue",
-          "simpleVideoUrl": "{friendCode}friendchain-a-response-02"
+          "simpleVideoUrl": "{friendCode}{selfCode}-friendchain-a-02"
         },
         {
           "cue": {
@@ -148,7 +148,7 @@
         },
         {
           "responseType": "viewAndContinue",
-          "simpleVideoUrl": "{friendCode}friendchain-a-response-03"
+          "simpleVideoUrl": "{friendCode}{selfCode}-friendchain-a-03"
         },
         {
           "cue": {
@@ -241,11 +241,11 @@
         {
           "cue": "",
           "responseType": "lessonIntro",
-          "introBackgroundVideoUrl": "{friendCode}friendchain-b-response-04"
+          "introBackgroundVideoUrl": "{friendCode}{selfCode}-friendchain-b-04"
         },
         {
           "responseType": "viewAndContinue",
-          "simpleVideoUrl": "{friendCode}friendchain-b-response-04"
+          "simpleVideoUrl": "{friendCode}{selfCode}-friendchain-b-04"
         },
         {
           "cue": {
@@ -259,7 +259,7 @@
         },
         {
           "responseType": "viewAndContinue",
-          "simpleVideoUrl": "{friendCode}friendchain-b-response-05"
+          "simpleVideoUrl": "{friendCode}{selfCode}-friendchain-b-05"
         },
         {
           "cue": {
@@ -273,7 +273,7 @@
         },
         {
           "responseType": "viewAndContinue",
-          "simpleVideoUrl": "{friendCode}friendchain-b-response-06"
+          "simpleVideoUrl": "{friendCode}{selfCode}-friendchain-b-06"
         },
         {
           "cue": {
@@ -366,11 +366,11 @@
         {
           "cue": "",
           "responseType": "lessonIntro",
-          "introBackgroundVideoUrl": "{friendCode}friendchain-c-response-04"
+          "introBackgroundVideoUrl": "{friendCode}{selfCode}-friendchain-c-04"
         },
         {
           "responseType": "viewAndContinue",
-          "simpleVideoUrl": "{friendCode}friendchain-c-response-04"
+          "simpleVideoUrl": "{friendCode}{selfCode}-friendchain-c-04"
         },
         {
           "cue": {
@@ -384,7 +384,7 @@
         },
         {
           "responseType": "viewAndContinue",
-          "simpleVideoUrl": "{friendCode}friendchain-c-response-05"
+          "simpleVideoUrl": "{friendCode}{selfCode}-friendchain-c-05"
         },
         {
           "cue": {
@@ -398,7 +398,7 @@
         },
         {
           "responseType": "viewAndContinue",
-          "simpleVideoUrl": "{friendCode}friendchain-c-response-06"
+          "simpleVideoUrl": "{friendCode}{selfCode}-friendchain-c-06"
         },
         {
           "cue": {
@@ -491,11 +491,11 @@
         {
           "cue": "",
           "responseType": "lessonIntro",
-          "introBackgroundVideoUrl": "{friendCode}friendchain-d-response-04"
+          "introBackgroundVideoUrl": "{friendCode}{selfCode}-friendchain-d-04"
         },
         {
           "responseType": "viewAndContinue",
-          "simpleVideoUrl": "{friendCode}friendchain-d-response-04"
+          "simpleVideoUrl": "{friendCode}{selfCode}-friendchain-d-04"
         },
         {
           "cue": {
@@ -509,7 +509,7 @@
         },
         {
           "responseType": "viewAndContinue",
-          "simpleVideoUrl": "{friendCode}friendchain-d-response-05"
+          "simpleVideoUrl": "{friendCode}{selfCode}-friendchain-d-05"
         },
         {
           "cue": {
@@ -523,7 +523,7 @@
         },
         {
           "responseType": "viewAndContinue",
-          "simpleVideoUrl": "{friendCode}friendchain-d-response-06"
+          "simpleVideoUrl": "{friendCode}{selfCode}-friendchain-d-06"
         },
         {
           "cue": {
@@ -616,11 +616,11 @@
         {
           "cue": "",
           "responseType": "lessonIntro",
-          "introBackgroundVideoUrl": "{friendCode}friendchain-e-response-04"
+          "introBackgroundVideoUrl": "{friendCode}{selfCode}-friendchain-e-04"
         },
         {
           "responseType": "viewAndContinue",
-          "simpleVideoUrl": "{friendCode}friendchain-e-response-04"
+          "simpleVideoUrl": "{friendCode}{selfCode}-friendchain-e-04"
         },
         {
           "cue": {
@@ -634,7 +634,7 @@
         },
         {
           "responseType": "viewAndContinue",
-          "simpleVideoUrl": "{friendCode}friendchain-e-response-05"
+          "simpleVideoUrl": "{friendCode}{selfCode}-friendchain-e-05"
         },
         {
           "cue": {
@@ -648,7 +648,7 @@
         },
         {
           "responseType": "viewAndContinue",
-          "simpleVideoUrl": "{friendCode}friendchain-e-response-06"
+          "simpleVideoUrl": "{friendCode}{selfCode}-friendchain-e-06"
         },
         {
           "cue": {
@@ -741,11 +741,11 @@
         {
           "cue": "",
           "responseType": "lessonIntro",
-          "introBackgroundVideoUrl": "{friendCode}friendchain-f-response-04"
+          "introBackgroundVideoUrl": "{friendCode}{selfCode}-friendchain-f-04"
         },
         {
           "responseType": "viewAndContinue",
-          "simpleVideoUrl": "{friendCode}friendchain-f-response-04"
+          "simpleVideoUrl": "{friendCode}{selfCode}-friendchain-f-04"
         },
         {
           "cue": {
@@ -759,7 +759,7 @@
         },
         {
           "responseType": "viewAndContinue",
-          "simpleVideoUrl": "{friendCode}friendchain-f-response-05"
+          "simpleVideoUrl": "{friendCode}{selfCode}-friendchain-f-05"
         },
         {
           "cue": {
@@ -773,7 +773,7 @@
         },
         {
           "responseType": "viewAndContinue",
-          "simpleVideoUrl": "{friendCode}friendchain-f-response-06"
+          "simpleVideoUrl": "{friendCode}{selfCode}-friendchain-f-06"
         },
         {
           "cue": {
@@ -866,11 +866,11 @@
         {
           "cue": "",
           "responseType": "lessonIntro",
-          "introBackgroundVideoUrl": "{friendCode}friendchain-g-response-04"
+          "introBackgroundVideoUrl": "{friendCode}{selfCode}-friendchain-g-04"
         },
         {
           "responseType": "viewAndContinue",
-          "simpleVideoUrl": "{friendCode}friendchain-g-response-04"
+          "simpleVideoUrl": "{friendCode}{selfCode}-friendchain-g-04"
         },
         {
           "cue": {
@@ -884,7 +884,7 @@
         },
         {
           "responseType": "viewAndContinue",
-          "simpleVideoUrl": "{friendCode}friendchain-g-response-05"
+          "simpleVideoUrl": "{friendCode}{selfCode}-friendchain-g-05"
         },
         {
           "cue": {
@@ -898,7 +898,7 @@
         },
         {
           "responseType": "viewAndContinue",
-          "simpleVideoUrl": "{friendCode}friendchain-g-response-06"
+          "simpleVideoUrl": "{friendCode}{selfCode}-friendchain-g-06"
         },
         {
           "cue": {

@@ -14,7 +14,8 @@
       },
       "unit": "Friend Challenge",
       "mission": {
-        "en": "Questions with WOULD YOU RATHER"      },
+        "en": "Questions with WOULD YOU RATHER"
+      },
       "setting": {
         "en": "With friends",
         "es": "Con amigos",
@@ -146,7 +147,7 @@
         },
         {
           "responseType": "viewAndContinue",
-          "simpleVideoUrl": "{friendCode}friend-a-response-01"
+          "simpleVideoUrl": "{friendCode}{selfCode}-friend-a-01"
         },
         {
           "subtitles": [
@@ -182,7 +183,7 @@
         },
         {
           "responseType": "viewAndContinue",
-          "simpleVideoUrl": "{friendCode}friend-a-response-02"
+          "simpleVideoUrl": "{friendCode}{selfCode}-friend-a-02"
         },
         {
           "cue": [
@@ -212,7 +213,7 @@
         },
         {
           "responseType": "viewAndContinue",
-          "simpleVideoUrl": "{friendCode}friend-a-response-03"
+          "simpleVideoUrl": "{friendCode}{selfCode}-friend-a-03"
         },
         {
           "cue": [

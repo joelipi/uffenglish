@@ -1,8 +1,8 @@
 // functions/api/auth-email-hook.js
-// Supabase Send Email Hook → Resend. When enabled in the Supabase dashboard
+// Supabase Send Email Hook → Zoho CPaaS. When enabled in the Supabase dashboard
 // (Auth → Hooks → Send Email), GoTrue POSTs a signed webhook here for EVERY auth
 // email (password reset, email change, magic link, ...) instead of sending it
-// itself. This routes all transactional mail through Resend and localizes it
+// itself. This routes all transactional mail through Zoho CPaaS and localizes it
 // with the shared strings table.
 //
 // The request is verified with the hook secret (`SEND_EMAIL_HOOK_SECRET`, a
@@ -12,7 +12,7 @@
 
 import { DEFAULT_SUPABASE_URL } from '../../src/modules/api/supabase-constants.js';
 import { verifyStandardWebhook } from './standard-webhook.js';
-import { sendViaResend } from './resend-send.js';
+import { sendViaZoho, resolveApiKey } from './zoho-send.js';
 import { buildAuthEmail } from '../../src/modules/user/auth-email-content.js';
 import { resolveEmailLanguage } from '../../src/modules/user/email-language.js';
 
@@ -75,9 +75,10 @@ export async function onRequestPost({ request, env }) {
     }
 
     // Fail loud: without a provider key no email can be sent, and a 200 would
-    // strand the user. (Configure RESEND_API_KEY before enabling the hook.)
-    if (!env.RESEND_API_KEY) {
-        console.error('[auth-email-hook] RESEND_API_KEY unset');
+    // strand the user. (Configure ZOHO_CPAAS_API_KEY before enabling the hook.)
+    const apiKey = resolveApiKey(env);
+    if (!apiKey) {
+        console.error('[auth-email-hook] ZOHO_CPAAS_API_KEY unset');
         return jsonResponse({ error: 'email provider not configured' }, 500);
     }
 
@@ -109,7 +110,7 @@ export async function onRequestPost({ request, env }) {
         });
     }
 
-    const from = env.EMAIL_FROM || 'Ultrafast Fluency <onboarding@resend.dev>';
+    const from = env.EMAIL_FROM || 'Ultrafast Fluency <welcome@ultrafastfluency.com>';
     for (const send of sends) {
         if (!send.to) {
             console.error('[auth-email-hook] no recipient for action', action);
@@ -123,8 +124,8 @@ export async function onRequestPost({ request, env }) {
             redirectTo: emailData.redirect_to,
             supabaseUrl,
         });
-        const result = await sendViaResend({
-            apiKey: env.RESEND_API_KEY,
+        const result = await sendViaZoho({
+            apiKey,
             from,
             to: [send.to],
             subject,
@@ -132,7 +133,7 @@ export async function onRequestPost({ request, env }) {
             text,
         });
         if (!result.ok) {
-            console.error(`[auth-email-hook] Resend responded ${result.status}`);
+            console.error(`[auth-email-hook] Zoho CPaaS responded ${result.status}`);
             return jsonResponse({ error: `provider-${result.status}` }, 502);
         }
     }

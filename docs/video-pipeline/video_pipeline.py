@@ -110,6 +110,13 @@ FONT_FILE_ITALIC = 'AtkinsonHyperlegibleNext-Italic-VariableFont_wght.ttf'
 MARKER_FONT_NAME = 'MarkerFont'
 FONT_FILE_MARKER = 'Kalam-Bold.ttf'
 
+# Compact blur ratio: the fraction of the frame height the app blurs over a
+# non-branching video's top (VIDEO_HEADER_COMPACT_RATIO in
+# src/modules/video/video-header-logic.js:28). The burned-in title pill must
+# fit entirely inside this band so the blur covers it; the parity test in
+# tests/test_pipeline_parity.py asserts the two literals stay equal.
+COMPACT_BLUR_RATIO = 0.12
+
 # ---- Intermediates (Stage 1/2): high quality so the social master stays clean
 MASTER_CRF = "16"
 MASTER_PRESET = "fast"
@@ -1008,7 +1015,11 @@ def create_overlay_html(row, video_width, video_height):
     # --- Vertical bands (fractions of the video height) ---
     APP_CAPTION_TOP = 0.80   # the app's timed SRT captions own the bottom 20%
     TITLE_TOP = 0.07         # healthy margin for browser/device chrome
-    BODY_TOP = 0.17          # the title owns every line above this one
+    # The title pill must fit INSIDE the band the app blurs over a normal
+    # step (VIDEO_HEADER_COMPACT_RATIO in src/modules/video/video-header-logic.js).
+    # Parity tests pin the two constants together in both directions, so the
+    # layers cannot drift. `BODY_TOP` also anchors the body band below.
+    BODY_TOP = COMPACT_BLUR_RATIO  # the title owns every line above this one
     FOOTER_TOP = APP_CAPTION_TOP - 0.05   # 0.75; one footer line above the captions
     BODY_BOTTOM = FOOTER_TOP - 0.01       # 0.74; the body clears the footer line
     horizontal_margin = video_width * 0.025
@@ -1019,14 +1030,24 @@ def create_overlay_html(row, video_width, video_height):
     body_band = (BODY_BOTTOM - BODY_TOP) * video_height
 
     # --- Font sizes (px) ---
-    # Title: a wrapping white pill (see .title span). Base size, plus a
-    # shrink-to-fit cap. The inline span's vertical padding does not contribute
-    # to the line box, so subtract it to keep the whole pill above BODY_TOP.
-    TITLE_PADDING_Y = 18
-    title_base = max(10, int(video_height * 0.05))
-    title_max_height = max(10, int((BODY_TOP - TITLE_TOP) * video_height) - 2 * TITLE_PADDING_Y)
+    # Title: a compact white pill (see .title span). `title_base` is 1.5x the
+    # body legibility floor, and the shrink-to-fit cap plus the padding math
+    # keep the whole pill at or below the compact-blur line
+    # `BODY_TOP * video_height` — the app's blur must cover it entirely.
+    # The pill's block box (max-height) holds one line box of `title_base`
+    # at `line-height: 1.6`; cap the base to that height so the shrink loop
+    # converges on the AUTHORED size instead of trimming it every render.
+    # `TITLE_TOP` cancels out of the band math (top + height == BODY_TOP), so
+    # only a base/cap change can push the pill past the blur — hence the cap
+    # here and the arithmetic guards in tests/test_pipeline_source.py.
+    TITLE_PADDING_Y = max(4, int(video_height * 0.004))
     body_min = max(10, int(video_height * 0.018))
     body_max = max(body_min, int(video_height * 0.055))
+    title_base = max(12, int(body_min * 1.5))
+    _title_height_cap = int((BODY_TOP - TITLE_TOP) * video_height
+                            - 2 * TITLE_PADDING_Y - 2)
+    title_base = min(title_base, max(12, int(_title_height_cap / 1.6)))
+    title_max_height = max(12, _title_height_cap)
     footer_size = max(9, int(video_height * 0.018))
     aside_size = max(9, int(video_height * 0.02))
     mark_size = max(10, int(video_height * 0.03))
@@ -1041,7 +1062,8 @@ def create_overlay_html(row, video_width, video_height):
 *{{margin:0;padding:0;box-sizing:border-box}}
 html, body{{background:transparent!important; width:{video_width}px; height:{video_height}px; overflow:hidden;}}
 
-/* Title pill: top {TITLE_TOP * 100:.0f}%, wraps, never past BODY_TOP. */
+/* Title pill: top {TITLE_TOP * 100:.0f}%, whole pill at/below the compact
+   blur line {BODY_TOP * 100:.0f}% (COMPACT_BLUR_RATIO). */
 .title {{
     position: absolute;
     top: {TITLE_TOP * video_height}px;
@@ -1139,10 +1161,13 @@ mark {{
    <mark> so the existing mark styling above is preserved. */
 aside {{
     position: fixed;
-    top: {BODY_TOP * video_height}px;
+    /* Start just below the branching-step top blur (VIDEO_HEADER_RATIO ~0.19,
+       plus a little margin) and the title band, and stop above the app
+       captions, so the callout never overlaps either. */
+    top: {video_height * 0.20}px;
     left: {video_width * 0.02}px;
-    max-width: {video_width * 0.50}px;
-    max-height: {body_band}px;
+    max-width: {video_width * 0.60}px;
+    max-height: {(APP_CAPTION_TOP - 0.20) * video_height}px;
     background: rgba(255, 255, 255, 0.85);
     color: #111111;
     font-family: '{SUBTITLE_FONT}', sans-serif;
@@ -1180,6 +1205,7 @@ strong {{
 
 <div class="subtitle">{row["subtitle_text"]}</div>
 
+
 <script>
     // Fit a block's font to its band: start at the minimum and grow to the
     // largest size that still fits, so short content fills its band and long
@@ -1200,7 +1226,7 @@ strong {{
             }}
         }}
     }}
-    // The title pill wraps; shrink it until it fits above the body band.
+    // The title pill wraps; shrink it until it fits above the compact-blur line.
     var titleEl = document.querySelector('.title');
     if (titleEl) {{
         var maxTitleHeight = {title_max_height};
@@ -1210,9 +1236,74 @@ strong {{
             titleEl.style.fontSize = titleSize + 'px';
         }}
     }}
+    // The aside is a translucent callout capped at a max box. Grow is not
+    // wanted for it (it should read at aside_size); shrink instead so long
+    // text never overflows its capped dimensions.
+    document.querySelectorAll('aside').forEach(function (el) {{
+        var size = {aside_size};
+        el.style.fontSize = size + 'px';
+        while (size > 8 && (el.scrollHeight > el.clientHeight || el.scrollWidth > el.clientWidth)) {{
+            size -= 1;
+            el.style.fontSize = size + 'px';
+        }}
+    }});
     fitToBand(document.querySelector('.subtitle'), {body_min}, {body_max});
 </script>
 
+</body></html>"""
+
+
+def create_phrase_overlay_html(row, video_width, video_height):
+    """Burned-in overlay containing ONLY the spoken phrase.
+
+    Left-anchored (same column as the ``<aside>`` callout), larger font than
+    the aside and vertically centered, so the phrase reads at a glance on the
+    web. Used for the per-take web videos served to the app; the full-overlay
+    intermediates (title/subtitle/footer/aside) are kept for concatenation.
+    """
+    phrase = (row.get('phrase') if hasattr(row, 'get') else None) or ''
+    phrase = str(phrase).strip()
+    aside_size = max(9, int(video_height * 0.02))
+    phrase_size = max(12, int(video_height * 0.04))
+    phrase_size = max(phrase_size, aside_size * 2)
+    horizontal_margin = video_width * 0.02
+    font_variable_path = f"file:///{os.path.abspath(os.path.join(FONT_DIRECTORY, FONT_FILE_VARIABLE)).replace(chr(92), '/')}"
+    return f"""<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
+@font-face{{font-family:'{SUBTITLE_FONT}';src:url('{f"file:///{os.path.abspath(os.path.join(FONT_DIRECTORY, FONT_FILE_VARIABLE)).replace(chr(92), '/')}" }') format('truetype');}}
+*{{margin:0;padding:0;box-sizing:border-box}}
+html, body{{background:transparent!important; width:{video_width}px; height:{video_height}px; overflow:hidden;}}
+aside.phrase-overlay {{
+    position: fixed;
+    top: {video_height * 0.15}px;
+    left: {video_width * 0.02}px;
+    max-width: {video_width * 0.60}px;
+    max-height: {video_height * 0.60}px;
+    background: rgba(255, 255, 255, 0.85);
+    color: #111111;
+    font-family: '{SUBTITLE_FONT}', sans-serif;
+    font-size: {phrase_size}px;
+    font-weight: 700;
+    line-height: 1.4;
+    text-align: left;
+    -webkit-text-stroke: 0;
+    text-shadow: none;
+    padding: {phrase_size * 0.5}px {phrase_size * 0.6}px;
+    border-radius: {phrase_size * 0.8}px;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+}}
+</style></head><body>
+{f'<aside class="phrase-overlay">{phrase}</aside>' if phrase else ''}
+<script>
+    document.querySelectorAll('aside.phrase-overlay').forEach(function (el) {{
+        var size = {phrase_size};
+        el.style.fontSize = size + 'px';
+        while (size > 10 && (el.scrollHeight > el.clientHeight || el.scrollWidth > el.clientWidth)) {{
+            size -= 1;
+            el.style.fontSize = size + 'px';
+        }}
+    }});
+</script>
 </body></html>"""
 
 
@@ -1274,6 +1365,8 @@ def process_single_video(row):
     foreground_clip = None
     image_overlay_clip = None
     final_composited_clip = None
+    phrase_composited_clip = None
+    phrase_overlay_path = None
     try:
         base_filename = safe_get_value(row, 'filename')
         if not base_filename:
@@ -1343,8 +1436,39 @@ def process_single_video(row):
         final_composited_clip = add_background_sound(final_composited_clip, safe_get_value(row, 'bgSound'))
         final_composited_clip = add_ending_sound(final_composited_clip, safe_get_value(row, 'endSoundEffect'))
 
-        # Render once to output/social (high quality) and derive output/web.
-        render_profiles(final_composited_clip, output_filename, fps=base_video_clip.fps)
+        # Full-overlay master -> output/social (used for concatenation into finals).
+        final_composited_clip.write_videofile(social_path(output_filename), **social_write_kwargs(fps=base_video_clip.fps))
+
+        # Phrase-only web video: same base effects, but ONLY the phrase overlay,
+        # web-optimized, written to output/web under the same filename. Does not
+        # touch the full-overlay social intermediate used for concatenation.
+        phrase = safe_get_value(row, 'phrase')
+        if phrase:
+            safe_name = base_filename.replace(VIDEO_EXTENSION, '').replace('.', '_')
+            phrase_overlay_path = os.path.join(OVERLAYS_TEMP_DIRECTORY, f"phrase_overlay_{safe_name}.png")
+            hti2 = Html2Image(size=(video_width, video_height), output_path=OVERLAYS_TEMP_DIRECTORY,
+                              custom_flags=chrome_flags(os.environ))
+            hti2.screenshot(html_str=create_phrase_overlay_html(row, video_width, video_height),
+                            save_as=os.path.basename(phrase_overlay_path))
+            phrase_clips = [clip_for_effects]
+            if os.path.exists(phrase_overlay_path):
+                phrase_clips.append(ImageClip(phrase_overlay_path, duration=clip_for_effects.duration).with_opacity(1.0))
+            if len(phrase_clips) > 1:
+                phrase_composited_clip = CompositeVideoClip(phrase_clips, size=(video_width, video_height))
+            else:
+                phrase_composited_clip = clip_for_effects
+            phrase_composited_clip = add_background_sound(phrase_composited_clip, safe_get_value(row, 'bgSound'))
+            phrase_composited_clip = add_ending_sound(phrase_composited_clip, safe_get_value(row, 'endSoundEffect'))
+            temp_name = f".phrase_{base_filename}"
+            phrase_composited_clip.write_videofile(social_path(temp_name), **social_write_kwargs(fps=base_video_clip.fps))
+            write_web_from_master(social_path(temp_name), web_path(base_filename))
+            try:
+                os.remove(social_path(temp_name))
+            except Exception:
+                pass
+        else:
+            # No phrase: fall back to transcoding the full social master to web.
+            write_web_from_master(social_path(output_filename), web_path(output_filename))
         return True
     except Exception as e:
         print(f"❌ Error during processing {base_filename}: {str(e)}")
@@ -1354,9 +1478,15 @@ def process_single_video(row):
         if foreground_clip: foreground_clip.close()
         if image_overlay_clip: image_overlay_clip.close()
         if final_composited_clip: final_composited_clip.close()
+        if phrase_composited_clip: phrase_composited_clip.close()
         if overlay_path and os.path.exists(overlay_path):
             try:
                 os.remove(overlay_path)
+            except Exception:
+                pass
+        if phrase_overlay_path and os.path.exists(phrase_overlay_path):
+            try:
+                os.remove(phrase_overlay_path)
             except Exception:
                 pass
 

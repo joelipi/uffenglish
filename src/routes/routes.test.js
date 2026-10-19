@@ -44,8 +44,74 @@ describe('routes.jsx homepage split', () => {
         expect(coursesAt).toBeLessThan(shareCodeAt);
     });
 
-    it('keeps the catch-all pointing at the public homepage', () => {
-        expect(src).toContain("{ path: '*', element: <Navigate to=\"/\" replace /> }");
+    it('renders the real 404 route for the catch-all instead of redirecting home', () => {
+        // Story 071: a mistyped multi-segment path must not be swallowed by a
+        // silent redirect. Assert on the catch-all line itself, so a comment
+        // naming NotFoundRoute cannot satisfy the guard.
+        const catchAllAt = src.indexOf("{ path: '*'");
+        expect(catchAllAt).toBeGreaterThan(-1);
+        const catchAllLine = src.slice(catchAllAt, src.indexOf('\n', catchAllAt));
+        expect(catchAllLine).toContain('<NotFoundRoute />');
+        expect(catchAllLine).not.toContain('Navigate');
+        // Story 071 removed the silent bounce specifically; a future redirect
+        // route elsewhere in the table is not what this guard is about.
+        expect(src).not.toContain('<Navigate to="/" replace />');
+    });
+
+    it('declares the /:shareCode route before the catch-all', () => {
+        const shareCodeAt = src.indexOf("path: '/:shareCode'");
+        const catchAllAt = src.indexOf("path: '*'");
+        expect(shareCodeAt).toBeGreaterThan(-1);
+        expect(catchAllAt).toBeGreaterThan(-1);
+        expect(shareCodeAt).toBeLessThan(catchAllAt);
+    });
+
+    // Story 070 closed the standalone signup page by redirecting it, NOT by
+    // deleting it: this is an experiment with a plausible near-term reversal,
+    // so the route and its component must stay resident and testable.
+    describe('story 070 — /signup stays declared, only its reachability changed', () => {
+        it('still imports SignupRoute and still mounts it at /signup', () => {
+            expect(src).toMatch(/^import SignupRoute from '\.\/SignupRoute\.jsx';$/m);
+            expect(src).toContain("{ path: '/signup', element: <AuthLayout />, children: [{ index: true, element: <SignupRoute /> }] }");
+        });
+
+        it('declares /signup before the /:shareCode catch-all', () => {
+            // Declared after, `signup` is read as a share code and the redirect
+            // never runs. The paren-qualified call token is searched, not a bare
+            // `/signup`, so a comment naming the route cannot satisfy this.
+            const signupAt = src.indexOf("path: '/signup'");
+            const shareCodeAt = src.indexOf("path: '/:shareCode'");
+            expect(signupAt).toBeGreaterThan(-1);
+            expect(shareCodeAt).toBeGreaterThan(signupAt);
+        });
+
+        it('does not reach AuthLayout/SignupRoute at /signup, and SignupRoute no longer renders the form', () => {
+            // The route keeps its AuthLayout wrapper but the child redirects, so
+            // no signup form is reachable at /signup. Asserted on the component,
+            // because a route-level check alone cannot see a form rendered by a
+            // child element.
+            //
+            // The import and the element are matched with line anchors rather
+            // than a bare `not.toContain('SignupForm')`: SignupRoute's own
+            // comment explains where SignupForm went, so an unanchored search
+            // would be satisfied by prose about the change (AGENTS.md).
+            const signupRouteSrc = readFileSync(path.join(__dirname, 'SignupRoute.jsx'), 'utf8');
+            expect(signupRouteSrc).not.toMatch(/^import\s+SignupForm\b/m);
+            expect(signupRouteSrc).not.toMatch(/<SignupForm[\s/>]/);
+            expect(signupRouteSrc).toMatch(/return\s*<Navigate\b/);
+        });
+
+        // Moved here from `home-navigation-wiring.test.js`, which was the third
+        // home for the same three facts (AGENTS.md: one guard, one place).
+        it('redirects to the course list and no longer honours ?redirect=', () => {
+            const signupRouteSrc = readFileSync(path.join(__dirname, 'SignupRoute.jsx'), 'utf8');
+            expect(signupRouteSrc).toContain('COURSE_LISTINGS_PATH');
+            expect(signupRouteSrc).toContain('<Navigate to={COURSE_LISTINGS_PATH} replace />');
+            // The param the entry points used to append is no longer read, so a
+            // stale deep link cannot steer the redirect anywhere else.
+            expect(signupRouteSrc).not.toContain('useSearchParams');
+            expect(signupRouteSrc).not.toContain("searchParams.get('redirect')");
+        });
     });
 
     it('sends the LessonError Go Home link to the dashboard at /home', () => {

@@ -9,13 +9,15 @@ import { getBilingual } from '../data/strings.js';
 import { useNativeLanguage } from '../hooks/use-native-language.js';
 import { isBranchingStep, BRANCH_OVERLAY_PHASE } from '../modules/lesson/branch-choice-logic.js';
 import { getSimpleVideoOverlayTextKey } from '../modules/video/response-decision-logic.js';
+import { useVideoSpeed } from '../hooks/useVideoSpeed.js';
+import VideoSpeedToggle from './VideoSpeedToggle.jsx';
 import VideoPlayIcon from './VideoPlayIcon.jsx';
 
 const hasNavigator = typeof navigator !== 'undefined';
 const isIOS = hasNavigator && (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
 const isAndroid = hasNavigator && /Android/.test(navigator.userAgent);
 
-export default function SimpleVideoPlayer() {
+export default function SimpleVideoPlayer({ branchDepth = 0 } = {}) {
     const { isActive, config, subtitleText, isTimedSubtitles, scrollRatio, updateProgress } = useSimpleVideo();
     const mediaVisible = useStore(appStore, (s) => s.mediaVisible);
     const mediaState = useStore(appStore, (s) => s.mediaState);
@@ -38,11 +40,15 @@ export default function SimpleVideoPlayer() {
     const [scrollOffset, setScrollOffset] = useState(0);
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
+    // Speed toggle (1x -> 0.8x -> 0.6x -> 1x), shared via useVideoSpeed.
+    // Local to this player so the interactive player's scoring-coupled
+    // playbackRate is untouched.
+    const [playbackRate, handleSpeedCycle] = useVideoSpeed(videoRef, config?.videoUrl);
     const appPhase = useStore(appStore, (s) => s.appPhase);
     const currentVideo = useStore(appStore, (s) => s.currentVideo);
     const overlayLang = useNativeLanguage();
 
-    const overlayTextKey = getSimpleVideoOverlayTextKey(appPhase, currentVideo);
+    const overlayTextKey = getSimpleVideoOverlayTextKey(appPhase, currentVideo, branchDepth);
     const overlayBilingual = useMemo(
         () => getBilingual(overlayTextKey, overlayLang),
         [overlayTextKey, overlayLang]
@@ -267,6 +273,7 @@ export default function SimpleVideoPlayer() {
 
         const tryPlay = () => {
             const video = videoRef.current;
+            if (!video) return;
             console.log('[SimpleVideo] tryPlay called. readyState:', video.readyState, 'paused:', video.paused, 'src:', video.src?.slice(-40));
             const p = video.play();
             if (p !== undefined) {
@@ -399,6 +406,10 @@ export default function SimpleVideoPlayer() {
                 />
                 <canvas ref={posterCanvasRef} style={{ display: 'none' }} />
                 <div className="ivp-blur-overlay" />
+                {/* Before metadata loads there is no scrubber row, so the
+                    toggle floats as an overlay; once duration is known it
+                    lives inline in the scrubber, to the right of the times. */}
+                {duration === 0 && <VideoSpeedToggle rate={playbackRate} onCycle={handleSpeedCycle} />}
                 {(appPhase === 'simpleVideo-decisionTime-viewAndContinue' || appPhase === 'lessonSuccess-decisionTime' || appPhase === 'simpleVideo-decisionTime-response' || appPhase === BRANCH_OVERLAY_PHASE) && (
                     <>
                         <div className="ivp-click-block" onClick={(e) => e.stopPropagation()} />
@@ -441,6 +452,7 @@ export default function SimpleVideoPlayer() {
                             aria-label="Scrub video"
                         />
                         <span className="ivp-scrubber-time">{formatTime(duration)}</span>
+                        <VideoSpeedToggle rate={playbackRate} onCycle={handleSpeedCycle} inline />
                     </div>
                 )}
                 {!playing && !autoplayPending && mediaState === 'simpleVideo' && (

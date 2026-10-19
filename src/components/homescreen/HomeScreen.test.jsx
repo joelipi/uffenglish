@@ -31,9 +31,9 @@ vi.mock('../../modules/home/continue-logic.js', async (importOriginal) => {
     };
 });
 
-// HomeScreen pulls in the Supabase graph, PostHog, the notifications bell and
-// the legal footer. Mock the side-effecting ones so the top bar (brand logo) is
-// under test without a network or store bootstrap.
+// HomeScreen pulls in the Supabase graph, PostHog and the notifications bell.
+// Mock the side-effecting ones so the top bar (brand logo) is under test
+// without a network or store bootstrap.
 vi.mock('../../modules/api/api.js', () => ({
     useAuthStatus: () => ({ data: false }),
     useUserProfile: (...args) => apiMocks.useUserProfileImpl(...args),
@@ -43,7 +43,6 @@ vi.mock('../../modules/api/api.js', () => ({
 }));
 vi.mock('../../modules/utils/posthog.js', () => ({ trackEvent: vi.fn() }));
 vi.mock('./NotificationsBell.web.jsx', () => ({ default: () => null }));
-vi.mock('../legal/LegalFooter.jsx', () => ({ default: () => null }));
 vi.mock('../../modules/courses/friend-course-configs.js', () => ({
     configCourseId: (p) => String(p).replace(/^.*\//, '').replace(/\.json$/, ''),
     resolveCourseHeroImage: (ref) => ref,
@@ -126,6 +125,21 @@ describe('HomeScreen', () => {
         expect(logo.tagName).toBe('IMG');
         expect(logo.getAttribute('alt')).toBe('Ultra Fast Fluency');
         expect(container.textContent).not.toContain('Ultra Fast Fluency');
+    });
+
+    it('renders no install banner without a signed-in user', async () => {
+        // The mocks return no profile (anonymous): no banner, no prompt.
+        await renderHome();
+        expect(container.querySelector('[data-testid="pwa-install-banner"]')).toBeNull();
+    });
+
+    it('renders no Privacy/Terms footer on the app dashboard', async () => {
+        // The dashboard (/home) keeps the links in the hamburger menu only;
+        // the public homepage (/) keeps its footer — see legal-wiring.test.js.
+        await renderHome();
+        expect(container.querySelector('[data-testid="legal-footer"]')).toBeNull();
+        expect(container.querySelector('a[href="/privacy"]')).toBeNull();
+        expect(container.querySelector('a[href="/terms"]')).toBeNull();
     });
 
     it('renders the merged course-listings headline and onboarding steps', async () => {
@@ -416,6 +430,17 @@ describe('HomeScreen Continue button', () => {
             });
         }
         expect(resolverCalls.count).toBe(0);
+        expect(container.querySelector('[data-testid="home-continue"]')).not.toBeNull();
+    });
+
+    it('keeps the Continue bar hidden while we revisit it', async () => {
+        appStore.setState({ courseId: 'model', activeLessonId: 'm-g' });
+        await renderHome();
+        const bar = container.querySelector('[data-testid="home-continue-bar"]');
+        expect(bar).not.toBeNull();
+        // Intentionally hidden, not removed: story 061's target resolution
+        // stays wired, so re-showing the bar later is a style change.
+        expect(getComputedStyle(bar).display).toBe('none');
         expect(container.querySelector('[data-testid="home-continue"]')).not.toBeNull();
     });
 });

@@ -5,6 +5,7 @@
 
 import { appStore, getCurrentVideoPlayer } from '../store/store.js';
 import Strings from '../../data/strings.js';
+import { getAppLanguage } from '../bilingual/config-normalizer.js';
 import teacherAvatar from '../../assets/img/teacherprofile.webp';
 import userAvatar from '../../assets/img/userprofile.png';
 import aiAvatar from '../../assets/img/ai.webp';
@@ -32,7 +33,7 @@ export function createProgression(deps) {
     }
 
     function showCompletionMessage() {
-        const msg = Strings.get('msg_lesson_complete_all', appStore.getState().userData?.native_language);
+        const msg = Strings.get('msg_lesson_complete_all', getAppLanguage());
         const heading = msg.match(/<h3>(.*?)<\/h3>/)?.[1] || '';
         const body = msg.match(/<p>(.*?)<\/p>/)?.[1] || '';
         appStore.getState().setCompletionMessage({ heading, body });
@@ -119,6 +120,19 @@ export function createProgression(deps) {
         player.replay();
     }
 
+    // Stops the lesson underneath so an opened tutorial modal is the only thing
+    // playing. Pausing the registered player stops the clip the learner is on;
+    // the store trigger reaches every other mounted video component (blob
+    // playback, interactive player). Pausing is idempotent, so the modal may
+    // call this on every mount; closing the modal does NOT resume the clip, so
+    // the learner returns to the decision row and picks Replay (or an answer).
+    function pauseLessonVideoForTutorial() {
+        const player = getCurrentVideoPlayer();
+        if (player && typeof player.pause === 'function') player.pause();
+        appStore.getState().triggerPauseAllVideos();
+        console.log('[Progression] pauseLessonVideoForTutorial: lesson video paused for the tutorial modal');
+    }
+
     async function loadNextLesson(_deps = {}) {
         if (!appStore.getState().configData || !appStore.getState().configData.lessons || appStore.getState().configData.lessons.length === 0) return;
         const currentLesson = appStore.getState().configData.lessons[appStore.getState().currentLessonIndex];
@@ -166,7 +180,7 @@ export function createProgression(deps) {
             userAvatarUrl: appStore.getState().userData?.profilePictureUrl || userAvatar
         });
 
-        addAILoadingMessage(Strings.get('ai_thinking', appStore.getState().userData?.native_language));
+        addAILoadingMessage(Strings.get('ai_thinking', getAppLanguage()));
 
         const context = getChatHistoryContext();
         try {
@@ -200,7 +214,7 @@ export function createProgression(deps) {
         }
     }
 
-    return { updateProgressBar, showCompletionMessage, loadNextStep, jumpToStep, replaySimpleVideo, loadNextLesson, handleTutorChatSubmit };
+    return { updateProgressBar, showCompletionMessage, loadNextStep, jumpToStep, replaySimpleVideo, pauseLessonVideoForTutorial, loadNextLesson, handleTutorChatSubmit };
 }
 
 // --- Backward-compatible free-function exports ---
@@ -232,5 +246,6 @@ export function showCompletionMessage() { return getProgression().showCompletion
 export function loadNextStep(currentStep, fluencyData, _deps) { return getProgression().loadNextStep(currentStep, fluencyData, _deps); }
 export function jumpToStep(targetIndex, _deps) { return getProgression().jumpToStep(targetIndex, _deps); }
 export function replaySimpleVideo() { return getProgression().replaySimpleVideo(); }
+export function pauseLessonVideoForTutorial() { return getProgression().pauseLessonVideoForTutorial(); }
 export function loadNextLesson(_deps) { return getProgression().loadNextLesson(_deps); }
 export function handleTutorChatSubmit(rawText) { return getProgression().handleTutorChatSubmit(rawText); }

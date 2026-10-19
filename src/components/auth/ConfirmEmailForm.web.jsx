@@ -54,7 +54,7 @@ export default function ConfirmEmailForm({ token, onContinue }) {
 
     return (
         <>
-            <h2 className="text-center mb-4" style={{ fontFamily: "'Orbitron', sans-serif", color: 'yellow' }}>
+            <h2 className="text-center mb-4" style={{ color: 'yellow' }}>
                 {Strings.get(isConfirmed ? 'auth_confirm_email_success' : 'auth_confirm_email_title', lang)}
             </h2>
             {!isConfirmed && (

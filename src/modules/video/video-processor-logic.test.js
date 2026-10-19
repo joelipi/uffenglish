@@ -1,12 +1,17 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { VideoRenderPlanner, resolveRecapOverlay, resolveRecapSources, resolveCompletePairCode, isDroppedStep, markFirstRenderable, resolveSegmentBounds, UNRESOLVED_SEGMENT_CAP_MS, STALL_GRACE_MS, resolvePublishLessonId, assignSegmentTargets, buildUgcSegmentKey, isPublishableClip, calibrateSegmentRanges, resolveHeaderLayout, HEADER_BAND_RATIO, HEADER_TOP_MARGIN_RATIO, MIN_SEGMENT_SECONDS, MAX_CALIBRATION_OFFSET_SEC } from './video-processor-logic.js';
+import { setKnownShareCodes } from './video-source.js';
+import { VideoRenderPlanner, resolveRecapOverlay, resolveRecapSources, resolveCompletePairCode, isDroppedStep, markFirstRenderable, resolveSegmentBounds, UNRESOLVED_SEGMENT_CAP_MS, STALL_GRACE_MS, resolvePublishLessonId, assignSegmentTargets, buildUgcSegmentKey, resolveInviterCode, isPublishableClip, calibrateSegmentRanges, resolveHeaderLayout, HEADER_BAND_RATIO, HEADER_TOP_MARGIN_RATIO, MIN_SEGMENT_SECONDS, MAX_CALIBRATION_OFFSET_SEC } from './video-processor-logic.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '../../..');
 const LOGIC_PATH = path.join(__dirname, 'video-processor-logic.js');
+
+// UGC classification matches the share codes in play (never slug shape), so the
+// fixtures' codes must be registered before the planner runs.
+beforeEach(() => setKnownShareCodes(['ab12', 'zzz9', 'hu7ni', 'mncb1']));
 
 const SYSTEM_STEPS = [
     { responseType: 'lessonIntro', introBackgroundVideoUrl: 'testvideo01' },
@@ -289,6 +294,48 @@ describe('VideoRenderPlanner.generatePlan — recapSources clip selection', () =
             ).generatePlan();
 
             expect(plan.map(s => s.type), `branch target ${chosenStep}`).toEqual(['remote', 'webcam', 'tailing']);
+            expect(plan.find(s => s.type === 'remote').targetId).toBe('ab12-model-w-response-01');
+        }
+    });
+
+    it('borrows the branching step’s friend clip for a nested (two-step) branch target', () => {
+        // Same borrow rule, but the branching step nests: the targets live under
+        // the groups' children. resolveBranchChoices must flatten the tree so the
+        // parent lookup still finds the branching step for every leaf.
+        const steps = [
+            { responseType: 'lessonIntro', introBackgroundVideoUrl: 'testvideo01' },
+            {
+                responseType: 'branching',
+                simpleVideoUrl: 'ab12-model-w-response-01',
+                chooseStep: [
+                    {
+                        text: { en: 'Yes' },
+                        chooseStep: [
+                            { nextStep: 1, text: { en: 'Love it' } },
+                            { nextStep: 2, text: { en: 'Like it' } },
+                        ],
+                    },
+                    {
+                        text: { en: 'No' },
+                        chooseStep: [
+                            { nextStep: 3, text: { en: "Don't like it" } },
+                        ],
+                    },
+                ],
+            },
+            { responseType: 'friendClosedResponse', simpleVideoUrl: 'testvideo05', cue: 'Q1a' },
+            { responseType: 'friendClosedResponse', simpleVideoUrl: 'testvideo06', cue: 'Q1b' },
+            { responseType: 'friendClosedResponse', simpleVideoUrl: 'testvideo07', cue: 'Q1c' },
+        ];
+        for (const chosenStep of [2, 3, 4]) {
+            const recordings = [
+                { originalLessonId: 'w', originalStepIndex: chosenStep, blob: { size: 1 }, userResponse: 'a' },
+            ];
+            const plan = new VideoRenderPlanner(
+                recordings, makeConfig({ recapSources: 'friend', steps }), { total: 80 }, 'en', 'ab12'
+            ).generatePlan();
+
+            expect(plan.map(s => s.type), `nested branch target ${chosenStep}`).toEqual(['remote', 'webcam', 'tailing']);
             expect(plan.find(s => s.type === 'remote').targetId).toBe('ab12-model-w-response-01');
         }
     });
@@ -781,14 +828,32 @@ describe('assignSegmentTargets', () => {
 });
 
 describe('buildUgcSegmentKey', () => {
-    it('builds the videos/ key with a 2-digit index', () => {
-        expect(buildUgcSegmentKey({ shareCode: 'ab12', courseId: 'friend', lessonId: 'a', index: 1 }))
-            .toBe('videos/ab12-friend-a-response-01.mp4');
+    it('builds {recorder}-{inviter}-{course}-{lesson}-{step} with a 2-digit step', () => {
+        expect(buildUgcSegmentKey({ shareCode: 'ab12', inviterCode: 'zzz9', courseId: 'friend', lessonId: 'a', index: 1 }))
+            .toBe('videos/ab12-zzz9-friend-a-01.mp4');
     });
 
-    it('does not truncate indices above 9', () => {
-        expect(buildUgcSegmentKey({ shareCode: 'ab12', courseId: 'model', lessonId: 'b', index: 12 }))
-            .toBe('videos/ab12-model-b-response-12.mp4');
+    it('repeats the recorder code when self-initiated', () => {
+        expect(buildUgcSegmentKey({ shareCode: 'ab12', courseId: 'friend', lessonId: 'a', index: 1 }))
+            .toBe('videos/ab12-ab12-friend-a-01.mp4');
+    });
+
+    it('does not truncate step numbers above 9', () => {
+        expect(buildUgcSegmentKey({ shareCode: 'ab12', inviterCode: 'zzz9', courseId: 'model', lessonId: 'b', index: 12 }))
+            .toBe('videos/ab12-zzz9-model-b-12.mp4');
+    });
+
+    it('has no "response" marker (the step number is already unique)', () => {
+        expect(buildUgcSegmentKey({ shareCode: 'ab12', courseId: 'model', lessonId: 'b', index: 1 }))
+            .not.toContain('response');
+    });
+});
+
+describe('resolveInviterCode', () => {
+    it('prefers the friend code, falling back to the recorder (self-initiated)', () => {
+        expect(resolveInviterCode({ friendCode: 'zzz9', shareCode: 'ab12' })).toBe('zzz9');
+        expect(resolveInviterCode({ friendCode: '  ', shareCode: 'ab12' })).toBe('ab12');
+        expect(resolveInviterCode({ shareCode: 'ab12' })).toBe('ab12');
     });
 });
 

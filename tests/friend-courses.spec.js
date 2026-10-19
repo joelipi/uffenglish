@@ -52,4 +52,25 @@ test.describe('public course listings', () => {
         await expect(page.getByTestId('friend-courses-heading')).toBeVisible();
         await expect(page.locator('#guestLoginModal')).not.toBeVisible();
     });
+
+    test('scrolls the list to the last course card (story 063)', async ({ page }) => {
+        await page.setViewportSize({ width: 390, height: 600 });
+        await page.goto('/courses');
+
+        await expect(page.getByTestId('friend-course-card').first()).toBeVisible();
+
+        const scroll = page.getByTestId('friend-courses-scroll');
+        const box = await scroll.evaluate((el) => ({
+            scrollHeight: el.scrollHeight,
+            clientHeight: el.clientHeight,
+        }));
+        expect(box.scrollHeight).toBeGreaterThan(box.clientHeight);
+
+        await page.mouse.move(195, 300);
+        await page.mouse.wheel(0, 1000);
+        await expect.poll(() => scroll.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
+
+        await expect(page.getByTestId('friend-course-card').last()).toBeInViewport();
+        await expect(page.getByTestId('friend-courses-back')).toBeInViewport();
+    });
 });

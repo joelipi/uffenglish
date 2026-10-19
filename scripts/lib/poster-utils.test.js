@@ -73,11 +73,11 @@ describe('introTargets', () => {
 
     it('finds every first-step intro slug across all configs', () => {
         const slugs = introTargets(loadAllConfigs()).map((t) => t.slug).sort();
-        // `intro` is the first slug of the wouldyourather course (the sheet's
-        // first-step introBackgroundVideoUrl); the configs are CI-generated, so
-        // this list grows as courses are added.
+        // The wouldyourather first-step intros are the Oct-14 source rewrite's
+        // step slugs (`intro` retired — no config references it); the configs
+        // are generated, so this list grows as courses are added.
         expect(slugs).toEqual(
-            ['do_you_have_dark_chocolate', 'do_you_have_rolls_too', 'gtests-0-1-1', 'gtests-1-0', 'intro', 'testvideo01', 'testvideointro'],
+            ['do_you_have_dark_chocolate', 'do_you_have_rolls_too', 'gtests-0-1-1', 'gtests-1-0', 'testvideo01', 'testvideointro', 'wouldyourather-a-01', 'wouldyourather-c-01', 'wouldyourather-e-01'],
         );
     });
 

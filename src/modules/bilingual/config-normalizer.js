@@ -3,6 +3,47 @@ import { getLocalizedTranslation } from '../utils/utils.js';
 import { appStore } from '../store/store.js';
 
 const FRIEND_CODE_REGEX = /\{friendCode\}-?/g;
+const SELF_CODE_REGEX = /\{selfCode\}-?/g;
+
+/**
+ * Replace a code placeholder with the lower-cased code (plus the separator the
+ * template already implies). An unknown code drops the placeholder and its
+ * hyphen so the slug does not keep a dangling separator.
+ */
+function substituteCode(value, regex, code) {
+    const c = code && String(code).trim() ? String(code).trim().toLowerCase() : '';
+    return value.replace(regex, () => (c ? `${c}-` : ''));
+}
+
+/**
+ * Resolve the two share-code placeholders a UGC slug can carry:
+ * `{friendCode}` (the other party) and `{selfCode}` (the viewer's own code).
+ * A UGC clip's identity is `{recorder}-{inviter}-…`, so both are needed.
+ * Exported for the normalizer/builder contract test.
+ */
+export function resolveShareCodes(value, { friendCode, selfCode } = {}) {
+    if (typeof value !== 'string') return value;
+    let out = value;
+    if (out.includes('{friendCode}')) out = substituteCode(out, FRIEND_CODE_REGEX, friendCode);
+    if (out.includes('{selfCode}')) out = substituteCode(out, SELF_CODE_REGEX, selfCode);
+    return out;
+}
+
+function applyShareCodeWildcards(node, codes) {
+    if (Array.isArray(node)) {
+        for (let i = 0; i < node.length; i++) {
+            node[i] = applyShareCodeWildcards(node[i], codes);
+        }
+        return node;
+    }
+    if (node && typeof node === 'object') {
+        for (const key of Object.keys(node)) {
+            node[key] = applyShareCodeWildcards(node[key], codes);
+        }
+        return node;
+    }
+    return resolveShareCodes(node, codes);
+}
 
 /**
  * Resolves the language used to normalize a course config. Guest language wins
@@ -18,6 +59,41 @@ const FRIEND_CODE_REGEX = /\{friendCode\}-?/g;
  */
 export function resolveConfigLanguage(guestLang, profileLang) {
     return guestLang || profileLang || 'en';
+}
+
+/**
+ * The single source of truth for the app's active language outside React.
+ *
+ * `guestNativeLanguage` is authoritative and `userData.native_language` is its
+ * mirror (AGENTS.md): the async profile bootstrap can write the fetched
+ * profile's `native_language` ("EN") after a guest picked another language, so
+ * reading `userData.native_language` directly renders English while the rest
+ * of the app is localized. Call this (or `useNativeLanguage()` in components)
+ * instead of reading `userData.native_language` — every ad-hoc expression is
+ * a future localization regression.
+ *
+ * @param {object} [state] - defaults to the live store state (test seam)
+ * @returns {string} a language code, defaulting to 'en'
+ */
+export function getAppLanguage(state) {
+    const s = state || appStore.getState();
+    return resolveConfigLanguage(s.guestNativeLanguage, s.userData?.native_language);
+}
+
+/**
+ * Same guest-first rule for pure functions that carry `userData` as a
+ * parameter (answer scoring, speech callbacks): the store's guest choice wins,
+ * the parameter is the fallback, so existing callers and test doubles keep
+ * working unchanged.
+ *
+ * @param {object} [userData] - e.g. the scoring pipeline's user record
+ * @returns {string} a language code, defaulting to 'en'
+ */
+export function getAppLanguageFor(userData) {
+    return getAppLanguage({
+        guestNativeLanguage: appStore.getState().guestNativeLanguage,
+        userData,
+    });
 }
 
 /**
@@ -41,28 +117,6 @@ export function isConfigLanguageSettled({ isLoggedIn, guestLang } = {}) {
     return !!isLoggedIn || !!guestLang;
 }
 
-function resolveFriendCode(value, friendCode) {
-    if (typeof value !== 'string' || !value.includes('{friendCode}')) return value;
-    const code = friendCode && friendCode.trim() ? friendCode.trim().toLowerCase() : '';
-    return value.replace(FRIEND_CODE_REGEX, () => (code ? code + '-' : ''));
-}
-
-function applyFriendCodeWildcards(node, friendCode) {
-    if (Array.isArray(node)) {
-        for (let i = 0; i < node.length; i++) {
-            node[i] = applyFriendCodeWildcards(node[i], friendCode);
-        }
-        return node;
-    }
-    if (node && typeof node === 'object') {
-        for (const key of Object.keys(node)) {
-            node[key] = applyFriendCodeWildcards(node[key], friendCode);
-        }
-        return node;
-    }
-    return resolveFriendCode(node, friendCode);
-}
-
 /**
  * Mutates configData in place, normalizing all localized object fields to plain strings
  * and filling in default step text where the step field is missing.
@@ -76,7 +130,10 @@ export function normalizeConfig(configData, lang = 'en') {
 
     const userLang = lang || 'en';
 
-    applyFriendCodeWildcards(configData, appStore.getState().friendCode);
+    applyShareCodeWildcards(configData, {
+        friendCode: appStore.getState().friendCode,
+        selfCode: appStore.getState().userData?.shareCode,
+    });
 
     configData.lessons.forEach(lesson => {
         // Lesson titles are curriculum labels, not learner-facing copy, so they

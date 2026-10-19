@@ -1,7 +1,23 @@
-const ALPHABET = "abcdefghijkmnpqrstuvwxyz23456789";
+import { RESERVED_SHARE_CODES } from './reserved-share-codes.js';
+
+// Share-code alphabet: all lowercase letters except `l`, plus all digits.
+// `o`, `0` and `1` are intentionally kept (the user accepted the small
+// confusion risk in exchange for a larger code space); only `l` is excluded.
+const ALPHABET = "abcdefghijkmnopqrstuvwxyz0123456789";
 const BASE = ALPHABET.length;
 
-function toShortId(num, minLength = 4) {
+// New codes are always exactly five characters. Legacy codes may be four
+// characters (early accounts), so the shape gate accepts 4 or 5; generation
+// never produces fewer than five.
+const GENERATED_CODE_LENGTH = 5;
+const SHARE_CODE_MIN_LENGTH = 4;
+const SHARE_CODE_MAX_LENGTH = GENERATED_CODE_LENGTH;
+
+// 35^5 possible five-character codes, derived from the alphabet so the two
+// cannot drift apart.
+const SHARE_CODE_SPACE = BASE ** GENERATED_CODE_LENGTH;
+
+function toShortId(num, minLength = GENERATED_CODE_LENGTH) {
   const n = typeof num === 'string' ? parseInt(num, 10) : num;
 
   if (!Number.isInteger(n) || n < 0) {
@@ -18,4 +34,70 @@ function toShortId(num, minLength = 4) {
   return str.padStart(minLength, ALPHABET[0]);
 }
 
-export { toShortId, ALPHABET };
+/**
+ * Normalize a share-code segment for lookup.
+ *
+ * Share codes are stored lowercase, so an uppercase or mixed-case URL
+ * (`/Abcd`) refers to the same code as `/abcd`. Normalizing at the boundary
+ * means the database lookup sees the stored shape.
+ *
+ * @param {unknown} value
+ * @returns {unknown} the lowercased string, or the value unchanged when it is
+ *   not a string.
+ */
+function normalizeShareCodeSegment(value) {
+  return typeof value === 'string' ? value.toLowerCase() : value;
+}
+
+/**
+ * Whether a single URL segment has the shape of a share code.
+ *
+ * `/nonsense` matches the `/:shareCode` route just like `/k9gyi` does, because
+ * React Router cannot see the difference. This is the difference: a share code
+ * is case-insensitive (uppercase is normalized to lowercase), drawn from
+ * ALPHABET, four or five characters long (legacy codes may be four), and at
+ * most five characters. Anything else is a mistyped path and must fall through
+ * to the 404 page.
+ *
+ * Derived from ALPHABET + SHARE_CODE_MIN_LENGTH/SHARE_CODE_MAX_LENGTH rather
+ * than a second hand-written regex, so changing the generator cannot leave the
+ * two out of step.
+ *
+ * @param {unknown} value
+ * @returns {boolean}
+ */
+function isShareCodeSegment(value) {
+  if (typeof value !== 'string') return false;
+  const normalized = normalizeShareCodeSegment(value);
+  if (normalized.length < SHARE_CODE_MIN_LENGTH || normalized.length > SHARE_CODE_MAX_LENGTH) return false;
+  for (const char of normalized) {
+    if (!ALPHABET.includes(char)) return false;
+  }
+  return true;
+}
+
+
+/**
+ * Last-resort client generator, used only when the server RPC is unreachable.
+ * Loops until the candidate is shape-valid and not reserved, so the DB
+ * trigger's validation cannot reject it. A collision with an existing code is
+ * caught by the `share_code` UNIQUE constraint (probability ~1/52M).
+ */
+export function generateShareCode() {
+  let code;
+  do {
+    code = toShortId(Math.floor(Math.random() * SHARE_CODE_SPACE));
+  } while (!isShareCodeSegment(code) || RESERVED_SHARE_CODES.has(code));
+  return code;
+}
+
+export {
+  toShortId,
+  ALPHABET,
+  SHARE_CODE_MIN_LENGTH,
+  SHARE_CODE_MAX_LENGTH,
+  GENERATED_CODE_LENGTH,
+  SHARE_CODE_SPACE,
+  normalizeShareCodeSegment,
+  isShareCodeSegment,
+};

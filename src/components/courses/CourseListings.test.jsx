@@ -47,7 +47,9 @@ describe('CourseListings', () => {
         expect(steps.tagName).toBe('OL');
         const items = Array.from(steps.children);
         expect(items).toHaveLength(2);
-        expect(items[0].textContent).toBe('Complete the first mini lesson in under five minutes.');
+        expect(items[0].textContent).toBe(
+            "Complete the first mini lesson in under five minutes. You'll create your free account at the end."
+        );
         expect(items[1].textContent).toBe(
             'Share your special link with friends, family, and colleagues so that they can reply to you and continue the conversation.'
         );
@@ -69,6 +71,26 @@ describe('CourseListings', () => {
         expect(cards[1].textContent).toContain('Prefs');
         expect(cards[0].textContent).toContain('8 lessons');
         expect(cards[1].textContent).toContain('2 lessons');
+    });
+
+    it('shows the install banner for signed-in users, never for guests', () => {
+        // jsdom has no matchMedia: never standalone, so a userId shows it.
+        root = render(container, { courses: COURSES, userId: 'user-1' });
+        expect(container.querySelector('[data-testid="pwa-install-banner"]')).not.toBeNull();
+        act(() => root.unmount());
+        container.remove();
+        container = document.createElement('div');
+        document.body.appendChild(container);
+
+        root = render(container, { courses: COURSES, userId: 'guest' });
+        expect(container.querySelector('[data-testid="pwa-install-banner"]')).toBeNull();
+        act(() => root.unmount());
+        container.remove();
+        container = document.createElement('div');
+        document.body.appendChild(container);
+
+        root = render(container, { courses: COURSES });
+        expect(container.querySelector('[data-testid="pwa-install-banner"]')).toBeNull();
     });
 
     it('shows a spinner (and still the heading/steps) while loading', () => {
@@ -141,5 +163,181 @@ describe('CourseListings', () => {
         expect(dropdown).not.toBeNull();
         expect(dropdown.textContent).toContain('Ask questions');
         expect(dropdown.textContent).toContain('Park');
+    });
+});
+
+// Story 070: the signed-out notice that tells a guest where an account comes
+// from now that the standalone signup page is closed.
+describe('CourseListings signed-out notice', () => {
+    let container;
+    let root;
+
+    beforeEach(() => {
+        container = document.createElement('div');
+        document.body.appendChild(container);
+    });
+
+    afterEach(() => {
+        if (root) act(() => root.unmount());
+        container.remove();
+        root = null;
+        container = null;
+    });
+
+    it('tells a guest they are not signed in and how to get an account', () => {
+        root = render(container, { courses: COURSES, userId: 'guest' });
+
+        const notice = container.querySelector('[data-testid="courses-guest-notice"]');
+        expect(notice).not.toBeNull();
+        expect(notice.textContent).toContain("You're not signed in");
+        expect(notice.textContent).toContain(
+            'New here? Complete a mini lesson in under five minutes and create your free account at the end.'
+        );
+    });
+
+    it('offers a sign-in link that returns the visitor to /courses', () => {
+        root = render(container, { courses: COURSES, userId: 'guest' });
+
+        const link = container.querySelector('[data-testid="courses-guest-signin"]');
+        expect(link).not.toBeNull();
+        expect(link.tagName).toBe('A');
+        expect(link.getAttribute('href')).toBe('/login?redirect=%2Fcourses');
+        // The label reuses the existing auth copy rather than a new string.
+        expect(link.textContent).toBe('Sign In');
+    });
+
+    it('is hidden for a signed-in viewer', () => {
+        root = render(container, { courses: COURSES, userId: 'user-1' });
+
+        expect(container.querySelector('[data-testid="courses-guest-notice"]')).toBeNull();
+        expect(container.querySelector('[data-testid="courses-guest-signin"]')).toBeNull();
+    });
+
+    it('waits for the profile query: unknown viewer is not a guest, sentinel is', () => {
+        // `userId` is undefined *while the profile query loads*, which is NOT
+        // the same as being a guest — a signed-in user cold-loading the page
+        // must not be told they are not signed in (story 070 review). Once the
+        // query settles the anonymous visitor carries the 'guest' sentinel and
+        // the notice appears.
+        const resolvingContainer = document.createElement('div');
+        document.body.appendChild(resolvingContainer);
+        const resolvingRoot = render(resolvingContainer, { courses: COURSES, userId: undefined, isResolving: true });
+        try {
+            expect(resolvingContainer.querySelector('[data-testid="courses-guest-notice"]')).toBeNull();
+            expect(resolvingContainer.querySelector('[data-testid="pwa-install-banner"]')).toBeNull();
+        } finally {
+            act(() => resolvingRoot.unmount());
+            resolvingContainer.remove();
+        }
+
+        root = render(container, { courses: COURSES, userId: 'guest' });
+        expect(container.querySelector('[data-testid="courses-guest-notice"]')).not.toBeNull();
+    });
+
+    it('sits above the scroll region rather than inside it', () => {
+        root = render(container, { courses: COURSES, userId: 'guest' });
+
+        const notice = container.querySelector('[data-testid="courses-guest-notice"]');
+        const scroll = container.querySelector('[data-testid="friend-courses-scroll"]');
+        // Same shell as the header: a sibling of the scroller, not a child.
+        expect(scroll.contains(notice)).toBe(false);
+        expect(notice.parentElement).toBe(scroll.parentElement);
+        const order = Array.from(notice.parentElement.children);
+        expect(order.indexOf(notice)).toBeLessThan(order.indexOf(scroll));
+        // The course list still scrolls inside the region below it.
+        expect(scroll.contains(container.querySelector('[data-testid="friend-courses-heading"]'))).toBe(true);
+    });
+
+    it('is not nested inside the signed-in-only install/notification banners', () => {
+        root = render(container, { courses: COURSES, userId: 'guest' });
+
+        // A guest must see the notice but neither of these, so the two blocks
+        // cannot be ancestors of one another.
+        const scroll = container.querySelector('[data-testid="friend-courses-scroll"]');
+        const notice = container.querySelector('[data-testid="courses-guest-notice"]');
+        expect(scroll.contains(notice)).toBe(false);
+        expect(container.querySelector('[data-testid="pwa-install-banner"]')).toBeNull();
+    });
+
+    it('localizes the notice and the step copy together', () => {
+        root = render(container, { courses: COURSES, userId: 'guest', lang: 'hi' });
+
+        const notice = container.querySelector('[data-testid="courses-guest-notice"]');
+        expect(notice.textContent).toContain('आप साइन इन नहीं हैं');
+        expect(container.querySelector('[data-testid="friend-courses-steps"]').textContent)
+            .toContain('अंत में आपका मुफ़्त खाता बन जाएगा');
+    });
+});
+
+describe('CourseListings scrolling', () => {
+    let container;
+    let root;
+
+    beforeEach(() => {
+        container = document.createElement('div');
+        document.body.appendChild(container);
+    });
+
+    afterEach(() => {
+        if (root) act(() => root.unmount());
+        container.remove();
+        root = null;
+        container = null;
+    });
+
+    it('owns its scrolling: 100dvh clipping shell with a scrollable body region', () => {
+        root = render(container, { courses: COURSES });
+
+        const scroll = container.querySelector('[data-testid="friend-courses-scroll"]');
+        expect(scroll).not.toBeNull();
+        expect(scroll.style.overflowY).toBe('auto');
+        expect(scroll.style.flex || scroll.style.flexGrow).toBeTruthy();
+
+        const shell = scroll.parentElement;
+        expect(shell.style.height).toBe('100dvh');
+        expect(shell.style.display).toBe('flex');
+        expect(shell.style.flexDirection).toBe('column');
+        expect(shell.style.overflow).toBe('hidden');
+    });
+
+    it('keeps the header outside the scroll region and the content inside it', () => {
+        root = render(container, { courses: COURSES });
+
+        const scroll = container.querySelector('[data-testid="friend-courses-scroll"]');
+        const shell = scroll.parentElement;
+        const header = container.querySelector('[data-testid="friend-courses-back"]').parentElement;
+
+        expect(shell.contains(header)).toBe(true);
+        expect(scroll.contains(header)).toBe(false);
+        expect(header.parentElement).toBe(shell);
+
+        expect(container.querySelector('[data-testid="friend-courses-heading"]').closest('[data-testid="friend-courses-scroll"]')).not.toBeNull();
+        expect(container.querySelector('[data-testid="friend-courses-steps"]').closest('[data-testid="friend-courses-scroll"]')).not.toBeNull();
+        const cards = Array.from(container.querySelectorAll('[data-testid="friend-course-card"]'));
+        expect(cards.length).toBeGreaterThan(0);
+        for (const card of cards) {
+            expect(scroll.contains(card)).toBe(true);
+        }
+    });
+
+    it('keeps the scroll region in loading, error and empty states', () => {
+        const states = [
+            { courses: undefined, isLoading: true },
+            { courses: undefined, isError: true },
+            { courses: [] },
+        ];
+        for (const props of states) {
+            const stateContainer = document.createElement('div');
+            document.body.appendChild(stateContainer);
+            const stateRoot = render(stateContainer, props);
+            try {
+                const scroll = stateContainer.querySelector('[data-testid="friend-courses-scroll"]');
+                expect(scroll).not.toBeNull();
+                expect(scroll.style.overflowY).toBe('auto');
+            } finally {
+                act(() => stateRoot.unmount());
+                stateContainer.remove();
+            }
+        }
     });
 });

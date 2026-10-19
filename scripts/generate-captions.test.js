@@ -47,7 +47,7 @@ describe('.github/workflows/captions.yml', () => {
         expect(workflow).toContain('push');
         expect(workflow).toContain('secrets.GH_NEW_TOKEN');
         expect(workflow).toContain('fetch-depth: 0');
-        expect(workflow).toContain('DEEPSEEK_API_KEY');
+        expect(workflow).toContain('GOOGLE_API_KEY');
         expect(workflow).toContain('ffmpeg');
         expect(workflow).toContain('node scripts/generate-captions.mjs');
         expect(workflow).toContain('git push');
@@ -75,10 +75,10 @@ describe('documentation', () => {
         expect(product).toContain('stories/009-auto-caption-simple-videos/story.md');
     });
 
-    it('README.md mentions the caption script and DEEPSEEK_API_KEY', () => {
+    it('README.md mentions the caption script and GOOGLE_API_KEY', () => {
         const readme = readFileSync(path.join(ROOT, 'README.md'), 'utf8');
         expect(readme).toContain('scripts/generate-captions.mjs');
-        expect(readme).toContain('DEEPSEEK_API_KEY');
+        expect(readme).toContain('GOOGLE_API_KEY');
     });
 
     it('AGENTS.md instructs auto captions on push and no hand-backfill', () => {

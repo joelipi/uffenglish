@@ -3,6 +3,8 @@ import * as Core from './speech.core.js';
 import { validateAnswerPrecheck, findMatchingCueText } from '../answer/answers.js';
 import { appStore } from '../store/store.js';
 import Strings from '../../data/strings.js';
+import { getAppLanguage } from '../bilingual/config-normalizer.js';
+import { decideRerecordAction, RERECORD_DECISIONS } from './rerecord-logic.js';
 
 function computeWaveformPeaks(audioData, numPeaks = 120) {
     const blockSize = Math.max(1, Math.floor(audioData.length / numPeaks));
@@ -142,6 +144,31 @@ export function createSpeechOrchestrator({
             );
         };
 
+        // The review "record again" (✕) button is a single press: it re-enters
+        // the exact same mic path the first tap takes — stream → camera preview
+        // → 3-2-1 countdown → take — instead of parking the learner on an idle
+        // `recording/answering` screen that needs a second press. Called after
+        // `onTranscriptRejected` so the app is already in `recording/answering`
+        // when `onRecordingStart` fires (its guard treats that phase as an
+        // in-step retry and leaves it alone).
+        const restartTakeAfterReject = () => {
+            const decision = decideRerecordAction({
+                listeningActive: listeningState.active,
+                transitioning: listeningState.transitioning,
+            });
+            if (decision !== RERECORD_DECISIONS.restart) {
+                // Not a dead end: `onTranscriptRejected` already put the app in
+                // `recording/answering`, so the mic button is mounted and the
+                // manual second press still works.
+                console.warn('[Speech] Re-record not started —', decision);
+                return;
+            }
+            console.log('[Speech] Re-record pressed — restarting the take immediately');
+            toggleSpeechRecognition(params).catch((e) => {
+                console.error('[Speech] Re-record could not start a new take:', e);
+            });
+        };
+
         const rejectTranscript = () => {
             if (!reviewActive) return;
             reviewActive = false;
@@ -156,6 +183,8 @@ export function createSpeechOrchestrator({
                 currentStepIndex,
                 { userResponse: transcriptToReview, cue: step?.cue }
             ).catch(e => console.error(e));
+
+            restartTakeAfterReject();
         };
 
         console.warn('[PT] CALLING onReviewStart', { displayTranscript: displayTranscript.substring(0, 30), transcriptToReview: transcriptToReview.substring(0, 30), timeLeft });
@@ -208,7 +237,7 @@ export function createSpeechOrchestrator({
                     } else {
                         appStore.getState().setSystemMessage({
                             type: 'media-error',
-                            text: Strings.get('error_media_generic', appStore.getState().userData?.native_language) || String(e?.message || e),
+                            text: Strings.get('error_media_generic', getAppLanguage()) || String(e?.message || e),
                         });
                     }
                     return;
@@ -312,13 +341,27 @@ export function createSpeechOrchestrator({
                         console.log('[Hesitation] Skipped (friend/shareCta lesson — hesitation is not displayed)');
                     }
 
-                    // Stream is ready — go full-screen immediately so the preview
-                    // paints without waiting for the VAD audio tap to arm.
-                    startDeferredSpeechCamRecording();
+                    // Stream is ready — transition to recording/answering so the
+                    // full-screen camera preview is visible, then run a 3-2-1
+                    // countdown before recording starts.
                     appStore.getState().setMicActive(true);
                     appStore.getState().setHesitationMs(0);
                     if (uiHooks?.onRecordingStart) uiHooks.onRecordingStart(userData);
                     if (uiHooks?.onRecordingActive) uiHooks.onRecordingActive(button);
+
+                    // 3-2-1 countdown before recording. The existing localized
+                    // mic+Speak overlay (MicStatusText `speak-now`) is suppressed
+                    // while `recordingCountdown` is set, so it only appears once
+                    // the last number has left the screen.
+                    for (const n of [3, 2, 1]) {
+                        appStore.getState().setRecordingCountdown(n);
+                        await new Promise((r) => setTimeout(r, 1000));
+                    }
+                    appStore.getState().setRecordingCountdown(null);
+
+                    // Wait for the composite to paint at least one frame before
+                    // recording, so a cold camera cannot freeze the take on frame 0.
+                    await startDeferredSpeechCamRecording();
 
                     const stream = getSpeechCamStream();
                     if (stream) {

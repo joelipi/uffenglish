@@ -5,6 +5,7 @@
 
 import { appStore, getCurrentVideoPlayer, setWebcamStream } from '../store/store.js';
 import Strings from '../../data/strings.js';
+import { getAppLanguage, getAppLanguageFor } from '../bilingual/config-normalizer.js';
 
 import { getCurrentStepIndex } from '../answer/answers.js';
 import { logInteraction } from '../answer/scoring.js';
@@ -35,7 +36,7 @@ export function setupTextInputForStep() {
     if (!_storedTextSetupArgs) return;
     const { step, submitAnswerPrecheck } = _storedTextSetupArgs;
     _storedTextSetupArgs = null;
-    const placeholder = Strings.get('placeholder_type_answer', appStore.getState().userData?.native_language) || 'Type your answer here...';
+    const placeholder = Strings.get('placeholder_type_answer', getAppLanguage()) || 'Type your answer here...';
     appStore.getState().setTextInputPlaceholder(placeholder);
     setTextCb((val, btn) => {
         submitAnswerPrecheck(val, step.cue, step, btn, step.explanation, { pauseCount: 0, netDuration: 3 });
@@ -118,6 +119,7 @@ export function createLoadStep(deps) {
             if (typeof enableAudioSystem === 'function') enableAudioSystem();
         } else {
             setWebcamStream(null);
+            appStore.getState().setRecordingCountdown(null);
         }
 
         if (step.image) {
@@ -207,7 +209,7 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
     });
 
     if (appStore.getState().isTextMode) {
-        const placeholder = Strings.get('placeholder_type_answer', appStore.getState().userData?.native_language) || 'Type your answer here...';
+        const placeholder = Strings.get('placeholder_type_answer', getAppLanguage()) || 'Type your answer here...';
         appStore.getState().setTextInputPlaceholder(placeholder);
         setTextCb((val, btn) => {
             submitAnswerPrecheck(val, step.cue, step, btn, step.explanation, { pauseCount: 0, netDuration: 3 });
@@ -268,12 +270,12 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
                                     currentPlayer.video.pause();
                                 }
                             }
-                            appStore.getState().setSystemMessage({ type: 'speak-now', bilingual: Strings.getBilingual('status_speak', userData?.native_language) });
+                            appStore.getState().setSystemMessage({ type: 'speak-now', bilingual: Strings.getBilingual('status_speak', getAppLanguageFor(userData)) });
                         },
                         onEngineNotReady: (userData) => {
                             const isFailed = appStore.getState().isWhisperEngineFailed;
                             const key = isFailed ? 'error_engine_failed' : 'error_engine_not_ready';
-                            const errorMsg = Strings.get(key, userData?.native_language) || "Speech engine not ready.";
+                            const errorMsg = Strings.get(key, getAppLanguageFor(userData)) || "Speech engine not ready.";
                             appStore.getState().setSystemMessage({ type: 'engine-error', text: errorMsg });
                         },
                         onEngineReady: (btn) => {
@@ -287,7 +289,7 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
                             // (we never entered recording/answering) and show
                             // localized, actionable recovery guidance.
                             const key = getMediaErrorStringKey(error);
-                            const nativeLang = appStore.getState().userData?.native_language;
+                            const nativeLang = getAppLanguage();
                             // Strings.get falls back to the key itself if missing,
                             // then to the English entry if the locale is untranslated.
                             const msg = Strings.get(key, nativeLang);
@@ -317,7 +319,7 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
                             appStore.getState().incrementWhisperRejections();
                             appStore.getState().triggerPreflightRejected();
                             appStore.getState().setMediaVisible(true);
-                            appStore.getState().setSystemMessage({ type: 'stop-early', text: Strings.get('try_again_speech', userData?.native_language) });
+                            appStore.getState().setSystemMessage({ type: 'stop-early', text: Strings.get('try_again_speech', getAppLanguageFor(userData)) });
                             clearWarningLater(3000);
                         },
                         onGibberishDetected: () => {

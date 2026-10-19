@@ -30,7 +30,7 @@ describe('exportSegmentsToR2 return contract', () => {
 describe('exportSegmentsToR2 publish targets', () => {
     it('groups segments by target lesson via the pure helpers (no inline key template)', () => {
         expect(webProcessor).toContain('assignSegmentTargets(publishable, lessonId)');
-        expect(webProcessor).toContain('buildUgcSegmentKey({ shareCode, courseId, lessonId: targetLessonId, index: segmentIndex })');
+        expect(webProcessor).toContain('buildUgcSegmentKey({ shareCode, inviterCode, courseId, lessonId: targetLessonId, index: segmentIndex })');
         expect(webProcessor).not.toContain('videos/${shareCode}');
     });
 

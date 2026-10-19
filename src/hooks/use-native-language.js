@@ -13,10 +13,18 @@ import { resolveConfigLanguage } from '../modules/bilingual/config-normalizer.js
  * hook (or the same `guestNativeLanguage || userData?.native_language || 'en'`
  * expression) rather than reading `userData.native_language` alone.
  *
+ * The returned code keeps the store's casing (`'ES'`, region tags preserved):
+ * pass it through `Strings.get`/`getBilingual`/`normalizeLanguageCode` (which
+ * all normalize internally) rather than keying a locale map with it directly.
+ *
+ * @param {string|null|undefined} [fallbackLang] - an optional fresher profile
+ *   record (e.g. a just-refetched query that the store mirror has not caught
+ *   up with yet). Used only when no guest choice exists, ahead of the store
+ *   mirror: `guest || fallback || store.userData || 'en'`.
  * @returns {string} a language code (e.g. 'BN' or 'bn'), defaulting to 'en'
  */
-export function useNativeLanguage() {
+export function useNativeLanguage(fallbackLang) {
     const guestLang = useStore(appStore, (state) => state.guestNativeLanguage);
     const profileLang = useStore(appStore, (state) => state.userData?.native_language);
-    return resolveConfigLanguage(guestLang, profileLang);
+    return resolveConfigLanguage(guestLang, fallbackLang || profileLang);
 }

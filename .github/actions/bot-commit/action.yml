@@ -1,0 +1,85 @@
+name: Commit bot outputs with push retry
+description: >
+  Stage a bot commit of generated files and push it, retrying a rejected push
+  on a fresh rebase (main moves fast). After every rebase the outputs are
+  REGENERATED from the fresh base before retrying the push, so a retry can
+  never silently ship content derived from stale inputs. A rebase conflict
+  aborts loudly: bot commits touch bot-owned files, so a conflict means a
+  human edited the same file and needs eyes.
+
+inputs:
+  bot-name:
+    description: git author name for the bot commit
+    required: true
+  commit-message:
+    description: commit message (must carry the workflow's [skip x] loop-guard marker)
+    required: true
+  add-paths:
+    description: space-separated paths for git add
+    required: true
+  no-change-echo:
+    description: log line when there is nothing to commit
+    required: false
+    default: no changes
+  regenerate:
+    description: shell snippet re-deriving the outputs after a rebase (runs with the bot env below)
+    required: true
+  api-key:
+    description: translation API key value (empty unless needed)
+    required: false
+    default: ''
+  r2-api-token:
+    description: CLOUDFLARE_API_TOKEN value for R2 reads (empty unless needed)
+    required: false
+    default: ''
+  r2-account-id:
+    description: CLOUDFLARE_ACCOUNT_ID value for R2 reads (empty unless needed)
+    required: false
+    default: ''
+  r2-bucket:
+    description: private R2 bucket for R2 reads (empty unless needed)
+    required: false
+    default: ''
+  languages:
+    description: target languages for translators
+    required: false
+    default: es,pt,bn,fr,hi
+
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        GOOGLE_API_KEY: ${{ inputs.api-key }}
+        CLOUDFLARE_API_TOKEN: ${{ inputs.r2-api-token }}
+        CLOUDFLARE_ACCOUNT_ID: ${{ inputs.r2-account-id }}
+        R2_PRIVATE_BUCKET: ${{ inputs.r2-bucket }}
+        LANGUAGES: ${{ inputs.languages }}
+      run: |
+        set -euo pipefail
+        git config user.name "${{ inputs.bot-name }}"
+        git config user.email "11131426+joelipi@users.noreply.github.com"
+        git add ${{ inputs.add-paths }}
+        if git diff --cached --quiet; then
+          echo "${{ inputs.no-change-echo }}"
+          exit 0
+        fi
+        git commit -m "${{ inputs.commit-message }}"
+        for attempt in 1 2 3; do
+          if git push origin "HEAD:${{ github.ref_name }}"; then
+            echo "pushed (attempt $attempt/3)"
+            exit 0
+          fi
+          if [ "$attempt" = "3" ]; then
+            echo "push failed after 3 attempts"
+            exit 1
+          fi
+          echo "push rejected; fetching + rebasing..."
+          # A fetch flake retries the push next iteration (no rebase happened,
+          # so pushing the same commit again is correct, not stale).
+          git fetch origin "${{ github.ref_name }}" || continue
+          git rebase "origin/${{ github.ref_name }}" || { git rebase --abort; exit 1; }
+          bash -c "${{ inputs.regenerate }}" || exit 1
+          git add ${{ inputs.add-paths }}
+          git diff --cached --quiet || git commit --amend --no-edit
+        done

@@ -3,12 +3,25 @@
 // updates) but only asks for name, email, and password: the native language is
 // already known from the guest flow, and the English level is not needed to
 // create a share code.
+//
+// `captcha: false` opts out of the Turnstile gate: this form lives inside a
+// native <dialog> that is CLOSED until the guest presses the create-video
+// button, and the Turnstile script (async defer, loaded once for the whole SPA)
+// has already finished its render pass by then — a widget mounted into a closed
+// dialog gets no challenge and no token.
+//
+// Story 070 closed the standalone /signup route (it redirects to /courses), so
+// this is the ONLY reachable signup surface and it runs without a bot gate. That
+// is deliberate and currently time-boxed: adding Turnstile to a form inside an
+// already-open <dialog> is the documented follow-up story, and the first barrier
+// on this path is the friend lesson's camera/mic requirement.
 import React from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store/store.js';
 import { useSignupForm } from '../auth/SignupForm.jsx';
+import { emailValidationErrorKey } from '../../modules/auth/email-validation-logic.js';
 import Strings from '../../data/strings.js';
-import LegalLinks from '../legal/LegalLinks.jsx';
+import SignupConsent from '../legal/SignupConsent.jsx';
 
 export default function SaveClipsSignupForm({ onSignupSuccess, onLoginLink }) {
     const userData = useStore(appStore, (state) => state.userData);
@@ -26,17 +39,28 @@ export default function SaveClipsSignupForm({ onSignupSuccess, onLoginLink }) {
         lastName,
         setLastName,
         email,
-        setEmail,
+        handleEmailChange,
         password,
         setPassword,
         error,
+        emailError,
+        emailSuggestion,
         loading,
         handleSubmit,
-    } = useSignupForm({ onSignupSuccess, nativeLanguage: storedNativeLang });
+    } = useSignupForm({ onSignupSuccess, nativeLanguage: storedNativeLang, captcha: false });
 
     return (
         <>
             {error && <div className="alert alert-danger" role="alert">{error}</div>}
+            {/* The email screen applies to this surface too (it shares the hook
+                with captcha: false), so a rejected address MUST be explained
+                here — otherwise the button simply stops responding and reads as
+                a broken modal. Same code -> copy contract as the main form. */}
+            {emailError && (
+                <div className="alert alert-danger" role="alert" data-testid="email-error">
+                    {Strings.get(emailValidationErrorKey(emailError), lang, { suggestion: emailSuggestion })}
+                </div>
+            )}
 
             <form onSubmit={handleSubmit}>
                 <div className="row mb-3">
@@ -76,7 +100,7 @@ export default function SaveClipsSignupForm({ onSignupSuccess, onLoginLink }) {
                         className="form-control"
                         id="save-clips-email"
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        onChange={(e) => handleEmailChange(e.target.value)}
                         required
                     />
                 </div>
@@ -95,6 +119,8 @@ export default function SaveClipsSignupForm({ onSignupSuccess, onLoginLink }) {
                     />
                 </div>
 
+                <SignupConsent lang={lang} />
+
                 <button type="submit" className="btn btn-primary w-100" disabled={loading}>
                     {loading
                         ? Strings.get('auth_creating_account', lang)
@@ -108,14 +134,13 @@ export default function SaveClipsSignupForm({ onSignupSuccess, onLoginLink }) {
                     <a
                         href="#"
                         id="saveClipsLoginLink"
+                        className="auth-link"
                         onClick={(e) => { e.preventDefault(); onLoginLink?.(); }}
                     >
                         {Strings.get('auth_log_in_link', lang)}
                     </a>
                 </p>
             </div>
-
-            <LegalLinks lang={lang} />
         </>
     );
 }

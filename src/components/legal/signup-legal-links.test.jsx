@@ -54,7 +54,7 @@ describe('sign-up surfaces show legal links', () => {
     };
 
     describe('SaveClipsModal', () => {
-        it('shows the legal links after the form', () => {
+        it('does not render redundant legal links (covered by the consent disclaimer)', () => {
             appStore.setState({
                 saveClipsModalOpen: true,
                 pendingPublishLessonId: null,
@@ -65,47 +65,25 @@ describe('sign-up surfaces show legal links', () => {
 
             const modal = container.querySelector('#saveClipsModal');
             const links = modal.querySelector('[data-testid="legal-links"]');
-            expect(links).not.toBeNull();
-            expectPrivacyAndTerms(modal);
-
-            const form = modal.querySelector('form');
-            expect(comesAfter(form, links)).toBe(true);
+            expect(links).toBeNull();
         });
     });
 
     describe('SaveClipsSignupForm', () => {
-        it('shows the legal links after the form', () => {
+        it('does not render redundant legal links (covered by the consent disclaimer)', () => {
             render(SaveClipsSignupForm);
 
             const links = container.querySelector('[data-testid="legal-links"]');
-            expect(links).not.toBeNull();
-            expectPrivacyAndTerms();
-
-            const form = container.querySelector('form');
-            expect(comesAfter(form, links)).toBe(true);
-        });
-
-        it('shows the links on initial render and outside the form', () => {
-            render(SaveClipsSignupForm);
-
-            const links = container.querySelector('[data-testid="legal-links"]');
-            expect(links).not.toBeNull();
-
-            const form = container.querySelector('form');
-            expect(form.contains(links)).toBe(false);
+            expect(links).toBeNull();
         });
     });
 
     describe('SignupForm (/signup)', () => {
-        it('shows the legal links after the form', () => {
+        it('does not render redundant legal links (covered by the consent disclaimer)', () => {
             render(SignupForm);
 
             const links = container.querySelector('[data-testid="legal-links"]');
-            expect(links).not.toBeNull();
-            expectPrivacyAndTerms();
-
-            const form = container.querySelector('form');
-            expect(comesAfter(form, links)).toBe(true);
+            expect(links).toBeNull();
         });
     });
 

@@ -4,7 +4,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { SimpleVideoStateController } from '../../src/modules/video/simple-video-controller.js';
 import {
     WHISPER_MODEL,
-    DEEPSEEK_MODEL,
+    GEMINI_MODEL,
     isUsableBaseSha,
     findNewSimpleVideoTargets,
     secondsToSrtTimestamp,
@@ -16,9 +16,9 @@ import {
 } from './caption-utils.js';
 
 describe('module constants', () => {
-    it('pins the Whisper and DeepSeek models', () => {
+    it('pins the Whisper and Gemini models', () => {
         expect(WHISPER_MODEL).toBe('onnx-community/whisper-base.en');
-        expect(DEEPSEEK_MODEL).toBe('deepseek-v4-flash');
+        expect(GEMINI_MODEL).toBe('gemini-3.5-flash-lite');
     });
 });
 

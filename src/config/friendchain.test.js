@@ -5,7 +5,7 @@ import friendchain from './friendchain.json';
 // shareCta lessons. Lesson a records 3 prompts; each later lesson answers the
 // previous lesson's prompts and records 3 brand-new prompts of its own.
 // Publishing is position-based, so a lesson's recorded clips are numbered
-// -response-01..NN in step order: answers first, prompts second.
+// {recorder}-{inviter}-<course>-<lesson>-NN in step order: answers first, prompts second.
 
 const CHAIN = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
 const ANSWER_VIDEO = ['wouldratherb01', 'wouldratherb02', 'wouldratherb03'];
@@ -43,12 +43,12 @@ describe('friendchain.json a: prompt recording', () => {
 });
 
 describe('friendchain.json b: answers a and re-records the prompts', () => {
-    it('plays friendchain-a-response-01..03 in viewAndContinue steps', () => {
+    it('plays friendchain-a-01..03 in viewAndContinue steps', () => {
         const views = lesson('b').steps.filter((s) => s.responseType === 'viewAndContinue');
         expect(views.map((s) => s.simpleVideoUrl)).toEqual([
-            '{friendCode}friendchain-a-response-01',
-            '{friendCode}friendchain-a-response-02',
-            '{friendCode}friendchain-a-response-03',
+            '{friendCode}{selfCode}-friendchain-a-01',
+            '{friendCode}{selfCode}-friendchain-a-02',
+            '{friendCode}{selfCode}-friendchain-a-03',
         ]);
     });
 
@@ -64,13 +64,13 @@ describe('friendchain.json b: answers a and re-records the prompts', () => {
 });
 
 describe('friendchain.json c..h: answer previous prompts, record new ones', () => {
-    it.each(CHAIN.slice(2))('lesson %s plays the previous lesson prompt clips -response-04..06', (id) => {
+    it.each(CHAIN.slice(2))('lesson %s plays the previous lesson prompt clips 04..06', (id) => {
         const prev = String.fromCharCode(id.charCodeAt(0) - 1);
         const views = lesson(id).steps.filter((s) => s.responseType === 'viewAndContinue');
         expect(views.map((s) => s.simpleVideoUrl)).toEqual([
-            `{friendCode}friendchain-${prev}-response-04`,
-            `{friendCode}friendchain-${prev}-response-05`,
-            `{friendCode}friendchain-${prev}-response-06`,
+            `{friendCode}{selfCode}-friendchain-${prev}-04`,
+            `{friendCode}{selfCode}-friendchain-${prev}-05`,
+            `{friendCode}{selfCode}-friendchain-${prev}-06`,
         ]);
     });
 

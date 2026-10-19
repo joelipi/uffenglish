@@ -225,10 +225,14 @@
     position: absolute;
     top: 50%;
     left: 50%;
-    transform: translateZ(0);
+    /* Centered on the frame: translate(-50%,-50%) centers the box,
+       translateZ(0) keeps the GPU layer (the Android anti-flash fix).
+       NOTE: never use strict/paint/size containment here — size
+       containment collapses this auto-sized box to 0x0 and paint
+       containment clips the digits, rendering the countdown invisible. */
+    transform: translate(-50%, -50%) translateZ(0);
     backface-visibility: hidden;
-    /* THIS IS THE KEY: */
-    contain: strict;
+    contain: layout style;
     z-index: 100;
     background-color: transparent; 
     color: #ffffff;
@@ -523,6 +527,11 @@
             </div>
 
             <div style="margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+                <input type="checkbox" id="dom-check-auto-render" checked style="width: 25px; height: 25px; cursor: pointer;">
+                <label for="dom-check-auto-render" style="font-weight: bold; cursor: pointer;">auto-render finished lessons</label>
+            </div>
+
+            <div style="margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
                 <input type="password" id="dom-operator-key" class="setup-select"
                        placeholder="Operator key" autocomplete="off"
                        style="flex-grow: 1; padding: 8px;">
@@ -555,6 +564,10 @@
         var global_last_blob_url = null;
         var global_last_final_blob = null;
         var global_render_poll_timer = null;
+        var global_uploaded_takes = [];
+        var global_rendered_lessons = [];
+        var global_render_jobs = {};
+        var global_pending_uploads = {};
 
         /**
          * ==========================================
@@ -743,10 +756,10 @@
 
                 var timestamp_start = Date.now();
                 
-                // THE RECORDING DURATION TIMER (7 SECONDS)
+                // THE RECORDING DURATION TIMER (10 SECONDS)
                 global_record_duration_timer = setInterval(function() {
                     var diff = Date.now() - timestamp_start;
-                    var remaining_ms = 7000 - diff;
+                    var remaining_ms = 10000 - diff;
                     
                     if (remaining_ms < 0) {
                         remaining_ms = 0;
@@ -756,7 +769,7 @@
                     node_overlay_count.textContent = (remaining_ms / 1000).toFixed(1);
                     
                     if (remaining_ms <= 0) {
-                        appCoreLog("Max duration (7s) reached.");
+                        appCoreLog("Max duration (10s) reached.");
                         executeStopRecording();
                     }
                 }, 50);
@@ -883,11 +896,11 @@ node_video_preview.play(); // Explicitly restart playback
         }
 
         async function loadScriptDataFromSheets() {
-            var spreadsheet_url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQZ7jFMJNnmylDoHxaqb1W8VyXi0OV4pSubCbqMGYkRgGimqWx3cs74n43-cFxqfue4KCiqWlhzvPkK/pub?gid=242913338&single=true&output=csv';
+            var spreadsheet_url = 'wouldyourather.master.csv';
             
             appCoreLog("Requesting remote CSV data...");
             try {
-                var response_handle = await fetch(spreadsheet_url + "&t=" + Date.now());
+                var response_handle = await fetch(spreadsheet_url + "?t=" + Date.now());
                 var csv_string = await response_handle.text();
                 
                 // RFC-4180 parse: quoted fields may contain commas, newlines and
@@ -1031,6 +1044,27 @@ node_video_preview.play(); // Explicitly restart playback
             }
         }
 
+        function loadPersistedSet(storage_key) {
+            try {
+                var raw = sessionStorage.getItem(storage_key);
+                if (!raw) { return []; }
+                var parsed = JSON.parse(raw);
+                if (!Array.isArray(parsed)) { return []; }
+                return parsed.filter(function(v) { return typeof v === 'string'; });
+            } catch (err) {
+                return [];
+            }
+        }
+
+        function savePersistedSet(storage_key, values) {
+            try {
+                sessionStorage.setItem(storage_key, JSON.stringify(values || []));
+            } catch (err) {
+                // Storage full or blocked: the in-memory sets still work for
+                // this session; persistence is best-effort.
+            }
+        }
+
         function advanceAfterAccept() {
             // Advance Script Line
             global_current_index = global_current_index + 1;
@@ -1056,6 +1090,84 @@ node_video_preview.play(); // Explicitly restart playback
             }
         }
 
+        function lessonKeyForTake(entry_object) {
+            return (entry_object.course_id || "") + "\0" + (entry_object.lesson_id || "");
+        }
+
+        function isAutoRenderEnabled() {
+            var auto_box = document.getElementById('dom-check-auto-render');
+            return !!auto_box && auto_box.checked === true;
+        }
+
+        function findTakeByFilename(wanted_filename) {
+            for (var i = 0; i < global_script_phrases.length; i++) {
+                if (global_script_phrases[i].filename === wanted_filename) {
+                    return global_script_phrases[i];
+                }
+            }
+            return null;
+        }
+
+        function maybeAutoRenderLesson(uploaded_filename) {
+            if (!isAutoRenderEnabled()) { return; }
+            var entry_object = findTakeByFilename(uploaded_filename);
+            if (!entry_object) { return; }
+            var lesson_id = entry_object.lesson_id || "";
+            if (!lesson_id) {
+                appCoreLog("NO LESSON ID — SKIPPING AUTO-RENDER (" + uploaded_filename + ")");
+                return;
+            }
+            var lesson_key = lessonKeyForTake(entry_object);
+            // Key-membership over the whole list (sorted by character, never by
+            // lesson): blank-filename rows are absent from the list already, so
+            // branching/reuse rows can never block a lesson.
+            var complete = true;
+            var lesson_files = [];
+            for (var j = 0; j < global_script_phrases.length; j++) {
+                var row = global_script_phrases[j];
+                if (lessonKeyForTake(row) !== lesson_key) { continue; }
+                if (!row.filename) { continue; }
+                lesson_files.push(row.filename);
+                var found = false;
+                for (var k = 0; k < global_uploaded_takes.length; k++) {
+                    if (global_uploaded_takes[k] === row.filename) { found = true; break; }
+                }
+                if (!found) { complete = false; }
+            }
+            if (lesson_files.length === 0 || !complete) { return; }
+            // Synchronous test-and-add: two rapid success callbacks for the
+            // final take produce exactly one POST.
+            var already = false;
+            for (var m = 0; m < global_rendered_lessons.length; m++) {
+                if (global_rendered_lessons[m] === lesson_key) { already = true; break; }
+            }
+            if (already) { return; }
+            global_rendered_lessons.push(lesson_key);
+            savePersistedSet('uff_rendered_lessons', global_rendered_lessons);
+            appCoreLog("Auto-rendering lesson " + lesson_id + " (" + lesson_files.length + " file(s))...");
+            fetch('/api/pipeline/render', {
+                method: 'POST',
+                headers: {
+                    'x-operator-key': getOperatorKey(),
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ files: lesson_files })
+            }).then(function(response) {
+                if (!response.ok) {
+                    throw new Error("HTTP " + response.status);
+                }
+                return response.json();
+            }).then(function(data) {
+                appCoreLog("LESSON " + lesson_id + " render job started: " + data.jobId);
+                registerRenderJob(data.jobId, lesson_id);
+                pollUnfinishedRenderJobs();
+            }).catch(function(err) {
+                appCoreLog("LESSON RENDER FAILED (" + lesson_id + "): " + err.message);
+                global_rendered_lessons = global_rendered_lessons.filter(function(k) { return k !== lesson_key; });
+                savePersistedSet('uff_rendered_lessons', global_rendered_lessons);
+            });
+        }
+
         node_btn_accept.onclick = function() {
             var current_line_meta = global_script_phrases[global_current_index];
             var bare_filename = current_line_meta.filename || ("take_" + global_current_index);
@@ -1072,6 +1184,13 @@ node_video_preview.play(); // Explicitly restart playback
             }
             saveOperatorKey();
             node_btn_accept.disabled = true;
+            // Mark this upload as fresh (click time = upload intent): the
+            // success path re-arms the lesson only for a fresh upload, so a
+            // duplicate success callback can never re-render. Gated like the
+            // rest of the tracking.
+            if (isAutoRenderEnabled()) {
+                global_pending_uploads[bare_filename] = true;
+            }
             appCoreLog("Uploading take to R2: " + bare_filename + ".mp4");
             fetch('/api/pipeline/upload-raw', {
                 method: 'POST',
@@ -1087,8 +1206,33 @@ node_video_preview.play(); // Explicitly restart playback
                 }
                 appCoreLog("Upload complete: " + bare_filename + ".mp4");
                 node_btn_accept.disabled = false;
+                if (isAutoRenderEnabled()) {
+                    var already_known = false;
+                    for (var ui = 0; ui < global_uploaded_takes.length; ui++) {
+                        if (global_uploaded_takes[ui] === bare_filename) { already_known = true; break; }
+                    }
+                    if (!already_known) {
+                        global_uploaded_takes.push(bare_filename);
+                        savePersistedSet('uff_uploaded_takes', global_uploaded_takes);
+                    }
+                    if (global_pending_uploads[bare_filename]) {
+                        // Fresh upload (not a duplicate callback): a re-upload
+                        // re-arms its lesson so the check below re-renders it.
+                        delete global_pending_uploads[bare_filename];
+                        var rearm_entry = findTakeByFilename(bare_filename);
+                        if (rearm_entry) {
+                            var rearm_key = lessonKeyForTake(rearm_entry);
+                            global_rendered_lessons = global_rendered_lessons.filter(function(k) { return k !== rearm_key; });
+                            savePersistedSet('uff_rendered_lessons', global_rendered_lessons);
+                        }
+                    }
+                    maybeAutoRenderLesson(bare_filename);
+                } else {
+                    delete global_pending_uploads[bare_filename];
+                }
                 advanceAfterAccept();
             }).catch(function(err) {
+                delete global_pending_uploads[bare_filename];
                 appCoreLog("UPLOAD FAILED: " + err.message + " (take kept for retry)");
                 node_status_bar.textContent = "UPLOAD FAILED • TAKE KEPT";
                 node_status_bar.className = "status-indicator-bar status-error";
@@ -1153,29 +1297,84 @@ node_video_preview.play(); // Explicitly restart playback
             });
         };
 
+        function registerRenderJob(job_id, lesson_label) {
+            global_render_jobs[job_id] = { lesson: lesson_label, done: false, state: "running" };
+            updateRenderStatusLine();
+        }
+
+        function allRenderJobsDone() {
+            for (var job_id in global_render_jobs) {
+                if (!global_render_jobs.hasOwnProperty(job_id)) { continue; }
+                if (!global_render_jobs[job_id].done) { return false; }
+            }
+            return true;
+        }
+
+        function updateRenderStatusLine() {
+            var parts = [];
+            for (var job_id in global_render_jobs) {
+                if (!global_render_jobs.hasOwnProperty(job_id)) { continue; }
+                var entry = global_render_jobs[job_id];
+                parts.push("LESSON " + entry.lesson + ": " + (entry.done ? "done" : entry.state));
+            }
+            if (parts.length > 0) {
+                node_render_status.textContent = parts.join("; ");
+            }
+        }
+
+        function pollOneRenderJob(job_id) {
+            var entry = global_render_jobs[job_id];
+            fetch('/api/pipeline/status' + '?id=' + encodeURIComponent(job_id), {
+                headers: { 'x-operator-key': getOperatorKey() }
+            }).then(function(response) {
+                if (!response.ok) {
+                    throw new Error("HTTP " + response.status);
+                }
+                return response.json();
+            }).then(function(status) {
+                entry.state = status.status + " / " + (status.stage || "-");
+                appCoreLog("Render status: " + status.status + " (" + (status.stage || "-") + ")");
+                if (status.status === 'done' || status.status === 'error') {
+                    entry.done = true;
+                    if (allRenderJobsDone()) {
+                        if (global_render_poll_timer) {
+                            clearInterval(global_render_poll_timer);
+                            global_render_poll_timer = null;
+                        }
+                    }
+                }
+                updateRenderStatusLine();
+            }).catch(function(err) {
+                appCoreLog("STATUS POLL FAILED: " + err.message);
+            });
+        }
+
+        function pollUnfinishedRenderJobs() {
+            var pending = [];
+            for (var job_id in global_render_jobs) {
+                if (!global_render_jobs.hasOwnProperty(job_id)) { continue; }
+                if (!global_render_jobs[job_id].done) { pending.push(job_id); }
+            }
+            if (pending.length === 0) {
+                if (global_render_poll_timer) {
+                    clearInterval(global_render_poll_timer);
+                    global_render_poll_timer = null;
+                }
+                return;
+            }
+            for (var i = 0; i < pending.length; i++) {
+                pollOneRenderJob(pending[i]);
+            }
+            updateRenderStatusLine();
+        }
+
         function pollRenderStatus(job_id) {
+            registerRenderJob(job_id, 'full');
             if (global_render_poll_timer) {
                 clearInterval(global_render_poll_timer);
             }
-            global_render_poll_timer = setInterval(function() {
-                fetch('/api/pipeline/status' + '?id=' + encodeURIComponent(job_id), {
-                    headers: { 'x-operator-key': getOperatorKey() }
-                }).then(function(response) {
-                    if (!response.ok) {
-                        throw new Error("HTTP " + response.status);
-                    }
-                    return response.json();
-                }).then(function(status) {
-                    node_render_status.textContent = "RENDER: " + status.status + " / " + (status.stage || "-");
-                    appCoreLog("Render status: " + status.status + " (" + (status.stage || "-") + ")");
-                    if (status.status === 'done' || status.status === 'error') {
-                        clearInterval(global_render_poll_timer);
-                        global_render_poll_timer = null;
-                    }
-                }).catch(function(err) {
-                    appCoreLog("STATUS POLL FAILED: " + err.message);
-                });
-            }, 5000);
+            global_render_poll_timer = setInterval(pollUnfinishedRenderJobs, 5000);
+            pollUnfinishedRenderJobs();
         }
 
         node_btn_reject.onclick = function() {
@@ -1210,6 +1409,8 @@ node_video_preview.play(); // Explicitly restart playback
          */
         window.onload = function() {
             appCoreLog("System Application Launch...");
+            global_uploaded_takes = loadPersistedSet('uff_uploaded_takes');
+            global_rendered_lessons = loadPersistedSet('uff_rendered_lessons');
             loadScriptDataFromSheets();
         };
 

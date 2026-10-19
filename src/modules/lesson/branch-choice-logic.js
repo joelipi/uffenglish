@@ -5,18 +5,22 @@
 // the container stay free of domain decisions.
 //
 // A branching step plays a clip, then offers a set of labelled buttons; each
-// button jumps to a chosen step. Both the per-choice `nextStep` and the
-// step-level `nextStep` are forward-only 1-based offsets from the step's own
-// index.
+// button either jumps to a chosen step (a leaf) or reveals a further set of
+// buttons (a group, expressed as a nested `chooseStep` array). Both the
+// per-choice `nextStep` and the step-level `nextStep` are forward-only 1-based
+// offsets from the step's own index.
 
 import { formatBilingualText } from '../bilingual/bilingual-display.js';
 
 export const BRANCH_RESPONSE_TYPE = 'branching';
 export const BRANCH_OVERLAY_PHASE = 'simpleVideo-decisionTime-branching';
+// Headline for the first row of buttons (depth 0) ...
 export const BRANCH_OVERLAY_TEXT_KEY = 'video_choose_how_respond';
+// ... and for every deeper row, once a group has been chosen.
+export const BRANCH_DEEP_OVERLAY_TEXT_KEY = 'video_choose_exactly';
 
-// Combined English + translation length above which the label drops the English
-// line and shows the translation only. The single "space does not allow" knob.
+// Combined English + translation length above which the label drops the localized
+// line and shows English only. The single "space does not allow" knob.
 export const BRANCH_LABEL_CHAR_CAP = 48;
 
 export function isBranchingStep(step) {
@@ -29,29 +33,73 @@ function hasValidOffset(offset) {
 }
 
 /**
- * Resolves a branching step's `chooseStep` into concrete choices in array
- * order. Entries are dropped when the offset is not an integer >= 1, when the
- * resolved target falls outside `[0, stepCount)`, or when the entry has no
- * `text`. A missing / non-array `chooseStep` yields `[]`.
+ * Resolves one `chooseStep` entry to a node. An entry whose `chooseStep` is an
+ * array is a GROUP: its children are resolved recursively and the node is kept
+ * only when at least one child resolves. Every other entry is a LEAF and is
+ * kept only when it carries `text` and an integer `nextStep >= 1` whose target
+ * falls inside `[0, stepCount)`. Invalid entries resolve to `null`.
+ *
+ * @returns {{ text: object, children?: Array } | { text: object, targetIndex: number } | null}
+ */
+function resolveNode(entry, currentStepIndex, stepCount) {
+    if (!entry || typeof entry !== 'object') return null;
+    if (!entry.text) return null;
+
+    if (Array.isArray(entry.chooseStep)) {
+        const children = [];
+        for (const child of entry.chooseStep) {
+            const resolved = resolveNode(child, currentStepIndex, stepCount);
+            if (resolved) children.push(resolved);
+        }
+        if (children.length === 0) return null;
+        return { text: entry.text, children };
+    }
+
+    if (!hasValidOffset(entry.nextStep)) return null;
+    const targetIndex = currentStepIndex + entry.nextStep;
+    if (targetIndex < 0 || targetIndex >= stepCount) return null;
+
+    return { text: entry.text, targetIndex };
+}
+
+/**
+ * Resolves a branching step's `chooseStep` into its top-level nodes, in array
+ * order, dropping invalid entries (recursively). A missing / non-array
+ * `chooseStep` yields `[]`. Group nodes carry `children`; leaf nodes carry
+ * `targetIndex`.
+ *
+ * @returns {Array<object>}
+ */
+export function resolveBranchNodes(step, currentStepIndex, stepCount) {
+    const entries = step?.chooseStep;
+    if (!Array.isArray(entries)) return [];
+
+    const nodes = [];
+    for (const entry of entries) {
+        const resolved = resolveNode(entry, currentStepIndex, stepCount);
+        if (resolved) nodes.push(resolved);
+    }
+    return nodes;
+}
+
+/**
+ * Every LEAF reachable through a branching step's `chooseStep`, depth-first in
+ * array order, as `{ text, targetIndex }`. Flat steps behave exactly as before;
+ * the recursion means nested groups' targets are still visible here, which is
+ * what `video-processor-logic.js` `branchParentIndexForResponse` relies on.
  *
  * @returns {Array<{ text: object, targetIndex: number }>}
  */
 export function resolveBranchChoices(step, currentStepIndex, stepCount) {
-    const entries = step?.chooseStep;
-    if (!Array.isArray(entries)) return [];
-
-    const resolved = [];
-    for (const entry of entries) {
-        if (!entry || typeof entry !== 'object') continue;
-        if (!entry.text) continue;
-        if (!hasValidOffset(entry.nextStep)) continue;
-
-        const targetIndex = currentStepIndex + entry.nextStep;
-        if (targetIndex < 0 || targetIndex >= stepCount) continue;
-
-        resolved.push({ text: entry.text, targetIndex });
-    }
-    return resolved;
+    const leaves = [];
+    const walk = (nodes) => {
+        for (const node of nodes) {
+            if (node.children) walk(node.children);
+            else leaves.push({ text: node.text, targetIndex: node.targetIndex });
+        }
+    };
+    walk(resolveBranchNodes(step, currentStepIndex, stepCount));
+    return leaves;
 }
 
 /**
@@ -67,58 +115,96 @@ export function resolveNextStepIndex(step, currentStepIndex) {
 /**
  * Chooses how a branch choice's text renders:
  * - no localized value for `lang` -> English only (`showEnglish: true`).
- * - localized value exists and `showEnglish` -> stacked (both lines).
- * - localized value exists and `!showEnglish` -> translation only.
+ * - localized value exists and there is room for both -> stacked (both lines).
+ * - localized value exists but there is no room for both -> English only.
  *
- * The English/translation decision is made **once for the whole step** by
- * `stepShowsEnglish` (the only place `BRANCH_LABEL_CHAR_CAP` is applied) and
- * passed in as `showEnglish`, so every button in the column agrees and this
- * function never re-decides per label.
+ * The both-languages decision is made **once for the whole level** by
+ * `stepShowsBoth` (the only place `BRANCH_LABEL_CHAR_CAP` is applied) and
+ * passed in as `showBoth`, so every button visible at that level agrees and
+ * this function never re-decides per label.
  *
  * @param {object} text
  * @param {string} lang
- * @param {boolean} showEnglish step-level decision from `buildBranchChoiceView`
+ * @param {boolean} showBoth level-level decision from `buildBranchChoiceView`
  * @returns {{ english: string, localized: string|null, lang: string, showEnglish: boolean }}
  */
-export function formatBranchChoiceLabel(text, lang, showEnglish) {
+export function formatBranchChoiceLabel(text, lang, showBoth) {
     const { english, localized, shouldShowLocalized } = formatBilingualText(text, lang);
 
+    // English is the default: it is always rendered. The localized line is
+    // added only when there is room for both (showBoth); otherwise the button
+    // shows English only, never the localized language on its own.
     if (!shouldShowLocalized) {
         return { english, localized: null, lang, showEnglish: true };
     }
 
-    return { english, localized, lang, showEnglish };
+    if (showBoth) {
+        return { english, localized, lang, showEnglish: true };
+    }
+
+    return { english, localized: null, lang, showEnglish: true };
 }
 
-// The char cap is a step-level, all-or-nothing decision. A button drops its
-// English line only when EVERY button on the step can drop it: if any label's
-// combined English + translation length exceeds BRANCH_LABEL_CHAR_CAP, the whole
-// column shows translation-only; otherwise the whole column shows both lines.
-// This is what keeps the buttons visually consistent (a per-label decision made
-// one button show both languages while its neighbour showed translation only).
-function stepShowsEnglish(choices, lang) {
-    return choices.every(({ text }) => {
-        const { english, localized, shouldShowLocalized } = formatBilingualText(text, lang);
-        if (!shouldShowLocalized) return true;
-        return english.length + localized.length <= BRANCH_LABEL_CHAR_CAP;
+// Maps resolved nodes to render-ready choices, recursively. The English
+// decision is made once per level and applied to every label at that level.
+function buildLevel(nodes, lang) {
+    const showBoth = true;
+    return nodes.map((node, index) => {
+        const label = formatBranchChoiceLabel(node.text, lang, showBoth);
+        if (node.children) return { key: index, label, children: buildLevel(node.children, lang) };
+        return { key: index, label, targetIndex: node.targetIndex };
     });
 }
 
 /**
  * The only function the container calls to prepare rendering. Returns the
- * resolved choices mapped to `{ key, targetIndex, label }` plus `showContinue`,
- * which is true when there are no valid choices (a mis-authored branching step
- * must not strand the learner). The English/translation cap is decided once for
- * the step and applied to every label.
+ * resolved top level mapped to `{ key, label, targetIndex }` (leaf) or
+ * `{ key, label, children }` (group), recursively, plus `showContinue`, which is
+ * true when there are no valid top-level choices (a mis-authored branching step
+ * must not strand the learner).
  */
 export function buildBranchChoiceView({ step, currentStepIndex, stepCount, lang } = {}) {
-    const resolved = resolveBranchChoices(step, currentStepIndex, stepCount);
-    const showEnglish = stepShowsEnglish(resolved, lang);
-    const choices = resolved.map((choice, index) => ({
-        key: index,
-        targetIndex: choice.targetIndex,
-        label: formatBranchChoiceLabel(choice.text, lang, showEnglish),
-    }));
+    const choices = buildLevel(resolveBranchNodes(step, currentStepIndex, stepCount), lang);
 
     return { choices, showContinue: choices.length === 0 };
+}
+
+/**
+ * The visible level of a pre-built view for a chosen `path` (an array of
+ * sibling `key`s, one per group entered). Returns `{ choices, canGoBack,
+ * showContinue }`. An absent / non-array `path`, an out-of-range key, or a key
+ * naming a leaf falls back to the root level and `canGoBack` false — it never
+ * throws, so a stale path cannot break rendering.
+ */
+export function resolveBranchLevel(view, path = []) {
+    const root = view?.choices || [];
+    const keys = Array.isArray(path) ? path : [];
+
+    let choices = root;
+    let descended = false;
+    for (const key of keys) {
+        const next = choices.find((choice) => choice.key === key && Array.isArray(choice.children));
+        if (!next) {
+            choices = root;
+            descended = false;
+            break;
+        }
+        choices = next.children;
+        descended = true;
+    }
+
+    return {
+        choices,
+        canGoBack: descended,
+        showContinue: !descended && root.length === 0,
+    };
+}
+
+/**
+ * The overlay headline key for the current branching choice depth. The first
+ * row (depth 0) asks how the learner will respond; every deeper row asks them
+ * to pick the exact wording.
+ */
+export function getBranchHeadingKey(depth = 0) {
+    return Number(depth) > 0 ? BRANCH_DEEP_OVERLAY_TEXT_KEY : BRANCH_OVERLAY_TEXT_KEY;
 }

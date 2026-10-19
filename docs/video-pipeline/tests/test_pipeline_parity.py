@@ -21,21 +21,17 @@ PIPELINE_KEYS = REPO_ROOT / "src" / "modules" / "video" / "pipeline-keys.js"
 GENERATE_CONFIG = REPO_ROOT / "scripts" / "generate-config-from-sheet.mjs"
 RECORDER_HTML = REPO_ROOT / "public" / "recorder.html"
 
-MASTER_PUBLISHED_ID = (
-    "2PACX-1vQZ7jFMJNnmylDoHxaqb1W8VyXi0OV4pSubCbqMGYkRgGimqWx3cs74n43-cFxqfue4KCiqWlhzvPkK"
-)
 
-
-def read_js_sheet_url(text: str) -> str:
-    """The ``export const SHEET_URL = '<url>';`` literal (it wraps across lines)."""
-    match = re.search(r"export const SHEET_URL\s*=\s*'([^']+)'", text)
+def read_generator_csv_rel(text: str) -> str:
+    """The ``MASTER_CSV_REL = '<path>';`` literal in the config generator."""
+    match = re.search(r"MASTER_CSV_REL\s*=\s*'([^']+)'", text)
     if not match:
-        raise AssertionError("SHEET_URL not found in generate-config-from-sheet.mjs")
+        raise AssertionError("MASTER_CSV_REL not found in generate-config-from-sheet.mjs")
     return match.group(1)
 
 
-def read_recorder_sheet_url(text: str) -> str:
-    """The ``var spreadsheet_url = '<url>';`` literal in the recorder page."""
+def read_recorder_csv_rel(text: str) -> str:
+    """The ``var spreadsheet_url = '<path>';`` literal in the recorder page."""
     match = re.search(r"var spreadsheet_url = '([^']+)'", text)
     if not match:
         raise AssertionError("spreadsheet_url not found in public/recorder.html")
@@ -130,22 +126,33 @@ class KeyPatternParityTest(unittest.TestCase):
 
 
 class SheetUrlParityTest(unittest.TestCase):
-    """Story 052: the Python render, the JS config generator and the recorder must
-    all point at the same published master CSV. URLs contain ``//``, so the guards
-    read the raw source (never comment-stripped) and are proven failable by
-    mutating the real text on either side."""
+    """Story 065: the Python render, the JS config generator and the recorder
+    must all read the same committed master CSV. The render fetches it over
+    HTTP (so its side pins the full URL); the generator and the recorder pin
+    the committed path, which must be a suffix of the render URL. Guards read
+    the raw source (URLs contain ``//``) and are proven failable by mutating
+    the real text on any side."""
 
     def _assert_parity(self, py_url: str, cli_text: str, recorder_text: str):
-        js_url = read_js_sheet_url(cli_text)
-        recorder_url = read_recorder_sheet_url(recorder_text)
-        self.assertEqual(py_url, js_url)
-        self.assertEqual(py_url, recorder_url)
-        self.assertIn(MASTER_PUBLISHED_ID, py_url)
-        self.assertIn("gid=242913338", py_url)
+        for text in (cli_text, recorder_text):
+            self.assertNotIn("2PACX", text)
+            self.assertNotIn("gid=242913338", text)
+            self.assertNotIn("docs.google.com", text)
+        generator_rel = read_generator_csv_rel(cli_text)
+        recorder_rel = read_recorder_csv_rel(recorder_text)
+        self.assertEqual(generator_rel, "public/wouldyourather.master.csv")
+        self.assertEqual(recorder_rel, "wouldyourather.master.csv")
+        # No absolute URL on the same-origin readers: a `://` would bypass the
+        # committed file for a remote copy.
+        self.assertNotIn("://", generator_rel)
+        self.assertNotIn("://", recorder_rel)
+        self.assertTrue(py_url.startswith("https://raw.githubusercontent.com/"), py_url)
+        self.assertTrue(py_url.endswith("/" + generator_rel), py_url)
+        self.assertTrue(py_url.endswith("/" + recorder_rel), py_url)
 
-    def test_sheet_url_matches_the_js_generator_and_recorder(self):
+    def test_master_csv_url_matches_the_js_generator_and_recorder(self):
         self._assert_parity(
-            lib.SHEET_URL,
+            lib.MASTER_CSV_URL,
             GENERATE_CONFIG.read_text(encoding="utf-8"),
             RECORDER_HTML.read_text(encoding="utf-8"),
         )
@@ -153,11 +160,12 @@ class SheetUrlParityTest(unittest.TestCase):
     def test_guard_can_fail_on_either_side(self):
         cli = GENERATE_CONFIG.read_text(encoding="utf-8")
         recorder = RECORDER_HTML.read_text(encoding="utf-8")
-        other = "https://example.com/other.csv"
         cases = [
-            (lib.SHEET_URL + "x", cli, recorder),                        # Python drift
-            (lib.SHEET_URL, cli.replace(lib.SHEET_URL, other), recorder),  # generator drift
-            (lib.SHEET_URL, cli, recorder.replace(lib.SHEET_URL, other)),  # recorder drift
+            (lib.MASTER_CSV_URL + "x", cli, recorder),                        # Python drift
+            (lib.MASTER_CSV_URL, cli.replace("public/wouldyourather.master.csv",
+                                             "public/other.csv"), recorder),  # generator drift
+            (lib.MASTER_CSV_URL, cli, recorder.replace("wouldyourather.master.csv",
+                                                       "other.csv")),         # recorder drift
         ]
         for py_url, cli_text, recorder_text in cases:
             with self.assertRaises(AssertionError):
@@ -194,6 +202,62 @@ class PrivateKeyParityTest(unittest.TestCase):
     def test_private_prefix_lists_are_equal(self):
         source = read_js_string_array(PIPELINE_KEYS, "PRIVATE_KEY_PREFIXES")
         self.assertEqual(_normalize_pairs(source), list(lib.PRIVATE_KEY_PREFIXES))
+
+
+class SocialKeyParityTest(unittest.TestCase):
+    """Story 068: the private social twin keys must match between runtimes.
+
+    The Python orchestrator writes ``pipeline-assets/social/<slug>.<ext>`` and
+    the JS trigger layer mirrors the rule; a drift would post to a key the
+    renderer never fills (or vice versa). Private routing comes from the
+    shared ``pipeline-assets/`` prefix, so no prefix-list change is needed
+    (and asserted)."""
+
+    def _js_social_key(self, name: str) -> str:
+        text = PIPELINE_KEYS.read_text(encoding="utf-8")
+        match = re.search(
+            rf"export function {name}\(slug\)\s*\{{\s*"
+            r"return isValidPipelineSlug\(slug\) \? `([^`]+)` : null;",
+            text)
+        self.assertIsNotNone(match, f"{name} body not found in pipeline-keys.js")
+        return match.group(1)
+
+    def test_social_video_keys_match(self):
+        self.assertEqual(
+            self._js_social_key("socialVideoKey"),
+            "pipeline-assets/social/${slug}.mp4",
+        )
+        self.assertEqual(
+            lib.social_video_key("wouldyourather_a01"),
+            "pipeline-assets/social/wouldyourather_a01.mp4",
+        )
+
+    def test_social_poster_keys_match(self):
+        self.assertEqual(
+            self._js_social_key("socialPosterKey"),
+            "pipeline-assets/social/${slug}.jpg",
+        )
+        self.assertEqual(
+            lib.social_poster_key("wouldyourather_a01"),
+            "pipeline-assets/social/wouldyourather_a01.jpg",
+        )
+
+    def test_invalid_slugs_return_none(self):
+        for bad in ("../x", "a/b", "x.mp4", "", "a" * 101):
+            self.assertIsNone(lib.social_video_key(bad), bad)
+            self.assertIsNone(lib.social_poster_key(bad), bad)
+
+    def test_social_keys_route_to_the_private_bucket(self):
+        key = lib.social_video_key("step_a")
+        self.assertTrue(lib.is_private_key(key))
+        self.assertEqual(lib.bucket_for_key(key), "private")
+
+    def test_guard_can_fail(self):
+        source = PIPELINE_KEYS.read_text(encoding="utf-8")
+        mutated = "SENTINEL".join(source.split("pipeline-assets/social/${slug}.mp4"))
+        self.assertNotEqual(mutated, source)
+        # The JS mirror no longer names the social prefix.
+        self.assertNotIn("pipeline-assets/social/${slug}.mp4", mutated)
 
 
 if __name__ == "__main__":

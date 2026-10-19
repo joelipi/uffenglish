@@ -5,6 +5,7 @@ import { useQuery, useQueries } from '@tanstack/react-query';
 import { appStore } from '../../modules/store/store.js';
 import { useAuthStatus, useUserProfile, useNotifications, fetchUserByShareCode, signOut } from '../../modules/api/api.js';
 import Strings from '../../data/strings.js';
+import { useNativeLanguage } from '../../hooks/use-native-language.js';
 import { trackEvent } from '../../modules/utils/posthog.js';
 import { loadConfigEntries, resolveCourseHeroImage } from '../../modules/courses/friend-course-configs.js';
 import { listFriendCourses } from '../../modules/courses/friend-courses-logic.js';
@@ -15,7 +16,11 @@ import {
 } from '../../modules/home/continue-logic.js';
 import FriendCoursesView from '../courses/FriendCoursesView.jsx';
 import NotificationsBell from './NotificationsBell.web.jsx';
-import LegalFooter from '../legal/LegalFooter.jsx';
+import PWAInstallButton from '../pwa/PWAInstallButton.web.jsx';
+import PWAInstallBanner from '../pwa/PWAInstallBanner.web.jsx';
+import { selectInstallCtaKey } from '../../modules/pwa/install-prompt-logic.js';
+import { readIsApplePlatform } from '../../modules/pwa/install-prompt-webonly.js';
+import PushNotificationsOptIn from '../notifications/PushNotificationsOptIn.web.jsx';
 import headerLogo from '../../assets/img/uff-logo.png';
 
 export default function HomeScreen() {
@@ -23,9 +28,7 @@ export default function HomeScreen() {
     const [menuOpen, setMenuOpen] = useState(false);
     const courseId = useStore(appStore, state => state.courseId);
     const activeLessonId = useStore(appStore, state => state.activeLessonId);
-    const guestLang = useStore(appStore, state => state.guestNativeLanguage);
-    const userDataLang = useStore(appStore, state => state.userData?.native_language);
-    const lang = guestLang || userDataLang || 'en';
+    const lang = useNativeLanguage();
 
     const { data: isLoggedIn } = useAuthStatus();
     const { data: profile } = useUserProfile();
@@ -171,9 +174,21 @@ export default function HomeScreen() {
         overflowY: 'auto',
         backgroundColor: '#0b1a2a',
         color: 'white',
-        fontFamily: "'Inter', 'Plus Jakarta Sans', sans-serif",
+        fontFamily: 'var(--font-body)',
         display: 'flex',
         flexDirection: 'column',
+    };
+
+    // The menu's Install entry is a <button>, not a <Link>, so it needs the
+    // link styling plus button resets (no default chrome, full-width hit area).
+    const installBtnStyle = {
+        ...linkStyle,
+        width: '100%',
+        background: 'none',
+        border: 'none',
+        textAlign: 'left',
+        cursor: 'pointer',
+        fontFamily: 'inherit',
     };
 
     const topBarStyle = {
@@ -193,7 +208,12 @@ export default function HomeScreen() {
         padding: '8px',
     };
 
+    // REVISIT LATER: the Continue bar is deliberately hidden for now — there is
+    // too much in the app to test right now, so we are taking this one out of
+    // the surface. `display: 'none'` keeps the target resolution (and its
+    // tests) wired up, so re-showing the bar later is a one-line style change.
     const bottomBarStyle = {
+        display: 'none',
         padding: '16px',
         borderTop: '1px solid #1a3a5a',
         backgroundColor: '#0b1a2a',
@@ -223,11 +243,23 @@ export default function HomeScreen() {
                     src={headerLogo}
                     alt={Strings.get('home_title', lang)}
                     data-testid="home-logo"
-                    style={{ height: '40px', width: 'auto', display: 'block', filter: 'drop-shadow(0 1px 1.5px rgba(0,0,0,0.35))' }}
+                    // The logo is a ~5.3:1 wordmark. Pinning `height` and capping only
+                    // `maxWidth` would squeeze it out of proportion, so BOTH
+                    // dimensions are `auto` with a max on each: per CSS 2.1
+                    // §10.4 a replaced element's width/height auto box is sized
+                    // to the intrinsic ratio and then clamped by max-width /
+                    // max-height together, which keeps the wordmark undistorted.
+                    // It is the only elastic child of the row, so on a narrow
+                    // frame (short window -> frame width is 9/16 of the viewport
+                    // height) it gives way instead of pushing the bell past the
+                    // frame's right edge, where #root.video-frame clips it away.
+                    style={{ width: 'auto', height: 'auto', maxWidth: '50%', maxHeight: '40px', minWidth: 0, display: 'block', filter: 'drop-shadow(0 1px 1.5px rgba(0,0,0,0.35))' }}
                 />
-                {isLoggedIn && viewerId && viewerId !== 'guest'
-                    ? <NotificationsBell userId={viewerId} lang={lang} />
-                    : <div style={{ width: '44px' }} />}
+                <div style={{ flexShrink: 0 }}>
+                    {isLoggedIn && viewerId && viewerId !== 'guest'
+                        ? <NotificationsBell userId={viewerId} lang={lang} />
+                        : <div style={{ width: '44px' }} />}
+                </div>
             </div>
 
             {menuOpen && (
@@ -252,6 +284,11 @@ export default function HomeScreen() {
                                   onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.borderLeftColor = 'transparent'; }}>
                                 <i className="bi bi-person-fill"></i> {Strings.get('home_profile', lang)}
                             </Link>
+                            <Link to="/friends" onClick={closeMenu} style={{ ...linkStyle, borderLeft: '3px solid transparent' }}
+                                  onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#1a3a5a'; e.currentTarget.style.borderLeftColor = '#00c0d8'; }}
+                                  onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.borderLeftColor = 'transparent'; }}>
+                                <i className="bi bi-people-fill"></i> {Strings.get('home_friends', lang)}
+                            </Link>
                             <Link to="/privacy" onClick={closeMenu} style={{ ...linkStyle, borderLeft: '3px solid transparent' }}
                                   onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#1a3a5a'; e.currentTarget.style.borderLeftColor = '#00c0d8'; }}
                                   onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.borderLeftColor = 'transparent'; }}>
@@ -262,6 +299,22 @@ export default function HomeScreen() {
                                   onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.borderLeftColor = 'transparent'; }}>
                                 <i className="bi bi-file-earmark-text"></i> {Strings.get('legal_terms', lang)}
                             </Link>
+                            {viewerId && viewerId !== 'guest' && (
+                                <>
+                                    <PWAInstallButton
+                                        label={Strings.get(selectInstallCtaKey({ isApple: readIsApplePlatform() }), lang)}
+                                        style={installBtnStyle}
+                                        onBeforeOpen={closeMenu}
+                                    />
+                                    <PushNotificationsOptIn
+                                        lang={lang}
+                                        variant="menu-item"
+                                        userId={viewerId}
+                                        style={installBtnStyle}
+                                        onBeforeOpen={closeMenu}
+                                    />
+                                </>
+                            )}
                         </nav>
                         <div style={{ flex: 1 }} />
                         {isLoggedIn ? (
@@ -278,6 +331,12 @@ export default function HomeScreen() {
             )}
 
             <div style={{ flex: 1, overflowY: 'auto' }}>
+                {viewerId && viewerId !== 'guest' && (
+                    <>
+                        <PWAInstallBanner lang={lang} userId={viewerId} />
+                        <PushNotificationsOptIn lang={lang} variant="prompt" userId={viewerId} />
+                    </>
+                )}
                 <FriendCoursesView
                     lang={lang}
                     courses={courses}
@@ -287,7 +346,7 @@ export default function HomeScreen() {
             </div>
 
             {continueTarget && (
-                <div style={bottomBarStyle}>
+                <div style={bottomBarStyle} data-testid="home-continue-bar">
                     <button data-testid="home-continue" onClick={handleContinueNavigate} style={continueBtnStyle}
                             onMouseEnter={e => { e.currentTarget.style.opacity = '0.9'; e.currentTarget.style.transform = 'scale(1.02)'; }}
                             onMouseLeave={e => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.transform = 'scale(1)'; }}>
@@ -295,8 +354,6 @@ export default function HomeScreen() {
                     </button>
                 </div>
             )}
-
-            <LegalFooter lang={lang} />
         </div>
     );
 }

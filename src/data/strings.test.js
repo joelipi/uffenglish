@@ -83,8 +83,8 @@ describe('Hindi and Bengali spot checks', () => {
 
 describe('placeholder interpolation in hi/bn', () => {
     it.each(PLACEHOLDER_KEYS)('replaces {placeholders} in %s for hi and bn', (key) => {
-        const hi = get(key, 'hi', { score: 88, date: 'Jan 1', bad_intent: 'angry', time: '47h 0m', url: 'ultrafastfluency.com/abc123', name: 'Sam', title: 'Respond', count: 5 });
-        const bn = get(key, 'bn', { score: 88, date: 'Jan 1', bad_intent: 'angry', time: '47h 0m', url: 'ultrafastfluency.com/abc123', name: 'Sam', title: 'Respond', count: 5 });
+        const hi = get(key, 'hi', { score: 88, date: 'Jan 1', bad_intent: 'angry', time: '47h 0m', url: 'ultrafastfluency.com/abc123', name: 'Sam', title: 'Respond', count: 5, suggestion: 'gmail.com' });
+        const bn = get(key, 'bn', { score: 88, date: 'Jan 1', bad_intent: 'angry', time: '47h 0m', url: 'ultrafastfluency.com/abc123', name: 'Sam', title: 'Respond', count: 5, suggestion: 'gmail.com' });
         expect(hi).not.toContain('{');
         expect(bn).not.toContain('{');
         expect(hi).toMatch(DEVANAGARI);
@@ -137,12 +137,12 @@ describe('public homepage share-code strings', () => {
             bn: 'আপনার বন্ধুর কোড লিখুন অথবা না থাকলে নতুন করে শুরু করুন।',
         },
         home_landing_devices_heading: {
-            en: 'Anyone, anywhere, any device.',
-            es: 'Cualquiera, en cualquier lugar, en cualquier dispositivo.',
-            pt: 'Qualquer pessoa, em qualquer lugar, em qualquer dispositivo.',
-            fr: "Qui que vous soyez, où que vous soyez, sur n'importe quel appareil.",
-            hi: 'कोई भी, कहीं भी, कोई भी डिवाइस।',
-            bn: 'যে কেউ, যেকোনো জায়গায়, যেকোনো ডিভাইসে।',
+            en: 'Anywhere, Any Device.',
+            es: 'En cualquier lugar, en cualquier dispositivo.',
+            pt: 'Em qualquer lugar, em qualquer dispositivo.',
+            fr: "N'importe où, n'importe quel appareil.",
+            hi: 'कहीं भी, कोई भी डिवाइस।',
+            bn: 'যেকোনো জায়গায়, যেকোনো ডিভাইস।',
         },
         home_landing_devices_body: {
             en: "It works on any recent device (since about 2020): phone, tablet, or computer. You don't even have to install an app!",
@@ -306,6 +306,29 @@ describe('friend-response notification strings', () => {
     it('keeps the 48 in the deadline for every language', () => {
         for (const lang of ['en', 'es', 'pt', 'fr', 'hi', 'bn']) {
             expect(get('notifications_respond_deadline', lang)).toContain('48');
+        }
+    });
+});
+
+describe('404 page copy', () => {
+    // Story 071: the 404 page is a real route, so it must not be the one route
+    // in the app with no translations. Assert on the raw table: `get()` falls
+    // back to English, so a `get()`-based check would pass for a missing locale.
+    it.each(['not_found_heading', 'not_found_body', 'not_found_courses', 'not_found_home'])(
+        '%s carries en/es/pt/fr/hi/bn',
+        (key) => {
+            for (const lang of ['en', 'es', 'pt', 'fr', 'hi', 'bn']) {
+                expect(strings[key][lang], `${key}/${lang}`).toBeTruthy();
+            }
+        },
+    );
+
+    it('does not report a missing person', () => {
+        // A mistyped path is not a share link; the copy says "page".
+        expect(get('not_found_heading', 'en')).toBe('Page not found');
+        expect(get('not_found_heading', 'en')).not.toBe(get('public_profile_not_found', 'en'));
+        for (const lang of ['es', 'pt', 'fr', 'hi', 'bn']) {
+            expect(get('not_found_heading', lang)).not.toBe(get('public_profile_not_found', lang));
         }
     });
 });

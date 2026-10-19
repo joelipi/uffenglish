@@ -8,7 +8,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { normalizeConfig } from '../bilingual/config-normalizer.js';
-import { getBilingual } from '../../data/strings.js';
+import { getBilingual, strings } from '../../data/strings.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '../../..');
@@ -43,8 +43,12 @@ describe('SimpleVideoPlayer branch wiring', () => {
         expect(source).toContain("import { getSimpleVideoOverlayTextKey } from '../modules/video/response-decision-logic.js';");
     });
 
-    it('derives overlayTextKey from the pure resolver', () => {
-        expect(source).toContain('getSimpleVideoOverlayTextKey(appPhase, currentVideo)');
+    it('derives overlayTextKey from the pure resolver with the branch depth', () => {
+        expect(source).toContain('getSimpleVideoOverlayTextKey(appPhase, currentVideo, branchDepth)');
+    });
+
+    it('accepts the branch depth as a prop', () => {
+        expect(source).toContain('SimpleVideoPlayer({ branchDepth = 0 }');
     });
 
     it('raises the branch overlay from handleEnded before the viewAndContinue check', () => {
@@ -74,6 +78,7 @@ describe('BranchChoiceButtons separation', () => {
             'getCurrentVideoPlayer',
             'jumpToStep',
             'resolveBranchChoices',
+            'resolveBranchLevel',
             'formatBranchChoiceLabel',
             'branch-choice-logic',
         ]) {
@@ -91,6 +96,12 @@ describe('progression and container wiring', () => {
         const source = read('src/modules/lesson/step-executor-webonly.js');
         expect(source).toContain('resolveNextStepIndex(');
         expect(source).not.toContain('currentStepIndex + 1');
+    });
+
+    it('resolves branch targets through the shared flattened resolver', () => {
+        const source = read('src/modules/video/video-processor-logic.js');
+        expect(source).toContain('resolveBranchChoices(');
+        expect(source).toContain('.map(c => c.targetIndex)');
     });
 
     const container = read('src/components/LessonContainer.jsx');
@@ -119,6 +130,19 @@ describe('progression and container wiring', () => {
         expect(block).toContain('onChoose={');
         expect(block).toContain('onReplay={');
         expect(block).toContain('onContinue={');
+        // Nested-choice wiring: the group/back handlers reach the row.
+        expect(block).toContain('onChooseGroup={');
+        expect(block).toContain('onBack={');
+    });
+
+    it('owns the branch path, resets it per step, and derives the visible level', () => {
+        expect(container).toContain('useState([])');
+        expect(container).toContain('setBranchPath');
+        expect(container).toContain('resolveBranchLevel(');
+        // The overlay headline needs the depth, and the step change must reset
+        // the path so a new branching step starts at the first level.
+        expect(container).toContain('branchDepth={branchPath.length}');
+        expect(container).toContain('currentStepIndex');
     });
 
     it('holds no offset math or label formatting', () => {
@@ -141,15 +165,15 @@ describe('StepLoader, strings and styles', () => {
         const css = read('src/assets/css/app.css');
         const row = cssBlock(css, '.branch-choice-row {');
         expect(row).toContain('display: flex');
-        expect(row).toContain('justify-content: space-around');
-        expect(row).toContain('align-items: flex-end');
+        expect(row).toContain('justify-content: space-between');
+        expect(row).toContain('align-items: stretch');
         expect(row).toContain('width: 100%');
 
         const col = cssBlock(css, '.branch-choice-col {');
         expect(col).toContain('display: flex');
         expect(col).toContain('flex-direction: column');
-        expect(col).toContain('flex: 2 1 0');
-        expect(col).toContain('justify-content: flex-end');
+        expect(col).toContain('flex: 0 0 auto');
+        expect(col).toContain('justify-content: flex-start');
 
         const btn = cssBlock(css, '.branch-choice-btn {');
         expect(btn).toContain('width: 100%');
@@ -179,10 +203,10 @@ describe('StepLoader, strings and styles', () => {
         const css = read('src/assets/css/app.css');
         const overlay = cssBlock(css, '.ivp-overlay.ivp-overlay-branch {');
         expect(overlay).toMatch(/align-items:\s*flex-start/);
-        // 24vh clears the blurred video-header band (the top ~18.5% of the
+        // 20vh clears the blurred video-header band (the top ~18.5% of the
         // frame — see .video-header-blur); the choice buttons never rise higher
         // than 60% from the bottom, so the headline has room between the two.
-        expect(overlay).toMatch(/padding-top:\s*24vh/);
+        expect(overlay).toMatch(/padding-top:\s*16vh/);
         expect(overlay).toMatch(/padding-bottom:\s*45vh/);
         // The content is clamped so a long headline/translation cannot spill
         // into the reserved bottom band.
@@ -196,8 +220,39 @@ describe('StepLoader, strings and styles', () => {
     });
 
     it('ships the branch heading copy in English and Spanish', () => {
-        expect(getBilingual('video_choose_how_respond', 'en').english).toBe('Choose how you will respond.');
+        expect(getBilingual('video_choose_how_respond', 'en').english).toBe('Choose what you will say.');
         expect(getBilingual('video_choose_how_respond', 'es').localized).toBeTruthy();
+    });
+
+    it('localizes the nested-branch heading and the back label in all six languages', () => {
+        // Assert the RAW table: get() falls back to English when a locale is
+        // missing, so a get()-based check could never fail on a dropped locale.
+        for (const key of ['video_choose_exactly', 'branch_back']) {
+            for (const lang of ['en', 'es', 'pt', 'fr', 'hi', 'bn']) {
+                expect(strings[key][lang], `${key}/${lang}`).toBeTruthy();
+            }
+        }
+        expect(strings.video_choose_exactly.en).toBe('Now choose exactly what you want to say.');
+        expect(strings.branch_back.en).toBe('BACK');
+    });
+
+    it('styles the group caret and the back button', () => {
+        const css = read('src/assets/css/app.css');
+
+        const group = cssBlock(css, '.branch-choice-group-btn {');
+        expect(group).toContain('position: relative');
+        expect(group).toContain('padding-right: 28px');
+
+        const caret = cssBlock(css, '.branch-choice-btn .branch-choice-caret {');
+        expect(caret).toContain('position: absolute');
+        expect(caret).toContain('right: 10px');
+        expect(caret).toContain('top: 50%');
+        expect(caret).toContain('transform: translateY(-50%)');
+
+        const back = cssBlock(css, '.branch-choice-back-btn {');
+        expect(back).toContain('display: flex');
+        expect(back).toContain('align-items: center');
+        expect(back).toContain('justify-content: center');
     });
 });
 

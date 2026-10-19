@@ -30,7 +30,6 @@ import * as osMod from 'node:os';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { RECAP_SOURCES, RECAP_OVERLAYS } from '../modules/video/video-processor-logic.js';
-import { FRIEND_VIDEO_REGEX } from '../modules/video/video-source.js';
 import { parseCsv, buildCourseConfig, buildCourseConfigs, LEVEL_PATTERN_COLUMNS, LEVEL_PATTERN_KEYS } from '../../scripts/lib/sheet-config-utils.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -41,8 +40,8 @@ const ALLOWLIST = path.join(__dirname, '../../scripts/lib/generated-configs.json
 const VIDEO_FIELDS = ['interactiveVideoUrl', 'introBackgroundVideoUrl', 'simpleVideoUrl'];
 
 // The only locale keys a generated translation object may carry. Anything else
-// (a stray fr/hi, a typo) is a contract violation.
-const ALLOWED_LOCALES = ['en', 'es', 'pt', 'bn'];
+// (a stray xx, a typo) is a contract violation.
+const ALLOWED_LOCALES = ['en', 'es', 'pt', 'bn', 'fr', 'hi'];
 
 function readAllowlist(listPath = ALLOWLIST) {
     const raw = JSON.parse(readFileSync(listPath, 'utf8'));
@@ -122,7 +121,7 @@ function assertGeneratedConfigContract(config, label) {
             expect(RECAP_OVERLAYS, `${label} lesson ${lesson.lessonId}`).toContain(lesson.recapOverlay);
         }
         const hasFriendSlug = (lesson.steps || []).some((step) =>
-            VIDEO_FIELDS.some((field) => FRIEND_VIDEO_REGEX.test(step[field] || ''))
+            VIDEO_FIELDS.some((field) => String(step[field] || '').includes('{friendCode}'))
         );
         if (hasFriendSlug) {
             expect(lesson.recapSources, `${label} lesson ${lesson.lessonId} friend-slug`).toBe('friend');
@@ -133,15 +132,15 @@ function assertGeneratedConfigContract(config, label) {
 const FIXTURE_CSV = [
     'course_id,course_name,lesson_id,lesson_title,recap_sources,recap_overlay,response_type,video_file,filename,order,subtitle_text',
     'gen,Generated,a,Lesson A,none,shareCta,viewAndContinue,gen-v1,gen-v101,1,Hi.',
-    'gen,Generated,b,Lesson B,friend,shareCta,viewAndContinue,ab-model-w-response-01,ab1,1,Hello.',
+    'gen,Generated,b,Lesson B,friend,shareCta,viewAndContinue,{friendCode}ab-model-w-01,ab1,1,Hello.',
 ].join('\n');
 
 // A sheet with the story-049 language columns, so the generated object carries
 // es/pt/bn and the localized-allowed contract must accept it.
 const LOCALIZED_CSV = [
-    'course_id,course_name,lesson_id,lesson_title,lesson_title_es,lesson_title_pt,lesson_title_bn,mission,mission_es,response_type,video_file,filename,order,cue,cue_es,subtitle_text,subtitle_text_es',
-    'loc,Localized,a,Lesson A,Lección A,Llição A,পাঠ এ,Talk,Falar,viewAndContinue,loc-v1,loc1,1,,,Hi.,Hola.',
-    'loc,Localized,a,Lesson A,,,,,,friendClosedResponse,loc-q,locq1,2,Question?,¿Pregunta?,,',
+    'course_id,course_name,lesson_id,lesson_title,lesson_title_es,lesson_title_pt,lesson_title_bn,lesson_title_fr,mission,mission_es,mission_fr,response_type,video_file,filename,order,cue,cue_es,cue_fr,subtitle_text,subtitle_text_es,subtitle_text_fr',
+    'loc,Localized,a,Lesson A,Lección A,Llição A,পাঠ এ,Leçon A,Talk,Falar,Parler,viewAndContinue,loc-v1,loc1,1,,,Hi.,Hola.,Salut.',
+    'loc,Localized,a,Lesson A,,,,,,,,friendClosedResponse,loc-q,locq1,2,Question?,¿Pregunta?,Une question ?,,,',
 ].join('\n');
 
 // Story 055: a `branching` step with the choice columns, plus their es/pt/bn
@@ -173,11 +172,11 @@ describe('generated config contract (localized allowed)', () => {
         assertGeneratedConfigContract(config, 'en-es');
     });
 
-    it('passes for {en,es,pt,bn} built from the language columns', () => {
+    it('passes for {en,es,pt,bn,fr} built from the language columns', () => {
         const { rows } = parseCsv(LOCALIZED_CSV);
         const config = buildCourseConfig(rows);
-        expect(config.lessons[0].title).toEqual({ en: 'Lesson A', es: 'Lección A', pt: 'Llição A', bn: 'পাঠ এ' });
-        expect(config.lessons[0].mission).toEqual({ en: 'Talk', es: 'Falar' });
+        expect(config.lessons[0].title).toEqual({ en: 'Lesson A', es: 'Lección A', pt: 'Llição A', bn: 'পাঠ এ', fr: 'Leçon A' });
+        expect(config.lessons[0].mission).toEqual({ en: 'Talk', es: 'Falar', fr: 'Parler' });
         assertGeneratedConfigContract(config, 'localized');
     });
 
@@ -206,14 +205,14 @@ describe('generated config contract (localized allowed)', () => {
     it('fails when a chooseStep text carries an unknown locale key', () => {
         const { rows } = parseCsv(BRANCHING_CSV);
         const config = buildCourseConfig(rows);
-        config.lessons[0].steps[0].chooseStep[0].text.fr = 'Oui';
+        config.lessons[0].steps[0].chooseStep[0].text.xx = 'Oui';
         expect(() => assertGeneratedConfigContract(config, 'mutated')).toThrow(/unknown locale key/);
     });
 
     it('fails when a translation object carries an unknown locale key', () => {
         const { rows } = parseCsv(FIXTURE_CSV);
         const config = buildCourseConfig(rows);
-        config.lessons[0].title.fr = 'Leçon';
+        config.lessons[0].title.xx = 'Leçon';
         expect(() => assertGeneratedConfigContract(config, 'mutated')).toThrow(/unknown locale key/);
     });
 
@@ -235,14 +234,14 @@ describe('generated config contract (localized allowed)', () => {
     it('fails when a level pattern carries an unknown locale key', () => {
         const { rows } = parseCsv(FIXTURE_CSV);
         const config = buildCourseConfig(rows);
-        config.lessons[0].a1 = { en: 'X or Y', fr: 'X ou Y' };
+        config.lessons[0].a1 = { en: 'X or Y', xx: 'X ou Y' };
         expect(() => assertGeneratedConfigContract(config, 'mutated')).toThrow(/unknown locale key/);
     });
 
     it('fails when a courseMission level carries an unknown locale key', () => {
         const { rows } = parseCsv(FIXTURE_CSV);
         const config = buildCourseConfig(rows);
-        config.courseMission = { mission: { en: 'Talk' }, A1: { en: 'X or Y', fr: 'X ou Y' } };
+        config.courseMission = { mission: { en: 'Talk' }, A1: { en: 'X or Y', xx: 'X ou Y' } };
         expect(() => assertGeneratedConfigContract(config, 'mutated')).toThrow(/unknown locale key/);
     });
 
@@ -284,7 +283,7 @@ describe('generated config contract (localized allowed)', () => {
     const TWO_COURSE_CSV = [
         'course_id,course_name,lesson_id,lesson_title,recap_sources,recap_overlay,response_type,video_file,filename,order,subtitle_text',
         'alpha,Alpha,a,Lesson A,none,shareCta,viewAndContinue,alpha-v1,alpha1,1,Hi.',
-        'beta,Beta,b,Lesson B,friend,shareCta,viewAndContinue,ab-model-w-response-01,ab1,1,Hey.',
+        'beta,Beta,b,Lesson B,friend,shareCta,viewAndContinue,{friendCode}ab-model-w-01,ab1,1,Hey.',
     ].join('\n');
 
     it('holds for every course in a multi-course fixture (N > 1)', () => {
@@ -295,7 +294,7 @@ describe('generated config contract (localized allowed)', () => {
 
     it('can fail on the second course, not just the first', () => {
         const results = buildCourseConfigs(parseCsv(TWO_COURSE_CSV).rows);
-        results[1].config.lessons[0].title.fr = 'Leçon';
+        results[1].config.lessons[0].title.xx = 'Leçon';
         expect(() => results.forEach((r) => assertGeneratedConfigContract(r.config, r.courseId))).toThrow();
     });
 
@@ -316,7 +315,7 @@ describe('contract guard allow-list loop (N > 1, temp seam)', () => {
         const TWO_COURSE_CSV = [
             'course_id,course_name,lesson_id,lesson_title,recap_sources,recap_overlay,response_type,video_file,filename,order',
             'alpha,Alpha,a,Lesson A,none,shareCta,viewAndContinue,alpha-v1,alpha1,1',
-            'beta,Beta,b,Lesson B,friend,shareCta,viewAndContinue,ab-model-w-response-01,ab1,1',
+            'beta,Beta,b,Lesson B,friend,shareCta,viewAndContinue,{friendCode}ab-model-w-01,ab1,1',
         ].join('\n');
         try {
             for (const r of buildCourseConfigs(parseCsv(TWO_COURSE_CSV).rows)) {

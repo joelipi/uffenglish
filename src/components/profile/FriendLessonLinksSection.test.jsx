@@ -206,3 +206,103 @@ describe('FriendLessonLinksSection', () => {
         expect(container.querySelector('[data-testid="friend-lessons-expired"]')).not.toBeNull();
     });
 });
+
+// Story 064: visitor-aware rendering. Logged-out visitors get a login/guest
+// banner and the section anchor; a completed-together entry gets a badge below
+// its countdown (the countdown markup itself stays byte-identical).
+describe('FriendLessonLinksSection visitor awareness', () => {
+    let container;
+    let root;
+
+    const activeLinks = () => ({
+        'friendchain:a': {
+            courseId: 'friendchain', courseName: 'Friend Chain',
+            recordedLessonId: 'a', lessonId: 'b', shareCode: 'owner1',
+            addedAt: iso(NOW - HOUR), lessonTitle: 'Ask',
+        },
+    });
+
+    beforeEach(() => {
+        container = document.createElement('div');
+        document.body.appendChild(container);
+    });
+
+    afterEach(() => {
+        if (root) act(() => root.unmount());
+        container.remove();
+        root = null;
+        container = null;
+    });
+
+    it('renders the login/guest banner and the section anchor for a logged-out visitor', () => {
+        root = renderSection(container, { friendLinks: activeLinks(), lang: 'en', shareCode: 'owner1' });
+
+        const banner = container.querySelector('[data-testid="visitor-login-banner"]');
+        expect(banner).not.toBeNull();
+
+        const login = container.querySelector('[data-testid="visitor-login-link"]');
+        expect(login.textContent).toBe("Log in to see lessons you've done together.");
+        const href = login.getAttribute('href');
+        expect(href.startsWith('/login?redirect=')).toBe(true);
+        expect(decodeURIComponent(href.slice('/login?redirect='.length))).toBe('/owner1');
+
+        const guest = container.querySelector('[data-testid="visitor-guest-link"]');
+        expect(guest.textContent).toBe('No account yet? You can start practicing free.');
+        expect(guest.getAttribute('href')).toBe('#friend-lesson-links');
+
+        expect(container.querySelectorAll('#friend-lesson-links')).toHaveLength(1);
+    });
+
+    it('renders no banner for a logged-in visitor', () => {
+        const viewer = { shareCode: 'viewer1', counted_lessons: [], notifications: [], ownerShareCode: 'owner1' };
+        root = renderSection(container, { friendLinks: activeLinks(), lang: 'en', shareCode: 'owner1', viewer });
+        expect(container.querySelector('[data-testid="visitor-login-banner"]')).toBeNull();
+        expect(container.querySelector('[data-testid="friend-lesson-links-heading"]')).not.toBeNull();
+    });
+
+    it('renders no banner in the expired state', () => {
+        const expired = {
+            'friendchain:a': { ...activeLinks()['friendchain:a'], addedAt: iso(NOW - 49 * HOUR) },
+        };
+        root = renderSection(container, { friendLinks: expired, lang: 'en', shareCode: 'owner1' });
+        expect(container.querySelector('[data-testid="visitor-login-banner"]')).toBeNull();
+        expect(container.querySelector('[data-testid="friend-lessons-expired"]')).not.toBeNull();
+        expect(container.querySelectorAll('#friend-lesson-links')).toHaveLength(1);
+    });
+
+    it('badges an entry completed together, leaving the countdown markup unchanged', () => {
+        // Baseline (no badge) capture of the countdown's own markup.
+        root = renderSection(container, { friendLinks: activeLinks(), lang: 'en', shareCode: 'owner1' });
+        const baseline = container.querySelector('[data-testid="friend-lesson-link-countdown"]').outerHTML;
+        act(() => root.unmount());
+        container.remove();
+        container = document.createElement('div');
+        document.body.appendChild(container);
+
+        const viewer = { shareCode: 'viewer1', counted_lessons: ['friendchain_a'], notifications: [], ownerShareCode: 'owner1' };
+        root = renderSection(container, { friendLinks: activeLinks(), lang: 'en', shareCode: 'owner1', viewer });
+
+        const badge = container.querySelector('[data-testid="friend-lesson-link-completed"]');
+        expect(badge).not.toBeNull();
+        expect(badge.textContent).toBe('You did this together');
+        const countdown = container.querySelector('[data-testid="friend-lesson-link-countdown"]');
+        expect(countdown.outerHTML).toBe(baseline);
+        // The badge is a sibling AFTER the countdown, not inside it.
+        expect(countdown.nextElementSibling).toBe(badge);
+    });
+
+    it('renders no badge when completedTogether is false or absent', () => {
+        root = renderSection(container, { friendLinks: activeLinks(), lang: 'en', shareCode: 'owner1' });
+        expect(container.querySelector('[data-testid="friend-lesson-link-completed"]')).toBeNull();
+        expect(container.querySelector('[data-testid="friend-lesson-link-countdown"]').nextElementSibling).toBeNull();
+
+        act(() => root.unmount());
+        container.remove();
+        container = document.createElement('div');
+        document.body.appendChild(container);
+
+        const viewer = { shareCode: 'viewer1', counted_lessons: [], notifications: [], ownerShareCode: 'owner1' };
+        root = renderSection(container, { friendLinks: activeLinks(), lang: 'en', shareCode: 'owner1', viewer });
+        expect(container.querySelector('[data-testid="friend-lesson-link-completed"]')).toBeNull();
+    });
+});
