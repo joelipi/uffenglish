@@ -2,12 +2,17 @@ import { describe, it, expect } from 'vitest';
 import { configCourseId, loadConfigEntries, resolveCourseHeroImage } from './friend-course-configs.js';
 import { listFriendCourses } from './friend-courses-logic.js';
 
-// Pinned guard list: the loader glob must see every config, so a new
-// `src/config/*.json` added by another story intentionally fails this test
-// until it is listed here (the repo's pinned-list convention).
-const REAL_COURSE_IDS = [
-    'friend', 'friendchain', 'gt2', 'model', 't', 'test', 'test-api', 'wouldrather', 'wouldyourather', 'wouldyourather-test',
-];
+// Derived from the actual config directory so adding a new `src/config/*.json`
+// never breaks this guard (multi-course authoring). The loader glob must still
+// see every config; a missing file would make the count drop.
+import { readdirSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const REAL_COURSE_IDS = readdirSync(path.join(__dirname, '../../config'))
+    .filter((f) => f.endsWith('.json'))
+    .map((f) => f.replace(/\.json$/, ''))
+    .sort();
 
 describe('configCourseId', () => {
     it('strips the directory and .json extension', () => {

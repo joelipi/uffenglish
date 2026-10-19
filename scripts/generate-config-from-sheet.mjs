@@ -40,7 +40,7 @@ Usage:
 Options:
   --course=<courseId>   Only this course (from the CSV's course_id column)
   --out=<dir>           Output DIRECTORY (default src/config)
-  --csv=<path>          Master CSV file (default: the committed public/wouldyourather.master.csv)
+  --csv=<path>          Master CSV file (default: all public/*.master.csv)
   --require-videos      Skip a course whole until every one of its steps
                         carries an srt (i.e. every step rendered+published);
                         friend clips, authoring-shape courses, and intro_video
@@ -173,19 +173,34 @@ async function main() {
     const courseFilter = flagValue(args, '--course');
     const outOverride = flagValue(args, '--out');
     const csvFlag = flagValue(args, '--csv');
-    const csvPath = csvFlag ? path.resolve(csvFlag) : path.join(ROOT, MASTER_CSV_REL);
     const dryRun = args.includes('--dry-run');
     const check = args.includes('--check');
     const requireVideos = args.includes('--require-videos');
 
     const outDir = outOverride ? path.resolve(outOverride) : CONFIG_DIR;
 
-    let rows;
-    try {
-        ({ rows } = parseCsv(await fs.readFile(csvPath, 'utf8')));
-    } catch (err) {
-        console.error(`ERROR: cannot read master CSV ${csvPath}: ${err.message}`);
+    let csvPaths = [];
+    if (csvFlag) {
+        csvPaths = [path.resolve(csvFlag)];
+    } else {
+        const pubDir = path.join(ROOT, 'public');
+        const files = await fs.readdir(pubDir);
+        csvPaths = files.filter((f) => f.endsWith('.master.csv')).map((f) => path.join(pubDir, f)).sort();
+    }
+    if (csvPaths.length === 0) {
+        console.error('ERROR: no master CSV files found');
         process.exit(1);
+    }
+
+    let rows = [];
+    for (const cp of csvPaths) {
+        try {
+            const { rows: r } = parseCsv(await fs.readFile(cp, 'utf8'));
+            rows = rows.concat(r);
+        } catch (err) {
+            console.error(`ERROR: cannot read master CSV ${cp}: ${err.message}`);
+            process.exit(1);
+        }
     }
 
     const { skipped } = await generateConfigsFromRows({
