@@ -47,7 +47,7 @@ export default function ViewAndContinueButtons() {
 
                 <ChoiceColumn label={getBilingual('continue', labelLang)}>
                     <button className="btn call-btn btn-row-primary" id="continueBtn" aria-label="Continue" onClick={handleContinue}>
-                        <i className="bi bi-play-fill"></i>
+                        <i className="bi bi-chevron-right"></i>
                     </button>
                 </ChoiceColumn>
 

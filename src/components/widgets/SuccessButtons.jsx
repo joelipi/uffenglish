@@ -389,7 +389,7 @@ export function VideoButton({ canvasRef }) {
           onClick={handleProcess}
           aria-label="Continue"
         >
-          <i className="bi bi-play-fill" />
+          <i className="bi bi-chevron-right" />
         </button>
       </div>
     );
