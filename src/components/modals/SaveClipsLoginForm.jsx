@@ -12,7 +12,7 @@ export default function SaveClipsLoginForm({ onLoginSuccess, onSignupLink }) {
     const userData = useStore(appStore, (state) => state.userData);
     const guestNativeLang = useStore(appStore, (state) => state.guestNativeLanguage);
     const storedNativeLang = guestNativeLang || userData?.native_language || 'en';
-    const lang = (storedNativeLang || 'en').split('-')[0].toLowerCase();
+    const lang = (storedNativeLang === 'OTHER' ? 'en' : (storedNativeLang || 'en')).split('-')[0].toLowerCase();
 
     const {
         email,

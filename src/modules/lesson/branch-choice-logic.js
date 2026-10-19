@@ -19,9 +19,6 @@ export const BRANCH_OVERLAY_TEXT_KEY = 'video_choose_how_respond';
 // ... and for every deeper row, once a group has been chosen.
 export const BRANCH_DEEP_OVERLAY_TEXT_KEY = 'video_choose_exactly';
 
-// Combined English + translation length above which the label drops the localized
-// line and shows English only. The single "space does not allow" knob.
-
 export function isBranchingStep(step) {
     return step?.responseType === BRANCH_RESPONSE_TYPE;
 }

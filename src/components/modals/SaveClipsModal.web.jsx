@@ -30,7 +30,8 @@ export default function SaveClipsModal() {
     useEffect(() => {
         if (isOpen) setMode('signup');
     }, [isOpen]);
-    const lang = (guestNativeLang || userData?.native_language || 'en').split('-')[0].toLowerCase();
+    const rawLang = guestNativeLang || userData?.native_language || 'en';
+    const lang = (rawLang === 'OTHER' ? 'en' : rawLang).split('-')[0].toLowerCase();
 
     // Open/close the native <dialog> in sync with `saveClipsModalOpen`.
     useEffect(() => {
