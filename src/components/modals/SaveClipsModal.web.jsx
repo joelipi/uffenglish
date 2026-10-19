@@ -4,19 +4,19 @@
 // press, and generation resumes once the modal closes (signup/login success or
 // "Not now").
 //
-// The signup form is rendered inline (SaveClipsSignupForm) — no navigation to
-// /signup. Log In still navigates to /login with a redirect back here.
+// Both the signup and login forms are rendered inline (SaveClipsSignupForm /
+// SaveClipsLoginForm) — no navigation away from the success screen.
 //
 // The lessonId is captured by the caller (SuccessButtons) into
 // `pendingPublishLessonId` at modal-open time, so it survives the login
 // navigation (Zustand state persists across route changes in the session).
-import React, { useEffect, useRef } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import React, { useEffect, useRef, useState } from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store/store.js';
 import { trackEvent } from '../../modules/utils/posthog.js';
 import Strings from '../../data/strings.js';
 import SaveClipsSignupForm from './SaveClipsSignupForm.jsx';
+import SaveClipsLoginForm from './SaveClipsLoginForm.jsx';
 
 export default function SaveClipsModal() {
     const isOpen = useStore(appStore, (state) => state.saveClipsModalOpen);
@@ -24,9 +24,12 @@ export default function SaveClipsModal() {
     const userData = useStore(appStore, (state) => state.userData);
     const guestNativeLang = useStore(appStore, (state) => state.guestNativeLanguage);
     const dialogRef = useRef(null);
-    const location = useLocation();
-    const navigate = useNavigate();
-    const currentUrl = location.pathname + location.search;
+    const [mode, setMode] = useState('signup');
+
+    // Reset to the signup form whenever the modal (re)opens.
+    useEffect(() => {
+        if (isOpen) setMode('signup');
+    }, [isOpen]);
     const lang = (guestNativeLang || userData?.native_language || 'en').split('-')[0].toLowerCase();
 
     // Open/close the native <dialog> in sync with `saveClipsModalOpen`.
@@ -77,8 +80,12 @@ export default function SaveClipsModal() {
 
     const handleLoginLink = () => {
         trackEvent('publish_clips_modal_action', { action: 'login' });
-        appStore.getState().setSaveClipsModalOpen(false);
-        navigate(`/login?redirect=${encodeURIComponent(currentUrl)}`);
+        setMode('login');
+    };
+
+    const handleSignupLink = () => {
+        trackEvent('publish_clips_modal_action', { action: 'signup' });
+        setMode('signup');
     };
 
     return (
@@ -97,13 +104,23 @@ export default function SaveClipsModal() {
                         <p className="text-light" id="saveClipsModalBodyText">
                             {Strings.get('save_clips_body', lang)}
                         </p>
-                        <SaveClipsSignupForm
-                            onSignupSuccess={() => {
-                                appStore.getState().setPendingPublishLessonId(null);
-                                appStore.getState().setSaveClipsModalOpen(false);
-                            }}
-                            onLoginLink={handleLoginLink}
-                        />
+                        {mode === 'login' ? (
+                            <SaveClipsLoginForm
+                                onLoginSuccess={() => {
+                                    appStore.getState().setPendingPublishLessonId(null);
+                                    appStore.getState().setSaveClipsModalOpen(false);
+                                }}
+                                onSignupLink={handleSignupLink}
+                            />
+                        ) : (
+                            <SaveClipsSignupForm
+                                onSignupSuccess={() => {
+                                    appStore.getState().setPendingPublishLessonId(null);
+                                    appStore.getState().setSaveClipsModalOpen(false);
+                                }}
+                                onLoginLink={handleLoginLink}
+                            />
+                        )}
                         <button
                             type="button"
                             className="btn btn-outline-light w-100 mt-3"

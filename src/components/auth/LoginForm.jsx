@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { supabase, getCurrentUser } from '../../modules/api/supabase.js';
 import { queryClient, getUserProfile } from '../../modules/api/api.js';
+import { appStore } from '../../modules/store/store.js';
 import { identifyUser, trackEvent } from '../../modules/utils/posthog.js';
 import { flushPendingFriendCredits } from '../../modules/user/friend-credit-sync.js';
 
@@ -33,6 +34,14 @@ export function useLoginForm({ onLoginSuccess } = {}) {
                     trackEvent('login', { method: 'existing_session' });
                     // A restored session can carry pre-auth guest credits.
                     void flushPendingFriendCredits();
+                    try {
+                        queryClient.invalidateQueries({ queryKey: ['user', 'profile'] });
+                        const profile = await getUserProfile();
+                        appStore.getState().setIsLoggedIn(true);
+                        appStore.getState().setCourseData({ userData: profile });
+                    } catch (e) {
+                        console.warn('[Login] Profile sync failed:', e);
+                    }
                     onLoginSuccess?.();
                     return;
                 }
@@ -46,7 +55,14 @@ export function useLoginForm({ onLoginSuccess } = {}) {
             queryClient.setQueryData(['auth', 'status'], true);
             // Deferred friend credit for guest completions before this login.
             void flushPendingFriendCredits();
-            getUserProfile().catch(err => console.warn('[Login] Profile pre-fetch failed:', err));
+            try {
+                queryClient.invalidateQueries({ queryKey: ['user', 'profile'] });
+                const profile = await getUserProfile();
+                appStore.getState().setIsLoggedIn(true);
+                appStore.getState().setCourseData({ userData: profile });
+            } catch (err) {
+                console.warn('[Login] Profile sync failed:', err);
+            }
             identifyAfterLogin();
             onLoginSuccess?.();
         } catch (err) {
