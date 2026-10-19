@@ -67,11 +67,10 @@
         {
           "cue": "",
           "responseType": "lessonIntro",
-          "introBackgroundVideoUrl": "wouldyourather-a-01"
+          "introBackgroundVideoUrl": "wouldyourather-a-01-01"
         },
         {
           "responseType": "branching",
-          "simpleVideoUrl": "wouldyourather-a-01",
           "chooseStep": [
             {
               "nextStep": 1,
