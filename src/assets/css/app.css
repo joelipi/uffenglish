@@ -569,7 +569,7 @@ body { margin: 0; font-family: var(--font-body); font-size: 1rem; font-weight: 4
 }
 
 .stats-header-label {
-    font-size: clamp(0.45rem, 2.3cqi, 0.7rem) !important;
+    font-size: clamp(0.45rem, 2.3cqi, 0.539rem) !important;
     color: #ffffff !important;
     white-space: nowrap;
     display: block;
@@ -1216,7 +1216,7 @@ body { margin: 0; font-family: var(--font-body); font-size: 1rem; font-weight: 4
     font-family: inherit;
     padding: 2px 8px;
     margin: 2px;
-    font-size: clamp(0.7rem, 4.2cqi, 1.1rem);
+    font-size: clamp(0.7rem, 4.2cqi, 0.984rem);
 }
 
 .ivp-token-revealed,
@@ -1228,7 +1228,7 @@ body { margin: 0; font-family: var(--font-body); font-size: 1rem; font-weight: 4
 }
 
 .ivp-token-punctuation {
-    font-size: clamp(1rem, 6cqi, 1.8rem);
+    font-size: clamp(1.0rem, 6.0cqi, 1.406rem);
     padding: 2px 6px;
     font-weight: bold;
 }
@@ -1372,7 +1372,7 @@ body { margin: 0; font-family: var(--font-body); font-size: 1rem; font-weight: 4
     text-shadow: 0 0 8px rgba(0, 0, 0, 0.8);
 }
 .ivp-choice-label-arrow {
-    font-size: clamp(0.6rem, 3cqi, 1rem);
+    font-size: clamp(0.6rem, 3.0cqi, 0.703rem);
     line-height: 1;
     color: #ffffff;
     text-shadow: 0 0 8px rgba(0, 0, 0, 0.8);
@@ -1858,7 +1858,7 @@ body { margin: 0; font-family: var(--font-body); font-size: 1rem; font-weight: 4
     flex-direction: column;
     align-items: center;
     gap: 4px;
-    font-size: clamp(0.7rem, 3.5cqi, 1rem);
+    font-size: clamp(0.7rem, 3.5cqi, 0.82rem);
     font-weight: 700;
     margin: 8px;
     text-transform: uppercase;
@@ -1866,19 +1866,19 @@ body { margin: 0; font-family: var(--font-body); font-size: 1rem; font-weight: 4
 }
 
 .intro-call-subtitle {
-    font-size: clamp(0.65rem, 3cqi, 0.9rem);
+    font-size: clamp(0.65rem, 3.0cqi, 0.703rem);
     opacity: 0.9;
 }
 
 .intro-caller-name {
-    font-size: clamp(0.7rem, 3.5cqi, 1rem);
+    font-size: clamp(0.7rem, 3.5cqi, 0.82rem);
     font-weight: 800;
     text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
     margin-bottom: 2px;
 }
 
 .intro-caller-title {
-    font-size: clamp(0.65rem, 3cqi, 0.9rem);
+    font-size: clamp(0.65rem, 3.0cqi, 0.703rem);
     opacity: 0.8;
 }
 
