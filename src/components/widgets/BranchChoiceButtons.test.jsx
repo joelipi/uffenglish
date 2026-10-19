@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import BranchChoiceButtons from './BranchChoiceButtons.jsx';
+import { appStore } from '../../modules/store/store.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -149,7 +150,8 @@ describe('BranchChoiceButtons', () => {
         expect(onContinue).toHaveBeenCalledTimes(1);
     });
 
-    it('always renders the replay and tutorial corner buttons', () => {
+    it('renders the replay and tutorial corner buttons when a video is available', () => {
+        appStore.getState().setCurrentVideo({ type: 'simple', url: '/assets/videos/x.mp4' });
         const onReplay = vi.fn();
         render({ view: twoChoicesView, onChoose: vi.fn(), onReplay, onContinue: vi.fn() });
 

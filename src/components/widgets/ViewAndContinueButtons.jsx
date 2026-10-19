@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { appStore, getCurrentVideoPlayer } from '../../modules/store/store.js';
+import { useStore } from 'zustand';
 import { getViewAndContinueHandler } from '../../modules/lesson/step-executor-webonly.js';
 import { createTutorialOpener } from '../../modules/video/tutorial-logic.js';
 import { getBilingual } from '../../data/strings.js';
@@ -9,6 +10,7 @@ import { useNativeLanguage } from '../../hooks/use-native-language.js';
 
 export default function ViewAndContinueButtons() {
     const [showTutorial, setShowTutorial] = useState(false);
+    const currentVideo = useStore(appStore, (state) => state.currentVideo);
 
     const labelLang = useNativeLanguage();
 
@@ -39,11 +41,13 @@ export default function ViewAndContinueButtons() {
     return (
         <>
             <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'flex-end', width: '100%', gap: '8px' }}>
-                <ChoiceColumn label={getBilingual('video_replay', labelLang)}>
-                    <button className="btn call-btn" id="replayBtn" aria-label="Replay Video" onClick={handleReplay}>
-                        <i className="bi bi-arrow-repeat"></i>
-                    </button>
-                </ChoiceColumn>
+                {currentVideo?.url && (
+                    <ChoiceColumn label={getBilingual('video_replay', labelLang)}>
+                        <button className="btn call-btn" id="replayBtn" aria-label="Replay Video" onClick={handleReplay}>
+                            <i className="bi bi-arrow-repeat"></i>
+                        </button>
+                    </ChoiceColumn>
+                )}
 
                 <ChoiceColumn label={getBilingual('continue', labelLang)}>
                     <button className="btn call-btn btn-row-primary" id="continueBtn" aria-label="Continue" onClick={handleContinue}>

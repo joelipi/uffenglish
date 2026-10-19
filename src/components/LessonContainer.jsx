@@ -54,6 +54,7 @@ export default function LessonContainer() {
     const configData = useStore(appStore, (state) => state.configData);
     const currentLessonIndex = useStore(appStore, (state) => state.currentLessonIndex);
     const currentStepIndex = useStore(appStore, (state) => state.currentStepIndex);
+    const currentVideo = useStore(appStore, (state) => state.currentVideo);
     const topState = useStore(appStore, (state) => state.topState);
     const mediaVisible = useStore(appStore, (state) => state.mediaVisible);
     const mediaState = useStore(appStore, (state) => state.mediaState);
@@ -327,6 +328,7 @@ export default function LessonContainer() {
                                         onBack={handleBranchBack}
                                         onReplay={handleBranchReplay}
                                         onContinue={onLoadNextLesson}
+                                        showReplay={!!currentVideo?.url}
                                     />
                                 </div>
                             )}

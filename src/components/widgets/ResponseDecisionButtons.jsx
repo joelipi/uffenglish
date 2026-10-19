@@ -48,11 +48,13 @@ export default function ResponseDecisionButtons() {
     return (
         <>
             <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'flex-end', width: '100%', gap: '8px' }}>
-                <ChoiceColumn label={getBilingual('video_replay', labelLang)}>
-                    <button className="btn call-btn" id="responseReplayBtn" aria-label="Replay Video" onClick={handleReplay}>
-                        <i className="bi bi-arrow-repeat"></i>
-                    </button>
-                </ChoiceColumn>
+                {currentVideo?.url && (
+                    <ChoiceColumn label={getBilingual('video_replay', labelLang)}>
+                        <button className="btn call-btn" id="responseReplayBtn" aria-label="Replay Video" onClick={handleReplay}>
+                            <i className="bi bi-arrow-repeat"></i>
+                        </button>
+                    </ChoiceColumn>
+                )}
 
                 <ChoiceColumn label={getBilingual(getResponseAnswerLabelKey(currentVideo?.responseType), labelLang)}>
                     <div style={{ display: 'flex', gap: '8px' }}>
