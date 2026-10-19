@@ -7,7 +7,6 @@ import {
     BRANCH_OVERLAY_PHASE,
     BRANCH_OVERLAY_TEXT_KEY,
     BRANCH_DEEP_OVERLAY_TEXT_KEY,
-    BRANCH_LABEL_CHAR_CAP,
     isBranchingStep,
     resolveBranchNodes,
     resolveBranchChoices,
@@ -31,7 +30,6 @@ describe('branch-choice-logic constants', () => {
         expect(BRANCH_OVERLAY_PHASE).toBe('simpleVideo-decisionTime-branching');
         expect(BRANCH_OVERLAY_TEXT_KEY).toBe('video_choose_how_respond');
         expect(BRANCH_DEEP_OVERLAY_TEXT_KEY).toBe('video_choose_exactly');
-        expect(BRANCH_LABEL_CHAR_CAP).toBe(48);
     });
 
     it('identifies branching steps only', () => {
@@ -270,11 +268,11 @@ describe('buildBranchChoiceView', () => {
     // this guards (one button bilingual, its neighbour translation-only).
     const atCapText = () => ({
         en: 'a'.repeat(24),
-        es: 'b'.repeat(BRANCH_LABEL_CHAR_CAP - 24),
+        es: 'b'.repeat(24),
     });
     const overCapText = () => ({
         en: 'a'.repeat(24),
-        es: 'b'.repeat(BRANCH_LABEL_CHAR_CAP - 24 + 1),
+        es: 'b'.repeat(25),
     });
 
     it('shows both lines on every button when all labels fit the cap', () => {
@@ -360,7 +358,7 @@ describe('buildBranchChoiceView (nested)', () => {
     it('decides the English cap per level', () => {
         const overCapText = () => ({
             en: 'a'.repeat(24),
-            es: 'b'.repeat(BRANCH_LABEL_CHAR_CAP - 24 + 1),
+            es: 'b'.repeat(25),
         });
         const step = {
             responseType: 'branching',

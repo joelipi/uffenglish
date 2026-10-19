@@ -70,7 +70,7 @@ export default function LessonContainer() {
     const [branchPath, setBranchPath] = useState([]);
     useEffect(() => {
         setBranchPath((prev) => (prev.length === 0 ? prev : []));
-    }, [currentStepIndex]);
+    }, [currentStepIndex, currentLessonIndex]);
 
     const [lesson, setLesson] = useState(null);
 

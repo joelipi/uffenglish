@@ -64,7 +64,7 @@ let compositeLiveness = null;
 let compositeFreezeReporter = null;
 let compositeFreezeTickTimer = null;
 let compositeLastSourceTime = 0;
-let compositeMeta = { lessonId: null, stepIndex: null, responseType: null };
+let compositeCanvasEl = null;
 
 let recognition = null;
 let recognitionTimeout = null;
@@ -119,6 +119,7 @@ function createPortraitCaptureStream(rawStream) {
     canvas.height = dims.height;
     canvas.style.cssText = 'position:fixed;top:0;left:0;width:2px;height:4px;opacity:0.01;pointer-events:none;';
     document.body.appendChild(canvas);
+    compositeCanvasEl = canvas;
     const ctx = canvas.getContext('2d');
 
     // Hidden element playing the raw camera stream; we sample it into the canvas.
@@ -238,6 +239,10 @@ function teardownPortraitCapture() {
         compositeVideoEl.srcObject = null;
         if (compositeVideoEl.parentNode) compositeVideoEl.parentNode.removeChild(compositeVideoEl);
         compositeVideoEl = null;
+    }
+    if (compositeCanvasEl) {
+        if (compositeCanvasEl.parentNode) compositeCanvasEl.parentNode.removeChild(compositeCanvasEl);
+        compositeCanvasEl = null;
     }
     if (compositeRawStream) {
         compositeRawStream.getTracks().forEach((t) => { try { t.stop(); } catch (e) { /* ignore */ } });

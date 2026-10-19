@@ -49,21 +49,6 @@ export default function SaveClipsModal() {
         }
     }, [isOpen, pendingPublishLessonId]);
 
-    // Post-login effect: when the user completes login and lands back on
-    // the success page, userData transitions from the synthetic guest object
-    // to a real Supabase profile (auth_method === 'supabase'), while
-    // pendingPublishLessonId is still set. Clear the pending state and close
-    // the modal — the success screen then resumes video generation.
-    // CRITICAL: must check auth_method === 'supabase' — the guest synthetic
-    // userData object ({ $id: 'guest', auth_method: 'guest' }) is truthy and
-    // would otherwise clear the state on mount.
-    useEffect(() => {
-        if (userData?.auth_method === 'supabase' && pendingPublishLessonId) {
-            appStore.getState().setPendingPublishLessonId(null);
-            appStore.getState().setSaveClipsModalOpen(false);
-        }
-    }, [userData, pendingPublishLessonId]);
-
     const handleNotNow = () => {
         trackEvent('publish_clips_declined', { lessonId: pendingPublishLessonId });
         appStore.getState().setPendingPublishLessonId(null);
