@@ -469,7 +469,7 @@
       "recapSources": "friend",
       "recapOverlay": "shareCta",
       "title": {
-        "en": "Answer: money vs. time, food vs. talk, vacation vs. weather",
+        "en": "$1 million or $5 million?",
         "es": "Respuesta: dinero vs. tiempo, comida vs. conversación, vacaciones vs. clima",
         "pt": "Resposta: dinheiro vs. tempo, comida vs. conversa, férias vs. clima",
         "bn": "উত্তর: টাকা বনাম সময়, খাবার বনাম কথোপকথন, ছুটি বনাম আবহাওয়া",
@@ -507,7 +507,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-a-01",
+          "simpleVideoUrl": "{friendCode}{selfCode}-wouldyourather-a-01",
           "cue": [
             {
               "en": "A million dollars today or five million dollars in five years?",
