@@ -242,7 +242,15 @@
               "hi": "बढ़िया खाने वाला भोजन या बढ़िया बातचीत वाला भोजन?"
             }
           ],
-          "nextStep": 4
+          "nextStep": 4,
+          "subtitles": {
+            "en": "1\n00:00:00,000 --> 00:00:04,400\nA meal with great food or a meal with great conversation.",
+            "es": "1\n00:00:00,000 --> 00:00:04,400\nUna comida con excelente comida o una comida con una gran conversación.",
+            "pt": "1\n00:00:00,000 --> 00:00:04,400\nUma refeição com ótima comida ou uma refeição com ótima conversa.",
+            "fr": "1\n00:00:00,000 --> 00:00:04,400\nUn repas avec de la super nourriture ou un repas avec une excellente conversation.",
+            "hi": "1\n00:00:00,000 --> 00:00:04,400\nशानदार खाने वाला भोजन या बेहतरीन बातचीत वाला भोजन।",
+            "bn": "1\n00:00:00,000 --> 00:00:04,400\nদারুণ খাবার বা দারুণ কথোপকথনের একটি খাবার।"
+          }
         },
         {
           "responseType": "friendClosedResponse",
@@ -257,7 +265,15 @@
               "hi": "कौन सा बेहतर है: शानदार खाने वाला भोजन या शानदार बातचीत वाला भोजन?"
             }
           ],
-          "nextStep": 3
+          "nextStep": 3,
+          "subtitles": {
+            "en": "1\n00:00:00,000 --> 00:00:06,000\nWhich is better, a meal with great food or a meal with great conversation.",
+            "es": "1\n00:00:00,000 --> 00:00:06,000\n¿Qué es mejor, una comida con excelente comida o una comida con una gran conversación.",
+            "pt": "1\n00:00:00,000 --> 00:00:06,000\nO que é melhor, uma refeição com ótima comida ou uma refeição com ótima conversa.",
+            "fr": "1\n00:00:00,000 --> 00:00:06,000\nQu'est-ce qui est mieux, un repas avec de la super nourriture ou un repas avec une super conversation.",
+            "hi": "1\n00:00:00,000 --> 00:00:06,000\nकौन सा बेहतर है, शानदार खाने वाला भोजन या शानदार बातचीत वाला भोजन।",
+            "bn": "1\n00:00:00,000 --> 00:00:06,000\nকোনটি ভালো, দারুণ খাবারের একটি খাবার নাকি দারুণ কথোপকথনের একটি খাবার।"
+          }
         },
         {
           "responseType": "friendClosedResponse",
@@ -272,7 +288,15 @@
               "hi": "आप ऐसा भोजन पसंद करेंगे जिसमें खाना शानदार हो या ऐसा भोजन जिसमें बातचीत शानदार हो?"
             }
           ],
-          "nextStep": 2
+          "nextStep": 2,
+          "subtitles": {
+            "en": "1\n00:00:00,000 --> 00:00:05,000\nWould you rather have a meal with great food or have a meal with great conversation?",
+            "es": "1\n00:00:00,000 --> 00:00:05,000\n¿Preferirías tener una comida con excelente comida o tener una comida con una gran conversación?",
+            "pt": "1\n00:00:00,000 --> 00:00:05,000\nVocê prefere fazer uma refeição com ótima comida ou com uma ótima conversa?",
+            "fr": "1\n00:00:00,000 --> 00:00:05,000\nPréférez-vous un repas avec de la super nourriture ou un repas avec une super conversation ?",
+            "hi": "1\n00:00:00,000 --> 00:00:05,000\nक्या आप शानदार भोजन के साथ भोजन करना पसंद करेंगे या बेहतरीन बातचीत के साथ?",
+            "bn": "1\n00:00:00,000 --> 00:00:05,000\nআপনি কি চমৎকার খাবারসহ একটি খাবার নাকি চমৎকার কথোপকথনসহ একটি খাবার পেতে পছন্দ করবেন?"
+          }
         },
         {
           "responseType": "friendClosedResponse",
@@ -287,7 +311,15 @@
               "hi": "अगर आपको चुनाव करना पड़े कि आप एक ऐसा भोजन करें जिसमें स्वादिष्ट खाना हो, और एक ऐसा भोजन करें जिसमें बढ़िया बातचीत हो, तो आप कौन सा चुनेंगे?"
             }
           ],
-          "nextStep": 1
+          "nextStep": 1,
+          "subtitles": {
+            "en": "1\n00:00:00,000 --> 00:00:05,280\nGiven the choice between having a meal with great food and having a meal with great conversation,\n\n2\n00:00:05,280 --> 00:00:07,040\nwhich would you choose?",
+            "es": "1\n00:00:00,000 --> 00:00:05,280\nDada la opción entre tener una comida con excelente comida y tener una comida con una gran conversación,\n\n2\n00:00:05,280 --> 00:00:07,040\n¿cuál elegirías?",
+            "pt": "1\n00:00:00,000 --> 00:00:05,280\nDada a escolha entre ter uma refeição com comida excelente e ter uma refeição com uma conversa excelente,\n\n2\n00:00:05,280 --> 00:00:07,040\nqual você escolheria?",
+            "fr": "1\n00:00:00,000 --> 00:00:05,280\nÉtant donné le choix entre un repas avec de la super cuisine et un repas avec une super conversation,\n\n2\n00:00:05,280 --> 00:00:07,040\nque choisiriez-vous ?",
+            "hi": "1\n00:00:00,000 --> 00:00:05,280\nशानदार खाना खाने और बेहतरीन बातचीत के साथ खाना खाने के बीच विकल्प दिया जाए, तो,\n\n2\n00:00:05,280 --> 00:00:07,040\nआप किसे चुनेंगे?",
+            "bn": "1\n00:00:00,000 --> 00:00:05,280\nচমৎকার খাবারযুক্ত কোনো খাবারের আয়োজন নাকি দারুণ কথোপকথনযুক্ত কোনো খাবারের আয়োজন—এই দুটির মধ্যে কোনো একটি বেছে নিতে বললে,\n\n2\n00:00:05,280 --> 00:00:07,040\nআপনি কোনটি বেছে নেবেন?"
+          }
         },
         {
           "responseType": "branching",
@@ -352,7 +384,15 @@
               "hi": "अच्छे मौसम के साथ छोटी समुद्र तट की छुट्टी या खराब मौसम के साथ लंबी समुद्र तट की छुट्टी?"
             }
           ],
-          "nextStep": 4
+          "nextStep": 4,
+          "subtitles": {
+            "en": "1\n00:00:00,000 --> 00:00:06,800\nA short beach vacation with great weather or a long beach vacation with bad weather.",
+            "es": "1\n00:00:00,000 --> 00:00:06,800\nUna corta vacaciones en la playa con excelente clima o unas largas vacaciones en la playa con mal clima.",
+            "pt": "1\n00:00:00,000 --> 00:00:06,800\nUma curta viagem de férias à praia com ótimo tempo ou uma longa viagem de férias à praia com mau tempo.",
+            "fr": "1\n00:00:00,000 --> 00:00:06,800\nDes vacances courtes à la plage avec un temps magnifique ou de longues vacances à la plage avec du mauvais temps.",
+            "hi": "1\n00:00:00,000 --> 00:00:06,800\nबहुत अच्छे मौसम के साथ एक छोटी बीच की छुट्टी या खराब मौसम के साथ बीच की एक लंबी छुट्टी।",
+            "bn": "1\n00:00:00,000 --> 00:00:06,800\nচমৎকার আবহাওয়ার সাথে একটি ছোট সমুদ্র সৈকত ছুটি নাকি খারাপ আবহাওয়ার সাথে একটি দীর্ঘ সমুদ্র সৈকত ছুটি।"
+          }
         },
         {
           "responseType": "friendClosedResponse",
@@ -367,7 +407,15 @@
               "hi": "कौन सा बेहतर है: अच्छे मौसम के साथ छोटी समुद्र-तट छुट्टी या खराब मौसम के साथ लंबी समुद्र-तट छुट्टी?"
             }
           ],
-          "nextStep": 3
+          "nextStep": 3,
+          "subtitles": {
+            "en": "1\n00:00:00,000 --> 00:00:07,000\nWhich is better, a short beach vacation with great weather or a long beach vacation with bad weather.",
+            "es": "1\n00:00:00,000 --> 00:00:07,000\n¿Qué es mejor, unas vacaciones cortas en la playa con buen clima o unas vacaciones largas en la playa con mal clima?",
+            "pt": "1\n00:00:00,000 --> 00:00:07,000\nO que é melhor, férias curtas na praia com ótimo clima ou férias longas na praia com clima ruim.",
+            "fr": "1\n00:00:00,000 --> 00:00:07,000\nQu'est-ce qui est mieux, des vacances courtes à la plage avec du beau temps ou des vacances longues à la plage avec du mauvais temps ?",
+            "hi": "1\n00:00:00,000 --> 00:00:07,000\nकौन सा बेहतर है, शानदार मौसम के साथ समुद्र तट की छोटी छुट्टी या खराब मौसम के साथ समुद्र तट की लंबी छुट्टी।",
+            "bn": "1\n00:00:00,000 --> 00:00:07,000\nকোনটি ভালো, দারুণ আবহাওয়ার সাথে একটি ছোট সৈকত ছুটি নাকি খারাপ আবহাওয়ার সাথে একটি দীর্ঘ সৈকত ছুটি।"
+          }
         },
         {
           "responseType": "friendClosedResponse",
@@ -382,7 +430,15 @@
               "hi": "आप समुद्र तट की छुट्टी पर जाना पसंद करेंगे जो छोटी हो लेकिन मौसम शानदार हो या ऐसी छुट्टी जो लंबी हो लेकिन मौसम खराब हो?"
             }
           ],
-          "nextStep": 2
+          "nextStep": 2,
+          "subtitles": {
+            "en": "1\n00:00:00,000 --> 00:00:08,000\nWould you rather go on a beach vacation that's short with great weather or one that's long, but with bad weather?",
+            "es": "1\n00:00:00,000 --> 00:00:08,000\n¿Preferirías ir a unas vacaciones en la playa que sean cortas con buen clima o unas que sean largas, pero con mal clima?",
+            "pt": "1\n00:00:00,000 --> 00:00:08,000\nVocê prefere tirar férias na praia que sejam curtas com ótimo tempo ou longas, mas com tempo ruim?",
+            "fr": "1\n00:00:00,000 --> 00:00:08,000\nPréféreriez-vous partir en vacances à la plage qui soient courtes mais avec un temps magnifique, ou des vacances longues mais avec du mauvais temps ?",
+            "hi": "1\n00:00:00,000 --> 00:00:08,000\nक्या आप समुद्र तट पर जाने की छुट्टी चुनेंगे जो बेहतरीन मौसम के साथ छोटी हो या फिर वह जो लंबी हो, लेकिन खराब मौसम के साथ?",
+            "bn": "1\n00:00:00,000 --> 00:00:08,000\nআপনি কি চমৎকার আবহাওয়াসহ স্বল্পস্থায়ী সৈকত ছুটিতে যেতে পছন্দ করবেন, নাকি খারাপ আবহাওয়াসহ দীর্ঘস্থায়ী ছুটিতে?"
+          }
         },
         {
           "responseType": "friendClosedResponse",
@@ -397,7 +453,15 @@
               "hi": "आदर्श मौसम के साथ एक छोटी समुद्र तट की छुट्टी और खराब मौसम के साथ एक लंबी समुद्र तट की छुट्टी के बीच चुनाव दिया जाए, तो आप क्या चुनेंगे?"
             }
           ],
-          "nextStep": 1
+          "nextStep": 1,
+          "subtitles": {
+            "en": "1\n00:00:00,000 --> 00:00:05,240\nGiven the choice between a brief beach vacation with ideal weather and a long\n\n2\n00:00:05,240 --> 00:00:11,000\nbeach vacation with inclement weather, which would you choose?",
+            "es": "1\n00:00:00,000 --> 00:00:05,240\nDada la opción entre unas breves vacaciones en la playa con un clima ideal y unas largas\n\n2\n00:00:05,240 --> 00:00:11,000\nvacaciones en la playa con mal tiempo, ¿cual elegirías?",
+            "pt": "1\n00:00:00,000 --> 00:00:05,240\nDada a escolha entre uma breve viagem à praia com clima ideal e uma longa\n\n2\n00:00:05,240 --> 00:00:11,000\nviagem à praia com tempo inclemente, qual você escolheria?",
+            "fr": "1\n00:00:00,000 --> 00:00:05,240\nÉtant donné le choix entre de courtes vacances à la plage avec une météo idéale et de longues\n\n2\n00:00:05,240 --> 00:00:11,000\nvacances à la plage avec un temps exécrable, que choisiriez-vous ?",
+            "hi": "1\n00:00:00,000 --> 00:00:05,240\nआदर्श मौसम के साथ एक छोटी समुद्र तट की छुट्टी और खराब मौसम के साथ एक लंबी\n\n2\n00:00:05,240 --> 00:00:11,000\nसमुद्र तट की छुट्टी के बीच विकल्प दिए जाने पर, आप किसे चुनेंगे?",
+            "bn": "1\n00:00:00,000 --> 00:00:05,240\nআদর্শ আবহাওয়াযুক্ত একটি সংক্ষিপ্ত সমুদ্র সৈকত ছুটি এবং দীর্ঘ সমুদ্র সৈকত ছুটির মধ্যে\n\n2\n00:00:05,240 --> 00:00:11,000\nখারাপ আবহাওয়াযুক্ত, আপনি কোনটি বেছে নেবেন?"
+          }
         }
       ]
     },
