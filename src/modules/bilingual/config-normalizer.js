@@ -130,9 +130,14 @@ export function normalizeConfig(configData, lang = 'en') {
 
     const userLang = lang || 'en';
 
+    // For anonymous viewers (no own share code) the inviter of a friend's clip
+    // cannot be known; default to the friend's code, which matches the
+    // self-initiated case where the asker published under their own code as
+    // both recorder and inviter.
+    const selfCode = appStore.getState().userData?.shareCode || appStore.getState().friendCode;
     applyShareCodeWildcards(configData, {
         friendCode: appStore.getState().friendCode,
-        selfCode: appStore.getState().userData?.shareCode,
+        selfCode,
     });
 
     configData.lessons.forEach(lesson => {
