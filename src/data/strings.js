@@ -1627,7 +1627,7 @@ const strings = {
         bn: "আপনার ইমেইল ঠিকানা নিশ্চিত করা হচ্ছে…"
     },
     'auth_confirm_email_success': {
-        en: "Thank you — your email address is confirmed.",
+        en: "Email confirmed. Redirecting...",
         es: "Gracias — tu correo electrónico está confirmado.",
         pt: "Obrigado — seu e-mail está confirmado.",
         fr: "Merci — votre adresse e-mail est confirmée.",
@@ -1688,7 +1688,7 @@ const strings = {
         bn: "আপনার ইমেইল ঠিকানা নিশ্চিত করুন"
     },
     'email_welcome_heading': {
-        en: "Welcome to Ultrafast Fluency!",
+        en: "Welcome to UFF: Ultra Fast Fluency in English.",
         es: "¡Bienvenido a Ultrafast Fluency!",
         pt: "Bem-vindo à Ultrafast Fluency!",
         fr: "Bienvenue sur Ultrafast Fluency !",
@@ -1718,7 +1718,7 @@ const strings = {
         bn: "Ultrafast Fluency-তে স্বাগতম!"
     },
     'email_welcome_intro': {
-        en: "Your account is ready to use — no confirmation needed to keep practising. Click the button below to confirm this email address so we know we can reach you (for example, to reset your password or send your progress):",
+        en: "Click this button to confirm your account.",
         es: "Tu cuenta ya está lista para usar — no necesitas confirmarla para seguir practicando. Haz clic en el botón de abajo para confirmar este correo y así saber que podemos contactarte (por ejemplo, para restablecer tu contraseña o enviarte tu progreso):",
         pt: "Sua conta já está pronta para usar — não precisa de confirmação para continuar praticando. Clique no botão abaixo para confirmar este e-mail e sabermos que podemos falar com você (por exemplo, para redefinir sua senha ou enviar seu progresso):",
         fr: "Votre compte est prêt à l'emploi — aucune confirmation n'est nécessaire pour continuer à vous entraîner. Cliquez sur le bouton ci-dessous pour confirmer cette adresse e-mail afin que nous sachions que nous pouvons vous joindre (par exemple, pour réinitialiser votre mot de passe ou vous envoyer vos progrès) :",
@@ -1778,7 +1778,7 @@ const strings = {
         bn: "আমার ইমেইল নিশ্চিত করুন"
     },
     'email_welcome_ignore': {
-        en: "If you did not create an Ultrafast Fluency account, you can ignore this email.",
+        en: "If you did not signup for UFF English, disregard this message.",
         es: "Si no creaste una cuenta de Ultrafast Fluency, puedes ignorar este correo.",
         pt: "Se você não criou uma conta na Ultrafast Fluency, pode ignorar este e-mail.",
         fr: "Si vous n'avez pas créé de compte Ultrafast Fluency, vous pouvez ignorer cet e-mail.",
