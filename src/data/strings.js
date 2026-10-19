@@ -570,6 +570,14 @@ const strings = {
         hi: "बोलिए।",
         bn: "বলুন।"
     },
+    'speak_slowly_and_carefully': {
+        en: "SPEAK SLOWLY AND CAREFULLY.",
+        es: "HABLA LENTO Y CON CUIDADO.",
+        pt: "FALE DEVAGAR E COM CUIDADO.",
+        fr: "PARLEZ LENTEMENT ET AVEC SOIN.",
+        hi: "धीरे और सावधानी से बोलें।",
+        bn: "ধীরে এবং সাবধানে বলুন।"
+    },
     'status_connecting': {
         en: "WAIT! Connecting...",
         es: "¡ESPEREMOS! Conectando...",
