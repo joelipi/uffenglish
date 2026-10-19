@@ -783,6 +783,18 @@ body { margin: 0; font-family: var(--font-body); font-size: 1rem; font-weight: 4
     justify-content: flex-end;
 }
 
+/* Branching headline shown in the top overlay (so it stays visible even when
+   the branching step has no video / SimpleVideoPlayer overlay). */
+.branch-choice-heading {
+    color: #ffffff;
+    font-size: 1.1rem;
+    font-weight: 700;
+    text-align: center;
+    text-shadow: 0 0 10px rgba(0, 0, 0, 0.7);
+    margin: 8px 0 0;
+    line-height: 1.2;
+}
+
 /* Branching multiple-choice decision row: a full-width, scrollable stack of
    text buttons on top, with the Replay / Watch Tutorial buttons in a footer
    row beneath them so the buttons can use the whole screen width while leaving
