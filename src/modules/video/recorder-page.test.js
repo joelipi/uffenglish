@@ -1018,8 +1018,11 @@ describe('recorder auto-render — zero server changes', () => {
             'src/components/SimpleVideoPlayer.web.jsx',
             // Branching step button sizing/layout (this change).
             'src/components/widgets/BranchChoiceButtons.jsx',
+            'src/components/widgets/BranchChoiceButtons.test.jsx',
             'src/components/widgets/SuccessButtons.jsx',
-            'src/components/widgets/ViewAndContinueButtons.jsx',            'src/modules/lesson/branch-choice-logic.js',
+            'src/components/widgets/ViewAndContinueButtons.jsx',
+            'src/components/widgets/ResponseDecisionButtons.jsx',
+            'src/modules/lesson/branch-choice-logic.js',
             'src/modules/lesson/branch-choice-logic.test.js',
             'src/modules/lesson/branch-choice-wiring.test.js',
 // Signup profile-write race (geo upsert vs signup insert) + the

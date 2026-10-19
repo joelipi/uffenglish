@@ -15,7 +15,7 @@ import TutorialModal from './TutorialModal.jsx';
 //   so the container reveals the next level;
 // - a leaf choice carries `targetIndex` -> pressing it calls `onChoose(target)`.
 // `view.canGoBack` renders a Back button that calls `onBack`.
-export default function BranchChoiceButtons({ view, onChoose, onChooseGroup, onBack, onReplay, onContinue }) {
+export default function BranchChoiceButtons({ view, onChoose, onChooseGroup, onBack, onReplay, onContinue, showReplay = true }) {
     const [showTutorial, setShowTutorial] = useState(false);
     const labelLang = useNativeLanguage();
     const choices = view?.choices || [];
@@ -82,11 +82,13 @@ export default function BranchChoiceButtons({ view, onChoose, onChooseGroup, onB
                 </div>
 
                 <div className="branch-choice-footer">
-                    <ChoiceColumn label={getBilingual('video_replay', labelLang)}>
-                        <button className="btn call-btn" id="branchReplayBtn" aria-label="Replay Video" onClick={() => onReplay()}>
-                            <i className="bi bi-arrow-repeat"></i>
-                        </button>
-                    </ChoiceColumn>
+                    {showReplay && (
+                        <ChoiceColumn label={getBilingual('video_replay', labelLang)}>
+                            <button className="btn call-btn" id="branchReplayBtn" aria-label="Replay Video" onClick={() => onReplay()}>
+                                <i className="bi bi-arrow-repeat"></i>
+                            </button>
+                        </ChoiceColumn>
+                    )}
 
                     <ChoiceColumn label={getBilingual('watch_tutorial', labelLang)}>
                         <button className="btn call-btn" id="branchTutorialBtn" aria-label="Watch Tutorial" onClick={handleTutorial}>
