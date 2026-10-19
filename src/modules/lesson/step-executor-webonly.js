@@ -65,7 +65,6 @@ export function createLoadStep(deps) {
     const {
         submitAnswerPrecheck,
         showFeedbackAndProceed,
-        warmUpSpeechCam,
         toggleSpeechRecognition,
         listeningState,
         clearChat,
@@ -104,15 +103,17 @@ export function createLoadStep(deps) {
         const isFirstResponse = appStore.getState().appPhase === 'firstResponse';
         if (step.responseType === 'closedResponse' || step.responseType === 'openResponse' || step.responseType === 'friendClosedResponse') {
             if (isFirstResponse) {
-                // Defer warmup — IntroChoices hasn't appeared yet.
-                // The speech callback (wired by _renderResponseStep) will
-                // warm up the cam when the user picks voice/video mode.
-            } else if (!appStore.getState().isCameraOff && !appStore.getState().isTextMode) {
-                warmUpSpeechCam();
+                // Defer mic/camera acquisition — IntroChoices hasn't appeared
+                // yet. The speech callback (wired by _renderResponseStep) will
+                // acquire the mic/cam only when the user picks voice/video mode.
             } else if (appStore.getState().isTextMode) {
                 console.log('[QuestionLoader] Text mode: bypassing hardware prompt');
             } else {
-                warmUpSpeechCam();
+                // Do not pre-acquire the mic/camera here: requesting
+                // getUserMedia / the mic AudioContext while the step video is
+                // auto-playing mutes the first second(s) of playback. The mic
+                // is acquired only when the user presses the mic button
+                // (toggleSpeechRecognition).
             }
         } else if (step.responseType === 'lessonIntro') {
             // Unlock AudioContext for iOS video autoplay without triggering camera permissions.
