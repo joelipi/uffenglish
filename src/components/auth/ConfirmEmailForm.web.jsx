@@ -1,14 +1,18 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useConfirmEmailForm } from './ConfirmEmailForm.jsx';
 import Strings from '../../data/strings.js';
+import {
+    REDIRECT_SECONDS,
+    initialCountdown,
+    nextCountdown,
+    shouldRedirect,
+} from './confirm-email-redirect-logic.js';
 
 const ALERTS = {
     pending: { className: 'alert-info', key: 'auth_confirm_email_pending' },
     confirmed: { className: 'alert-success', key: 'auth_confirm_email_success' },
     invalid: { className: 'alert-danger', key: 'auth_confirm_email_invalid' },
 };
-
-const REDIRECT_SECONDS = 3;
 
 export default function ConfirmEmailForm({ token, onContinue }) {
     const { status } = useConfirmEmailForm({ token });
@@ -17,52 +21,54 @@ export default function ConfirmEmailForm({ token, onContinue }) {
 
     const [countdown, setCountdown] = useState(null);
     const redirectedRef = useRef(false);
+    const onContinueRef = useRef(onContinue);
+    onContinueRef.current = onContinue;
+
+    const continueOnce = () => {
+        if (redirectedRef.current) return;
+        redirectedRef.current = true;
+        onContinueRef.current?.();
+    };
 
     useEffect(() => {
         if (status !== 'confirmed') {
             setCountdown(null);
+            redirectedRef.current = false;
             return;
         }
-        setCountdown(REDIRECT_SECONDS);
+        setCountdown(initialCountdown());
         const interval = setInterval(() => {
             setCountdown((prev) => {
-                if (prev === null) return null;
-                if (prev <= 1) {
+                const next = nextCountdown(prev);
+                if (shouldRedirect(next)) {
                     clearInterval(interval);
-                    if (!redirectedRef.current) {
-                        redirectedRef.current = true;
-                        onContinue?.();
-                    }
-                    return 0;
+                    continueOnce();
                 }
-                return prev - 1;
+                return next;
             });
         }, 1000);
         return () => clearInterval(interval);
-    }, [status, onContinue]);
+    }, [status]);
 
-    const headingKey = status === 'confirmed' ? 'auth_confirm_email_success' : 'auth_confirm_email_title';
+    const isConfirmed = status === 'confirmed';
 
     return (
         <>
             <h2 className="text-center mb-4" style={{ fontFamily: "'Orbitron', sans-serif", color: 'yellow' }}>
-                {Strings.get(headingKey, lang)}
+                {Strings.get(isConfirmed ? 'auth_confirm_email_success' : 'auth_confirm_email_title', lang)}
             </h2>
-            <div className={`alert ${alert.className}`} role="alert">
-                {Strings.get(alert.key, lang)}
-            </div>
-            {status === 'confirmed' && countdown !== null && (
-                <p className="text-center" data-testid="confirm-email-countdown">
+            {!isConfirmed && (
+                <div className={`alert ${alert.className}`} role="alert">
+                    {Strings.get(alert.key, lang)}
+                </div>
+            )}
+            {isConfirmed && countdown !== null && (
+                <p className="text-center" data-testid="confirm-email-countdown" aria-live="polite">
                     {countdown}
                 </p>
             )}
             {status !== 'pending' && (
-                <button type="button" className="btn btn-primary w-100" onClick={() => {
-                    if (!redirectedRef.current) {
-                        redirectedRef.current = true;
-                        onContinue?.();
-                    }
-                }}>
+                <button type="button" className="btn btn-primary w-100" onClick={continueOnce}>
                     {Strings.get('auth_confirm_email_continue', lang)}
                 </button>
             )}
