@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { supabase, getCurrentUser } from '../../modules/api/supabase.js';
 import { queryClient, getUserProfile } from '../../modules/api/api.js';
+import { appStore } from '../../modules/store/store.js';
 import { identifyUser, trackEvent } from '../../modules/utils/posthog.js';
 import { flushPendingFriendCredits } from '../../modules/user/friend-credit-sync.js';
 
@@ -21,6 +22,17 @@ export function useLoginForm({ onLoginSuccess } = {}) {
         }
     }
 
+    async function syncProfileAfterLogin() {
+        try {
+            queryClient.invalidateQueries({ queryKey: ['user', 'profile'] });
+            const profile = await getUserProfile();
+            appStore.getState().setIsLoggedIn(true);
+            appStore.getState().setCourseData({ userData: profile });
+        } catch (e) {
+            console.warn('[Login] Profile sync failed:', e);
+        }
+    }
+
     async function handleSubmit(e) {
         e.preventDefault();
         setError('');
@@ -33,6 +45,7 @@ export function useLoginForm({ onLoginSuccess } = {}) {
                     trackEvent('login', { method: 'existing_session' });
                     // A restored session can carry pre-auth guest credits.
                     void flushPendingFriendCredits();
+                    await syncProfileAfterLogin();
                     onLoginSuccess?.();
                     return;
                 }
@@ -46,7 +59,7 @@ export function useLoginForm({ onLoginSuccess } = {}) {
             queryClient.setQueryData(['auth', 'status'], true);
             // Deferred friend credit for guest completions before this login.
             void flushPendingFriendCredits();
-            getUserProfile().catch(err => console.warn('[Login] Profile pre-fetch failed:', err));
+            await syncProfileAfterLogin();
             identifyAfterLogin();
             onLoginSuccess?.();
         } catch (err) {

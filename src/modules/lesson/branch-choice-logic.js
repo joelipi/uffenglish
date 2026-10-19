@@ -19,10 +19,6 @@ export const BRANCH_OVERLAY_TEXT_KEY = 'video_choose_how_respond';
 // ... and for every deeper row, once a group has been chosen.
 export const BRANCH_DEEP_OVERLAY_TEXT_KEY = 'video_choose_exactly';
 
-// Combined English + translation length above which the label drops the localized
-// line and shows English only. The single "space does not allow" knob.
-export const BRANCH_LABEL_CHAR_CAP = 48;
-
 export function isBranchingStep(step) {
     return step?.responseType === BRANCH_RESPONSE_TYPE;
 }
@@ -118,8 +114,7 @@ export function resolveNextStepIndex(step, currentStepIndex) {
  * - localized value exists and there is room for both -> stacked (both lines).
  * - localized value exists but there is no room for both -> English only.
  *
- * The both-languages decision is made **once for the whole level** by
- * `stepShowsBoth` (the only place `BRANCH_LABEL_CHAR_CAP` is applied) and
+ * The both-languages decision is made **once for the whole level** and
  * passed in as `showBoth`, so every button visible at that level agrees and
  * this function never re-decides per label.
  *
@@ -148,6 +143,8 @@ export function formatBranchChoiceLabel(text, lang, showBoth) {
 // Maps resolved nodes to render-ready choices, recursively. The English
 // decision is made once per level and applied to every label at that level.
 function buildLevel(nodes, lang) {
+    // Localized translations are always included (see commit
+    // "Always include localized translations on branching buttons").
     const showBoth = true;
     return nodes.map((node, index) => {
         const label = formatBranchChoiceLabel(node.text, lang, showBoth);

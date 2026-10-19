@@ -1018,8 +1018,11 @@ describe('recorder auto-render — zero server changes', () => {
             'src/components/SimpleVideoPlayer.web.jsx',
             // Branching step button sizing/layout (this change).
             'src/components/widgets/BranchChoiceButtons.jsx',
+            'src/components/widgets/BranchChoiceButtons.test.jsx',
             'src/components/widgets/SuccessButtons.jsx',
-            'src/components/widgets/ViewAndContinueButtons.jsx',            'src/modules/lesson/branch-choice-logic.js',
+            'src/components/widgets/ViewAndContinueButtons.jsx',
+            'src/components/widgets/ResponseDecisionButtons.jsx',
+            'src/modules/lesson/branch-choice-logic.js',
             'src/modules/lesson/branch-choice-logic.test.js',
             'src/modules/lesson/branch-choice-wiring.test.js',
 // Signup profile-write race (geo upsert vs signup insert) + the
@@ -1050,6 +1053,9 @@ describe('recorder auto-render — zero server changes', () => {
             'src/components/courses/course-listings-source.test.js',
             'src/components/modals/GuestLoginModal.web.jsx',
             'src/components/modals/SaveClipsSignupForm.jsx',
+            'src/components/modals/SaveClipsLoginForm.jsx',
+            'src/components/modals/SaveClipsModal.web.jsx',
+            'src/components/auth/LoginForm.jsx',
             'src/components/profile/UserProfile.jsx',
             'src/data/strings.js',
             'src/data/strings-friend-practice.test.js',

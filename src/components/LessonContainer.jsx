@@ -54,6 +54,7 @@ export default function LessonContainer() {
     const configData = useStore(appStore, (state) => state.configData);
     const currentLessonIndex = useStore(appStore, (state) => state.currentLessonIndex);
     const currentStepIndex = useStore(appStore, (state) => state.currentStepIndex);
+    const currentVideo = useStore(appStore, (state) => state.currentVideo);
     const topState = useStore(appStore, (state) => state.topState);
     const mediaVisible = useStore(appStore, (state) => state.mediaVisible);
     const mediaState = useStore(appStore, (state) => state.mediaState);
@@ -70,7 +71,7 @@ export default function LessonContainer() {
     const [branchPath, setBranchPath] = useState([]);
     useEffect(() => {
         setBranchPath((prev) => (prev.length === 0 ? prev : []));
-    }, [currentStepIndex]);
+    }, [currentStepIndex, currentLessonIndex]);
 
     const [lesson, setLesson] = useState(null);
 
@@ -193,6 +194,12 @@ export default function LessonContainer() {
         [branchView, branchPath]
     );
 
+    // Heading for a branching step is derived from the nesting depth; computed
+    // here (not inline in JSX) per the logic/presentation separation rule.
+    const branchHeading = isBranchingStep(currentStep)
+        ? getBilingual(getBranchHeadingKey(branchPath.length), labelLang)
+        : null;
+
     return (
         <>
             <SystemMessageOverlay />
@@ -222,16 +229,13 @@ export default function LessonContainer() {
                         </div>
                     </div>
                     <MissionSection responseType={currentStep?.responseType} />
-                    {isBranchingStep(currentStep) && (() => {
-                        const heading = getBilingual(getBranchHeadingKey(branchPath.length), labelLang);
-                        return (
-                            <div className="branch-choice-heading">
-                                {heading.localized ? (
-                                    <>{heading.english}<br /><span lang={heading.lang}>{heading.localized}</span></>
-                                ) : heading.english}
-                            </div>
-                        );
-                    })()}
+                    {branchHeading && (
+                        <div className="branch-choice-heading">
+                            {branchHeading.localized ? (
+                                <>{branchHeading.english}<br /><span lang={branchHeading.lang}>{branchHeading.localized}</span></>
+                            ) : branchHeading.english}
+                        </div>
+                    )}
                     {topState === 'topBarWithStats' && mediaState !== 'chat' && (
                         <ScoreBoard />
                     )}
@@ -324,6 +328,7 @@ export default function LessonContainer() {
                                         onBack={handleBranchBack}
                                         onReplay={handleBranchReplay}
                                         onContinue={onLoadNextLesson}
+                                        showReplay={!!currentVideo?.url}
                                     />
                                 </div>
                             )}

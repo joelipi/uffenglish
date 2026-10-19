@@ -31,7 +31,7 @@ export default function SaveClipsSignupForm({ onSignupSuccess, onLoginLink }) {
     // so resolving profile-first here left the form labels in English while the
     // modal title/body (guest-first in SaveClipsModal) were Bengali.
     const storedNativeLang = guestNativeLang || userData?.native_language || 'en';
-    const lang = (storedNativeLang || 'en').split('-')[0].toLowerCase();
+    const lang = (storedNativeLang === 'OTHER' ? 'en' : (storedNativeLang || 'en')).split('-')[0].toLowerCase();
 
     const {
         firstName,
