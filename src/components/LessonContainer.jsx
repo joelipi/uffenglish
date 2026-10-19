@@ -44,7 +44,7 @@ import IncomingVideoWidget from './IncomingVideoWidget.jsx';
 import PointLossOverlay from './PointLossOverlay.jsx';
 import PlaybackVideo from './PlaybackVideo.jsx';
 import { loadNextStep as loadNextStepImpl, jumpToStep as jumpToStepImpl, replaySimpleVideo, handleTutorChatSubmit } from '../modules/lesson/lesson-progression.js';
-import { buildBranchChoiceView, isBranchingStep, resolveBranchLevel } from '../modules/lesson/branch-choice-logic.js';
+import { buildBranchChoiceView, isBranchingStep, resolveBranchLevel, getBranchHeadingKey } from '../modules/lesson/branch-choice-logic.js';
 import { isVideoHeaderBlurVisible, videoHeaderBlurStyle } from '../modules/video/video-header-logic.js';
 import { loadLessonContent } from '../modules/lesson/lesson-loader.js';
 import { loadStep } from './step-loader.js';
@@ -222,6 +222,16 @@ export default function LessonContainer() {
                         </div>
                     </div>
                     <MissionSection responseType={currentStep?.responseType} />
+                    {isBranchingStep(currentStep) && (() => {
+                        const heading = getBilingual(getBranchHeadingKey(branchPath.length), labelLang);
+                        return (
+                            <div className="branch-choice-heading">
+                                {heading.localized ? (
+                                    <>{heading.english}<br /><span lang={heading.lang}>{heading.localized}</span></>
+                                ) : heading.english}
+                            </div>
+                        );
+                    })()}
                     {topState === 'topBarWithStats' && mediaState !== 'chat' && (
                         <ScoreBoard />
                     )}
