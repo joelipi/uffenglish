@@ -611,6 +611,35 @@ body { margin: 0; font-family: var(--font-body); font-size: 1rem; font-weight: 4
     z-index: 30;
 }
 
+/* Friend-closed-response recording overlay: legend + phrase (English only)
+   shown as subtitles on the camera preview, kept above the bottom mic button. */
+.recording-phrase-overlay {
+    position: absolute;
+    bottom: 150px;
+    left: 0;
+    right: 0;
+    z-index: 40;
+    text-align: center;
+    padding: 0 24px;
+    pointer-events: none;
+}
+
+.recording-phrase-legend {
+    color: #fff;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 8px;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+}
+
+.recording-phrase-text {
+    color: #fff;
+    font-size: 1.2rem;
+    line-height: 1.3;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+}
+
 #webcam-preview {
     width: 100%;
     height: 100%;
@@ -754,12 +783,27 @@ body { margin: 0; font-family: var(--font-body); font-size: 1rem; font-weight: 4
     justify-content: flex-end;
 }
 
-/* Branching multiple-choice decision row: Replay (left), a vertical stack of
-   text buttons (center, wider), Watch Tutorial (right). */
+/* Branching headline shown in the top overlay (so it stays visible even when
+   the branching step has no video / SimpleVideoPlayer overlay). */
+.branch-choice-heading {
+    color: #ffffff;
+    font-size: 1.1rem;
+    font-weight: 700;
+    text-align: center;
+    text-shadow: 0 0 10px rgba(0, 0, 0, 0.7);
+    margin: 8px 0 0;
+    line-height: 1.2;
+}
+
+/* Branching multiple-choice decision row: a full-width, scrollable stack of
+   text buttons on top, with the Replay / Watch Tutorial buttons in a footer
+   row beneath them so the buttons can use the whole screen width while leaving
+   room for the corner controls. */
 .branch-choice-row {
     display: flex;
-    justify-content: space-around;
-    align-items: flex-end;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: stretch;
     width: 100%;
     gap: 8px;
 }
@@ -767,14 +811,47 @@ body { margin: 0; font-family: var(--font-body); font-size: 1rem; font-weight: 4
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    justify-content: flex-end;
-    flex: 2 1 0;
-    min-width: 0;
+    justify-content: flex-start;
+    flex: none;
+    width: 100%;
+    height: 50vh;
+    max-height: 50vh;
+    min-height: 0;
+    gap: 4px;
+    /* The button area is the only scrollable region: a permanently visible
+       scrollbar makes it obvious more choices exist. flex-start keeps the
+       first button at the top instead of pinning the list to the bottom. */
+    max-height: 50vh;
+    overflow-y: scroll;
+    overflow-x: hidden;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.6) transparent;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+}
+.branch-choice-col::-webkit-scrollbar {
+    width: 8px;
+}
+.branch-choice-col::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: 4px;
+}
+.branch-choice-col::-webkit-scrollbar-track {
+    background: transparent;
+}
+.branch-choice-footer {
+    display: flex;
+    justify-content: space-around;
+    align-items: flex-end;
+    width: 100%;
     gap: 8px;
+    margin-top: 8px;
 }
 .branch-choice-btn {
     width: 100%;
     padding: 8px 10px;
+    font-size: 1.1rem;
     border-radius: 8px;
     background: var(--uff-btn-bg);
     border: var(--uff-btn-border);
@@ -810,6 +887,7 @@ body { margin: 0; font-family: var(--font-body); font-size: 1rem; font-weight: 4
     display: block;
     font-weight: 500;
     opacity: 0.85;
+    margin-top: 2px;
 }
 /* A GROUP button (one that reveals a deeper row of choices) gets a chevron on
    the right. The label stays centred like a leaf button so the two remain
@@ -1243,14 +1321,14 @@ body { margin: 0; font-family: var(--font-body); font-size: 1rem; font-weight: 4
     animation: riseThroughWater 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
     z-index: 1;
 }
-/* Branching overlay: the "Choose how you will respond." headline sits below
+/* Branching overlay: the "Choose what you will say." headline sits below
    the blurred header band (the top ~18.5% of the frame — see .video-header-blur)
    and above the stacked choice buttons in the bottom band, which the layout
    keeps within the bottom 40% (60% from the bottom) and so never reach the
    headline's new home. */
 .ivp-overlay.ivp-overlay-branch {
     align-items: flex-start;
-    padding-top: 24vh;
+    padding-top: 16vh;
     padding-bottom: 45vh;
 }
 .ivp-overlay.ivp-overlay-branch .ivp-overlay-content {

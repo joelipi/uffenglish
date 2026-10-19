@@ -19,8 +19,8 @@ export const BRANCH_OVERLAY_TEXT_KEY = 'video_choose_how_respond';
 // ... and for every deeper row, once a group has been chosen.
 export const BRANCH_DEEP_OVERLAY_TEXT_KEY = 'video_choose_exactly';
 
-// Combined English + translation length above which the label drops the English
-// line and shows the translation only. The single "space does not allow" knob.
+// Combined English + translation length above which the label drops the localized
+// line and shows English only. The single "space does not allow" knob.
 export const BRANCH_LABEL_CHAR_CAP = 48;
 
 export function isBranchingStep(step) {
@@ -115,49 +115,42 @@ export function resolveNextStepIndex(step, currentStepIndex) {
 /**
  * Chooses how a branch choice's text renders:
  * - no localized value for `lang` -> English only (`showEnglish: true`).
- * - localized value exists and `showEnglish` -> stacked (both lines).
- * - localized value exists and `!showEnglish` -> translation only.
+ * - localized value exists and there is room for both -> stacked (both lines).
+ * - localized value exists but there is no room for both -> English only.
  *
- * The English/translation decision is made **once for the whole level** by
- * `stepShowsEnglish` (the only place `BRANCH_LABEL_CHAR_CAP` is applied) and
- * passed in as `showEnglish`, so every button visible at that level agrees and
+ * The both-languages decision is made **once for the whole level** by
+ * `stepShowsBoth` (the only place `BRANCH_LABEL_CHAR_CAP` is applied) and
+ * passed in as `showBoth`, so every button visible at that level agrees and
  * this function never re-decides per label.
  *
  * @param {object} text
  * @param {string} lang
- * @param {boolean} showEnglish level-level decision from `buildBranchChoiceView`
+ * @param {boolean} showBoth level-level decision from `buildBranchChoiceView`
  * @returns {{ english: string, localized: string|null, lang: string, showEnglish: boolean }}
  */
-export function formatBranchChoiceLabel(text, lang, showEnglish) {
+export function formatBranchChoiceLabel(text, lang, showBoth) {
     const { english, localized, shouldShowLocalized } = formatBilingualText(text, lang);
 
+    // English is the default: it is always rendered. The localized line is
+    // added only when there is room for both (showBoth); otherwise the button
+    // shows English only, never the localized language on its own.
     if (!shouldShowLocalized) {
         return { english, localized: null, lang, showEnglish: true };
     }
 
-    return { english, localized, lang, showEnglish };
-}
+    if (showBoth) {
+        return { english, localized, lang, showEnglish: true };
+    }
 
-// The char cap is a level-level, all-or-nothing decision. A button drops its
-// English line only when EVERY button visible at that level can drop it: if any
-// label's combined English + translation length exceeds BRANCH_LABEL_CHAR_CAP,
-// the whole visible column shows translation-only; otherwise every button shows
-// both lines. Deciding per level (not per step) keeps the visible buttons
-// consistent while allowing a deep level with short labels to keep its English.
-function stepShowsEnglish(nodes, lang) {
-    return nodes.every(({ text }) => {
-        const { english, localized, shouldShowLocalized } = formatBilingualText(text, lang);
-        if (!shouldShowLocalized) return true;
-        return english.length + localized.length <= BRANCH_LABEL_CHAR_CAP;
-    });
+    return { english, localized: null, lang, showEnglish: true };
 }
 
 // Maps resolved nodes to render-ready choices, recursively. The English
 // decision is made once per level and applied to every label at that level.
 function buildLevel(nodes, lang) {
-    const showEnglish = stepShowsEnglish(nodes, lang);
+    const showBoth = true;
     return nodes.map((node, index) => {
-        const label = formatBranchChoiceLabel(node.text, lang, showEnglish);
+        const label = formatBranchChoiceLabel(node.text, lang, showBoth);
         if (node.children) return { key: index, label, children: buildLevel(node.children, lang) };
         return { key: index, label, targetIndex: node.targetIndex };
     });

@@ -415,11 +415,13 @@ export default function SimpleVideoPlayer({ branchDepth = 0 } = {}) {
                         <div className="ivp-click-block" onClick={(e) => e.stopPropagation()} />
                         <div className={`ivp-overlay water-surface${appPhase === BRANCH_OVERLAY_PHASE ? ' ivp-overlay-branch' : ''}`} style={{ display: 'flex' }}>
                             <div className="ivp-overlay-content">
-                                <p className="ivp-overlay-text">
-                                    {overlayBilingual.localized ? (
-                                        <>{overlayBilingual.english}<br /><span lang={overlayBilingual.lang}>{overlayBilingual.localized}</span></>
-                                    ) : overlayBilingual.english}
-                                </p>
+                                {appPhase !== BRANCH_OVERLAY_PHASE && (
+                                    <p className="ivp-overlay-text">
+                                        {overlayBilingual.localized ? (
+                                            <>{overlayBilingual.english}<br /><span lang={overlayBilingual.lang}>{overlayBilingual.localized}</span></>
+                                        ) : overlayBilingual.english}
+                                    </p>
+                                )}
                             </div>
                         </div>
                     </>

@@ -165,15 +165,15 @@ describe('StepLoader, strings and styles', () => {
         const css = read('src/assets/css/app.css');
         const row = cssBlock(css, '.branch-choice-row {');
         expect(row).toContain('display: flex');
-        expect(row).toContain('justify-content: space-around');
-        expect(row).toContain('align-items: flex-end');
+        expect(row).toContain('justify-content: space-between');
+        expect(row).toContain('align-items: stretch');
         expect(row).toContain('width: 100%');
 
         const col = cssBlock(css, '.branch-choice-col {');
         expect(col).toContain('display: flex');
         expect(col).toContain('flex-direction: column');
-        expect(col).toContain('flex: 2 1 0');
-        expect(col).toContain('justify-content: flex-end');
+        expect(col).toContain('flex: none');
+        expect(col).toContain('justify-content: flex-start');
 
         const btn = cssBlock(css, '.branch-choice-btn {');
         expect(btn).toContain('width: 100%');
@@ -203,10 +203,10 @@ describe('StepLoader, strings and styles', () => {
         const css = read('src/assets/css/app.css');
         const overlay = cssBlock(css, '.ivp-overlay.ivp-overlay-branch {');
         expect(overlay).toMatch(/align-items:\s*flex-start/);
-        // 24vh clears the blurred video-header band (the top ~18.5% of the
+        // 20vh clears the blurred video-header band (the top ~18.5% of the
         // frame — see .video-header-blur); the choice buttons never rise higher
         // than 60% from the bottom, so the headline has room between the two.
-        expect(overlay).toMatch(/padding-top:\s*24vh/);
+        expect(overlay).toMatch(/padding-top:\s*16vh/);
         expect(overlay).toMatch(/padding-bottom:\s*45vh/);
         // The content is clamped so a long headline/translation cannot spill
         // into the reserved bottom band.
@@ -220,7 +220,7 @@ describe('StepLoader, strings and styles', () => {
     });
 
     it('ships the branch heading copy in English and Spanish', () => {
-        expect(getBilingual('video_choose_how_respond', 'en').english).toBe('Choose how you will respond.');
+        expect(getBilingual('video_choose_how_respond', 'en').english).toBe('Choose what you will say.');
         expect(getBilingual('video_choose_how_respond', 'es').localized).toBeTruthy();
     });
 

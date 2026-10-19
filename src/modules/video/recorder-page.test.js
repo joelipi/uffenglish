@@ -880,7 +880,7 @@ describe('recorder auto-render — zero server changes', () => {
         for (const callee of ['run_silence_removal', 'run_background_removal', 'process_video_batch', 'plan_publish']) {
             expect(slice, callee).toContain(callee);
         }
-        expect((slice.match(/only=files/g) || []).length).toBe(4);
+        expect((slice.match(/only=files/g) || []).length).toBe(5);
     });
 
     it('select_rows filters by membership and plan_publish dedups first-wins', () => {
@@ -921,7 +921,7 @@ describe('recorder auto-render — zero server changes', () => {
         const modal = read('docs/video-pipeline/modal_app.py');
         expect(() => {
             const slice = sliceBetween(modal, 'def orchestrator(spec', '\ndef _publish(').replace('only=files', 'only=all');
-            expect((slice.match(/only=files/g) || []).length).toBe(4);
+            expect((slice.match(/only=files/g) || []).length).toBe(5);
         }).toThrow();
         const lib = read('docs/video-pipeline/pipeline_lib.py');
         expect(() => {
@@ -1010,6 +1010,14 @@ describe('recorder auto-render — zero server changes', () => {
             'functions/api/zoho-send.js',
             'wrangler.toml',
             'src/assets/css/app.css',
+            // Branching headline visibility (this change).
+            'src/components/LessonContainer.jsx',
+            'src/components/SimpleVideoPlayer.web.jsx',
+            // Branching step button sizing/layout (this change).
+            'src/components/widgets/BranchChoiceButtons.jsx',
+            'src/modules/lesson/branch-choice-logic.js',
+            'src/modules/lesson/branch-choice-logic.test.js',
+            'src/modules/lesson/branch-choice-wiring.test.js',
 // Signup profile-write race (geo upsert vs signup insert) + the
             // non-destructive repair for rows that are missing an identity.
             'supabase/migrations/009_create_profile_on_signup.sql',

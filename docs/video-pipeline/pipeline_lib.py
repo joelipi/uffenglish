@@ -369,6 +369,55 @@ def plan_publish(rows, web_listing, only=None):
     return plan
 
 
+def plan_publish_phrase_takes(web_listing, only=None):
+    """Publish plan for the per-take phrase-only web videos.
+
+    These are written to ``output/web/<take>.mp4`` (no ``processed_``/``_full``
+    suffix) and are the files the app serves for a take. They have no CSV row,
+    so they are discovered from the web listing rather than from sheet rows.
+    """
+    listing = set(web_listing or [])
+    allowed = None
+    if only is not None:
+        allowed = set(only)
+    seen = set()
+    plan = []
+
+    def add(slug, web_name):
+        if slug in seen or not is_valid_slug(slug) or web_name not in listing:
+            return
+        video_key = published_video_key(slug)
+        poster_key = published_poster_key(slug)
+        social_key = social_video_key(slug)
+        social_still_key = social_poster_key(slug)
+        if not video_key or not poster_key:
+            return
+        seen.add(slug)
+        plan.append({
+            "slug": slug,
+            "web_name": web_name,
+            "video_key": video_key,
+            "poster_key": poster_key,
+            "social_video_key": social_key,
+            "social_poster_key": social_still_key,
+        })
+
+    for name in sorted(listing):
+        if not name.endswith(VIDEO_EXTENSION):
+            continue
+        slug = name[:-len(VIDEO_EXTENSION)]
+        if not is_valid_slug(slug):
+            continue
+        # Only phrase-only take files: no `_full` step outputs, no `processed_`
+        # intermediates, no join outputs already handled by plan_publish.
+        if slug.endswith("_full") or slug.startswith("processed_"):
+            continue
+        if allowed is not None and name not in allowed and slug not in allowed:
+            continue
+        add(slug, name)
+    return plan
+
+
 def intro_poster_slugs(rows):
     """Distinct literal lesson-intro slugs from the sheet's ``intro_video`` column.
 
