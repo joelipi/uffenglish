@@ -1010,6 +1010,9 @@ describe('recorder auto-render — zero server changes', () => {
             'functions/api/zoho-send.js',
             'wrangler.toml',
             'src/assets/css/app.css',
+            'src/components/video-header-blur.test.js',
+            'src/config/wouldyourather-test.json',
+            'src/modules/lesson/branch-choice-wiring.test.js',
             // Branching headline visibility (this change).
             'src/components/LessonContainer.jsx',
             'src/components/SimpleVideoPlayer.web.jsx',

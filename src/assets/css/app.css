@@ -1328,7 +1328,7 @@ body { margin: 0; font-family: var(--font-body); font-size: 1rem; font-weight: 4
    headline's new home. */
 .ivp-overlay.ivp-overlay-branch {
     align-items: flex-start;
-    padding-top: 16vh;
+    padding-top: 19vh;
     padding-bottom: 45vh;
 }
 .ivp-overlay.ivp-overlay-branch .ivp-overlay-content {
