@@ -57,7 +57,6 @@ let isPlaceholderStream = false;
 // canvas, so it must be torn down alongside speechCamStream.
 let compositeRawStream = null;
 let compositeVideoEl = null;
-let compositeDrawTimer = null;
 let compositeRafId = null;
 let compositeWatchdogTimer = null;
 let compositeLiveness = null;
@@ -145,8 +144,8 @@ function createPortraitCaptureStream(rawStream) {
             canvasWidth: canvas.width,
             canvasHeight: canvas.height,
         });
-        paintCompositeFrame({ ctx, video, rect, canvasWidth: canvas.width, canvasHeight: canvas.height });
-        if (rect !== null) compositeLiveness.recordPaint();
+        const painted = paintCompositeFrame({ ctx, video, rect, canvasWidth: canvas.width, canvasHeight: canvas.height });
+        if (painted && compositeLiveness) compositeLiveness.recordPaint();
         if (video.currentTime > compositeLastSourceTime) {
             compositeLiveness.recordSourceAdvance();
             compositeLastSourceTime = video.currentTime;
@@ -169,8 +168,8 @@ function createPortraitCaptureStream(rawStream) {
             canvasWidth: canvas.width,
             canvasHeight: canvas.height,
         });
-        paintCompositeFrame({ ctx, video, rect, canvasWidth: canvas.width, canvasHeight: canvas.height });
-        if (rect !== null && compositeLiveness) compositeLiveness.recordPaint();
+        const painted2 = paintCompositeFrame({ ctx, video, rect, canvasWidth: canvas.width, canvasHeight: canvas.height });
+        if (painted2 && compositeLiveness) compositeLiveness.recordPaint();
         if (video.currentTime > prevSourceTime) {
             if (compositeLiveness) compositeLiveness.recordSourceAdvance();
             compositeLastSourceTime = video.currentTime;
@@ -210,10 +209,6 @@ function createPortraitCaptureStream(rawStream) {
 }
 
 function teardownPortraitCapture() {
-    if (compositeDrawTimer) {
-        clearInterval(compositeDrawTimer);
-        compositeDrawTimer = null;
-    }
     if (compositeRafId) {
         cancelAnimationFrame(compositeRafId);
         compositeRafId = null;
@@ -423,7 +418,7 @@ export async function startDeferredSpeechCamRecording() {
                         responseType: step?.responseType || null,
                     };
                 },
-                getMessage: () => Strings.get('error_camera_frozen', getAppLanguage()),
+                getMessage: () => Strings.get('error_speech_generic', getAppLanguage()),
                 onConsoleError: (msg, detail) => console.error(msg, detail),
                 onTrackEvent: (name, props) => trackEvent(name, props),
                 onUserMessage: () => { /* Phase 2: user-facing banner */ },

@@ -821,7 +821,6 @@ body { margin: 0; font-family: var(--font-body); font-size: 1rem; font-weight: 4
     /* The button area is the only scrollable region: a permanently visible
        scrollbar makes it obvious more choices exist. flex-start keeps the
        first button at the top instead of pinning the list to the bottom. */
-    max-height: 50vh;
     overflow-y: scroll;
     overflow-x: hidden;
     scrollbar-gutter: stable;
