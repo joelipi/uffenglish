@@ -655,7 +655,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-b-01",
+          "simpleVideoUrl": "wouldyourather-b-01-01",
           "cue": [
             {
               "en": "A million dollars today.",
@@ -678,7 +678,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-b-01",
+          "simpleVideoUrl": "wouldyourather-b-01-02",
           "cue": [
             {
               "en": "Getting a million dollars today is better than getting five million dollars in five years.",
@@ -701,7 +701,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-b-01",
+          "simpleVideoUrl": "wouldyourather-b-01-03",
           "cue": [
             {
               "en": "I would rather receive a million dollars today than wait five years for five million dollars.",
@@ -724,7 +724,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-b-01",
+          "simpleVideoUrl": "wouldyourather-b-01-04",
           "cue": [
             {
               "en": "Given the choice between accepting a million dollars today and waiting five years for five million dollars, I would choose to accept a million dollars today.",
@@ -747,7 +747,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-b-02",
+          "simpleVideoUrl": "wouldyourather-b-02-01",
           "cue": [
             {
               "en": "Five million dollars in five years.",
@@ -770,7 +770,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-b-02",
+          "simpleVideoUrl": "wouldyourather-b-02-02",
           "cue": [
             {
               "en": "Getting five million dollars in five years is better than getting a million dollars today.",
@@ -793,7 +793,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-b-02",
+          "simpleVideoUrl": "wouldyourather-b-02-03",
           "cue": [
             {
               "en": "I would rather wait five years for five million dollars than receive one million dollars today.",
@@ -816,7 +816,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-b-02",
+          "simpleVideoUrl": "wouldyourather-b-02-04",
           "cue": [
             {
               "en": "Given the choice between accepting a million dollars today and waiting five years for five million dollars, I would choose to wait.",
@@ -835,53 +835,6 @@
             "fr": "1\n00:00:00,000 --> 00:00:08,240\n5 millions de dollars en cinq ans. Obtenir 5 millions de dollars en cinq ans est mieux que d'obtenir un million\n\n2\n00:00:08,240 --> 00:00:16,160\nde dollars aujourd'hui. Je préférerais attendre cinq ans pour 5 millions de dollars plutôt que de recevoir 1 million de dollars aujourd'hui.\n\n3\n00:00:17,040 --> 00:00:23,680\nÉtant donné le choix entre accepter un million de dollars aujourd'hui et attendre cinq ans pour 5 millions de dollars,\n\n4\n00:00:23,680 --> 00:00:25,120\nje choisirais d'attendre.",
             "hi": "1\n00:00:00,000 --> 00:00:08,240\n$5 मिलियन पांच साल में। पांच साल में $5 मिलियन पाना एक मिलियन डॉलर आज पाने से बेहतर है।\n\n2\n00:00:08,240 --> 00:00:16,160\nमैं आज $1 मिलियन पाने के बजाय $5 मिलियन के लिए पांच साल इंतजार करना पसंद करूंगा।\n\n3\n00:00:17,040 --> 00:00:23,680\nआज एक मिलियन डॉलर स्वीकार करने और $5 मिलियन के लिए पांच साल इंतजार करने के बीच विकल्प दिए जाने पर,\n\n4\n00:00:23,680 --> 00:00:25,120\nमैं इंतजार करना चुनूंगा।",
             "bn": "1\n00:00:00,000 --> 00:00:08,240\n৫ মিলিয়ন ডলার পাঁচ বছরে। পাঁচ বছরে ৫ মিলিয়ন ডলার পাওয়া, আজ এক মিলিয়ন ডলার পাওয়ার চেয়ে ভালো।\n\n2\n00:00:08,240 --> 00:00:16,160\nআজ ১ মিলিয়ন ডলার পাওয়ার চেয়ে আমি ৫ মিলিয়ন ডলারের জন্য পাঁচ বছর অপেক্ষা করতে পছন্দ করব।\n\n3\n00:00:17,040 --> 00:00:23,680\nআজ এক মিলিয়ন ডলার গ্রহণ করা এবং ৫ মিলিয়ন ডলারের জন্য পাঁচ বছর অপেক্ষা করার মধ্যে বিকল্প দেওয়া হলে,\n\n4\n00:00:23,680 --> 00:00:25,120\nআমি অপেক্ষা করা বেছে নেব।"
-          }
-        },
-        {
-          "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-a-02",
-          "cue": [
-            {
-              "en": "A meal with great food or a meal with great conversation?",
-              "es": "¿Una comida con excelente comida o una comida con excelente conversación?",
-              "pt": "Uma refeição com ótima comida ou uma refeição com ótima conversa?",
-              "bn": "দারুণ খাবারের একটি খাবার নাকি দারুণ কথোপকথনের একটি খাবার?",
-              "fr": "Un repas avec de bons plats ou un repas avec une bonne conversation ?",
-              "hi": "बढ़िया खाने वाला भोजन या बढ़िया बातचीत वाला भोजन?"
-            },
-            {
-              "en": "Which is better: a meal with great food or a meal with great conversation?",
-              "es": "¿Qué es mejor: una comida con excelente comida o una comida con excelente conversación?",
-              "pt": "O que é melhor: uma refeição com ótima comida ou uma refeição com ótima conversa?",
-              "bn": "কোনটি ভালো: দারুণ খাবারের একটি খাবার নাকি দারুণ কথোপকথনের একটি খাবার?",
-              "fr": "Qu'est-ce qui est mieux : un repas avec de bons plats ou un repas avec une bonne conversation ?",
-              "hi": "कौन सा बेहतर है: शानदार खाने वाला भोजन या शानदार बातचीत वाला भोजन?"
-            },
-            {
-              "en": "Would you rather have a meal with great food or have a meal with great conversation ?",
-              "es": "¿Preferirías tener una comida con excelente comida o tener una comida con excelente conversación?",
-              "pt": "Você prefere fazer uma refeição com ótima comida ou fazer uma refeição com ótima conversa?",
-              "bn": "আপনি কি দারুণ খাবারের একটি খাবার খেতে চান নাকি দারুণ কথোপকথনের একটি খাবার খেতে চান?",
-              "fr": "Préférerais-tu prendre un repas avec de bons plats ou prendre un repas avec une bonne conversation ?",
-              "hi": "आप ऐसा भोजन पसंद करेंगे जिसमें खाना शानदार हो या ऐसा भोजन जिसमें बातचीत शानदार हो?"
-            },
-            {
-              "en": "Given the choice between having a meal with great food and having a meal with great conversation, which would you choose?",
-              "es": "Dada la opción entre tener una comida con excelente comida y tener una comida con excelente conversación, ¿cuál elegirías?",
-              "pt": "Dada a escolha entre fazer uma refeição com ótima comida e fazer uma refeição com ótima conversa, qual você escolheria?",
-              "bn": "দারুণ খাবারের একটি খাবার এবং দারুণ কথোপকথনের একটি খাবার থাকার মধ্যে পছন্দ দেওয়া হলে, আপনি কোনটি বেছে নেবেন?",
-              "fr": "Si tu avais le choix entre prendre un repas avec de bons plats et prendre un repas avec une bonne conversation, que choisirais-tu ?",
-              "hi": "अगर आपको चुनाव करना पड़े कि आप एक ऐसा भोजन करें जिसमें स्वादिष्ट खाना हो, और एक ऐसा भोजन करें जिसमें बढ़िया बातचीत हो, तो आप कौन सा चुनेंगे?"
-            }
-          ],
-          "publishLessonId": "a",
-          "subtitles": {
-            "en": "1\n00:00:00,000 --> 00:00:04,650\nA meal with great food or a meal with great conversation?\n\n2\n00:00:04,650 --> 00:00:10,800\nWhich is better: a meal with great food or a meal with great conversation?\n\n3\n00:00:10,800 --> 00:00:15,950\nWould you rather have a meal with great food or have a meal with great conversation ?\n\n4\n00:00:15,950 --> 00:00:23,100\nGiven the choice between having a meal with great food and having a meal with great conversation, which would you choose?",
-            "es": "1\n00:00:00,000 --> 00:00:04,650\n¿Una comida con excelente comida o una comida con una gran conversación?\n\n2\n00:00:04,650 --> 00:00:10,800\n¿Qué es mejor: una comida con excelente comida o una comida con una gran conversación?\n\n3\n00:00:10,800 --> 00:00:15,950\n¿Preferirías tener una comida con excelente comida o tener una comida con una gran conversación?\n\n4\n00:00:15,950 --> 00:00:23,100\nDada la opción entre tener una comida con excelente comida y tener una comida con una gran conversación, ¿cuál elegirías?",
-            "pt": "1\n00:00:00,000 --> 00:00:04,650\nUma refeição com comida excelente ou uma refeição com uma ótima conversa?\n\n2\n00:00:04,650 --> 00:00:10,800\nO que é melhor: uma refeição com comida excelente ou uma refeição com uma ótima conversa?\n\n3\n00:00:10,800 --> 00:00:15,950\nVocê prefere fazer uma refeição com comida excelente ou fazer uma refeição com uma ótima conversa?\n\n4\n00:00:15,950 --> 00:00:23,100\nDada a escolha entre fazer uma refeição com comida excelente e fazer uma refeição com uma ótima conversa, qual você escolheria?",
-            "bn": "1\n00:00:00,000 --> 00:00:04,650\nদারুণ খাবারের সাথে একটি খাবার নাকি দারুণ কথোপকথনের সাথে একটি খাবার?\n\n2\n00:00:04,650 --> 00:00:10,800\nকোনটি ভালো: দারুণ খাবারের সাথে একটি খাবার নাকি দারুণ কথোপকথনের সাথে একটি খাবার?\n\n3\n00:00:10,800 --> 00:00:15,950\nআপনি কি দারুণ খাবারের সাথে একটি খাবার খেতে পছন্দ করবেন নাকি দারুণ কথোপকথনের সাথে একটি খাবার খেতে পছন্দ করবেন?\n\n4\n00:00:15,950 --> 00:00:23,100\nদারুণ খাবারের সাথে একটি খাবার এবং দারুণ কথোপকথনের সাথে একটি খাবার গ্রহণ করার মধ্যে বেছে নিতে হলে, আপনি কোনটি বেছে নেবেন?",
-            "fr": "1\n00:00:00,000 --> 00:00:04,650\nUn repas avec de bons plats ou un repas avec une bonne conversation ?\n\n2\n00:00:04,650 --> 00:00:10,800\nQu'est-ce qui est mieux : un repas avec de bons plats ou un repas avec une bonne conversation ?\n\n3\n00:00:10,800 --> 00:00:15,950\nPréférerais-tu prendre un repas avec de bons plats ou prendre un repas avec une bonne conversation ?\n\n4\n00:00:15,950 --> 00:00:23,100\nSi tu avais le choix entre prendre un repas avec de bons plats et prendre un repas avec une bonne conversation, que choisirais-tu ?",
-            "hi": "1\n00:00:00,000 --> 00:00:04,650\nबढ़िया खाने वाला भोजन या बढ़िया बातचीत वाला भोजन?\n\n2\n00:00:04,650 --> 00:00:10,800\nकौन सा बेहतर है: शानदार खाने वाला भोजन या शानदार बातचीत वाला भोजन?\n\n3\n00:00:10,800 --> 00:00:15,950\nआप ऐसा भोजन पसंद करेंगे जिसमें खाना शानदार हो या ऐसा भोजन जिसमें बातचीत शानदार हो?\n\n4\n00:00:15,950 --> 00:00:23,100\nअगर आपको चुनाव करना पड़े कि आप एक ऐसा भोजन करें जिसमें स्वादिष्ट खाना हो, और एक ऐसा भोजन करें जिसमें बढ़िया बातचीत हो, तो आप कौन सा चुनेंगे?"
           }
         },
         {
@@ -1004,7 +957,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-b-03",
+          "simpleVideoUrl": "wouldyourather-b-03-01",
           "cue": [
             {
               "en": "A meal with great food.",
@@ -1027,7 +980,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-b-03",
+          "simpleVideoUrl": "wouldyourather-b-03-02",
           "cue": [
             {
               "en": "A meal with great food is better than a meal with great conversation.",
@@ -1050,7 +1003,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-b-03",
+          "simpleVideoUrl": "wouldyourather-b-03-03",
           "cue": [
             {
               "en": "I would rather have a meal with great food than a meal with great conversation.",
@@ -1073,7 +1026,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-b-03",
+          "simpleVideoUrl": "wouldyourather-b-03-04",
           "cue": [
             {
               "en": "Given the choice between a meal with great food and a meal with great conversation, I would choose to have a meal with great food.",
@@ -1096,7 +1049,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-b-04",
+          "simpleVideoUrl": "wouldyourather-b-04-01",
           "cue": [
             {
               "en": "A meal with great conversation.",
@@ -1119,7 +1072,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-b-04",
+          "simpleVideoUrl": "wouldyourather-b-04-02",
           "cue": [
             {
               "en": "A meal with great conversation is better than a meal with great food.",
@@ -1142,7 +1095,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-b-04",
+          "simpleVideoUrl": "wouldyourather-b-04-03",
           "cue": [
             {
               "en": "I would rather have a meal with great conversation than a meal with great food.",
@@ -1165,7 +1118,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-b-04",
+          "simpleVideoUrl": "wouldyourather-b-04-04",
           "cue": [
             {
               "en": "Given the choice between a meal with great food and a meal with great conversation, I would choose to have a meal with great conversation.",
@@ -1184,53 +1137,6 @@
             "fr": "1\n00:00:00,000 --> 00:00:09,000\nUn repas avec une excellente conversation. Un repas avec une excellente conversation vaut mieux qu'un repas avec de la très bonne nourriture.\n\n2\n00:00:09,000 --> 00:00:15,000\nJe préfère avoir un repas avec une excellente conversation plutôt qu'un repas avec de la très bonne nourriture.\n\n3\n00:00:15,000 --> 00:00:21,000\nÉtant donné le choix entre un repas avec de la très bonne nourriture et un repas avec une excellente conversation,\n\n4\n00:00:21,000 --> 00:00:25,000\nje choisirais d'avoir un repas avec une excellente conversation.",
             "hi": "1\n00:00:00,000 --> 00:00:09,000\nशानदार बातचीत के साथ एक भोजन। शानदार बातचीत के साथ एक भोजन, शानदार खाने वाले भोजन से बेहतर है।\n\n2\n00:00:09,000 --> 00:00:15,000\nI would rather have a meal with great conversation than a meal with great food.\n\n3\n00:00:15,000 --> 00:00:21,000\nशानदार खाने वाले भोजन और शानदार बातचीत वाले भोजन के बीच विकल्प दिए जाने पर,\n\n4\n00:00:21,000 --> 00:00:25,000\nमैं शानदार बातचीत के साथ भोजन करना चुनूंगा।",
             "bn": "1\n00:00:00,000 --> 00:00:09,000\nদারুণ আলাপের একটি খাবার। দারুণ খাবারের চেয়ে দারুণ আলাপের একটি খাবার অনেক ভালো।\n\n2\n00:00:09,000 --> 00:00:15,000\nদারুণ খাবারের চেয়ে দারুণ আলাপের একটি খাবার আমার বেশি পছন্দ।\n\n3\n00:00:15,000 --> 00:00:21,000\nদারুণ খাবারযুক্ত একটি খাবার এবং দারুণ আলাপযুক্ত একটি খাবারের মধ্যে বেছে নিতে হলে,\n\n4\n00:00:21,000 --> 00:00:25,000\nআমি দারুণ আলাপের খাবারটিই বেছে নেব।"
-          }
-        },
-        {
-          "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-a-03",
-          "cue": [
-            {
-              "en": "A short beach vacation with great weather or a long beach vacation with bad weather?",
-              "es": "¿Unas vacaciones cortas en la playa con excelente clima o unas vacaciones largas en la playa con mal clima?",
-              "pt": "Umas férias curtas na praia com clima ótimo ou umas férias longas na praia com clima ruim?",
-              "bn": "চমৎকার আবহাওয়া সহ একটি সংক্ষিপ্ত সমুদ্র সৈকত ছুটি নাকি খারাপ আবহাওয়া সহ একটি দীর্ঘ সমুদ্র সৈকত ছুটি?",
-              "fr": "De courtes vacances à la plage avec du beau temps ou de longues vacances à la plage avec du mauvais temps ?",
-              "hi": "अच्छे मौसम के साथ छोटी समुद्र तट की छुट्टी या खराब मौसम के साथ लंबी समुद्र तट की छुट्टी?"
-            },
-            {
-              "en": "Which is better: a short beach vacation with great weather or a long beach vacation with bad weather?",
-              "es": "¿Qué es mejor: unas vacaciones cortas en la playa con excelente clima o unas vacaciones largas en la playa con mal clima?",
-              "pt": "O que é melhor: umas férias curtas na praia com clima ótimo ou umas férias longas na praia com clima ruim?",
-              "bn": "কোনটি ভালো: চমৎকার আবহাওয়া সহ একটি সংক্ষিপ্ত সমুদ্র সৈকত ছুটি নাকি খারাপ আবহাওয়া সহ একটি দীর্ঘ সমুদ্র সৈকত ছুটি?",
-              "fr": "Qu'est-ce qui est mieux : de courtes vacances à la plage avec du beau temps ou de longues vacances à la plage avec du mauvais temps ?",
-              "hi": "कौन सा बेहतर है: अच्छे मौसम के साथ छोटी समुद्र-तट छुट्टी या खराब मौसम के साथ लंबी समुद्र-तट छुट्टी?"
-            },
-            {
-              "en": "Would you rather go on a beach vacation that's short with great weather or one that's long but with bad weather?",
-              "es": "¿Preferirías ir a unas vacaciones en la playa que sean cortas con excelente clima o a unas que sean largas pero con mal clima?",
-              "pt": "Você prefere tirar férias na praia que sejam curtas com clima ótimo ou longas, mas com clima ruim?",
-              "bn": "আপনি কি এমন একটি সমুদ্র সৈকত ছুটি কাটাতে চান যা চমৎকার আবহাওয়া সহ সংক্ষিপ্ত নাকি এমন একটি যা দীর্ঘ কিন্তু খারাপ আবহাওয়া সহ?",
-              "fr": "Préférerais-tu des vacances à la plage courtes avec du beau temps ou des vacances longues avec du mauvais temps ?",
-              "hi": "आप समुद्र तट की छुट्टी पर जाना पसंद करेंगे जो छोटी हो लेकिन मौसम शानदार हो या ऐसी छुट्टी जो लंबी हो लेकिन मौसम खराब हो?"
-            },
-            {
-              "en": "Given the choice between a brief beach vacation with ideal weather and a long beach vacation with inclement weather, which would you choose?",
-              "es": "Dada la opción entre unas breves vacaciones en la playa con clima ideal y unas vacaciones largas en la playa con clima inclemente, ¿cuál elegirías?",
-              "pt": "Dada a escolha entre umas férias breves na praia com clima ideal e umas férias longas na praia com clima inclemente, qual você escolheria?",
-              "bn": "আদর্শ আবহাওয়া সহ একটি সংক্ষিপ্ত সমুদ্র সৈকত ছুটি এবং খারাপ আবহাওয়া সহ একটি দীর্ঘ সমুদ্র সৈকত ছুটির মধ্যে পছন্দ দেওয়া হলে, আপনি কোনটি বেছে নেবেন?",
-              "fr": "Si tu avais le choix entre de courtes vacances à la plage avec un temps idéal et de longues vacances à la plage avec du mauvais temps, que choisirais-tu ?",
-              "hi": "आदर्श मौसम के साथ एक छोटी समुद्र तट की छुट्टी और खराब मौसम के साथ एक लंबी समुद्र तट की छुट्टी के बीच चुनाव दिया जाए, तो आप क्या चुनेंगे?"
-            }
-          ],
-          "publishLessonId": "a",
-          "subtitles": {
-            "en": "1\n00:00:00,000 --> 00:00:07,050\nA short beach vacation with great weather or a long beach vacation with bad weather?\n\n2\n00:00:07,050 --> 00:00:14,200\nWhich is better: a short beach vacation with great weather or a long beach vacation with bad weather?\n\n3\n00:00:14,200 --> 00:00:21,850\nWould you rather go on a beach vacation that's short with great weather or one that's long but with bad weather?\n\n4\n00:00:21,850 --> 00:00:31,680\nGiven the choice between a brief beach vacation with ideal weather and a long beach vacation with inclement weather, which would you choose?",
-            "es": "1\n00:00:00,000 --> 00:00:07,050\n¿Unas vacaciones cortas en la playa con excelente clima o unas vacaciones largas en la playa con mal tiempo?\n\n2\n00:00:07,050 --> 00:00:14,200\n¿Qué es mejor: unas vacaciones cortas en la playa con excelente clima o unas vacaciones largas en la playa con mal tiempo?\n\n3\n00:00:14,200 --> 00:00:21,850\n¿Preferirías ir a unas vacaciones en la playa que sean cortas con excelente clima o unas que sean largas pero con mal tiempo?\n\n4\n00:00:21,850 --> 00:00:31,680\nDada la opción entre unas breves vacaciones en la playa con clima ideal y unas vacaciones largas en la playa con clima inclemente, ¿cuál elegirías?",
-            "pt": "1\n00:00:00,000 --> 00:00:07,050\nUma curta viagem de férias à praia com ótimo tempo ou uma longa viagem de férias à praia com mau tempo?\n\n2\n00:00:07,050 --> 00:00:14,200\nO que é melhor: uma curta viagem de férias à praia com ótimo tempo ou uma longa viagem de férias à praia com mau tempo?\n\n3\n00:00:14,200 --> 00:00:21,850\nVocê prefere ir a uma viagem de praia curta com ótimo tempo ou a uma longa, mas com mau tempo?\n\n4\n00:00:21,850 --> 00:00:31,680\nDada a escolha entre uma breve viagem à praia com clima ideal e uma longa viagem à praia com mau tempo, qual você escolheria?",
-            "bn": "1\n00:00:00,000 --> 00:00:07,050\nদারুণ আবহাওয়াসহ একটি সংক্ষিপ্ত সৈকত ছুটি নাকি খারাপ আবহাওয়াসহ একটি দীর্ঘ সৈকত ছুটি?\n\n2\n00:00:07,050 --> 00:00:14,200\nকোনটি ভালো: দারুণ আবহাওয়াসহ একটি সংক্ষিপ্ত সৈকত ছুটি নাকি খারাপ আবহাওয়াসহ একটি দীর্ঘ সৈকত ছুটি?\n\n3\n00:00:14,200 --> 00:00:21,850\nআপনি কি দারুণ আবহাওয়াসহ একটি সংক্ষিপ্ত সৈকত ছুটিতে যেতে পছন্দ করবেন নাকি খারাপ আবহাওয়ার দীর্ঘ একটি ছুটিতে?\n\n4\n00:00:21,850 --> 00:00:31,680\nআদর্শ আবহাওয়াসহ একটি সংক্ষিপ্ত সৈকত ছুটি এবং খারাপ আবহাওয়াসহ একটি দীর্ঘ সৈকত ছুটির মধ্যে বেছে নিতে হলে, আপনি কোনটি বেছে নেবেন?",
-            "fr": "1\n00:00:00,000 --> 00:00:07,050\nDe courtes vacances à la plage avec du beau temps ou de longues vacances à la plage avec du mauvais temps ?\n\n2\n00:00:07,050 --> 00:00:14,200\nQu'est-ce qui est mieux : de courtes vacances à la plage avec du beau temps ou de longues vacances à la plage avec du mauvais temps ?\n\n3\n00:00:14,200 --> 00:00:21,850\nPréférerais-tu des vacances à la plage courtes avec du beau temps ou des vacances longues avec du mauvais temps ?\n\n4\n00:00:21,850 --> 00:00:31,680\nSi tu avais le choix entre de courtes vacances à la plage avec un temps idéal et de longues vacances à la plage avec du mauvais temps, que choisirais-tu ?",
-            "hi": "1\n00:00:00,000 --> 00:00:07,050\nअच्छे मौसम के साथ छोटी समुद्र तट की छुट्टी या खराब मौसम के साथ लंबी समुद्र तट की छुट्टी?\n\n2\n00:00:07,050 --> 00:00:14,200\nकौन सा बेहतर है: अच्छे मौसम के साथ छोटी समुद्र-तट छुट्टी या खराब मौसम के साथ लंबी समुद्र-तट छुट्टी?\n\n3\n00:00:14,200 --> 00:00:21,850\nआप समुद्र तट की छुट्टी पर जाना पसंद करेंगे जो छोटी हो लेकिन मौसम शानदार हो या ऐसी छुट्टी जो लंबी हो लेकिन मौसम खराब हो?\n\n4\n00:00:21,850 --> 00:00:31,680\nआदर्श मौसम के साथ एक छोटी समुद्र तट की छुट्टी और खराब मौसम के साथ एक लंबी समुद्र तट की छुट्टी के बीच चुनाव दिया जाए, तो आप क्या चुनेंगे?"
           }
         },
         {
@@ -1353,7 +1259,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-b-05",
+          "simpleVideoUrl": "wouldyourather-b-05-01",
           "cue": [
             {
               "en": "A short beach vacation with great weather.",
@@ -1376,7 +1282,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-b-05",
+          "simpleVideoUrl": "wouldyourather-b-05-02",
           "cue": [
             {
               "en": "A short beach vacation with great weather is better than a long beach vacation with bad weather.",
@@ -1399,7 +1305,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-b-05",
+          "simpleVideoUrl": "wouldyourather-b-05-03",
           "cue": [
             {
               "en": "I would rather have a short beach vacation with great weather than a long beach vacation with bad weather.",
@@ -1422,7 +1328,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-b-05",
+          "simpleVideoUrl": "wouldyourather-b-05-04",
           "cue": [
             {
               "en": "Given the choice between a short beach vacation with great weather and a long beach vacation with bad weather, I would choose to have a short beach vacation with great weather.",
@@ -1445,7 +1351,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-b-06",
+          "simpleVideoUrl": "wouldyourather-b-06-01",
           "cue": [
             {
               "en": "A long beach vacation with bad weather.",
@@ -1468,7 +1374,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-b-06",
+          "simpleVideoUrl": "wouldyourather-b-06-02",
           "cue": [
             {
               "en": "A long beach vacation with bad weather is better than a short beach vacation with great weather.",
@@ -1491,7 +1397,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-b-06",
+          "simpleVideoUrl": "wouldyourather-b-06-03",
           "cue": [
             {
               "en": "I would rather have a long beach vacation with bad weather than a short beach vacation with great weather.",
@@ -1514,7 +1420,7 @@
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-b-06",
+          "simpleVideoUrl": "wouldyourather-b-06-04",
           "cue": [
             {
               "en": "Given the choice between a short beach vacation with great weather and a long beach vacation with bad weather, I would choose to go on a long beach vacation with bad weather.",
@@ -1533,6 +1439,147 @@
             "fr": "1\n00:00:00,000 --> 00:00:04,640\nDes vacances prolongées à la plage avec du mauvais temps.\n\n2\n00:00:04,640 --> 00:00:10,520\nDes vacances prolongées à la plage avec du mauvais temps valent mieux que de courtes vacances à la plage avec un temps\n\n3\n00:00:10,520 --> 00:00:11,680\nmagnifique.\n\n4\n00:00:11,680 --> 00:00:18,040\nJe préférerais de longues vacances à la plage avec du mauvais temps plutôt que de courtes vacances à la plage\n\n5\n00:00:18,040 --> 00:00:19,760\navec un temps magnifique.\n\n6\n00:00:19,760 --> 00:00:24,760\nSi l'on me donnait le choix entre de courtes vacances à la plage avec un temps magnifique et de longues vacances à la plage\n\n7\n00:00:24,760 --> 00:00:28,880\navec du mauvais temps, je choisirais de partir en vacances longtemps à la plage par mauvais temps.",
             "hi": "1\n00:00:00,000 --> 00:00:04,640\nखराब मौसम के साथ समुद्र तट की लंबी छुट्टी।\n\n2\n00:00:04,640 --> 00:00:10,520\nखराब मौसम के साथ समुद्र तट की लंबी छुट्टी, शानदार मौसम के साथ समुद्र तट की छोटी\n\n3\n00:00:10,520 --> 00:00:11,680\nछुट्टी से बेहतर है।\n\n4\n00:00:11,680 --> 00:00:18,040\nमैं शानदार मौसम के साथ समुद्र तट की छोटी छुट्टी के बजाय खराब मौसम के साथ समुद्र तट की लंबी छुट्टी लेना पसंद करूँगा।\n\n5\n00:00:18,040 --> 00:00:19,760\nwith great weather.\n\n6\n00:00:19,760 --> 00:00:24,760\nशानदार मौसम के साथ समुद्र तट की छोटी छुट्टी और खराब मौसम के साथ समुद्र तट की लंबी छुट्टी के बीच विकल्प दिए जाने पर,\n\n7\n00:00:24,760 --> 00:00:28,880\nमैं खराब मौसम के साथ समुद्र तट की लंबी छुट्टी पर जाना चुनूँगा।",
             "bn": "1\n00:00:00,000 --> 00:00:04,640\nখারাপ আবহাওয়াযুক্ত একটি দীর্ঘ সমুদ্র সৈকত ছুটি।\n\n2\n00:00:04,640 --> 00:00:10,520\nখারাপ আবহাওয়াযুক্ত একটি দীর্ঘ সমুদ্র সৈকত ছুটি ভালো আবহাওয়াযুক্ত একটি সংক্ষিপ্ত সমুদ্র সৈকত ছুটির\n\n3\n00:00:10,520 --> 00:00:11,680\nচেয়ে ভালো।\n\n4\n00:00:11,680 --> 00:00:18,040\nভালো আবহাওয়াযুক্ত একটি সংক্ষিপ্ত সমুদ্র সৈকত ছুটির চেয়ে খারাপ আবহাওয়াযুক্ত একটি দীর্ঘ সমুদ্র সৈকত ছুটি\n\n5\n00:00:18,040 --> 00:00:19,760\nআমার বেশি পছন্দ হবে।\n\n6\n00:00:19,760 --> 00:00:24,760\nভালো আবহাওয়াযুক্ত একটি সংক্ষিপ্ত সমুদ্র সৈকত ছুটি এবং খারাপ আবহাওয়াযুক্ত একটি দীর্ঘ সমুদ্র সৈকত ছুটির\n\n7\n00:00:24,760 --> 00:00:28,880\nমধ্যে বেছে নিতে হলে, আমি খারাপ আবহাওয়াযুক্ত একটি দীর্ঘ সমুদ্র সৈকত ছুটি বেছে নেব।"
+          }
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-a-01",
+          "cue": [
+            {
+              "en": "A million dollars today or five million dollars in five years?",
+              "es": "¿Un millón de dólares hoy o cinco millones de dólares en cinco años?",
+              "pt": "Um milhão de dólares hoje ou cinco milhões de dólares em cinco anos?",
+              "bn": "আজ এক মিলিয়ন ডলার নাকি পাঁচ বছরে পাঁচ মিলিয়ন ডলার?",
+              "fr": "Un million de dollars aujourd'hui ou cinq millions de dollars dans cinq ans ?",
+              "hi": "आज दस लाख डॉलर या पाँच साल बाद पचास लाख डॉलर?"
+            },
+            {
+              "en": "Which is better: getting a million dollars today or getting five million dollars in five years?",
+              "es": "¿Qué es mejor: recibir un millón de dólares hoy u obtener cinco millones de dólares en cinco años?",
+              "pt": "O que é melhor: receber um milhão de dólares hoje ou receber cinco milhões de dólares em cinco anos?",
+              "bn": "কোনটি ভালো: আজ এক মিলিয়ন ডলার পাওয়া নাকি পাঁচ বছরে পাঁচ মিলিয়ন ডলার পাওয়া?",
+              "fr": "Qu'est-ce qui est mieux : recevoir un million de dollars aujourd'hui ou recevoir cinq millions de dollars dans cinq ans ?",
+              "hi": "कौन सा बेहतर है: आज दस लाख डॉलर मिलना या पांच साल में पचास लाख डॉलर मिलना?"
+            },
+            {
+              "en": "Would you rather receive a million dollars today or wait five years and receive five million dollars?",
+              "es": "¿Preferirías recibir un millón de dólares hoy o esperar cinco años y recibir cinco millones de dólares?",
+              "pt": "Você prefere receber um milhão de dólares hoje ou esperar cinco anos e receber cinco milhões de dólares?",
+              "bn": "আপনি কি আজ এক মিলিয়ন ডলার পেতে চান নাকি পাঁচ বছর অপেক্ষা করে পাঁচ মিলিয়ন ডলার পেতে চান?",
+              "fr": "Préférerais-tu recevoir un million de dollars aujourd'hui ou attendre cinq ans et recevoir cinq millions de dollars ?",
+              "hi": "आप आज दस लाख डॉलर प्राप्त करना पसंद करेंगे या पांच साल इंतजार करके पचास लाख डॉलर प्राप्त करना पसंद करेंगे?"
+            },
+            {
+              "en": "Given the choice between accepting a million dollars today and waiting five years for five million dollars, which would you choose?",
+              "es": "Dada la opción entre aceptar un millón de dólares hoy y esperar cinco años por cinco millones de dólares, ¿cuál elegirías?",
+              "pt": "Dada a escolha entre aceitar um milhão de dólares hoje e esperar cinco anos por cinco milhões de dólares, qual você escolheria?",
+              "bn": "আজ এক মিলিয়ন ডলার গ্রহণ করা এবং পাঁচ মিলিয়ন ডলারের জন্য পাঁচ বছর অপেক্ষা করার মধ্যে পছন্দ দেওয়া হলে, আপনি কোনটি বেছে নেবেন?",
+              "fr": "Si tu avais le choix entre accepter un million de dollars aujourd'hui et attendre cinq ans pour cinq millions de dollars, que choisirais-tu ?",
+              "hi": "आज दस लाख डॉलर स्वीकार करने और पाँच वर्षों तक पचास लाख डॉलर की प्रतीक्षा करने के बीच चुनाव दिया जाए, तो आप क्या चुनेंगे?"
+            }
+          ],
+          "publishLessonId": "a",
+          "subtitles": {
+            "en": "1\n00:00:00,000 --> 00:00:05,450\nA million dollars today or five million dollars in five years?\n\n2\n00:00:05,450 --> 00:00:13,200\nWhich is better: getting a million dollars today or getting five million dollars in five years?\n\n3\n00:00:13,200 --> 00:00:19,650\nWould you rather receive a million dollars today or wait five years and receive five million dollars?\n\n4\n00:00:19,650 --> 00:00:28,600\nGiven the choice between accepting a million dollars today and waiting five years for five million dollars, which would you choose?",
+            "es": "1\n00:00:00,000 --> 00:00:05,450\n¿Un millón de dólares hoy o cinco millones de dólares en cinco años?\n\n2\n00:00:05,450 --> 00:00:13,200\n¿Qué es mejor: recibir un millón de dólares hoy u obtener cinco millones de dólares en cinco años?\n\n3\n00:00:13,200 --> 00:00:19,650\n¿Preferirías recibir un millón de dólares hoy o esperar cinco años y recibir cinco millones de dólares?\n\n4\n00:00:19,650 --> 00:00:28,600\nDada la opción entre aceptar un millón de dólares hoy y esperar cinco años por cinco millones de dólares, ¿cuál elegirías?",
+            "pt": "1\n00:00:00,000 --> 00:00:05,450\nUm milhão de dólares hoje ou cinco milhões de dólares daqui a cinco anos?\n\n2\n00:00:05,450 --> 00:00:13,200\nO que é melhor: receber um milhão de dólares hoje ou receber cinco milhões de dólares daqui a cinco anos?\n\n3\n00:00:13,200 --> 00:00:19,650\nVocê prefere receber um milhão de dólares hoje ou esperar cinco anos e receber cinco milhões de dólares?\n\n4\n00:00:19,650 --> 00:00:28,600\nDada a escolha entre aceitar um milhão de dólares hoje e esperar cinco anos por cinco milhões de dólares, qual você escolheria?",
+            "bn": "1\n00:00:00,000 --> 00:00:05,450\nআজকে এক মিলিয়ন ডলার নাকি পাঁচ বছরে পাঁচ মিলিয়ন ডলার?\n\n2\n00:00:05,450 --> 00:00:13,200\nকোনটি ভালো: আজ এক মিলিয়ন ডলার পাওয়া নাকি পাঁচ বছরে পাঁচ মিলিয়ন ডলার পাওয়া?\n\n3\n00:00:13,200 --> 00:00:19,650\nআপনি কি আজ এক মিলিয়ন ডলার গ্রহণ করতে পছন্দ করবেন নাকি পাঁচ বছর অপেক্ষা করে পাঁচ মিলিয়ন ডলার গ্রহণ করবেন?\n\n4\n00:00:19,650 --> 00:00:28,600\nআজ এক মিলিয়ন ডলার গ্রহণ করা এবং পাঁচ বছরের জন্য পাঁচ মিলিয়ন ডলারের অপেক্ষার মধ্যে বেছে নিতে হলে, আপনি কোনটি বেছে নেবেন?",
+            "fr": "1\n00:00:00,000 --> 00:00:05,450\nUn million de dollars aujourd'hui ou cinq millions de dollars dans cinq ans ?\n\n2\n00:00:05,450 --> 00:00:13,200\nQu'est-ce qui est mieux : recevoir un million de dollars aujourd'hui ou recevoir cinq millions de dollars dans cinq ans ?\n\n3\n00:00:13,200 --> 00:00:19,650\nPréférerais-tu recevoir un million de dollars aujourd'hui ou attendre cinq ans et recevoir cinq millions de dollars ?\n\n4\n00:00:19,650 --> 00:00:28,600\nSi tu avais le choix entre accepter un million de dollars aujourd'hui et attendre cinq ans pour cinq millions de dollars, que choisirais-tu ?",
+            "hi": "1\n00:00:00,000 --> 00:00:05,450\nआज दस लाख डॉलर या पाँच साल बाद पचास लाख डॉलर?\n\n2\n00:00:05,450 --> 00:00:13,200\nकौन सा बेहतर है: आज दस लाख डॉलर मिलना या पांच साल में पचास लाख डॉलर मिलना?\n\n3\n00:00:13,200 --> 00:00:19,650\nआप आज दस लाख डॉलर प्राप्त करना पसंद करेंगे या पांच साल इंतजार करके पचास लाख डॉलर प्राप्त करना पसंद करेंगे?\n\n4\n00:00:19,650 --> 00:00:28,600\nआज दस लाख डॉलर स्वीकार करने और पाँच वर्षों तक पचास लाख डॉलर की प्रतीक्षा करने के बीच चुनाव दिया जाए, तो आप क्या चुनेंगे?"
+          }
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-a-02",
+          "cue": [
+            {
+              "en": "A meal with great food or a meal with great conversation?",
+              "es": "¿Una comida con excelente comida o una comida con excelente conversación?",
+              "pt": "Uma refeição com ótima comida ou uma refeição com ótima conversa?",
+              "bn": "দারুণ খাবারের একটি খাবার নাকি দারুণ কথোপকথনের একটি খাবার?",
+              "fr": "Un repas avec de bons plats ou un repas avec une bonne conversation ?",
+              "hi": "बढ़िया खाने वाला भोजन या बढ़िया बातचीत वाला भोजन?"
+            },
+            {
+              "en": "Which is better: a meal with great food or a meal with great conversation?",
+              "es": "¿Qué es mejor: una comida con excelente comida o una comida con excelente conversación?",
+              "pt": "O que é melhor: uma refeição com ótima comida ou uma refeição com ótima conversa?",
+              "bn": "কোনটি ভালো: দারুণ খাবারের একটি খাবার নাকি দারুণ কথোপকথনের একটি খাবার?",
+              "fr": "Qu'est-ce qui est mieux : un repas avec de bons plats ou un repas avec une bonne conversation ?",
+              "hi": "कौन सा बेहतर है: शानदार खाने वाला भोजन या शानदार बातचीत वाला भोजन?"
+            },
+            {
+              "en": "Would you rather have a meal with great food or have a meal with great conversation ?",
+              "es": "¿Preferirías tener una comida con excelente comida o tener una comida con excelente conversación?",
+              "pt": "Você prefere fazer uma refeição com ótima comida ou fazer uma refeição com ótima conversa?",
+              "bn": "আপনি কি দারুণ খাবারের একটি খাবার খেতে চান নাকি দারুণ কথোপকথনের একটি খাবার খেতে চান?",
+              "fr": "Préférerais-tu prendre un repas avec de bons plats ou prendre un repas avec une bonne conversation ?",
+              "hi": "आप ऐसा भोजन पसंद करेंगे जिसमें खाना शानदार हो या ऐसा भोजन जिसमें बातचीत शानदार हो?"
+            },
+            {
+              "en": "Given the choice between having a meal with great food and having a meal with great conversation, which would you choose?",
+              "es": "Dada la opción entre tener una comida con excelente comida y tener una comida con excelente conversación, ¿cuál elegirías?",
+              "pt": "Dada a escolha entre fazer uma refeição com ótima comida e fazer uma refeição com ótima conversa, qual você escolheria?",
+              "bn": "দারুণ খাবারের একটি খাবার এবং দারুণ কথোপকথনের একটি খাবার থাকার মধ্যে পছন্দ দেওয়া হলে, আপনি কোনটি বেছে নেবেন?",
+              "fr": "Si tu avais le choix entre prendre un repas avec de bons plats et prendre un repas avec une bonne conversation, que choisirais-tu ?",
+              "hi": "अगर आपको चुनाव करना पड़े कि आप एक ऐसा भोजन करें जिसमें स्वादिष्ट खाना हो, और एक ऐसा भोजन करें जिसमें बढ़िया बातचीत हो, तो आप कौन सा चुनेंगे?"
+            }
+          ],
+          "publishLessonId": "a",
+          "subtitles": {
+            "en": "1\n00:00:00,000 --> 00:00:04,650\nA meal with great food or a meal with great conversation?\n\n2\n00:00:04,650 --> 00:00:10,800\nWhich is better: a meal with great food or a meal with great conversation?\n\n3\n00:00:10,800 --> 00:00:15,950\nWould you rather have a meal with great food or have a meal with great conversation ?\n\n4\n00:00:15,950 --> 00:00:23,100\nGiven the choice between having a meal with great food and having a meal with great conversation, which would you choose?",
+            "es": "1\n00:00:00,000 --> 00:00:04,650\n¿Una comida con excelente comida o una comida con una gran conversación?\n\n2\n00:00:04,650 --> 00:00:10,800\n¿Qué es mejor: una comida con excelente comida o una comida con una gran conversación?\n\n3\n00:00:10,800 --> 00:00:15,950\n¿Preferirías tener una comida con excelente comida o tener una comida con una gran conversación?\n\n4\n00:00:15,950 --> 00:00:23,100\nDada la opción entre tener una comida con excelente comida y tener una comida con una gran conversación, ¿cuál elegirías?",
+            "pt": "1\n00:00:00,000 --> 00:00:04,650\nUma refeição com comida excelente ou uma refeição com uma ótima conversa?\n\n2\n00:00:04,650 --> 00:00:10,800\nO que é melhor: uma refeição com comida excelente ou uma refeição com uma ótima conversa?\n\n3\n00:00:10,800 --> 00:00:15,950\nVocê prefere fazer uma refeição com comida excelente ou fazer uma refeição com uma ótima conversa?\n\n4\n00:00:15,950 --> 00:00:23,100\nDada a escolha entre fazer uma refeição com comida excelente e fazer uma refeição com uma ótima conversa, qual você escolheria?",
+            "bn": "1\n00:00:00,000 --> 00:00:04,650\nদারুণ খাবারের সাথে একটি খাবার নাকি দারুণ কথোপকথনের সাথে একটি খাবার?\n\n2\n00:00:04,650 --> 00:00:10,800\nকোনটি ভালো: দারুণ খাবারের সাথে একটি খাবার নাকি দারুণ কথোপকথনের সাথে একটি খাবার?\n\n3\n00:00:10,800 --> 00:00:15,950\nআপনি কি দারুণ খাবারের সাথে একটি খাবার খেতে পছন্দ করবেন নাকি দারুণ কথোপকথনের সাথে একটি খাবার খেতে পছন্দ করবেন?\n\n4\n00:00:15,950 --> 00:00:23,100\nদারুণ খাবারের সাথে একটি খাবার এবং দারুণ কথোপকথনের সাথে একটি খাবার গ্রহণ করার মধ্যে বেছে নিতে হলে, আপনি কোনটি বেছে নেবেন?",
+            "fr": "1\n00:00:00,000 --> 00:00:04,650\nUn repas avec de bons plats ou un repas avec une bonne conversation ?\n\n2\n00:00:04,650 --> 00:00:10,800\nQu'est-ce qui est mieux : un repas avec de bons plats ou un repas avec une bonne conversation ?\n\n3\n00:00:10,800 --> 00:00:15,950\nPréférerais-tu prendre un repas avec de bons plats ou prendre un repas avec une bonne conversation ?\n\n4\n00:00:15,950 --> 00:00:23,100\nSi tu avais le choix entre prendre un repas avec de bons plats et prendre un repas avec une bonne conversation, que choisirais-tu ?",
+            "hi": "1\n00:00:00,000 --> 00:00:04,650\nबढ़िया खाने वाला भोजन या बढ़िया बातचीत वाला भोजन?\n\n2\n00:00:04,650 --> 00:00:10,800\nकौन सा बेहतर है: शानदार खाने वाला भोजन या शानदार बातचीत वाला भोजन?\n\n3\n00:00:10,800 --> 00:00:15,950\nआप ऐसा भोजन पसंद करेंगे जिसमें खाना शानदार हो या ऐसा भोजन जिसमें बातचीत शानदार हो?\n\n4\n00:00:15,950 --> 00:00:23,100\nअगर आपको चुनाव करना पड़े कि आप एक ऐसा भोजन करें जिसमें स्वादिष्ट खाना हो, और एक ऐसा भोजन करें जिसमें बढ़िया बातचीत हो, तो आप कौन सा चुनेंगे?"
+          }
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-a-03",
+          "cue": [
+            {
+              "en": "A short beach vacation with great weather or a long beach vacation with bad weather?",
+              "es": "¿Unas vacaciones cortas en la playa con excelente clima o unas vacaciones largas en la playa con mal clima?",
+              "pt": "Umas férias curtas na praia com clima ótimo ou umas férias longas na praia com clima ruim?",
+              "bn": "চমৎকার আবহাওয়া সহ একটি সংক্ষিপ্ত সমুদ্র সৈকত ছুটি নাকি খারাপ আবহাওয়া সহ একটি দীর্ঘ সমুদ্র সৈকত ছুটি?",
+              "fr": "De courtes vacances à la plage avec du beau temps ou de longues vacances à la plage avec du mauvais temps ?",
+              "hi": "अच्छे मौसम के साथ छोटी समुद्र तट की छुट्टी या खराब मौसम के साथ लंबी समुद्र तट की छुट्टी?"
+            },
+            {
+              "en": "Which is better: a short beach vacation with great weather or a long beach vacation with bad weather?",
+              "es": "¿Qué es mejor: unas vacaciones cortas en la playa con excelente clima o unas vacaciones largas en la playa con mal clima?",
+              "pt": "O que é melhor: umas férias curtas na praia com clima ótimo ou umas férias longas na praia com clima ruim?",
+              "bn": "কোনটি ভালো: চমৎকার আবহাওয়া সহ একটি সংক্ষিপ্ত সমুদ্র সৈকত ছুটি নাকি খারাপ আবহাওয়া সহ একটি দীর্ঘ সমুদ্র সৈকত ছুটি?",
+              "fr": "Qu'est-ce qui est mieux : de courtes vacances à la plage avec du beau temps ou de longues vacances à la plage avec du mauvais temps ?",
+              "hi": "कौन सा बेहतर है: अच्छे मौसम के साथ छोटी समुद्र-तट छुट्टी या खराब मौसम के साथ लंबी समुद्र-तट छुट्टी?"
+            },
+            {
+              "en": "Would you rather go on a beach vacation that's short with great weather or one that's long but with bad weather?",
+              "es": "¿Preferirías ir a unas vacaciones en la playa que sean cortas con excelente clima o a unas que sean largas pero con mal clima?",
+              "pt": "Você prefere tirar férias na praia que sejam curtas com clima ótimo ou longas, mas com clima ruim?",
+              "bn": "আপনি কি এমন একটি সমুদ্র সৈকত ছুটি কাটাতে চান যা চমৎকার আবহাওয়া সহ সংক্ষিপ্ত নাকি এমন একটি যা দীর্ঘ কিন্তু খারাপ আবহাওয়া সহ?",
+              "fr": "Préférerais-tu des vacances à la plage courtes avec du beau temps ou des vacances longues avec du mauvais temps ?",
+              "hi": "आप समुद्र तट की छुट्टी पर जाना पसंद करेंगे जो छोटी हो लेकिन मौसम शानदार हो या ऐसी छुट्टी जो लंबी हो लेकिन मौसम खराब हो?"
+            },
+            {
+              "en": "Given the choice between a brief beach vacation with ideal weather and a long beach vacation with inclement weather, which would you choose?",
+              "es": "Dada la opción entre unas breves vacaciones en la playa con clima ideal y unas vacaciones largas en la playa con clima inclemente, ¿cuál elegirías?",
+              "pt": "Dada a escolha entre umas férias breves na praia com clima ideal e umas férias longas na praia com clima inclemente, qual você escolheria?",
+              "bn": "আদর্শ আবহাওয়া সহ একটি সংক্ষিপ্ত সমুদ্র সৈকত ছুটি এবং খারাপ আবহাওয়া সহ একটি দীর্ঘ সমুদ্র সৈকত ছুটির মধ্যে পছন্দ দেওয়া হলে, আপনি কোনটি বেছে নেবেন?",
+              "fr": "Si tu avais le choix entre de courtes vacances à la plage avec un temps idéal et de longues vacances à la plage avec du mauvais temps, que choisirais-tu ?",
+              "hi": "आदर्श मौसम के साथ एक छोटी समुद्र तट की छुट्टी और खराब मौसम के साथ एक लंबी समुद्र तट की छुट्टी के बीच चुनाव दिया जाए, तो आप क्या चुनेंगे?"
+            }
+          ],
+          "publishLessonId": "a",
+          "subtitles": {
+            "en": "1\n00:00:00,000 --> 00:00:07,050\nA short beach vacation with great weather or a long beach vacation with bad weather?\n\n2\n00:00:07,050 --> 00:00:14,200\nWhich is better: a short beach vacation with great weather or a long beach vacation with bad weather?\n\n3\n00:00:14,200 --> 00:00:21,850\nWould you rather go on a beach vacation that's short with great weather or one that's long but with bad weather?\n\n4\n00:00:21,850 --> 00:00:31,680\nGiven the choice between a brief beach vacation with ideal weather and a long beach vacation with inclement weather, which would you choose?",
+            "es": "1\n00:00:00,000 --> 00:00:07,050\n¿Unas vacaciones cortas en la playa con excelente clima o unas vacaciones largas en la playa con mal tiempo?\n\n2\n00:00:07,050 --> 00:00:14,200\n¿Qué es mejor: unas vacaciones cortas en la playa con excelente clima o unas vacaciones largas en la playa con mal tiempo?\n\n3\n00:00:14,200 --> 00:00:21,850\n¿Preferirías ir a unas vacaciones en la playa que sean cortas con excelente clima o unas que sean largas pero con mal tiempo?\n\n4\n00:00:21,850 --> 00:00:31,680\nDada la opción entre unas breves vacaciones en la playa con clima ideal y unas vacaciones largas en la playa con clima inclemente, ¿cuál elegirías?",
+            "pt": "1\n00:00:00,000 --> 00:00:07,050\nUma curta viagem de férias à praia com ótimo tempo ou uma longa viagem de férias à praia com mau tempo?\n\n2\n00:00:07,050 --> 00:00:14,200\nO que é melhor: uma curta viagem de férias à praia com ótimo tempo ou uma longa viagem de férias à praia com mau tempo?\n\n3\n00:00:14,200 --> 00:00:21,850\nVocê prefere ir a uma viagem de praia curta com ótimo tempo ou a uma longa, mas com mau tempo?\n\n4\n00:00:21,850 --> 00:00:31,680\nDada a escolha entre uma breve viagem à praia com clima ideal e uma longa viagem à praia com mau tempo, qual você escolheria?",
+            "bn": "1\n00:00:00,000 --> 00:00:07,050\nদারুণ আবহাওয়াসহ একটি সংক্ষিপ্ত সৈকত ছুটি নাকি খারাপ আবহাওয়াসহ একটি দীর্ঘ সৈকত ছুটি?\n\n2\n00:00:07,050 --> 00:00:14,200\nকোনটি ভালো: দারুণ আবহাওয়াসহ একটি সংক্ষিপ্ত সৈকত ছুটি নাকি খারাপ আবহাওয়াসহ একটি দীর্ঘ সৈকত ছুটি?\n\n3\n00:00:14,200 --> 00:00:21,850\nআপনি কি দারুণ আবহাওয়াসহ একটি সংক্ষিপ্ত সৈকত ছুটিতে যেতে পছন্দ করবেন নাকি খারাপ আবহাওয়ার দীর্ঘ একটি ছুটিতে?\n\n4\n00:00:21,850 --> 00:00:31,680\nআদর্শ আবহাওয়াসহ একটি সংক্ষিপ্ত সৈকত ছুটি এবং খারাপ আবহাওয়াসহ একটি দীর্ঘ সৈকত ছুটির মধ্যে বেছে নিতে হলে, আপনি কোনটি বেছে নেবেন?",
+            "fr": "1\n00:00:00,000 --> 00:00:07,050\nDe courtes vacances à la plage avec du beau temps ou de longues vacances à la plage avec du mauvais temps ?\n\n2\n00:00:07,050 --> 00:00:14,200\nQu'est-ce qui est mieux : de courtes vacances à la plage avec du beau temps ou de longues vacances à la plage avec du mauvais temps ?\n\n3\n00:00:14,200 --> 00:00:21,850\nPréférerais-tu des vacances à la plage courtes avec du beau temps ou des vacances longues avec du mauvais temps ?\n\n4\n00:00:21,850 --> 00:00:31,680\nSi tu avais le choix entre de courtes vacances à la plage avec un temps idéal et de longues vacances à la plage avec du mauvais temps, que choisirais-tu ?",
+            "hi": "1\n00:00:00,000 --> 00:00:07,050\nअच्छे मौसम के साथ छोटी समुद्र तट की छुट्टी या खराब मौसम के साथ लंबी समुद्र तट की छुट्टी?\n\n2\n00:00:07,050 --> 00:00:14,200\nकौन सा बेहतर है: अच्छे मौसम के साथ छोटी समुद्र-तट छुट्टी या खराब मौसम के साथ लंबी समुद्र-तट छुट्टी?\n\n3\n00:00:14,200 --> 00:00:21,850\nआप समुद्र तट की छुट्टी पर जाना पसंद करेंगे जो छोटी हो लेकिन मौसम शानदार हो या ऐसी छुट्टी जो लंबी हो लेकिन मौसम खराब हो?\n\n4\n00:00:21,850 --> 00:00:31,680\nआदर्श मौसम के साथ एक छोटी समुद्र तट की छुट्टी और खराब मौसम के साथ एक लंबी समुद्र तट की छुट्टी के बीच चुनाव दिया जाए, तो आप क्या चुनेंगे?"
           }
         }
       ]
