@@ -1,7 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Strings from '../../data/strings.js';
 import { useNotifications, useMarkNotificationsRead } from '../../modules/api/api.js';
-import { getUnreadCount, listNotifications } from '../../modules/notifications/notification-logic.js';
+import {
+    getUnreadCount,
+    listNotifications,
+    shouldAutoOpenNotificationPanel,
+} from '../../modules/notifications/notification-logic.js';
 import NotificationList from './NotificationList.web.jsx';
 
 // Web container for the notification bell. Owns open state and wires the
@@ -70,21 +74,47 @@ export default function NotificationsBell({ userId, lang = 'en', compact = false
     const { data: notifications } = useNotifications(userId);
     const markRead = useMarkNotificationsRead();
     const unread = getUnreadCount(notifications);
+    // The unread count of the previous render. The inbox opens by itself when
+    // unviewed notifications APPEAR — a friend answered while the app was open,
+    // or while it was closed and the learner came back to a waiting inbox.
+    const previousUnreadRef = useRef(0);
     // Compact mode sits inline in the lesson top bar next to the trophy and
     // streak icons (.stats-container i is 1.1rem): same size, one line.
     const buttonStyle = compact
         ? { ...bellButtonStyle, fontSize: '1.1rem', padding: '0 2px' }
         : bellButtonStyle;
 
+    const markUnreadAsRead = () => {
+        const ids = listNotifications(notifications)
+            .filter((n) => !n.read_at)
+            .map((n) => n.id);
+        if (ids.length === 0) return;
+        console.log('[notifications] marking read', ids.length);
+        markRead.mutate({ userId, ids });
+    };
+
+    useEffect(() => {
+        const previousUnreadCount = previousUnreadRef.current;
+        previousUnreadRef.current = unread;
+        if (!shouldAutoOpenNotificationPanel({
+            previousUnreadCount,
+            unreadCount: unread,
+            compact,
+            isOpen: open,
+        })) return;
+        setOpen(true);
+        // The panel is on screen, so the notifications count as viewed — the
+        // same rule a manual open follows. It is also what stops the panel
+        // from re-opening itself: the unread count falls back to zero, so only
+        // the NEXT arrival can open it again.
+        markUnreadAsRead();
+    }, [unread, compact, open]);
+
     const handleToggle = () => {
         const next = !open;
         setOpen(next);
         if (next && unread > 0) {
-            const ids = listNotifications(notifications)
-                .filter((n) => !n.read_at)
-                .map((n) => n.id);
-            console.log('[notifications] marking read', ids.length);
-            markRead.mutate({ userId, ids });
+            markUnreadAsRead();
         }
     };
 

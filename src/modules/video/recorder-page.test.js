@@ -1369,6 +1369,12 @@ describe('recorder auto-render — zero server changes', () => {
             'src/modules/notifications/notification-refresh-logic.js',
             'src/modules/notifications/notification-refresh-logic.test.js',
             'tests/notifications.spec.js',
+            // Story 085 (the inbox opens by itself when a notification arrives).
+            'stories/085-notification-panel-auto-opens/story.md',
+            'src/components/homescreen/NotificationsBell.web.jsx',
+            'src/components/homescreen/NotificationsBell.web.test.jsx',
+            'src/modules/notifications/notification-logic.js',
+            'src/modules/notifications/notification-logic.test.js',
             'src/components/BilingualString.jsx',
             'src/components/courses/CourseTopicFilter.jsx',
             'src/components/courses/FriendCoursesView.jsx',
