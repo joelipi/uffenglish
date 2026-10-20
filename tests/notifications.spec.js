@@ -117,6 +117,10 @@ test.describe('home-screen notification bell', () => {
     });
 
     test('shows the bell with no badge when the inbox is empty', async ({ page }) => {
+        // The SERVER's inbox is empty, not just the injected cache row: the
+        // bell now re-reads the inbox when it mounts, so a server that still
+        // holds rows would legitimately put a badge on the bell.
+        rows = [];
         await bootAndSettle(page);
         await inject(page, { notifications: [] });
 
