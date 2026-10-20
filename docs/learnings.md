@@ -1,5 +1,13 @@
 # Learnings
 
+## A config step's subtitle tracks are per-locale AND per-phrase — trimming either breaks playback
+**Date**: 2026-10-20
+**Area**: architecture | testing
+**What happened**: Converting lesson B of `wouldyourather-test.json` from the longer combined videos (`wouldyourather-a-02` / `-03`, which speak all four question variants in one take) to single-take per-variant videos (`-02-01` / `-03-01`) was done by trimming the step's `cue` to one variant and keeping only the `en` subtitle track. A Spanish user then read **English** on the friend response step, because `getLocalizedTranslation(step.subtitles, lang)` (src/modules/utils/utils.js) falls back to `.en` whenever the requested locale is missing — a missing locale is invisible, it just silently degrades. The retained `en` track also still held the combined video's **4 cues** on a video that speaks **1 phrase**, so the subtitle cues ran past the end of the recording. The correct data already existed: the step in lesson A that owns the same video slug carries the matching 6-locale single-phrase track.
+**Takeaway**: When a config step changes which video it plays, its `subtitles` must be copied from the step that owns that **video slug** — not trimmed in place, and not carried over from the old video. Keep **every** locale (`en, es, pt, bn, fr, hi`): the app picks the user's own language and falls back to English only when no locale matches, so a step that ships one locale reads as English to every non-English user. Keep the cue count equal to the phrases the new video actually speaks. Guard it with a test that asserts the locale set, the cue count per locale, and equality with the same slug's track in the sibling lesson — and prove the guard fails by re-injecting the bug (see `src/config/wouldyourather-test.test.js`).
+
+---
+
 ## The app's inside pages share one header — and the shell, not the page, owns the frame
 **Date**: 2026-10-20
 **Area**: architecture | testing
