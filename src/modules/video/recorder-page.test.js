@@ -1162,6 +1162,7 @@ describe('recorder auto-render — zero server changes', () => {
             'src/config/test.json',
             'src/config/wouldrather.json',
             'src/config/course-tags.test.js',
+            'docs/reviews/course-tags-review.md',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);
