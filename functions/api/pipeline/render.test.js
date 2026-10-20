@@ -5,7 +5,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { onRequestPost } from './render.js';
 import { PIPELINE_JOB_ID_PATTERN } from '../../../src/modules/video/pipeline-keys.js';
 
-function makeRequest({ operatorKey = 'secret', body = { files: ['lesson_01'] }, rawBody = undefined } = {}) {
+function makeRequest({ operatorKey = 'secret', body = { files: ['lesson_01'], course: 'demo' }, rawBody = undefined } = {}) {
     const headers = new Map();
     if (operatorKey !== null) headers.set('x-operator-key', operatorKey);
     return {
@@ -61,6 +61,22 @@ describe('onRequestPost — render Function', () => {
         expect(fetchStub).not.toHaveBeenCalled();
     });
 
+    it('rejects a missing or invalid `course` with 400 and does not call Modal', async () => {
+        // The course decides which master CSV the render reads, so a render
+        // without one must fail rather than read another course's rows.
+        const cases = [
+            { body: { files: ['lesson_01'] } },
+            { body: { files: ['lesson_01'], course: '' } },
+            { body: { files: ['lesson_01'], course: '../evil' } },
+            { body: { files: ['lesson_01'], course: 'a/b' } },
+        ];
+        for (const { body } of cases) {
+            const res = await onRequestPost({ request: makeRequest({ body }), env: makeEnv() });
+            expect(res.status, JSON.stringify(body)).toBe(400);
+        }
+        expect(fetchStub).not.toHaveBeenCalled();
+    });
+
     it('rejects malformed JSON with 400', async () => {
         const request = makeRequest();
         request.json = async () => {
@@ -82,7 +98,7 @@ describe('onRequestPost — render Function', () => {
 
     it('starts the render, forwards the proxy token and returns only the job id', async () => {
         const env = makeEnv();
-        const res = await onRequestPost({ request: makeRequest({ body: { files: ['lesson_01'] } }), env });
+        const res = await onRequestPost({ request: makeRequest({ body: { files: ['lesson_01'], course: 'demo' } }), env });
 
         expect(res.status).toBe(200);
         expect(fetchStub).toHaveBeenCalledTimes(1);
@@ -97,6 +113,9 @@ describe('onRequestPost — render Function', () => {
         const forwarded = JSON.parse(options.body);
         expect(PIPELINE_JOB_ID_PATTERN.test(forwarded.jobId)).toBe(true);
         expect(forwarded.files).toEqual(['lesson_01']);
+        // The course travels with the render so the pipeline reads THIS
+        // course's master CSV.
+        expect(forwarded.course).toBe('demo');
 
         const text = await res.text();
         const payload = JSON.parse(text);

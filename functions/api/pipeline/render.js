@@ -22,6 +22,13 @@ export async function onRequestPost({ request, env }) {
     if (!Array.isArray(files) || files.length === 0 || !files.every(isValidPipelineSlug)) {
         return new Response('Bad Request: files must be a non-empty array of valid slugs', { status: 400 });
     }
+    // The course whose master CSV the render must read. Required: a render
+    // without it would fetch the wrong course's rows. Validated as a slug
+    // because it is interpolated into the CSV's URL path.
+    const course = payload && payload.course;
+    if (!isValidPipelineSlug(course)) {
+        return new Response('Bad Request: course must be a valid course id', { status: 400 });
+    }
 
     const renderUrl = env.MODAL_RENDER_URL;
     const tokenId = env.MODAL_PROXY_TOKEN_ID;
@@ -40,7 +47,7 @@ export async function onRequestPost({ request, env }) {
                 'Modal-Key': tokenId,
                 'Modal-Secret': tokenSecret,
             },
-            body: JSON.stringify({ jobId, files }),
+            body: JSON.stringify({ jobId, files, course }),
         });
     } catch {
         return new Response('Bad Gateway: Modal unreachable', { status: 502 });
