@@ -1825,7 +1825,7 @@ const strings = {
         bn: "অ্যাকাউন্ট নেই?"
     },
     'auth_sign_up_link': {
-        en: "Sign up",
+        en: "Start now free without signing up.",
         es: "Registrarse",
         pt: "Cadastre-se",
         fr: "S'inscrire",
