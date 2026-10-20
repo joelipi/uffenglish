@@ -1,4 +1,4 @@
-# Code Review: Course-level tags
+# Code Review: Course-level tags and the topic pages
 
 **Range:** `origin/main..HEAD`
 **Verdict:** Pass
@@ -11,6 +11,10 @@
 - `263cce2a` — docs-only reflection (AGENTS.md + docs/learnings.md).
 - `773b7583` — Carry hand-authored course tags over a config regeneration
   (`withCarriedTags` + the generator write path + tests).
+- `714045f5` — this report, updated after the second pass.
+- `242dd146` — The topic chooser (`/welcome`) and a page per topic
+  (`/tags/:tag`), plus the home page's "start without a friend's code" now
+  landing on the welcome page.
 
 ## First pass: Fail (score 6) — resolved by `773b7583`
 
@@ -57,6 +61,15 @@ None.
   `tags: ["preferences", "money", "getting to know you"]` with the key order
   `courseId, courseName, tags, courseHeroImage, courseMission, lessons`.
 
+## Second pass (the topic pages, `242dd146`): Pass
+
+No correctness, simplicity, security or concurrency issues. The feature follows
+the repo's conventions: the domain rules live in the pure
+`src/modules/courses/course-tags-logic.js`, the components render only, both
+pages are inside the app shell (`flex: 1; minHeight: 0`, no `100dvh`), `/welcome`
+is registered in `STATIC_SINGLE_SEGMENT_ROUTES` and declared before the
+`/:shareCode` catch-all, and the wiring guard covers the new pages.
+
 ### Suggestions
 
 None.
@@ -68,5 +81,7 @@ None.
 **Reasoning:** The regeneration-drop concern from the first pass is addressed by
 `withCarriedTags` (sheet authoritative, carry-over from the overwritten file,
 validated by unit and CLI tests), and the rest of the range (tags data, guard,
-allowlist, docs reflection) is consistent. Local verification at this HEAD:
-`npx vitest run` -> 255 files / 3879 tests pass; `npm run lint` -> 0 errors.
+allowlist, docs reflection, the topic chooser and the topic pages) is
+consistent. Local verification at this HEAD: `npx vitest run` -> 259 files /
+3927 tests pass; `npm run lint` -> 0 errors; `npm run build` -> succeeds;
+`npx playwright test tests/topic-pages.spec.js` -> 5 passed.
