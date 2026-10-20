@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { normalizeConfig, resolveConfigLanguage, isConfigLanguageSettled, getAppLanguage, getAppLanguageFor } from './config-normalizer.js';
 import { appStore } from '../store/store.js';
+import wouldyouratherTest from '../../config/wouldyourather-test.json';
 
 describe('normalizeConfig', () => {
     it('returns immediately if configData is null or undefined or missing lessons', () => {
@@ -345,5 +346,66 @@ describe('normalizer/builder UGC contract', () => {
             .toBe('aa11-bb22-c-l-01');
         expect(resolveShareCodes('{friendCode}{selfCode}-c-l-01', { friendCode: 'aa11', selfCode: null }))
             .toBe('aa11-c-l-01');
+    });
+
+    // The asker's OWN recording of the chain's ask lesson is published under
+    // their own name (`<owner>-<owner>`): they started the chain, so there is
+    // no inviter. A signed-in viewer must therefore resolve the ask-side
+    // reference to the friend's code — the viewer's own code would address a
+    // clip that was never published, and the friend's recorded question would
+    // never play.
+    it('resolves the ask-side reference to the friend code, not the viewer code', async () => {
+        const { resolveShareCodes } = await import('./config-normalizer.js');
+        const { buildUgcSegmentKey } = await import('../video/video-processor-logic.js');
+        const resolved = resolveShareCodes('{friendCode}{selfCode}-wouldyourather-a-01', {
+            friendCode: 'hu7ni', selfCode: 'mncb1', askLessonId: 'a',
+        });
+        expect(resolved).toBe('hu7ni-hu7ni-wouldyourather-a-01');
+        // ...which is exactly the key the asker's own publish wrote.
+        const key = buildUgcSegmentKey({ shareCode: 'hu7ni', inviterCode: 'hu7ni', courseId: 'wouldyourather', lessonId: 'a', index: 1 });
+        expect(`videos/${resolved}.mp4`).toBe(key);
+    });
+
+    it('keeps the viewer code for an answer-side reference', async () => {
+        const { resolveShareCodes } = await import('./config-normalizer.js');
+        // The owner's answer was recorded while answering the viewer, so the
+        // inviter IS the viewer.
+        expect(resolveShareCodes('{friendCode}{selfCode}-wouldyourather-b-04', {
+            friendCode: 'hu7ni', selfCode: 'mncb1', askLessonId: 'a',
+        })).toBe('hu7ni-mncb1-wouldyourather-b-04');
+    });
+
+    it('does not touch a reference that is not the ask lesson', async () => {
+        const { resolveShareCodes } = await import('./config-normalizer.js');
+        // A system slug that merely ends in the ask lesson id is not a friend
+        // reference: the codes are not placeholders, so nothing changes.
+        expect(resolveShareCodes('wouldyourather-a-01', {
+            friendCode: 'hu7ni', selfCode: 'mncb1', askLessonId: 'a',
+        })).toBe('wouldyourather-a-01');
+    });
+
+    // The reported symptom: a signed-in visitor opened a friend's link and the
+    // friend's recorded question never played, because the app asked R2 for
+    // `<owner>-<viewer>` while the asker had published `<owner>-<owner>`.
+    it('resolves a real course config to the owner\'s own key for the ask-side clip', async () => {
+        const configData = JSON.parse(JSON.stringify(wouldyouratherTest));
+        const previous = appStore.getState();
+        try {
+            // A signed-in visitor (own share code) opening the owner's link.
+            appStore.setState({ friendCode: 'qm3zv', userData: { shareCode: 'd38bj' } });
+            normalizeConfig(configData, 'en');
+
+            const lessonB = configData.lessons.find((l) => l.lessonId === 'b');
+            const askClip = lessonB.steps.find((s) => String(s.simpleVideoUrl || '').includes('wouldyourather-test-a-0'));
+            expect(askClip.simpleVideoUrl).toBe('qm3zv-qm3zv-wouldyourather-test-a-01');
+
+            // The answer-side clip keeps the viewer's code: the owner recorded
+            // it while answering the viewer.
+            const lessonD = configData.lessons.find((l) => l.lessonId === 'd');
+            const answerClip = lessonD.steps.find((s) => String(s.simpleVideoUrl || '').includes('wouldyourather-test-c-0'));
+            expect(answerClip.simpleVideoUrl).toBe('qm3zv-d38bj-wouldyourather-test-c-01');
+        } finally {
+            appStore.setState({ friendCode: previous.friendCode, userData: previous.userData });
+        }
     });
 });

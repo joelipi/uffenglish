@@ -31,6 +31,27 @@ export function isFriendCourse(config) {
     return !!config && Array.isArray(config.lessons) && config.lessons.some(isFriendLesson);
 }
 
+// The course's ASK lesson: the first shareCta lesson, which does not play a
+// friend's clips (`recapSources !== 'friend'`). The asker records it
+// themselves — they start the chain — so their recording is published under
+// their OWN name (`<owner>-<owner>`), and the friend who opens their link
+// looks for it under that name. Every later lesson is an answer side: the
+// recorder was answering somebody, so its clip is published
+// `<owner>-<inviter>`.
+export function findAskLessonId(config) {
+    const lessons = config?.lessons;
+    if (!Array.isArray(lessons)) return null;
+    const ask = lessons.find((l) => isFriendLesson(l) && l?.recapSources !== 'friend');
+    const id = ask?.lessonId;
+    return typeof id === 'string' && id ? id : null;
+}
+
+// Whether `lessonId` is the course's ask lesson (see findAskLessonId).
+export function isAskLesson(config, lessonId) {
+    const askId = findAskLessonId(config);
+    return !!askId && askId === lessonId;
+}
+
 // The first shareCta lesson in config order (the "ask"/A lesson). null when the
 // config has no usable friend lesson. This is the only lesson that is startable
 // without a `?shareCode=` (later chain lessons embed `{friendCode}` references).
