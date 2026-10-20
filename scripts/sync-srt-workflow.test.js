@@ -41,7 +41,8 @@ function assertSyncWorkflowContract(text) {
     expect(commit).toContain('uses: ./.github/actions/bot-commit/');
     expect(commit).toContain('bot-name: uff-srt-bot');
     expect(commit).toContain('[skip srt]');
-    expect(commit).toContain('add-paths: public/wouldyourather.master.csv');
+    // Story 076: every course's master CSV, not one named course.
+    expect(commit).toContain('add-paths: public/*.master.csv');
     expect(commit).toContain('node scripts/write-srt-to-csv.mjs --csv=/tmp/video_data.csv');
     expect(commit).toContain('r2-api-token: ${{ secrets.CLOUDFLARE_API_TOKEN }}');
     expect(commit).toContain('r2-account-id: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}');

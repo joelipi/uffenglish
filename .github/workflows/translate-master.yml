@@ -73,7 +73,7 @@ jobs:
         with:
           bot-name: uff-translate-bot
           commit-message: "chore(translate): fill master CSV translations [skip translate]"
-          add-paths: public/wouldyourather.master.csv
+          add-paths: public/*.master.csv
           no-change-echo: no translation changes
           regenerate: |
             set -euo pipefail
