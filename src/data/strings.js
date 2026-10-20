@@ -1201,6 +1201,16 @@ const strings = {
         hi: "उपयोगकर्ता नहीं मिला",
         bn: "ব্যবহারকারী পাওয়া যায়নি"
     },
+    // Label of the share code on the public profile. Localized with the rest
+    // of the page, which reads in the VISITOR's language.
+    'public_profile_share_code': {
+        en: "Share Code:",
+        es: "Código para compartir:",
+        pt: "Código de compartilhamento:",
+        fr: "Code de partage :",
+        hi: "शेयर कोड:",
+        bn: "শেয়ার কোড:"
+    },
     // The real 404 page (src/routes/NotFoundRoute.jsx): shown for paths that
     // are neither a route nor a share-code-shaped segment. Deliberately says
     // "page", not "user" — a mistyped path is not a missing person.

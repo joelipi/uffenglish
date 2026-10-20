@@ -1,5 +1,6 @@
 // @ts-check
 import { test, expect } from '@playwright/test';
+import { get } from '../src/data/strings.js';
 
 // Public-profile visitor awareness (story 064). Logged-out visitors see only
 // chain-head (`a`) links plus the login/guest banner; a logged-in visitor with
@@ -8,6 +9,9 @@ import { test, expect } from '@playwright/test';
 // owner's initial query, inject fixtures through the app's queryClient
 // singleton, fix the clock so the 48h countdown is deterministic. Viewer
 // profile, auth status and inbox are injected the same way.
+//
+// The page is localized to the VISITOR's language, never to the language of
+// the profile being read (the owner's `native_language`).
 
 const FIXED_NOW = '2026-09-24T12:00:00.000Z';
 // Must satisfy isShareCodeSegment: the owner is opened as the /:shareCode
@@ -38,13 +42,23 @@ const LINKS = {
     'friendchain:c': entry('c', 'd', 'Follow Up', '2026-09-24T10:00:00.000Z'),
 };
 
-async function seedOwner(page, friendLinks) {
+async function seedOwner(page, friendLinks, overrides = {}) {
     await page.goto(`/${OWNER}`);
     await expect(page.getByText('User not found')).toBeVisible();
     await page.evaluate(async ({ key, profile }) => {
         const { queryClient } = await import('/src/modules/api/api.js');
         queryClient.setQueryData(['user', 'profile', 'shareCode', key], profile);
-    }, { key: OWNER, profile: { ...OWNER_PROFILE, friendLinks } });
+    }, { key: OWNER, profile: { ...OWNER_PROFILE, friendLinks, ...overrides } });
+}
+
+// The visitor's language is the app's guest-first session language, which
+// lives in the store. The public profile route never opens the guest modal,
+// so the store is written directly (the same module singleton the page uses).
+async function setVisitorLanguage(page, lang) {
+    await page.evaluate(async (code) => {
+        const { appStore } = await import('/src/modules/store/store.js');
+        appStore.setState({ guestNativeLanguage: code });
+    }, lang);
 }
 
 async function seedViewer(page, { countedLessons = [], inbox = [] } = {}) {
@@ -134,5 +148,21 @@ test.describe('public-profile visitor awareness', () => {
         await expect(links.nth(0)).toHaveText('Ask');
         await expect(page.getByTestId('visitor-login-banner')).toHaveCount(0);
         await expect(page.getByTestId('friend-lesson-link-completed')).toHaveCount(0);
+    });
+
+    test('the page reads in the visitor language, not the profile owner\'s', async ({ page }) => {
+        // The owner of the profile speaks Spanish; the visitor reads in Hindi.
+        await seedOwner(page, LINKS, { native_language: 'ES' });
+        await setVisitorLanguage(page, 'HI');
+
+        await expect(page.getByTestId('friend-lesson-links-heading'))
+            .toHaveText(get('profile_friend_practice_heading', 'hi'));
+        await expect(page.getByText(get('public_profile_heading', 'hi')).first()).toBeVisible();
+        await expect(page.getByText(get('profile_streak', 'hi'))).toBeVisible();
+
+        // The owner's language must not drive any of the copy.
+        await expect(page.getByText(get('public_profile_heading', 'es'))).toHaveCount(0);
+        await expect(page.getByText(get('profile_friend_practice_heading', 'es'))).toHaveCount(0);
+        await expect(page.getByText(get('profile_streak', 'es'))).toHaveCount(0);
     });
 });
