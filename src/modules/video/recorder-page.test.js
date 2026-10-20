@@ -1116,7 +1116,12 @@ describe('recorder auto-render — zero server changes', () => {
             'src/modules/video/audio-guard-wiring.test.js',
             'src/components/InteractiveVideoPlayer.web.jsx',
             'src/components/step-loader.web.js',
+            'src/components/PlaybackVideo.jsx',
+            'src/modules/speech/capture-release-logic.js',
+            'src/modules/speech/capture-release-logic.test.js',
+            'src/modules/speech/capture-release-wiring.test.js',
             'tests/audio-guard-repairs-muted-video.spec.js',
+            'tests/playback-video-audio-guard.spec.js',
             'stories/075-fix-android-silent-video-start/story.md',
             // Shared app header: every inside page of the app renders the same
             // header (the brand bar + menu drawer), mounted once by the app

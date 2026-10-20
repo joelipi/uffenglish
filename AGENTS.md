@@ -51,6 +51,17 @@ Two rules follow from the shell owning the frame:
 
 The drawer's entries and the "is this viewer registered?" gate live in the pure module `src/modules/navigation/app-menu-logic.js` (the header stays render-only), and the drawer's hover state is a CSS class (`.uff-menu-link` in `src/assets/css/app.css`), never a `e.currentTarget.style` write from an event handler.
 
+## No media may start while a camera/microphone capture is open
+
+On Android an open capture holds the device in a communication audio mode, and the media route then ducks (or mutes) whatever plays next — the Android-only "the video starts silent for a second or two" bug (`stories/075-fix-android-silent-video-start`). Releasing the capture "somewhere around the recording" is not enough: it has to be released **before** the media starts, and the audio route needs a moment to hand back afterwards.
+
+- **The lesson videos**: the capture is released at the **step boundary** — before the next step's video plays (`step-executor-webonly.js`'s injected `releaseSpeechCam`).
+- **The recorded take** (`PlaybackVideo`): the capture is released **before** `setPlaybackBlob`, and the route is given `CAPTURE_RELEASE_SETTLE_MS` to settle before the blob is handed over (`speech.web.js` + the pure `src/modules/speech/capture-release-logic.js`). The wait only happens when a capture was actually released, so the desktop warm-up path (`keepStreamAlive: true`) is not delayed.
+
+`setWebcamStream(null)` clears the **store** reference only — the module-level stream keeps its live tracks, so a capture stays open. Every release goes through `safelyStopStream()`.
+
+**Every player carries the audio guard** (`src/modules/video/audio-guard.js`), and the guard must respect a deliberate silence: `PlaybackVideo` reads an explicit **mute intent** (the learner tapped the clip, or it already played once and now loops silently) instead of a boolean, and a *technical* mute (autoplay blocked) must never be written into that intent.
+
 ## Pipeline grouping must match the config's step granularity
 
 `docs/video-pipeline/video_pipeline.py` groups processed clips by the CSV `filename` prefix (`group_prefix_for_filename`, the leading non-digit run), which collapses a whole lesson on the overlay master (`wouldyourather_b01_i01` → `wouldyourather_b`) while the app config's step is the `video_file` column. The rendered video, the join and the SRT must all key by `pipeline_lib.group_key_for_filename` (non-blank `video_file`, else the legacy filename prefix), and `scripts/write-srt-to-sheet.mjs` mirrors that rule. When adding a stage that groups clips, route it through the shared key and assert it (a stage that re-derives its own prefix silently disagrees with the config). Compare step keys by **equality**, never `startswith`: sibling keys share a prefix (`wouldyourather_b01_i` is a prefix of `wouldyourather_b01_ii01`), so a substring match selects the wrong row (e.g. the wrong `bgMusic`). The publish plan (`pipeline_lib.plan_publish`) must name the **concatenated** file the render actually wrote — `<join>.mp4`, else `<video_file>_full<VIDEO_EXTENSION>` — never the per-take `processed_*` intermediates (publishing those 404s every slug the app config references); the published R2 key still drops the internal suffix (`assets/videos/<slug>.mp4`).
