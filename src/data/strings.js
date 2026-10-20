@@ -2931,6 +2931,46 @@ const strings = {
         fr: "Lire la vidéo",
         hi: "वीडियो चलाएँ",
         bn: "ভিডিও চালান"
+    },
+    'welcome_heading': {
+        en: "Choose your topic",
+        es: "Elige tu tema",
+        pt: "Escolha seu tema",
+        fr: "Choisissez votre sujet",
+        hi: "अपना विषय चुनें",
+        bn: "আপনার বিষয় বেছে নিন"
+    },
+    'welcome_empty': {
+        en: "No topics are available yet. Please check back soon.",
+        es: "Todavía no hay temas disponibles. Vuelve pronto.",
+        pt: "Ainda não há temas disponíveis. Volte em breve.",
+        fr: "Aucun sujet n'est disponible pour le moment. Revenez bientôt.",
+        hi: "अभी कोई विषय उपलब्ध नहीं है। कृपया जल्द ही दोबारा देखें।",
+        bn: "এখনও কোনো বিষয় উপলব্ধ নেই। শীঘ্রই আবার দেখুন।"
+    },
+    'welcome_load_error': {
+        en: "Failed to load topics. Please try again later.",
+        es: "No se pudieron cargar los temas. Inténtalo de nuevo más tarde.",
+        pt: "Não foi possível carregar os temas. Tente novamente mais tarde.",
+        fr: "Impossible de charger les sujets. Veuillez réessayer plus tard.",
+        hi: "विषय लोड नहीं हो सके। कृपया बाद में पुनः प्रयास करें।",
+        bn: "বিষয় লোড করা যায়নি। অনুগ্রহ করে পরে আবার চেষ্টা করুন।"
+    },
+    'tag_back': {
+        en: "Back",
+        es: "Volver",
+        pt: "Voltar",
+        fr: "Retour",
+        hi: "वापस",
+        bn: "ফিরে যান"
+    },
+    'tag_courses_empty': {
+        en: "No courses for this topic yet. Please check back soon.",
+        es: "Todavía no hay cursos para este tema. Vuelve pronto.",
+        pt: "Ainda não há cursos para este tema. Volte em breve.",
+        fr: "Aucun cours pour ce sujet pour le moment. Revenez bientôt.",
+        hi: "इस विषय के लिए अभी कोई पाठ्यक्रम नहीं है। कृपया जल्द ही दोबारा देखें।",
+        bn: "এই বিষয়ের জন্য এখনও কোনো কোর্স নেই। শীঘ্রই আবার দেখুন।"
     }
 };
 

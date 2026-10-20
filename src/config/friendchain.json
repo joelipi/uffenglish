@@ -1,6 +1,10 @@
 {
   "courseId": "friendchain",
   "courseName": "Friend Challenge",
+  "tags": [
+    "family",
+    "friends"
+  ],
   "lessons": [
     {
       "lessonId": "a",

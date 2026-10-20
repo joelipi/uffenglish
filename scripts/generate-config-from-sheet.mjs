@@ -20,7 +20,7 @@ import { promises as fs, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { flagValue } from './lib/cli-utils.js';
-import { parseCsv, buildCourseConfigs, isValidCourseId, partitionRowsByCourse, incompleteVideoSteps } from './lib/sheet-config-utils.js';
+import { parseCsv, buildCourseConfigs, isValidCourseId, partitionRowsByCourse, incompleteVideoSteps, withCarriedTags } from './lib/sheet-config-utils.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -150,6 +150,12 @@ export async function generateConfigsFromRows({
             continue;
         }
 
+        // The generator emits only courseId/courseName/courseHeroImage/
+        // courseMission, but it overwrites the config file it owns. Hand-
+        // authored course metadata (today: the `tags` array) lives in that
+        // file, so carry it over instead of dropping it.
+        const config = withCarriedTags(result.config, await readExistingConfig(outPath));
+
         // The committed CSV is authoritative: overwrite unconditionally. Write to a
         // same-directory temp file then rename (atomic on POSIX), so a reader or
         // a killed process never sees a partial config; remove the temp on
@@ -157,7 +163,7 @@ export async function generateConfigsFromRows({
         await fs.mkdir(path.dirname(outPath), { recursive: true });
         const tmpPath = `${outPath}.tmp-${process.pid}`;
         try {
-            await fs.writeFile(tmpPath, JSON.stringify(result.config, null, 2) + '\n');
+            await fs.writeFile(tmpPath, JSON.stringify(config, null, 2) + '\n');
             await fs.rename(tmpPath, outPath);
         } catch (err) {
             await fs.rm(tmpPath, { force: true });
@@ -220,6 +226,19 @@ async function main() {
     if (!dryRun && !check && skipped > 0) {
         console.error(`ERROR: ${skipped} course(s) skipped`);
         process.exit(1);
+    }
+}
+
+/**
+ * The config file being overwritten, parsed — or null when it does not exist
+ * or cannot be parsed (a corrupt file must not stop the regeneration; the
+ * sheet is authoritative and the file is rewritten anyway).
+ */
+async function readExistingConfig(outPath) {
+    try {
+        return JSON.parse(await fs.readFile(outPath, 'utf8'));
+    } catch {
+        return null;
     }
 }
 

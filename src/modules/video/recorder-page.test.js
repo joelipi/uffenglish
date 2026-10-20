@@ -1160,9 +1160,6 @@ describe('recorder auto-render — zero server changes', () => {
             'stories/075-ababab-pattern-all-lessons/lesson-c.proposed.json',
             'stories/075-ababab-pattern-all-lessons/lesson-c.review.json',
             'stories/075-ababab-pattern-all-lessons/wouldyourather-test.review.json',
-            // Story 076 (ABABAB config shape + a course-agnostic toolchain):
-            // the generator now emits the ABABAB shape, and nothing in the
-            // toolchain names one course any more.
             'src/config/wouldyourather.json',
             'src/config/wouldyourather.test.js',
             'src/config/ababab-generated-contract.test.js',
@@ -1191,6 +1188,33 @@ describe('recorder auto-render — zero server changes', () => {
             'scripts/write-srt-to-csv.mjs',
             'src/modules/video/model-config.test.js',
             'stories/076-generate-ababab-config/story.md',
+            'src/config/friend.json',
+            'src/config/friendchain.json',
+            'src/config/gt2.json',
+            'src/config/model.json',
+            'src/config/t.json',
+            'src/config/test-api.json',
+            'src/config/test.json',
+            'src/config/wouldrather.json',
+            'src/config/course-tags.test.js',
+            'docs/reviews/course-tags-review.md',
+            's "start without a friend',
+            'src/components/courses/WelcomePage.jsx',
+            'src/components/courses/WelcomePageContainer.jsx',
+            'src/components/courses/WelcomePage.test.jsx',
+            'src/components/courses/TagPage.jsx',
+            'src/components/courses/TagPageContainer.jsx',
+            'src/components/courses/TagPage.test.jsx',
+            'src/components/courses/CourseMissionDropdown.jsx',
+            'src/modules/courses/course-tags-logic.js',
+            'src/modules/courses/course-tags-logic.test.js',
+            'src/modules/courses/course-tags-wiring.test.js',
+            'src/modules/user/guest-modal-logic.js',
+            'src/routes/WelcomeRoute.jsx',
+            'src/routes/TagRoute.jsx',
+            'src/components/homescreen/HomeLandingContainer.jsx',
+            'src/components/homescreen/HomeLandingContainer.test.jsx',
+            'tests/topic-pages.spec.js',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);

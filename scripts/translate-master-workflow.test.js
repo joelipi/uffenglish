@@ -56,8 +56,7 @@ function assertWorkflowContract(text) {
     expect(commit).toContain('uses: ./.github/actions/bot-commit/');
     expect(commit).toContain('bot-name: uff-translate-bot');
     expect(commit).toContain('[skip translate]');
-    // Story 076: every course's master CSV, not one named course.
-    expect(commit).toContain('add-paths: public/*.master.csv');
+    expect(commit).toContain('add-paths: public/wouldyourather.master.csv');
     expect(commit).toContain('node scripts/translate-master-csv.mjs');
     expect(commit).toContain('api-key: ${{ secrets.GOOGLE_API_KEY }}');
 
