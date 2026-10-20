@@ -15,6 +15,7 @@ import {
     buildCourseConfig,
     buildCourseConfigs,
     courseMissionFromLessons,
+    withCarriedTags,
     findMissingColumns,
     isValidCourseId,
     isMasterFormat,
@@ -1471,5 +1472,55 @@ describe('incompleteVideoSteps (render completeness gate)', () => {
         const authoring = [{ course_id: 'c', lesson_id: 'a', video_file: 'v', filename: 'f', cue: 'Q', response_type: 'viewAndContinue', order: '1' }];
         expect(incompleteVideoSteps(authoring)).toEqual([]);
         expect(incompleteVideoSteps([])).toEqual([]);
+    });
+});
+
+// The generator overwrites the config file it owns and emits only
+// courseId/courseName/courseHeroImage/courseMission. Hand-authored course
+// metadata (the `tags` array) lives in that file, so it must survive the
+// overwrite — otherwise the next config-bot run drops the course's tags.
+describe('withCarriedTags', () => {
+    const GENERATED = { courseId: 'wvr', courseName: 'WVR', lessons: [] };
+
+    it('carries the previous config\'s tags into the regenerated config', () => {
+        const out = withCarriedTags(GENERATED, { courseId: 'wvr', tags: ['preferences', 'money'] });
+        expect(out.tags).toEqual(['preferences', 'money']);
+    });
+
+    it('keeps the generated tags when the new config already has some', () => {
+        const out = withCarriedTags({ ...GENERATED, tags: ['sheet'] }, { tags: ['previous'] });
+        expect(out.tags).toEqual(['sheet']);
+    });
+
+    it('puts the tags at course level, right after courseName', () => {
+        const out = withCarriedTags(GENERATED, { tags: ['preferences'] });
+        expect(Object.keys(out)).toEqual(['courseId', 'courseName', 'tags', 'lessons']);
+    });
+
+    it('adds the tags when the generated config has no courseName key', () => {
+        const out = withCarriedTags({ courseId: 'x', lessons: [] }, { tags: ['preferences'] });
+        expect(out.tags).toEqual(['preferences']);
+        expect(Object.keys(out)).toEqual(['courseId', 'lessons', 'tags']);
+    });
+
+    it('leaves the config alone when there is no previous config or no usable tags', () => {
+        expect(withCarriedTags(GENERATED, null).tags).toBeUndefined();
+        expect(withCarriedTags(GENERATED, {}).tags).toBeUndefined();
+        expect(withCarriedTags(GENERATED, { tags: [] }).tags).toBeUndefined();
+        expect(withCarriedTags(GENERATED, { tags: 'not-an-array' }).tags).toBeUndefined();
+    });
+
+    it('does not share the carried array with the previous config', () => {
+        const previous = { tags: ['preferences'] };
+        const out = withCarriedTags(GENERATED, previous);
+        out.tags.push('mutated');
+        expect(previous.tags).toEqual(['preferences']);
+    });
+
+    it('can fail: without the carry-over the tags are gone', () => {
+        // The generated config alone carries no tags — that is exactly what
+        // the carry-over has to fix.
+        expect(GENERATED.tags).toBeUndefined();
+        expect(withCarriedTags(GENERATED, { tags: ['preferences'] }).tags).toEqual(['preferences']);
     });
 });

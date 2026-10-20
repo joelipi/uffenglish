@@ -50,36 +50,27 @@ describe('wouldyourather.json — subtitle tracks', () => {
         }
     });
 
-    it.each(LOCALES)('every %s track parses as timed SRT cues', (locale) => {
-        for (const { label, step } of steps) {
-            const { isTimed, cues } = parseCues(step.subtitles[locale]);
-            expect(isTimed, `${label} ${locale} is not timed`).toBe(true);
-            expect(cues.length, `${label} ${locale} has no cues`).toBeGreaterThan(0);
-        }
-    });
-
-    it.each(LOCALES)('no %s track carries a stray line before cue 1', (locale) => {
-        // The regression this file exists for: a batch-index marker ("[7]")
-        // prepended to the document. SimpleVideoStateController skips blocks
-        // with no "-->", so it plays fine and hides the corruption.
+    it.each(LOCALES)('every %s track is a plain phrase for the take it plays', (locale) => {
+        // A take speaks ONE phrase, so its subtitle is that phrase with no
+        // timings: the player shows it for the video's whole length
+        // (SimpleVideoStateController.initSubtitles, no "-->").
         for (const { label, step } of steps) {
             const raw = step.subtitles[locale];
-            expect(OPENS_ON_CUE_ONE.test(raw), `${label} ${locale} does not open on cue 1`).toBe(true);
-            expect(/^\s*\[\d+\]/m.test(raw), `${label} ${locale} starts with an index marker`).toBe(false);
+            expect(raw, `${label} ${locale} carries SRT timings`).not.toContain('-->');
+            expect(raw.trim(), `${label} ${locale} is blank`).not.toBe('');
+            // The track is the step's own phrase in that language.
+            const cue = (step.cue || [])[0];
+            expect(cue, `${label} has no cue`).toBeDefined();
+            expect(raw, `${label} ${locale} does not match its cue`).toBe(cue[locale]);
         }
     });
 
-    it('every track has the same cue count and timings as English', () => {
+    it.each(LOCALES)('no %s track carries a stray batch-index marker', (locale) => {
+        // The regression this file exists for: a batch-index marker ("[7]")
+        // prepended to the document. It would play fine and hide the corruption.
         for (const { label, step } of steps) {
-            const en = parseCues(step.subtitles.en).cues;
-            for (const locale of TRANSLATED) {
-                const tr = parseCues(step.subtitles[locale]).cues;
-                expect(tr.length, `${label} ${locale} cue count ${tr.length} != en ${en.length}`).toBe(en.length);
-                tr.forEach((cue, i) => {
-                    expect(cue.start, `${label} ${locale} cue ${i + 1} start`).toBeCloseTo(en[i].start, 3);
-                    expect(cue.end, `${label} ${locale} cue ${i + 1} end`).toBeCloseTo(en[i].end, 3);
-                });
-            }
+            const raw = step.subtitles[locale];
+            expect(/^\s*\[\d+\]/m.test(raw), `${label} ${locale} starts with an index marker`).toBe(false);
         }
     });
 });

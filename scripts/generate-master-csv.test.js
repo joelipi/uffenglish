@@ -7,7 +7,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { runGenerateMasterCsv, MASTER_CSV_REL } from './generate-master-csv.mjs';
+import { runGenerateMasterCsv, masterCsvRelFor } from './generate-master-csv.mjs';
 import { parseCsv, serializeCsv } from './lib/sheet-config-utils.js';
 import { MASTER_HEADER, parseSourceConfig, sourceToRows } from './lib/source-bridge-utils.js';
 
@@ -36,8 +36,11 @@ const MINI_SOURCE = JSON.stringify({
 const tmpDir = () => mkdtempSync(path.join(os.tmpdir(), 'uff-master-csv-'));
 
 describe('runGenerateMasterCsv', () => {
-    it('pins the committed store path every consumer reads', () => {
-        expect(MASTER_CSV_REL).toBe('public/wouldyourather.master.csv');
+    it('derives the committed store path from the source name', () => {
+        // Story 076: no course is named here - a new course is one
+        // `<course>.source.txt` away.
+        expect(masterCsvRelFor('/x/wouldyourather.source.txt')).toBe('public/wouldyourather.master.csv');
+        expect(masterCsvRelFor('/x/othercourse.source.txt')).toBe('public/othercourse.master.csv');
     });
 
     it('emits the contract header with takes counted from filename rows', () => {
@@ -158,7 +161,7 @@ describe('real source + committed store consistency', () => {
     it('the bridge output matches the committed CSV row-for-row (ignoring translations)', () => {
         const sourceText = readFileSync(path.join(ROOT, 'wouldyourather.source.txt'), 'utf8');
         const fresh = sourceToRows(parseSourceConfig(sourceText));
-        const committed = parseCsv(readFileSync(path.join(ROOT, MASTER_CSV_REL), 'utf8'));
+        const committed = parseCsv(readFileSync(path.join(ROOT, masterCsvRelFor('wouldyourather.source.txt')), 'utf8'));
         expect(committed.headers.join(',')).toBe(MASTER_HEADER.map((h) => h.toLowerCase()).join(','));
         expect(committed.rows.length).toBe(fresh.length);
         expect(committed.rows.filter((r) => r.filename.trim()).length)

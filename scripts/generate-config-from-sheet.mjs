@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // scripts/generate-config-from-sheet.mjs
-// Read the committed master CSV (`public/wouldyourather.master.csv`) and write
+// Read every committed master CSV (`public/*.master.csv`) and write
 // one `src/config/<courseId>.json` per course it defines
 // (stories/042-generate-config-from-sheet, multi-course story 046). The
 // committed CSV is the source of truth for both videos and configs (story
@@ -16,21 +16,31 @@
 // Usage:
 //   node scripts/generate-config-from-sheet.mjs [--course=<id>] [--out=<dir>] [--csv=<path>] [--dry-run] [--check]
 
-import { promises as fs } from 'node:fs';
+import { promises as fs, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { flagValue } from './lib/cli-utils.js';
-import { parseCsv, buildCourseConfigs, isValidCourseId, partitionRowsByCourse, incompleteVideoSteps } from './lib/sheet-config-utils.js';
+import { parseCsv, buildCourseConfigs, isValidCourseId, partitionRowsByCourse, incompleteVideoSteps, withCarriedTags } from './lib/sheet-config-utils.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
 // Default output directory for generated configs (test seam).
 const CONFIG_DIR = process.env.CONFIG_OUT_DIR || path.join(ROOT, 'src', 'config');
 
-// The committed store every consumer reads. The literal path is pinned by the
-// pipeline parity test — keep it byte-identical across the three readers
-// (recorder, generator, Modal render).
-export const MASTER_CSV_REL = 'public/wouldyourather.master.csv';
+// The committed store every consumer reads. The path is DERIVED from each
+// course's source file name, so a new course is one `*.source.txt` away: the
+// pipeline parity test pins the three readers (recorder, generator, Modal
+// render) to the same committed path for the course they are about.
+export const MASTER_CSV_GLOB = 'public/*.master.csv';
+
+/** Every committed master CSV, in a stable order. */
+export function masterCsvPaths(root = ROOT) {
+    const pubDir = path.join(root, 'public');
+    return readdirSync(pubDir)
+        .filter((f) => f.endsWith('.master.csv'))
+        .sort()
+        .map((f) => path.join(pubDir, f));
+}
 
 const HELP = `Generate a src/config/<courseId>.json per master-CSV course.
 
@@ -140,6 +150,12 @@ export async function generateConfigsFromRows({
             continue;
         }
 
+        // The generator emits only courseId/courseName/courseHeroImage/
+        // courseMission, but it overwrites the config file it owns. Hand-
+        // authored course metadata (today: the `tags` array) lives in that
+        // file, so carry it over instead of dropping it.
+        const config = withCarriedTags(result.config, await readExistingConfig(outPath));
+
         // The committed CSV is authoritative: overwrite unconditionally. Write to a
         // same-directory temp file then rename (atomic on POSIX), so a reader or
         // a killed process never sees a partial config; remove the temp on
@@ -147,7 +163,7 @@ export async function generateConfigsFromRows({
         await fs.mkdir(path.dirname(outPath), { recursive: true });
         const tmpPath = `${outPath}.tmp-${process.pid}`;
         try {
-            await fs.writeFile(tmpPath, JSON.stringify(result.config, null, 2) + '\n');
+            await fs.writeFile(tmpPath, JSON.stringify(config, null, 2) + '\n');
             await fs.rename(tmpPath, outPath);
         } catch (err) {
             await fs.rm(tmpPath, { force: true });
@@ -210,6 +226,19 @@ async function main() {
     if (!dryRun && !check && skipped > 0) {
         console.error(`ERROR: ${skipped} course(s) skipped`);
         process.exit(1);
+    }
+}
+
+/**
+ * The config file being overwritten, parsed — or null when it does not exist
+ * or cannot be parsed (a corrupt file must not stop the regeneration; the
+ * sheet is authoritative and the file is rewritten anyway).
+ */
+async function readExistingConfig(outPath) {
+    try {
+        return JSON.parse(await fs.readFile(outPath, 'utf8'));
+    } catch {
+        return null;
     }
 }
 

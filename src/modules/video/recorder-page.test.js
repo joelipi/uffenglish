@@ -249,7 +249,10 @@ describe('recorder page — same-origin master CSV', () => {
     };
 
     const assertLoaderContract = (slice) => {
-        expect(slice).toContain("var spreadsheet_url = 'wouldyourather.master.csv'");
+        // Story 076: the page derives the path from the course id, so a new
+        // course needs no edit here.
+        expect(slice).toContain("var spreadsheet_url = course + '.master.csv'");
+        expect(slice).toContain("get('course')");
         expect(slice).not.toContain('docs.google.com');
         expect(slice).not.toContain('2PACX');
         expect(slice).not.toContain('gid=');
@@ -270,7 +273,7 @@ describe('recorder page — same-origin master CSV', () => {
         const good = loaderSlice();
         // Presence tokens: removing the relative URL trips the guard.
         const noUrl = good.replace(
-            "var spreadsheet_url = 'wouldyourather.master.csv'",
+            "var spreadsheet_url = course + '.master.csv'",
             "var spreadsheet_url = 'other.csv'"
         );
         expect(noUrl).not.toBe(good);
@@ -284,18 +287,36 @@ describe('recorder page — same-origin master CSV', () => {
         }
     });
 
+    it('refuses to load without a course, instead of guessing one', () => {
+        // The course decides which master CSV the page reads AND which course
+        // every render request names, so a missing one must fail loudly
+        // rather than silently work on the wrong course.
+        const slice = loaderSlice();
+        expect(slice).toContain("get('course')");
+        expect(slice).toContain('NO COURSE');
+        expect(slice).not.toContain("|| 'wouldyourather'");
+    });
+
+    it('every render request carries the course', () => {
+        const html = page();
+        const posts = [...html.matchAll(/body: JSON\.stringify\(\{ files: ([^}]+)\}/g)].map((m) => m[0]);
+        expect(posts.length).toBeGreaterThan(0);
+        for (const post of posts) expect(post).toContain('course: global_recorder_course');
+    });
+
     it('the relative URL resolves to the committed CSV from both served paths', async () => {
         const html = page();
-        const match = /var spreadsheet_url = '([^']+)'/.exec(
+        const match = /var spreadsheet_url = course \+ '([^']+)'/.exec(
             html.slice(html.indexOf('async function loadScriptDataFromSheets()'))
         );
-        expect(match, 'spreadsheet_url literal').not.toBeNull();
-        const literal = match[1];
-        expect(literal.startsWith('http')).toBe(false);
+        expect(match, 'spreadsheet_url expression').not.toBeNull();
+        const suffix = match[1];
         // Pages serves the page at both /recorder.html and /recorder; the
-        // relative fetch must land on /wouldyourather.master.csv either way.
+        // relative fetch must land on /<course>.master.csv either way.
         for (const base of ['http://x/recorder.html', 'http://x/recorder']) {
-            expect(new URL(literal, base).pathname).toBe('/wouldyourather.master.csv');
+            for (const course of ['wouldyourather', 'othercourse']) {
+                expect(new URL(course + suffix, base).pathname).toBe(`/${course}.master.csv`);
+            }
         }
     });
 
@@ -350,7 +371,7 @@ describe('recorder page — same-origin master CSV', () => {
         const html = page();
         const fetchedUrls = [];
         const dom = new JSDOM(html, {
-            url: 'http://127.0.0.1:9/recorder.html',
+            url: 'http://127.0.0.1:9/recorder.html?course=wouldyourather',
             runScripts: 'dangerously',
             beforeParse(pageWindow) {
                 pageWindow.fetch = async (url) => {
@@ -462,7 +483,7 @@ describe('recorder page — countdown overlay paints', () => {
         const html = page();
         const csv = fs.readFileSync(path.join(REPO_ROOT, 'public/wouldyourather.master.csv'), 'utf8');
         const dom = new JSDOM(html, {
-            url: 'http://127.0.0.1:9/recorder.html',
+            url: 'http://127.0.0.1:9/recorder.html?course=wouldyourather',
             runScripts: 'dangerously',
             beforeParse(pageWindow) {
                 pageWindow.fetch = async () => ({ ok: true, text: async () => csv });
@@ -568,7 +589,7 @@ describe('recorder page — lesson auto-render', () => {
         const { JSDOM } = await import('jsdom');
         const html = fs.readFileSync(PAGE_PATH, 'utf8');
         const dom = new JSDOM(html, {
-            url: 'http://127.0.0.1:9/recorder.html',
+            url: 'http://127.0.0.1:9/recorder.html?course=wouldyourather',
             runScripts: 'dangerously',
             beforeParse(pageWindow) {
                 pageWindow.fetch = stub;
@@ -955,10 +976,13 @@ describe('recorder auto-render — zero server changes', () => {
             'src/config/wouldyourather.json',
             'src/config/wouldyourather-test.json',
             'src/config/wouldyourather.test.js',
+            'src/config/ababab-generated-contract.test.js',
             // Story 066 (recorder auto-render).
             'public/recorder.html',
             'src/modules/video/recorder-page.test.js',
             'scripts/translate-master-csv.mjs',
+            'scripts/sync-srt-workflow.test.js',
+            'scripts/translate-master-workflow.test.js',
             'scripts/translate-master-csv.test.js',
             'scripts/lib/gemini.js',
             'scripts/lib/gemini.test.js',
@@ -995,6 +1019,11 @@ describe('recorder auto-render — zero server changes', () => {
             'src/modules/courses/friend-course-configs.test.js',
             'scripts/generate-config-from-sheet.mjs',
             'scripts/generate-config-from-sheet.test.js',
+            'scripts/generate-sheet-from-source.mjs',
+            'docs/video-pipeline/trigger_app.py',
+            'docs/video-pipeline/modal_app.py',
+            'functions/api/pipeline/render.js',
+            'functions/api/pipeline/render.test.js',
             'scripts/source-to-csv-workflow.test.js',
             '.github/workflows/source-to-csv.yml',
             'src/modules/courses/friend-courses-logic.test.js',
@@ -1002,6 +1031,8 @@ describe('recorder auto-render — zero server changes', () => {
             'scripts/lib/gemini.js',
             'scripts/lib/gemini.test.js',
             'scripts/translate-master-csv.mjs',
+            'scripts/sync-srt-workflow.test.js',
+            'scripts/translate-master-workflow.test.js',
             // Zoho CPaaS email migration.
             '.env.example',
             'docs/auth-emails.md',
@@ -1156,6 +1187,66 @@ describe('recorder auto-render — zero server changes', () => {
             'stories/075-ababab-pattern-all-lessons/lesson-c.proposed.json',
             'stories/075-ababab-pattern-all-lessons/lesson-c.review.json',
             'stories/075-ababab-pattern-all-lessons/wouldyourather-test.review.json',
+            'src/config/wouldyourather.json',
+            'src/config/wouldyourather.test.js',
+            'src/config/ababab-generated-contract.test.js',
+            'public/wouldyourather.master.csv',
+            'public/recorder.html',
+            'wouldyourather.source.txt',
+            '.github/workflows/sync-srt.yml',
+            '.github/workflows/translate-master.yml',
+            'docs/product.md',
+            'docs/video-pipeline/pipeline_lib.py',
+            'docs/video-pipeline/tests/test_pipeline_lib.py',
+            'docs/video-pipeline/tests/test_pipeline_parity.py',
+            'docs/video-pipeline/tests/test_modal_app_source.py',
+            'scripts/lib/sheet-config-utils.js',
+            'scripts/lib/sheet-config-utils.test.js',
+            'scripts/lib/source-bridge-utils.js',
+            'scripts/lib/source-bridge-utils.test.js',
+            'scripts/lib/poster-utils.test.js',
+            'scripts/generate-master-csv.mjs',
+            'scripts/generate-master-csv.test.js',
+            'scripts/generate-config-from-sheet.mjs',
+            'scripts/generate-config-from-sheet.test.js',
+            'scripts/generate-sheet-from-source.mjs',
+            'docs/video-pipeline/trigger_app.py',
+            'docs/video-pipeline/modal_app.py',
+            'functions/api/pipeline/render.js',
+            'functions/api/pipeline/render.test.js',
+            'scripts/translate-master-csv.mjs',
+            'scripts/sync-srt-workflow.test.js',
+            'scripts/translate-master-workflow.test.js',
+            'scripts/write-srt-to-csv.mjs',
+            'src/modules/video/model-config.test.js',
+            'stories/076-generate-ababab-config/story.md',
+            'src/config/friend.json',
+            'src/config/friendchain.json',
+            'src/config/gt2.json',
+            'src/config/model.json',
+            'src/config/t.json',
+            'src/config/test-api.json',
+            'src/config/test.json',
+            'src/config/wouldrather.json',
+            'src/config/course-tags.test.js',
+            'docs/reviews/course-tags-review.md',
+            's "start without a friend',
+            'src/components/courses/WelcomePage.jsx',
+            'src/components/courses/WelcomePageContainer.jsx',
+            'src/components/courses/WelcomePage.test.jsx',
+            'src/components/courses/TagPage.jsx',
+            'src/components/courses/TagPageContainer.jsx',
+            'src/components/courses/TagPage.test.jsx',
+            'src/components/courses/CourseMissionDropdown.jsx',
+            'src/modules/courses/course-tags-logic.js',
+            'src/modules/courses/course-tags-logic.test.js',
+            'src/modules/courses/course-tags-wiring.test.js',
+            'src/modules/user/guest-modal-logic.js',
+            'src/routes/WelcomeRoute.jsx',
+            'src/routes/TagRoute.jsx',
+            'src/components/homescreen/HomeLandingContainer.jsx',
+            'src/components/homescreen/HomeLandingContainer.test.jsx',
+            'tests/topic-pages.spec.js',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);

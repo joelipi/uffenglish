@@ -38,6 +38,7 @@
   "hero": "src/assets/img/wouldyouratherhero.jpg",
   "video_title": "Preferences in English",
   "mission": "talk about preferences",
+  "tags": ["preferences", "money", "getting to know you"],
   "levels": {
     "A1": {
       "en": "X or Y"

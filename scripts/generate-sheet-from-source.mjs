@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // scripts/generate-sheet-from-source.mjs
-// Expand a friend-course source config (`wouldyourather.source.txt`) into the
+// Expand a friend-course source config (`<course>.source.txt`) into the
 // master-shape sheet CSV the EXISTING pipeline reads (recorder, Modal render,
 // generate-config-from-sheet.mjs). The source file stays the authoring truth;
 // this bridge lets everything downstream keep working unchanged until each
@@ -9,7 +9,7 @@
 // Usage:
 //   node scripts/generate-sheet-from-source.mjs [--source=<path>] [--out=<path>]
 //
-// Defaults: --source=<repo>/wouldyourather.source.txt, CSV to stdout (logs go
+// Defaults: --source=<repo>/<course>.source.txt, CSV to stdout (logs go
 // to stderr, so `--out` or a redirect captures a clean CSV).
 
 import { promises as fs } from 'node:fs';
@@ -17,6 +17,7 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { flagValue } from './lib/cli-utils.js';
 import { parseSourceConfig, sourceToRows, rowsToCsv } from './lib/source-bridge-utils.js';
+import { defaultSourcePath } from './generate-master-csv.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -27,7 +28,7 @@ Usage:
   node scripts/generate-sheet-from-source.mjs [options]
 
 Options:
-  --source=<path>   Source .txt file (default: <repo>/wouldyourather.source.txt)
+  --source=<path>   Source .txt file (default: <repo>/<course>.source.txt)
   --out=<path>      Write CSV here (default: stdout; logs go to stderr)
   --help, -h        Show this help
 
@@ -40,7 +41,7 @@ async function main() {
 
     const sourcePath = flagValue(args, '--source')
         ? path.resolve(flagValue(args, '--source'))
-        : path.join(ROOT, 'wouldyourather.source.txt');
+        : defaultSourcePath(ROOT);
     const outPath = flagValue(args, '--out') ? path.resolve(flagValue(args, '--out')) : null;
 
     const source = parseSourceConfig(await fs.readFile(sourcePath, 'utf8'));

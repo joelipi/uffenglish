@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // scripts/generate-master-csv.mjs
-// Regenerate the committed master CSV (`public/wouldyourather.master.csv`)
-// from the source config (`wouldyourather.source.txt`). Run by
+// Regenerate the committed master CSV (`public/<course>.master.csv`, derived
+// from the source file's name) from the source config (`<course>.source.txt`).
+// Run by
 // .github/workflows/source-to-csv.yml on every push that touches the source,
 // so editing the source on the GitHub web UI is the whole authoring action.
 //
@@ -33,10 +34,28 @@ import { parseCsv } from './lib/sheet-config-utils.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
 
-// The committed store every consumer reads. The literal path is pinned by the
-// pipeline parity test — keep it byte-identical across the three readers
-// (recorder, generator, Modal render).
-export const MASTER_CSV_REL = 'public/wouldyourather.master.csv';
+// The committed store every consumer reads. The path is DERIVED from the
+// source file's name, so a new course is one `*.source.txt` away: the
+// pipeline parity test pins the three readers (recorder, generator, Modal
+// render) to the same committed path for the course they are about.
+export function masterCsvRelFor(sourcePath) {
+    const base = path.basename(String(sourcePath || '')).replace(/\.source\.txt$/, '');
+    return `public/${base}.master.csv`;
+}
+
+/**
+ * The source file to convert when `--source` is not given: the repo's only
+ * `*.source.txt`. With several courses there is no single default, so the
+ * caller must name one.
+ */
+export function defaultSourcePath(root = ROOT) {
+    const sources = fs.readdirSync(root).filter((f) => f.endsWith('.source.txt')).sort();
+    if (sources.length === 1) return path.join(root, sources[0]);
+    if (sources.length === 0) throw new Error(`no *.source.txt in ${root}; pass --source`);
+    throw new Error(
+        `several source configs in ${root} (${sources.join(', ')}); pass --source=<path>`
+    );
+}
 
 const HELP = `Regenerate the committed master CSV from the source config.
 
@@ -44,8 +63,8 @@ Usage:
   node scripts/generate-master-csv.mjs [options]
 
 Options:
-  --source=<path>   Source .txt file (default: <repo>/wouldyourather.source.txt)
-  --out=<path>      Output CSV file (default: <repo>/${MASTER_CSV_REL})
+  --source=<path>   Source .txt file (default: <repo>/<course>.source.txt)
+  --out=<path>      Output CSV file (default: <repo>/public/<course>.master.csv)
   --dry-run         Validate and print the plan; write nothing
   --help, -h        Show this help
 
@@ -90,9 +109,11 @@ async function main() {
     if (args.includes('--help') || args.includes('-h')) { console.log(HELP); return; }
 
     const sourceFlag = flagValue(args, '--source');
-    const sourcePath = sourceFlag ? path.resolve(sourceFlag) : path.join(ROOT, 'wouldyourather.source.txt');
+    const sourcePath = sourceFlag
+        ? path.resolve(sourceFlag)
+        : path.join(ROOT, defaultSourcePath());
     const outFlag = flagValue(args, '--out');
-    const outPath = outFlag ? path.resolve(outFlag) : path.join(ROOT, MASTER_CSV_REL);
+    const outPath = outFlag ? path.resolve(outFlag) : path.join(ROOT, masterCsvRelFor(sourcePath));
     const dryRun = args.includes('--dry-run');
 
     const sourceText = await fs.readFile(sourcePath, 'utf8');

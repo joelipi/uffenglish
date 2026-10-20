@@ -38,7 +38,7 @@ import {
     translateBatchStrings as realTranslateBatchStrings,
     translateBatchSrts as realTranslateBatchSrts,
 } from './lib/gemini.js';
-import { MASTER_CSV_REL } from './generate-config-from-sheet.mjs';
+import { masterCsvPaths } from './generate-config-from-sheet.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -51,7 +51,7 @@ Usage:
   node scripts/translate-master-csv.mjs [options]
 
 Options:
-  --csv=<path>          Master CSV file (default: the committed public/wouldyourather.master.csv)
+  --csv=<path>          Master CSV file (default: every committed public/*.master.csv)
   --languages=es,pt,bn,fr,hi  Target languages (default: ${SHEET_LANGUAGES.join(',')})
   --dry-run             Print the plan and would-be cells; write nothing
   --force               Retranslate non-blank target cells (operator-only)
@@ -279,7 +279,11 @@ async function main() {
 
     // Flag validation first, so a bad invocation fails with the flag error.
     const csvFlag = flagValue(args, '--csv');
-    const csvPath = csvFlag ? path.resolve(csvFlag) : path.join(ROOT, MASTER_CSV_REL);
+    // With no --csv, every committed master CSV is translated: the step keys
+    // are course-prefixed, so one course's cells can never land in another's.
+    const csvPaths = csvFlag
+        ? [path.resolve(csvFlag)]
+        : masterCsvPaths(ROOT);
     const languagesRaw = flagValue(args, '--languages');
     const languages = languagesRaw ? parseLanguages(languagesRaw) : SHEET_LANGUAGES;
     const dryRun = args.includes('--dry-run');
@@ -289,22 +293,28 @@ async function main() {
         console.error('ERROR: GOOGLE_API_KEY is not set. Set it before running the translator.');
         process.exit(1);
     }
-
-    const csvText = await fs.readFile(csvPath, 'utf8');
-    const { csv } = await runTranslateCsv({ csvText, languages, dryRun, force });
-    if (dryRun || csv === null) return;
-
-    // Same-directory temp file + rename (story-047 rule): a killed run never
-    // leaves a half-written store.
-    const tmpPath = `${csvPath}.tmp-${process.pid}`;
-    try {
-        await fs.writeFile(tmpPath, csv);
-        await fs.rename(tmpPath, csvPath);
-    } catch (err) {
-        await fs.rm(tmpPath, { force: true });
-        throw err;
+    if (!csvPaths.length) {
+        console.error('ERROR: no master CSV files found');
+        process.exit(1);
     }
-    console.log(`WROTE ${csvPath}`);
+
+    for (const csvPath of csvPaths) {
+        const csvText = await fs.readFile(csvPath, 'utf8');
+        const { csv } = await runTranslateCsv({ csvText, languages, dryRun, force });
+        if (dryRun || csv === null) continue;
+
+        // Same-directory temp file + rename (story-047 rule): a killed run never
+        // leaves a half-written store.
+        const tmpPath = `${csvPath}.tmp-${process.pid}`;
+        try {
+            await fs.writeFile(tmpPath, csv);
+            await fs.rename(tmpPath, csvPath);
+        } catch (err) {
+            await fs.rm(tmpPath, { force: true });
+            throw err;
+        }
+        console.log(`WROTE ${csvPath}`);
+    }
 }
 
 const invokedDirectly = process.argv[1]

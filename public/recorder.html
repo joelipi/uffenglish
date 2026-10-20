@@ -552,6 +552,9 @@
          * ==========================================
          */
         var global_script_phrases = [];
+        // The course this page is working on; every render request carries it so
+        // the pipeline fetches THIS course's master CSV.
+        var global_recorder_course = '';
         var global_current_index = 0;
         var global_stream_handle = null;
         var global_recorder_obj = null;
@@ -896,7 +899,17 @@ node_video_preview.play(); // Explicitly restart playback
         }
 
         async function loadScriptDataFromSheets() {
-            var spreadsheet_url = 'wouldyourather.master.csv';
+            // Which course's committed master CSV to read. The path is derived
+            // from the course id, so a new course needs no edit here. The
+            // course is REQUIRED: guessing one would render the wrong course's
+            // takes, so an unknown course fails loudly instead.
+            var course = new URLSearchParams(location.search).get('course');
+            if (!course) {
+                appCoreLog("NO COURSE — open this page with ?course=<courseId>");
+                return;
+            }
+            global_recorder_course = course;
+            var spreadsheet_url = course + '.master.csv';
             
             appCoreLog("Requesting remote CSV data...");
             try {
@@ -1151,7 +1164,7 @@ node_video_preview.play(); // Explicitly restart playback
                     'x-operator-key': getOperatorKey(),
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ files: lesson_files })
+                body: JSON.stringify({ files: lesson_files, course: global_recorder_course })
             }).then(function(response) {
                 if (!response.ok) {
                     throw new Error("HTTP " + response.status);
@@ -1281,7 +1294,7 @@ node_video_preview.play(); // Explicitly restart playback
                     'x-operator-key': operator_key,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ files: files })
+                body: JSON.stringify({ files: files, course: global_recorder_course })
             }).then(function(response) {
                 if (!response.ok) {
                     throw new Error("HTTP " + response.status);

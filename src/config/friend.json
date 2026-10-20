@@ -1,6 +1,10 @@
 {
   "courseId": "20260921",
   "courseName": "Friend Challenge",
+  "tags": [
+    "friends",
+    "sports"
+  ],
   "lessons": [
     {
       "lessonId": "a",

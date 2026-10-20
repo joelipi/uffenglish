@@ -318,14 +318,17 @@ class SheetUrlTest(unittest.TestCase):
     """Story 065: the render's master CSV URL, with an env override."""
 
     def test_defaults_to_the_committed_master_csv(self):
-        self.assertEqual(lib.resolve_sheet_url({}), lib.MASTER_CSV_URL)
+        # Story 076: the path is derived from the course id, so a new course
+        # needs no edit here.
+        url = lib.master_csv_url("samplecourse")
+        self.assertEqual(lib.resolve_sheet_url({}, "samplecourse"), url)
         self.assertTrue(
-            lib.MASTER_CSV_URL.startswith("https://raw.githubusercontent.com/"),
-            lib.MASTER_CSV_URL,
+            url.startswith("https://raw.githubusercontent.com/"),
+            url,
         )
         self.assertTrue(
-            lib.MASTER_CSV_URL.endswith("public/wouldyourather.master.csv"),
-            lib.MASTER_CSV_URL,
+            url.endswith("public/samplecourse.master.csv"),
+            url,
         )
 
     def test_pipeline_sheet_url_overrides_the_default(self):

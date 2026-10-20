@@ -27,6 +27,10 @@ def trigger(spec: dict):
     """Validate a render request and spawn the orchestrator (returns immediately)."""
     if not isinstance(spec, dict) or not spec.get("jobId") or not spec.get("files"):
         raise HTTPException(status_code=400, detail="spec requires jobId and files")
+    # The course to render: the orchestrator reads THIS course's master CSV,
+    # so a render cannot fall back to another course's rows.
+    if not spec.get("course"):
+        raise HTTPException(status_code=400, detail="spec requires course")
     # Resolve the orchestrator by name: this module cannot import its definition
     # (the orchestrator image carries the pipeline; this one only has fastapi).
     modal.Function.from_name("uff-lesson-video", "orchestrator").spawn(spec)

@@ -148,11 +148,11 @@ describe('HomeLandingContainer', () => {
         expect(q('share-code-headline').textContent).toBe(get('home_landing_headline', 'es'));
     });
 
-    it('navigates to the courses page when no code is available', async () => {
+    it('navigates to the welcome page (choose your topic) when no code is available', async () => {
         await render();
         await act(async () => { q('no-code').click(); });
         expect(navigate).toHaveBeenCalledTimes(1);
-        expect(navigate).toHaveBeenCalledWith('/courses');
+        expect(navigate).toHaveBeenCalledWith('/welcome');
     });
 
     it('ignores a second submit while the first lookup is still in flight', async () => {

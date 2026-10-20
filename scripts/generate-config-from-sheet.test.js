@@ -124,8 +124,28 @@ describe('generate-config-from-sheet CLI', () => {
         } finally { rmSync(dir, { recursive: true, force: true }); }
     });
 
-    it('CI path: --check over already-present configs exits 0 and rewrites', async () => {
+    it('carries hand-authored course tags over a regeneration', async () => {
         const dir = tmpDir();
+        try {
+            await runCli([`${csvIn(dir, FIXTURE_CSV)}`, `--out=${dir}`]);
+            // Hand-authored course metadata lives in the config file the
+            // generator overwrites; it must survive the re-run.
+            const alphaPath = path.join(dir, 'alpha.json');
+            const alpha = JSON.parse(readFileSync(alphaPath, 'utf8'));
+            alpha.tags = ['preferences', 'money'];
+            writeFileSync(alphaPath, JSON.stringify(alpha, null, 2) + '\n');
+
+            const { code } = await runCli([`${csvIn(dir, FIXTURE_CSV)}`, `--out=${dir}`]);
+            expect(code).toBe(0);
+            const regenerated = JSON.parse(readFileSync(alphaPath, 'utf8'));
+            expect(regenerated.tags).toEqual(['preferences', 'money']);
+            expect(regenerated.courseId).toBe('alpha');
+            // A course with no hand-authored tags gains none.
+            expect(JSON.parse(readFileSync(path.join(dir, 'beta.json'), 'utf8')).tags).toBeUndefined();
+        } finally { rmSync(dir, { recursive: true, force: true }); }
+    });
+
+    it('CI path: --check over already-present configs exits 0 and rewrites', async () => {        const dir = tmpDir();
         try {
             await runCli([`${csvIn(dir, FIXTURE_CSV)}`, `--out=${dir}`]);
             // Corrupt, then the exact configs.yml invocation (--check, no --force).
@@ -270,7 +290,7 @@ describe('generate-config-from-sheet CLI', () => {
 
     it('default run reads the committed master CSV (source guard)', () => {
         // The default input is the committed store, not a URL: the CLI must
-        // resolve it from MASTER_CSV_REL, and the file must exist in the repo.
+        // resolve it from the master-CSV glob, and the file must exist in the repo.
         const cli = readFileSync(SCRIPT, 'utf8');
         expect(cli).toContain(".endsWith('.master.csv')");
         expect(existsSync(path.join(ROOT, 'public/wouldyourather.master.csv'))).toBe(true);
@@ -454,7 +474,9 @@ describe('generate-config-from-sheet master format', () => {
 // is asserted (no comment stripping); each pin is proven failable.
 describe('committed master CSV input (story 065, Task 6)', () => {
     const assertDiskContract = (cli) => {
-        expect(cli).toContain("MASTER_CSV_REL = 'public/wouldyourather.master.csv'");
+        // Story 076: the generator reads every committed master CSV, and the
+        // path is derived from the course id (no course is named).
+        expect(cli).toContain("MASTER_CSV_GLOB = 'public/*.master.csv'");
         expect(cli).toContain(".endsWith('.master.csv')");
         expect(cli).not.toContain('SHEET_URL');
         expect(cli).not.toContain('docs.google.com');
@@ -470,8 +492,13 @@ describe('committed master CSV input (story 065, Task 6)', () => {
 
     it('the guard can fail on each pinned token', () => {
         const good = readFileSync(SCRIPT, 'utf8');
+        // replaceAll: the filter appears twice, and mutating only the first
+        // would leave the guard green.
         expect(() => assertDiskContract(
-            good.replace(".endsWith('.master.csv')", ".endsWith('.csv')")
+            good.replaceAll(".endsWith('.master.csv')", ".endsWith('.csv')")
+        )).toThrow();
+        expect(() => assertDiskContract(
+            good.replace("MASTER_CSV_GLOB = 'public/*.master.csv'", "MASTER_CSV_GLOB = 'public/one.csv'")
         )).toThrow();
         for (const injected of [
             "\n// export const SHEET_URL = 'x';\n",

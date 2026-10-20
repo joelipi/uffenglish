@@ -70,11 +70,20 @@ export const LIVE_BASE_COLUMNS = [
 // (resolved against bundled assets by friend-course-configs.js). It rides the
 // bridge like `course_name` — a plain scalar, never a translated field.
 export const BRIDGE_CONFIG_COLUMNS = [
-    'course_id', 'course_name', 'hero', 'lesson_id', 'lesson_title', 'response_type',
+    'course_id', 'course_name', 'hero', 'tags', 'lesson_id', 'lesson_title', 'response_type',
     'unit', 'mission', 'recap_sources', 'recap_overlay', 'intro_video',
     'success_video', 'success_srt', 'success_srt_es', 'success_srt_pt',
     'success_srt_bn', 'success_srt_fr', 'success_srt_hi', 'srt', 'next_step', 'choose_step_next', 'choose_step_text',
     'publish_lesson_id',
+    // Structural columns: the course's shape, so the generator can rebuild the
+    // ABABAB lesson chain instead of re-deriving it from the row order.
+    //   pair_index    1-based pair number
+    //   set_role      'question' (the pair's question takes) | 'answer' (its answer takes)
+    //   topic_index   1-based topic within the set
+    //   group_index   1-based group within the topic (questions: the phrasing
+    //                 itself; answers: the option)
+    //   variant_index 1-based take within the group (the phrasing)
+    'pair_index', 'set_role', 'topic_index', 'group_index', 'variant_index',
 ];
 
 // Localization columns are DERIVED from the shared field map (the same source
@@ -389,6 +398,9 @@ export function sourceToRows(source) {
             course_id: course,
             course_name: title || '',
             hero: source.hero || '',
+            // Course-level tags ride every row as a pipe-separated list (the
+            // sheet is flat; the generator turns them back into an array).
+            tags: (Array.isArray(source.tags) ? source.tags : []).filter(Boolean).join('|'),
             mission: mission || '',
             a1: levelPattern(levels.A1, 'A1', `course ${course}`),
             a2: levelPattern(levels.A2, 'A2', `course ${course}`),
@@ -399,7 +411,7 @@ export function sourceToRows(source) {
         }, overrides);
     };
 
-    for (const pair of pairs) {
+    for (const [pairIndex, pair] of pairs.entries()) {
         const askId = pair?.ask?.id;
         const ansId = pair?.answer?.id;
         if (!askId || !ansId) throw new Error('every pair needs ask.id and answer.id');
@@ -411,6 +423,7 @@ export function sourceToRows(source) {
         // across pairs.
         const pairRows = [];
         const push = (row) => { rows.push(row); pairRows.push(row); };
+        const pairNo = String(pairIndex + 1);
 
         // --- ask lesson: one take-group per topic, in order ---
         let askFirstVideo = '';
@@ -435,6 +448,11 @@ export function sourceToRows(source) {
                     subtitle_text: overlayFor(phrases, rungs, j, `${askId} topic ${stepNo}`),
                     recap_sources: 'none',
                     recap_overlay: 'shareCta',
+                    pair_index: pairNo,
+                    set_role: 'question',
+                    topic_index: String(stepNo),
+                    group_index: String(j + 1),
+                    variant_index: '1',
                 }));
             });
         });
@@ -458,6 +476,11 @@ export function sourceToRows(source) {
                     publish_lesson_id: askId,
                     recap_sources: 'friend',
                     recap_overlay: 'shareCta',
+                    pair_index: pairNo,
+                    set_role: 'question',
+                    topic_index: String(topicNo),
+                    group_index: String(j + 1),
+                    variant_index: '1',
                 }));
             });
 
@@ -485,6 +508,11 @@ export function sourceToRows(source) {
                 choose_step_text: choices.join('\n'),
                 recap_sources: 'friend',
                 recap_overlay: 'shareCta',
+                pair_index: pairNo,
+                set_role: 'answer',
+                topic_index: String(topicNo),
+                group_index: '0',
+                variant_index: '0',
             }));
 
             // option takes: each group advances past its own group (offset k-m)
@@ -508,6 +536,11 @@ export function sourceToRows(source) {
                         next_step: String(answers.length - m),
                         recap_sources: 'friend',
                         recap_overlay: 'shareCta',
+                        pair_index: pairNo,
+                        set_role: 'answer',
+                        topic_index: String(topicNo),
+                        group_index: String(m + 1),
+                        variant_index: String(j + 1),
                     }));
                 });
             });
