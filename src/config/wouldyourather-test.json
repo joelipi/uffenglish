@@ -70,7 +70,6 @@
       },
       "steps": [
         {
-          "cue": "",
           "responseType": "lessonIntro",
           "introBackgroundVideoUrl": "wouldyourather-a-01-01"
         },
@@ -504,7 +503,7 @@
       "recapSources": "friend",
       "recapOverlay": "shareCta",
       "title": {
-        "en": "$1 million or $5 million?",
+        "en": "Answer: money vs. time, food vs. talk, vacation vs. weather",
         "es": "Respuesta: dinero vs. tiempo, comida vs. conversación, vacaciones vs. clima",
         "pt": "Resposta: dinheiro vs. tempo, comida vs. conversa, férias vs. clima",
         "bn": "উত্তর: টাকা বনাম সময়, খাবার বনাম কথোপকথন, ছুটি বনাম আবহাওয়া",

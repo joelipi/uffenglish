@@ -411,21 +411,30 @@ describe('bridge round-trip through the real generator', () => {    it('leaves n
         const config = buildCourseConfig(rows);
         expect(config.courseId).toBe('demo');
         expect(config.lessons.map((l) => l.lessonId)).toEqual(['a', 'b']);
-        // The old generator synthesizes the lessonIntro opener from intro_video…
+        // Every lesson opens on its intro.
         for (const lesson of config.lessons) {
             expect(lesson.steps[0].responseType).toBe('lessonIntro');
         }
-        expect(config.lessons[0].steps[0].introBackgroundVideoUrl).toBe('demo-a-01');
-        // …and emits no success step (AppLayout injects it at runtime).
+        // The ask lesson opens on the first TAKE, and emits no success step
+        // (AppLayout injects it at runtime).
+        expect(config.lessons[0].steps[0].introBackgroundVideoUrl).toBe('demo-a-01-01');
         expect(config.lessons.flatMap((l) => l.steps).some((s) => s.responseType === 'success')).toBe(false);
-        // The ask cue is the two phrases in order; the branch carries 3 choices.
-        const ask = config.lessons[0].steps.find((s) => s.simpleVideoUrl === 'demo-a-01');
-        expect(ask.cue).toEqual([{ en: 'Q1?' }, { en: 'Which is better, Q1?' }]);
+        // A step is one TAKE with one phrase: the cue is that phrase alone and
+        // the subtitle is the same phrase (no timings).
+        const ask = config.lessons[0].steps.find((s) => s.simpleVideoUrl === 'demo-a-01-02');
+        expect(ask.cue).toEqual([{ en: 'Which is better, Q1?' }]);
+        expect(ask.subtitles).toEqual({ en: 'Which is better, Q1?' });
+        // The ask lesson's branch offers the two question phrasings.
+        const askBranch = config.lessons[0].steps.find((s) => s.responseType === 'branching');
+        expect(askBranch.chooseStep.map((c) => c.nextStep)).toEqual([1, 2]);
+        // The answer lesson's branch nests: one group per choice, each with
+        // the two phrasings of that answer.
         const branch = config.lessons[1].steps.find((s) => s.responseType === 'branching');
-        expect(branch.chooseStep.map((c) => c.nextStep)).toEqual([1, 2, 3]);
-        // Reuse rows expand to a full step republished under the ask lesson.
+        expect(branch.chooseStep.map((g) => g.text.en)).toEqual(['Pick one', 'Pick two', 'Pick three']);
+        expect(branch.chooseStep.map((g) => g.chooseStep.length)).toEqual([2, 2, 2]);
+        // Reuse rows expand to a take step republished under the ask lesson.
         const repub = config.lessons[1].steps.find((s) => s.publishLessonId === 'a');
-        expect(repub.simpleVideoUrl).toBe('demo-a-01');
-        expect(repub.cue).toHaveLength(2);
+        expect(repub.simpleVideoUrl).toBe('demo-a-01-01');
+        expect(repub.cue).toHaveLength(1);
     });
 });

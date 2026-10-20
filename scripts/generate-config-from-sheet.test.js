@@ -270,7 +270,7 @@ describe('generate-config-from-sheet CLI', () => {
 
     it('default run reads the committed master CSV (source guard)', () => {
         // The default input is the committed store, not a URL: the CLI must
-        // resolve it from MASTER_CSV_REL, and the file must exist in the repo.
+        // resolve it from the master-CSV glob, and the file must exist in the repo.
         const cli = readFileSync(SCRIPT, 'utf8');
         expect(cli).toContain(".endsWith('.master.csv')");
         expect(existsSync(path.join(ROOT, 'public/wouldyourather.master.csv'))).toBe(true);
@@ -454,7 +454,9 @@ describe('generate-config-from-sheet master format', () => {
 // is asserted (no comment stripping); each pin is proven failable.
 describe('committed master CSV input (story 065, Task 6)', () => {
     const assertDiskContract = (cli) => {
-        expect(cli).toContain("MASTER_CSV_REL = 'public/wouldyourather.master.csv'");
+        // Story 076: the generator reads every committed master CSV, and the
+        // path is derived from the course id (no course is named).
+        expect(cli).toContain("MASTER_CSV_GLOB = 'public/*.master.csv'");
         expect(cli).toContain(".endsWith('.master.csv')");
         expect(cli).not.toContain('SHEET_URL');
         expect(cli).not.toContain('docs.google.com');
@@ -470,8 +472,13 @@ describe('committed master CSV input (story 065, Task 6)', () => {
 
     it('the guard can fail on each pinned token', () => {
         const good = readFileSync(SCRIPT, 'utf8');
+        // replaceAll: the filter appears twice, and mutating only the first
+        // would leave the guard green.
         expect(() => assertDiskContract(
-            good.replace(".endsWith('.master.csv')", ".endsWith('.csv')")
+            good.replaceAll(".endsWith('.master.csv')", ".endsWith('.csv')")
+        )).toThrow();
+        expect(() => assertDiskContract(
+            good.replace("MASTER_CSV_GLOB = 'public/*.master.csv'", "MASTER_CSV_GLOB = 'public/one.csv'")
         )).toThrow();
         for (const injected of [
             "\n// export const SHEET_URL = 'x';\n",

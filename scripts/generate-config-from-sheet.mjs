@@ -16,7 +16,7 @@
 // Usage:
 //   node scripts/generate-config-from-sheet.mjs [--course=<id>] [--out=<dir>] [--csv=<path>] [--dry-run] [--check]
 
-import { promises as fs } from 'node:fs';
+import { promises as fs, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { flagValue } from './lib/cli-utils.js';
@@ -27,10 +27,20 @@ const ROOT = path.resolve(__dirname, '..');
 // Default output directory for generated configs (test seam).
 const CONFIG_DIR = process.env.CONFIG_OUT_DIR || path.join(ROOT, 'src', 'config');
 
-// The committed store every consumer reads. The literal path is pinned by the
-// pipeline parity test — keep it byte-identical across the three readers
-// (recorder, generator, Modal render).
-export const MASTER_CSV_REL = 'public/wouldyourather.master.csv';
+// The committed store every consumer reads. The path is DERIVED from each
+// course's source file name, so a new course is one `*.source.txt` away: the
+// pipeline parity test pins the three readers (recorder, generator, Modal
+// render) to the same committed path for the course they are about.
+export const MASTER_CSV_GLOB = 'public/*.master.csv';
+
+/** Every committed master CSV, in a stable order. */
+export function masterCsvPaths(root = ROOT) {
+    const pubDir = path.join(root, 'public');
+    return readdirSync(pubDir)
+        .filter((f) => f.endsWith('.master.csv'))
+        .sort()
+        .map((f) => path.join(pubDir, f));
+}
 
 const HELP = `Generate a src/config/<courseId>.json per master-CSV course.
 
