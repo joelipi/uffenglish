@@ -7,10 +7,10 @@
 // `height: 100dvh` themselves — they are flex children of the region below
 // the header (`flex: 1; min-height: 0`) and own their own scrolling.
 //
-// The public landing page (/), the lesson player and the public share-code
-// profile are mounted OUTSIDE this layout on purpose: they keep their own
-// chrome (the landing is a marketing page, the lesson player has its own
-// top bar).
+// The public landing page (/) and the lesson player are mounted OUTSIDE this
+// layout on purpose: they keep their own chrome (the landing is a marketing
+// page, the lesson player has its own top bar). Every other page of the app —
+// including the public share-code profile and the 404 — is inside the shell.
 import React from 'react';
 import { Outlet } from 'react-router-dom';
 import AppHeader from '../components/layout/AppHeader.web.jsx';

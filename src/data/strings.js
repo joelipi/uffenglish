@@ -1464,12 +1464,12 @@ const strings = {
         bn: "আপনারা একসাথে যে পাঠগুলো করেছেন তা দেখতে লগ ইন করুন।"
     },
     'profile_guest_start_free': {
-        en: "No account yet? You can start practicing free.",
-        es: "¿Aún no tienes una cuenta? Puedes empezar a practicar gratis.",
-        pt: "Ainda não tem uma conta? Você pode começar a praticar grátis.",
-        fr: "Pas encore de compte ? Vous pouvez commencer à vous entraîner gratuitement.",
-        hi: "अभी तक खाता नहीं है? आप मुफ़्त में अभ्यास शुरू कर सकते हैं।",
-        bn: "এখনও অ্যাকাউন্ট নেই? আপনি বিনামূল্যে অনুশীলন শুরু করতে পারেন।"
+        en: "No account yet? Start practicing free. Click one of the links below to start.",
+        es: "¿Aún no tienes una cuenta? Empieza a practicar gratis. Haz clic en uno de los enlaces de abajo para empezar.",
+        pt: "Ainda não tem uma conta? Comece a praticar grátis. Clique em um dos links abaixo para começar.",
+        fr: "Pas encore de compte ? Commencez à vous entraîner gratuitement. Cliquez sur l'un des liens ci-dessous pour commencer.",
+        hi: "अभी तक खाता नहीं है? मुफ़्त में अभ्यास शुरू करें। शुरू करने के लिए नीचे दिए गए लिंक में से किसी एक पर क्लिक करें।",
+        bn: "এখনও অ্যাকাউন্ট নেই? বিনামূল্যে অনুশীলন শুরু করুন। শুরু করতে নিচে দেওয়া লিঙ্কগুলোর যেকোনো একটিতে ক্লিক করুন।"
     },
     'profile_completed_together': {
         en: "You did this together",

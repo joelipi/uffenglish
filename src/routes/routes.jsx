@@ -36,10 +36,9 @@ export const routes = [
     element: <RootLayout />,
     children: [
       { path: '/', element: <PublicHomeRoute /> },
-      // Every INSIDE page of the app is mounted inside the app shell, so they
-      // all show the SAME header (the brand bar + the menu drawer). The public
-      // landing page above, the lesson player and the public share-code
-      // profile stay OUTSIDE the shell — they keep their own chrome.
+      // Every page of the app EXCEPT the public landing page above and the
+      // lesson player below is mounted inside the app shell, so they all show
+      // the SAME header (the brand bar + the menu drawer).
       //
       // The shell's children are declared before the /:shareCode catch-all
       // below, like every other static route, or `friends` (or `courses`)
@@ -65,22 +64,28 @@ export const routes = [
           // Legal pages must precede the single-segment /:shareCode catch-all.
           { path: '/privacy', element: <PrivacyRoute /> },
           { path: '/terms', element: <TermsRoute /> },
+          // The auth pages (login, signup, password recovery, the email
+          // confirmation landing) live in the shell too: they keep their own
+          // centred card, but the header above them is the app's.
+          { path: '/login', element: <AuthLayout />, children: [{ index: true, element: <LoginRoute /> }] },
+          { path: '/signup', element: <AuthLayout />, children: [{ index: true, element: <SignupRoute /> }] },
+          { path: '/recover-password', element: <AuthLayout />, children: [{ index: true, element: <RecoverPasswordRoute /> }] },
+          { path: '/reset-password', element: <AuthLayout />, children: [{ index: true, element: <ResetPasswordRoute /> }] },
+          // Public: the confirmation link is opened without a session. Must precede
+          // the single-segment /:shareCode catch-all like the legal pages.
+          { path: '/confirm-email', element: <AuthLayout />, children: [{ index: true, element: <ConfirmEmailRoute /> }] },
+          // The public share-code profile is an inside page: it shows the same
+          // shared header as every other page. It must precede the single-
+          // segment /:shareCode catch-all below like the other static pages.
+          { path: '/:shareCode', element: <PublicProfileRoute /> },
+          // Unknown paths get a real 404 page instead of a silent bounce to `/`.
+          // Keep this last: `/:shareCode` above claims one-segment paths, and
+          // PublicProfileRoute renders the same 404 for segments that cannot be
+          // share codes.
+          { path: '*', element: <NotFoundRoute /> },
         ],
       },
-      { path: '/login', element: <AuthLayout />, children: [{ index: true, element: <LoginRoute /> }] },
-      { path: '/signup', element: <AuthLayout />, children: [{ index: true, element: <SignupRoute /> }] },
-      { path: '/recover-password', element: <AuthLayout />, children: [{ index: true, element: <RecoverPasswordRoute /> }] },
-      { path: '/reset-password', element: <AuthLayout />, children: [{ index: true, element: <ResetPasswordRoute /> }] },
-      // Public: the confirmation link is opened without a session. Must precede
-      // the single-segment /:shareCode catch-all like the legal pages.
-      { path: '/confirm-email', element: <AuthLayout />, children: [{ index: true, element: <ConfirmEmailRoute /> }] },
       { path: '/course/:courseId/lesson/:lessonId', element: <AppLayout />, errorElement: <LessonError />, children: [{ index: true, element: <LessonContainer /> }] },
-      { path: '/:shareCode', element: <PublicProfileRoute /> },
-      // Unknown paths get a real 404 page instead of a silent bounce to `/`.
-      // Keep this last: `/:shareCode` above claims one-segment paths, and
-      // PublicProfileRoute renders the same 404 for segments that cannot be
-      // share codes.
-      { path: '*', element: <NotFoundRoute /> },
     ],
   },
 ];

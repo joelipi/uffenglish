@@ -1,6 +1,5 @@
 import { getCurrentUser, getCurrentSession, logout, supabase } from './supabase.js';
 import { getGeoInfo } from '../media/geo-service.js';
-import { upsertFriendLinkMap } from '../user/friend-lesson-link-logic.js';
 import { normalizeFriendIds } from '../user/friends-logic.js';
 
 export { getCurrentUser };
@@ -401,24 +400,36 @@ export function useFriendProfiles(ids) {
   });
 }
 
-// Records a friend-challenge follow-up link in the owner's profile. Reads the
-// current friend_links map, merges the new entry (keyed per recorded lesson,
-// `courseId:recordedLessonId`, see upsertFriendLinkMap), and persists the whole
-// map. Expiry is render-time only; nothing is deleted here.
+// Records a friend-challenge follow-up link in the owner's profile.
+//
+// Server-side RPC (migration 011). The client used to READ the whole
+// `friend_links` map, merge one entry and write the map back with an UPDATE on
+// `user_profiles`: a zero-row UPDATE is NOT an error in PostgREST, so the link
+// could vanish SILENTLY — the profile then showed "all your lessons have
+// expired" right after the learner recorded one, and the link they had sent to
+// their friends was nowhere to be found. The RPC merges atomically on the
+// server, derives the owner from auth.uid() (the client never has to know its
+// own user id) and reports a failure as an error the caller can see.
 export function useAddFriendLinkMutation() {
   const queryClientHook = useQueryClient();
   return useMutation({
-    mutationFn: async ({ userId, entry }) => {
-      const { data: row, error: readError } = await supabase
-        .from('user_profiles').select('friend_links').eq('id', userId).single();
-      if (readError) throw readError;
-      const merged = upsertFriendLinkMap(row?.friend_links, entry);
-      const { error } = await supabase
-        .from('user_profiles').update({ friend_links: merged }).eq('id', userId);
+    mutationFn: async ({ entry }) => {
+      const { error } = await supabase.rpc('record_friend_link', {
+        p_course_id: entry.courseId,
+        p_recorded_lesson_id: entry.recordedLessonId,
+        p_next_lesson_id: entry.lessonId,
+        p_course_name: entry.courseName,
+        p_lesson_title: entry.lessonTitle,
+      });
       if (error) throw error;
       console.log('[friendLessonLink] saved', entry);
-      return merged;
+      return entry;
     },
+    // The link is what the learner sends to their friends: one flaky round
+    // trip must not lose it. The server merge is atomic and idempotent, so a
+    // retry is safe (it refreshes the entry's addedAt, like a re-record).
+    retry: 2,
+    retryDelay: (attempt) => attempt * 1000,
     onSuccess: () => {
       // Prefix-matches both ['user','profile'] and ['user','profile','shareCode', code].
       queryClientHook.invalidateQueries({ queryKey: ['user', 'profile'] });
@@ -513,6 +524,46 @@ export async function recordFriendCompletion({ ownerShareCode, courseId, lessonI
   } catch (error) {
     console.error('🚨 recordFriendCompletion error:', error);
     return { recorded: false, reason: 'rpc-failed' };
+  }
+}
+
+// Records a lesson completion on the caller's own profile row and returns the
+// resulting counters.
+//
+// Server-side RPC (migration 012): the client used to add one to a baseline it
+// read from a store copy, and write the whole thing back with an upsert — a
+// write that can be lost SILENTLY (a zero-row upsert is not an error in
+// PostgREST) and that is skipped entirely when the store has no profile copy
+// yet. A learner who finished a lesson then saw their own public profile say
+// they had completed nothing.
+//
+// The RPC keys on the session (auth.uid()), so it needs no user id, no client
+// baseline and no store copy: the row's own values are the baseline, and the
+// increment is atomic. It returns the resulting counters so the client can
+// update its store without guessing.
+//
+// Fails loud but never breaks the lesson flow: a guest has no session, so the
+// completion stays local until the signup credit applies it.
+export async function recordLessonCompletion({ courseId, completedLessonId } = {}) {
+  if (!courseId || !completedLessonId) return null;
+  try {
+    const { data, error } = await supabase.rpc('record_lesson_completion', {
+      p_course_id: courseId,
+      p_completed_lesson_id: completedLessonId,
+    });
+    if (error) throw error;
+    if (!data) return null;
+    console.log(`[Gamification] Lesson completed. Total lessons: ${data.lessons_completed}`);
+    return {
+      lessonsCompleted: Number(data.lessons_completed || 0),
+      countedLessons: Array.isArray(data.counted_lessons) ? data.counted_lessons : [],
+      completedDates: Array.isArray(data.completed_dates) ? data.completed_dates : [],
+      isFirstCompletion: data.is_first_completion === true,
+      dayAdded: data.day_added === true,
+    };
+  } catch (error) {
+    console.error('🚨 recordLessonCompletion error:', error);
+    return null;
   }
 }
 

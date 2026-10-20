@@ -23,6 +23,10 @@ vi.mock('./RootLayout.jsx', async () => {
     const React = await import('react');
     return { default: () => React.createElement(Outlet) };
 });
+// The profile and the 404 page are inside the app shell now, so the shell's
+// header renders with them. This test is about route matching, not the
+// header, so the header is stubbed (the shared header has its own guard).
+vi.mock('../components/layout/AppHeader.web.jsx', () => ({ default: () => null }));
 vi.mock('./AppLayout.jsx', () => ({ default: () => null }));
 vi.mock('./AuthLayout.jsx', () => ({ default: () => null }));
 vi.mock('./HomeRoute.jsx', () => ({ default: () => null }));

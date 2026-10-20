@@ -1,8 +1,7 @@
 // modules/user-profile.js
 // IMPORTANT! THIS SCRIPT USES VERSION 24 OF THE APPWRITE SDK, WHICH HAS MANY BREAKING CHANGES FROM EARLIER VERSIONS. DO NOT USE THE SYNTAX OR METHODS OF EARLIER VERSIONS WITHOUT CHECKING THEY ARE STILL VALID IN VERSION 24.
-import { syncUserMetaDataMutation, getCurrentUser, fetchProfileIdentityRow } from '../api/api.js';
+import { syncUserMetaDataMutation, getCurrentUser, fetchProfileIdentityRow, recordLessonCompletion } from '../api/api.js';
 import { appStore } from '../store/store.js';
-import { nextLessonCompletion } from './lesson-count-logic.js';
 import { profileIsIncomplete, planProfileRepair } from './profile-repair-logic.js';
 import { mintShareCode } from '../utils/share-code-mint.js';
 
@@ -245,6 +244,47 @@ export async function saveLessonProgress(courseId, lessonId, userData, options =
         resultState.savedToLocal = true;
     } catch (e) { console.error('❌ Store Error:', e); }
 
+    // The COUNTERS — lessons_completed, counted_lessons, completed_dates — are
+    // written by a server-side RPC keyed on the SESSION (auth.uid()), so they
+    // land even when the store has no profile copy yet. The client used to add
+    // one to a baseline it read from a store copy and write the whole thing
+    // back with an upsert: a write that can be lost SILENTLY (a zero-row
+    // upsert is not an error in PostgREST) and that is skipped entirely when
+    // the store copy is missing. A learner who finished a lesson then saw
+    // their own public profile say they had completed nothing.
+    //
+    // The counted lesson is the COMPLETED lesson — NOT the next-lesson target
+    // — so a lesson with no `nextLessonId` (every friend-practice lesson, e.g.
+    // wouldyourather a/b) still counts. Only a genuine completion counts
+    // (`incrementCount`): landing on the success step directly (a page load, a
+    // reload, a signup redirect) is a phantom, never a completion.
+    const completedLessonId = safeOptions.completedLessonId || safeOptions.currentLessonId || null;
+    let completion = null;
+    if (safeOptions.incrementCount === true && completedLessonId) {
+        completion = await recordLessonCompletion({ courseId, completedLessonId });
+        if (completion) {
+            resultState.lessonsCompleted = completion.lessonsCompleted;
+            resultState.countedLessons = completion.countedLessons;
+            // Keep the in-session mirrors in sync so the next completion counts
+            // from the same baseline the server just wrote.
+            if (userData) {
+                userData.lessons_completed = completion.lessonsCompleted;
+                userData.counted_lessons = completion.countedLessons;
+                userData.completed_dates = completion.completedDates;
+            }
+            appStore.getState().setLessonsCompleted(completion.lessonsCompleted);
+            appStore.getState().setCountedLessons(completion.countedLessons);
+            // The completion day counts too: without it the profile would show
+            // streak 0 / 0 active days despite just finishing a lesson.
+            resultState.streakUpdated = true;
+            resultState.dayCountIncremented = completion.dayAdded === true;
+            resultState.newDayCount = completion.completedDates.length;
+            resultState.newStreak = calculateCurrentStreak(completion.completedDates);
+        } else {
+            console.warn('[user-profile] Lesson completion could not be recorded (the profile counters are unchanged)');
+        }
+    }
+
     if (updateUserMetaFlag && userData) {
         try {
             const metaToUpdate = { last_lesson_timestamp: timestamp };
@@ -255,78 +295,22 @@ export async function saveLessonProgress(courseId, lessonId, userData, options =
             progressMap[courseId] = { current_lesson: lessonId, lesson_timestamp: timestamp };
             metaToUpdate.course_progress = JSON.stringify(progressMap);
 
-            let dateLedger = Array.isArray(userData.completed_dates) ? userData.completed_dates : [];
-            if (!dateLedger.includes(localToday)) {
-                const newDateLedger = [...dateLedger, localToday];
-                metaToUpdate.completed_dates = newDateLedger;
-                // Keep the in-session object in sync (like lessons_completed
-                // below): without this every same-session save rebuilds from
-                // the stale base, which drops earlier days on a midnight
-                // crossing and miscomputes the day count.
-                userData.completed_dates = newDateLedger;
-                resultState.streakUpdated = true;
-                resultState.dayCountIncremented = true;
-                resultState.newDayCount = newDateLedger.length;
-                resultState.newStreak = calculateCurrentStreak(newDateLedger);
-            } else {
-                // Day already counted — return current values without incrementing
-                userData.completed_dates = dateLedger;
-                resultState.newDayCount = dateLedger.length;
-                resultState.newStreak = calculateCurrentStreak(dateLedger);
-            }
-
             if (userData.lesson_scores) metaToUpdate.lesson_scores = userData.lesson_scores;
 
-            // Count every genuine completion — including repeats. Re-doing a
-            // lesson with friends IS doing the lesson again, so it earns
-            // credit again. `counted_lessons` stays the UNIQUE set of completed
-            // lessons (the unique count is its length); the fluency running
-            // average still admits only each lesson's first completion.
-            // The counted lesson is the COMPLETED lesson — NOT the next-lesson
-            // target — so a lesson with no `nextLessonId` (every friend-practice
-            // lesson, e.g. wouldyourather a/b) still counts.
-            const completedLessonId = safeOptions.completedLessonId || safeOptions.currentLessonId || null;
-            if (safeOptions.incrementCount === true && completedLessonId) {
-                const baselineCounted = [
-                    ...(Array.isArray(userData.counted_lessons) ? userData.counted_lessons : []),
-                    ...(Array.isArray(appStore.getState().countedLessons) ? appStore.getState().countedLessons : []),
-                ];
-                const completion = nextLessonCompletion({
-                    courseId,
-                    lessonId: completedLessonId,
-                    // The store seeds from the profile and is updated in-session,
-                    // so it catches a stale `userData` between two completions.
-                    lessonsCompleted: Math.max(
-                        Number(userData.lessons_completed || 0),
-                        Number(appStore.getState().lessonsCompleted || 0)
-                    ),
-                    countedLessons: baselineCounted,
-                });
-                resultState.lessonsCompleted = completion.lessonsCompleted;
-                metaToUpdate.lessons_completed = completion.lessonsCompleted;
-                metaToUpdate.counted_lessons = completion.countedLessons;
-                // Keep the in-session baseline in sync so the next completion
-                // increments instead of re-writing the same number.
-                userData.lessons_completed = completion.lessonsCompleted;
-                userData.counted_lessons = completion.countedLessons;
-                appStore.getState().setLessonsCompleted(completion.lessonsCompleted);
-                appStore.getState().setCountedLessons(completion.countedLessons);
-                console.log(`[Gamification] Lesson completed. Total lessons: ${completion.lessonsCompleted}`);
-
-                if (completion.isFirstCompletion) {
-                    // Fluency running averages (first completion of each lesson).
-                    const currentSum = Number(userData.total_fluency_sum || 0);
-                    const lessonAvg = safeOptions.lessonAverage || 0;
-                    const newSum = currentSum + lessonAvg;
-                    metaToUpdate.total_fluency_sum = newSum;
-                    const recent = Array.isArray(userData.recent_fluency_avgs) ? [...userData.recent_fluency_avgs] : [];
-                    recent.push(lessonAvg);
-                    if (recent.length > 10) recent.shift();
-                    metaToUpdate.recent_fluency_avgs = recent;
-                    console.log(`[Gamification] Fluency avg updated. Sum: ${newSum}, Recent count: ${recent.length}`);
-                } else {
-                    console.log(`[Gamification] Repeat completion of ${completion.key} counted for lesson total (fluency avg keeps first completion only)`);
-                }
+            // The fluency running average admits only each lesson's FIRST
+            // completion, so it is derived from the same server-side answer.
+            const lessonAvg = safeOptions.lessonAverage || 0;
+            if (completion && completion.isFirstCompletion && userData) {
+                const currentSum = Number(userData.total_fluency_sum || 0);
+                const newSum = currentSum + lessonAvg;
+                metaToUpdate.total_fluency_sum = newSum;
+                const recent = Array.isArray(userData.recent_fluency_avgs) ? [...userData.recent_fluency_avgs] : [];
+                recent.push(lessonAvg);
+                if (recent.length > 10) recent.shift();
+                metaToUpdate.recent_fluency_avgs = recent;
+                userData.total_fluency_sum = newSum;
+                userData.recent_fluency_avgs = recent;
+                console.log(`[Gamification] Fluency avg updated. Sum: ${newSum}, Recent count: ${recent.length}`);
             }
 
             await syncUserMetaData(metaToUpdate, userData);

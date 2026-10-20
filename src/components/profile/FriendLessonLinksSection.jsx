@@ -59,9 +59,9 @@ function FriendLessonLink({ entry, lang, now }) {
 }
 
 // Logged-out visitor invite. The first line links to login (returning to this
-// profile via the existing `?redirect=` contract); the second anchors down to
-// the lesson list, which login could reorder but never hides. Only rendered in
-// active mode: there must be something to anchor to.
+// profile via the existing `?redirect=` contract); the second line is plain
+// text — it points the visitor at the links below it, so it is not a link
+// itself. Only rendered in active mode: there must be something to anchor to.
 function VisitorLoginBanner({ shareCode, lang }) {
     return (
         <div data-testid="visitor-login-banner" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -72,13 +72,12 @@ function VisitorLoginBanner({ shareCode, lang }) {
             >
                 {Strings.get('profile_login_to_see_together', lang)}
             </a>
-            <a
-                data-testid="visitor-guest-link"
-                href="#friend-lesson-links"
-                style={{ color: '#adb5bd', fontSize: '15px', textDecoration: 'underline' }}
+            <p
+                data-testid="visitor-guest-note"
+                style={{ color: '#adb5bd', fontSize: '15px', margin: 0 }}
             >
                 {Strings.get('profile_guest_start_free', lang)}
-            </a>
+            </p>
         </div>
     );
 }
@@ -93,9 +92,9 @@ function VisitorLoginBanner({ shareCode, lang }) {
 // chain-head lessons plus the login/guest banner; a logged-in visitor sees the
 // lessons they feature in first, then the chain-head lessons, with joint
 // completions badged. `viewer` is null for logged-out visitors.
-export default function FriendLessonLinksSection({ friendLinks, lang = 'en', shareCode, viewer = null, chainHeads = null }) {
+export default function FriendLessonLinksSection({ friendLinks, lang = 'en', shareCode, viewer = null }) {
     const [now, setNow] = useState(() => Date.now());
-    const { mode, groups, isTicking } = buildVisitorPracticeView({ friendLinks, nowMs: now, viewer, chainHeads });
+    const { mode, groups, isTicking } = buildVisitorPracticeView({ friendLinks, nowMs: now, viewer });
 
     // Tick only while at least one link is still live; once the last one
     // expires the effect stops and the expired state renders.

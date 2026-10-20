@@ -298,12 +298,16 @@ export function buildUgcSegmentKey({ shareCode, inviterCode, courseId, lessonId,
 // The inviter's share code for a UGC key: the friend who invited the recorder,
 // or the recorder themselves when self-initiated.
 //
-// NOTE the asymmetry with resolveCompletePairCode (which gates on
-// recapSources === 'friend'): a solo lesson with a stale persisted friendCode
-// keys its segments `self-friend` while its recap keys `self-self`. Harmless
-// today (solo lessons never fetch each other's clips by slug), but the two
-// must stay in sync if that ever changes.
-export function resolveInviterCode({ friendCode, shareCode } = {}) {
+// The chain's ASK lesson is the one case where the recorder is ALWAYS the
+// initiator: they recorded their own questions, so their clip is published
+// under their own name (`<owner>-<owner>`). A stale persisted friendCode (the
+// learner opened somebody's link earlier) must not turn it into
+// `<owner>-<someone-else>`, because the friend who opens the asker's link
+// looks for `<owner>-<owner>` (see the normalizer's ask-side rule). This is
+// the counterpart of resolveCompletePairCode, which gates on
+// recapSources === 'friend' — the two must stay in sync.
+export function resolveInviterCode({ friendCode, shareCode, isAskLesson = false } = {}) {
+    if (isAskLesson) return String(shareCode || '').trim();
     return String(friendCode || '').trim() || String(shareCode || '').trim();
 }
 
