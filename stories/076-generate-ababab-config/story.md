@@ -111,7 +111,10 @@ Remove every hardcoded course name:
 | `.github/workflows/translate-master.yml` | `add-paths: public/wouldyourather.master.csv` | `public/*.master.csv` |
 | `.github/workflows/sync-srt.yml` | `add-paths: public/wouldyourather.master.csv` | `public/*.master.csv` |
 | `docs/video-pipeline/pipeline_lib.py` | `MASTER_CSV_URL` points at one course | `master_csv_url(course_id)`; `PIPELINE_SHEET_URL` still overrides it |
-| `public/recorder.html` | `spreadsheet_url = 'wouldyourather.master.csv'` | `?course=<id>` (same-origin path derived from it) |
+| `public/recorder.html` | `spreadsheet_url = 'wouldyourather.master.csv'` | `?course=<id>` (REQUIRED; the same-origin path is derived from it) |
+| `functions/api/pipeline/render.js` | the render spec carried only `files` | it also carries `course`, validated as a slug (it goes into the CSV's URL path) |
+| `docs/video-pipeline/trigger_app.py` | the spec needed only `jobId` + `files` | it also requires `course` |
+| `docs/video-pipeline/modal_app.py` | `resolve_sheet_url()` with no course | `resolve_sheet_url(course_id=spec['course'])` |
 
 ### 5. `--require-videos` (unchanged semantics)
 
@@ -174,8 +177,11 @@ Until then the two workflows still commit only the one named course's CSV.
 
 ## Out of Scope
 
-- The video render itself (per-course renders, the Modal trigger's parameters) beyond
-  de-hardcoding the CSV URL. `PIPELINE_SHEET_URL` already lets a render target any
-  course's CSV.
+- The video render's internals (per-course Modal deployments, batching several
+  courses into one render). What it needed from this story was the COURSE: it now
+  travels with the render (recorder -> render Function -> trigger -> orchestrator ->
+  `master_csv_url(course_id)`), because a render that fetched a default course's
+  rows would silently render the wrong course's takes. `PIPELINE_SHEET_URL` still
+  overrides the URL entirely.
 - The eight hand-authored `src/config/*.json` files.
 - `wouldyourather-test.json` stays as the hand-written test course.
