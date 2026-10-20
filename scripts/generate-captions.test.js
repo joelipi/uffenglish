@@ -2,9 +2,10 @@
 // CLI wiring, workflow, and documentation checks for the auto-caption
 // pipeline (stories/009-auto-caption-simple-videos).
 import { describe, it, expect } from 'vitest';
-import { execFile } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { execFile, execFileSync } from 'node:child_process';
+import fs, { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import os from 'node:os';
 import path from 'node:path';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -65,6 +66,49 @@ describe('.github/scripts/captions-changed.sh', () => {
     it('exists and contains the base fallback and config pathspec', () => {
         expect(script).toContain('merge-base');
         expect(script).toContain('src/config');
+    });
+
+    // A retired course's config shows up in the diff as a DELETION. Listing it
+    // made the caption generator fail on the missing file
+    // (`ENOENT: … src/config/friend.json`), so a course retirement broke the
+    // caption run on main.
+    it('lists only the configs that still exist', () => {
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'captions-changed-'));
+        try {
+            const git = (...args) => execFileSync('git', args, { cwd: dir, encoding: 'utf8' });
+            git('init', '-q');
+            git('config', 'user.email', 'test@example.com');
+            git('config', 'user.name', 'test');
+            fs.mkdirSync(path.join(dir, 'src/config'), { recursive: true });
+            fs.writeFileSync(path.join(dir, 'src/config/kept.json'), '{}');
+            fs.writeFileSync(path.join(dir, 'src/config/retired.json'), '{}');
+            git('add', '-A');
+            git('commit', '-qm', 'configs');
+            const base = git('rev-parse', 'HEAD').trim();
+
+            // Retire one config and change the other.
+            fs.rmSync(path.join(dir, 'src/config/retired.json'));
+            fs.writeFileSync(path.join(dir, 'src/config/kept.json'), '{"changed":true}');
+            git('add', '-A');
+            git('commit', '-qm', 'retire');
+            const head = git('rev-parse', 'HEAD').trim();
+
+            const eventPath = path.join(dir, 'event.json');
+            fs.writeFileSync(eventPath, JSON.stringify({ before: base }));
+            const outputPath = path.join(dir, 'output.txt');
+            fs.writeFileSync(outputPath, '');
+
+            execFileSync('bash', [path.join(ROOT, '.github/scripts/captions-changed.sh')], {
+                cwd: dir,
+                env: { ...process.env, GITHUB_EVENT_PATH: eventPath, GITHUB_OUTPUT: outputPath, GITHUB_SHA: head },
+            });
+
+            const output = fs.readFileSync(outputPath, 'utf8');
+            expect(output).toContain('src/config/kept.json');
+            expect(output).not.toContain('src/config/retired.json');
+        } finally {
+            fs.rmSync(dir, { recursive: true, force: true });
+        }
     });
 });
 

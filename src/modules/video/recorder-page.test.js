@@ -1442,6 +1442,11 @@ describe('recorder auto-render — zero server changes', () => {
             'src/modules/video/video-processor-logic.test.js',
             'src/modules/video/video-processor.web.js',
             'stories/083-friend-clip-addressing/story.md',
+            // The caption run must survive a course retirement (a deleted
+            // config is not a changed config).
+            '.github/scripts/captions-changed.sh',
+            'scripts/generate-captions.test.js',
+            'stories/084-caption-run-survives-course-retirement/story.md',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);
