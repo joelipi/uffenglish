@@ -12,8 +12,6 @@ import {
     groupActiveFriendLinks,
     buildFriendPracticeView,
     buildVisitorPracticeView,
-    listFriendCourseIds,
-    buildChainHeads,
     resolveFriendLessonLink,
 } from './friend-lesson-link-logic.js';
 
@@ -282,40 +280,9 @@ describe('buildFriendPracticeView', () => {
     });
 });
 
-describe('listFriendCourseIds / buildChainHeads', () => {
-    it('lists the unique course ids referenced by the links, ascending', () => {
-        expect(listFriendCourseIds({
-            'b:x': { courseId: 'b' },
-            'a:x': { courseId: 'a' },
-            'a:y': { courseId: 'a' },
-        })).toEqual(['a', 'b']);
-    });
-
-    it('returns [] for missing / junk input', () => {
-        expect(listFriendCourseIds(null)).toEqual([]);
-        expect(listFriendCourseIds('x')).toEqual([]);
-        expect(listFriendCourseIds([{ courseId: 'a' }])).toEqual([]);
-        expect(listFriendCourseIds({ bad: null, empty: { courseId: '' } })).toEqual([]);
-    });
-
-    it('maps each { courseId, config } to its first shareCta lesson', () => {
-        const heads = buildChainHeads([
-            { courseId: 'friendchain', config: { lessons: [{ lessonId: 'a', recapOverlay: 'shareCta' }, { lessonId: 'b', recapOverlay: 'shareCta' }] } },
-            { courseId: 'nocourse', config: { lessons: [{ lessonId: 'z' }] } },
-        ]);
-        expect(heads.get('friendchain')).toBe('a');
-        expect(heads.has('nocourse')).toBe(false);
-    });
-
-    it('returns an empty Map for junk input', () => {
-        expect(buildChainHeads(null).size).toBe(0);
-        expect(buildChainHeads([null, { courseId: 'x' }]).size).toBe(0);
-    });
-});
-
 describe('buildVisitorPracticeView', () => {
-    // friendchain and friend both head at 'a'; the second chain lesson is 'c'.
-    const heads = new Map([['friendchain', 'a'], ['other', 'a']]);
+    // The profile holds one link per RECORDED lesson (the ping-pong chain):
+    // 'a' links to 'b', 'c' links to 'd'. Every one of them is listed.
     const entryA = {
         courseId: 'friendchain', courseName: 'Friend Chain', recordedLessonId: 'a',
         lessonId: 'b', shareCode: 'owner1', addedAt: iso(NOW - HOUR), lessonTitle: 'Ask',
@@ -328,25 +295,22 @@ describe('buildVisitorPracticeView', () => {
     const emptyViewer = { shareCode: 'viewer1', counted_lessons: [], notifications: [], ownerShareCode: 'owner1' };
     const recordedLessons = (view) => view.groups.flatMap((g) => g.entries.map((e) => e.recordedLessonId));
 
-    it('logged-out: lists only chain-head entries, newest first, flagged not-together', () => {
-        const view = buildVisitorPracticeView({ friendLinks: mixedLinks, nowMs: NOW, viewer: null, chainHeads: heads });
+    it('logged-out: lists EVERY recorded lesson, newest first, flagged not-together', () => {
+        const view = buildVisitorPracticeView({ friendLinks: mixedLinks, nowMs: NOW, viewer: null });
         expect(view.mode).toBe('active');
         expect(view.isTicking).toBe(true);
         const entries = view.groups.flatMap((g) => g.entries);
-        expect(entries.map((e) => e.recordedLessonId)).toEqual(['a']);
+        expect(entries.map((e) => e.recordedLessonId)).toEqual(['a', 'c']);
         expect(entries[0].completedTogether).toBe(false);
     });
 
-    it('logged-out: fails open for a course absent from chainHeads', () => {
-        const missing = {
-            courseId: 'missing', courseName: 'Missing', recordedLessonId: 'z',
-            lessonId: 'y', shareCode: 'owner1', addedAt: iso(NOW - HOUR),
-        };
-        const view = buildVisitorPracticeView({
-            friendLinks: { 'missing:z': missing, 'friendchain:c': entryC },
-            nowMs: NOW, viewer: null, chainHeads: heads,
-        });
-        expect(recordedLessons(view)).toEqual(['z']);
+    it('logged-out: a link for a lesson that is not the course\'s first is still listed', () => {
+        // The regression: a learner who recorded the follow-up lesson ('b' or
+        // 'c') had their link hidden, so the profile said "all your lessons have
+        // expired" while a fresh link was in the database.
+        const view = buildVisitorPracticeView({ friendLinks: { 'friendchain:c': entryC }, nowMs: NOW, viewer: null });
+        expect(view.mode).toBe('active');
+        expect(recordedLessons(view)).toEqual(['c']);
     });
 
     it('logged-in: an inbox row naming the owner features the owner recorded lesson first', () => {
@@ -354,8 +318,8 @@ describe('buildVisitorPracticeView', () => {
             ...emptyViewer,
             notifications: [{ type: 'friend_response', course_id: 'friendchain', lesson_id: 'c', payload: { actorShareCode: 'owner1' } }],
         };
-        const view = buildVisitorPracticeView({ friendLinks: mixedLinks, nowMs: NOW, viewer, chainHeads: heads });
-        // featuring entry first, then the chain head; 'c' has no recorder match.
+        const view = buildVisitorPracticeView({ friendLinks: mixedLinks, nowMs: NOW, viewer });
+        // The featuring entry first, then the rest.
         expect(recordedLessons(view)).toEqual(['c', 'a']);
         const featuring = view.groups.flatMap((g) => g.entries).find((e) => e.recordedLessonId === 'c');
         expect(featuring.completedTogether).toBe(false);
@@ -363,7 +327,7 @@ describe('buildVisitorPracticeView', () => {
 
     it('logged-in: a counted key features the entry and badges it as completed together', () => {
         const viewer = { ...emptyViewer, counted_lessons: ['friendchain_c'] };
-        const view = buildVisitorPracticeView({ friendLinks: mixedLinks, nowMs: NOW, viewer, chainHeads: heads });
+        const view = buildVisitorPracticeView({ friendLinks: mixedLinks, nowMs: NOW, viewer });
         expect(recordedLessons(view)).toEqual(['c', 'a']);
         const featuring = view.groups.flatMap((g) => g.entries).find((e) => e.recordedLessonId === 'c');
         expect(featuring.completedTogether).toBe(true);
@@ -377,146 +341,36 @@ describe('buildVisitorPracticeView', () => {
             counted_lessons: ['friendchain_d'],
             notifications: [{ type: 'friend_response', course_id: 'friendchain', lesson_id: 'd', payload: { actorShareCode: 'owner1' } }],
         };
-        const view = buildVisitorPracticeView({ friendLinks: mixedLinks, nowMs: NOW, viewer, chainHeads: heads });
-        expect(recordedLessons(view)).toEqual(['a']);
+        const view = buildVisitorPracticeView({ friendLinks: mixedLinks, nowMs: NOW, viewer });
+        expect(recordedLessons(view)).toEqual(['a', 'c']);
     });
 
-    it('logged-in: an entry both featuring and chain-head appears once, in the featuring group', () => {
+    it('logged-in: an entry both featuring and already listed appears once, in the featuring group', () => {
         const viewer = { ...emptyViewer, counted_lessons: ['friendchain_a'] };
         const view = buildVisitorPracticeView({
-            friendLinks: { 'friendchain:a': entryA }, nowMs: NOW, viewer, chainHeads: heads,
+            friendLinks: { 'friendchain:a': entryA }, nowMs: NOW, viewer,
         });
         expect(recordedLessons(view)).toEqual(['a']);
         expect(view.groups.flatMap((g) => g.entries)).toHaveLength(1);
         expect(view.groups[0].entries[0].completedTogether).toBe(true);
     });
 
-    it('logged-in with no featuring entries: only chain-head lessons, matching the logged-out list', () => {
-        const loggedIn = buildVisitorPracticeView({ friendLinks: mixedLinks, nowMs: NOW, viewer: emptyViewer, chainHeads: heads });
-        const loggedOut = buildVisitorPracticeView({ friendLinks: mixedLinks, nowMs: NOW, viewer: null, chainHeads: heads });
+    it('logged-in with no featuring entries: the same list as the logged-out visitor', () => {
+        const loggedIn = buildVisitorPracticeView({ friendLinks: mixedLinks, nowMs: NOW, viewer: emptyViewer });
+        const loggedOut = buildVisitorPracticeView({ friendLinks: mixedLinks, nowMs: NOW, viewer: null });
         expect(recordedLessons(loggedIn)).toEqual(recordedLessons(loggedOut));
         const entries = loggedIn.groups.flatMap((g) => g.entries);
         expect(entries.every((e) => e.completedTogether === false)).toBe(true);
     });
 
     it('is expired with the unchanged shape for empty / expired input', () => {
-        expect(buildVisitorPracticeView({ friendLinks: {}, nowMs: NOW, viewer: emptyViewer, chainHeads: heads }))
+        expect(buildVisitorPracticeView({ friendLinks: {}, nowMs: NOW, viewer: emptyViewer }))
             .toEqual({ mode: 'expired', groups: [], isTicking: false });
         expect(buildVisitorPracticeView({ friendLinks: null, nowMs: NOW, viewer: null }))
             .toEqual({ mode: 'expired', groups: [], isTicking: false });
         expect(buildVisitorPracticeView({
             friendLinks: { 'friendchain:a': { ...entryA, addedAt: iso(NOW - 48 * HOUR) } },
-            nowMs: NOW, viewer: emptyViewer, chainHeads: heads,
+            nowMs: NOW, viewer: emptyViewer,
         })).toEqual({ mode: 'expired', groups: [], isTicking: false });
-    });
-
-    it('is expired when the visitor filter leaves nothing (only non-head links)', () => {
-        const view = buildVisitorPracticeView({
-            friendLinks: { 'friendchain:c': entryC }, nowMs: NOW, viewer: null, chainHeads: heads,
-        });
-        expect(view.mode).toBe('expired');
-        expect(view.groups).toEqual([]);
-    });
-
-    it('delegates to buildFriendPracticeView without a viewer and without chainHeads', () => {
-        const links = { 'friendchain:a': entryA };
-        expect(buildVisitorPracticeView({ friendLinks: links, nowMs: NOW }))
-            .toEqual(buildFriendPracticeView(links, NOW));
-    });
-});
-
-describe('resolveFriendLessonLink', () => {
-    const chain = {
-        lessons: [
-            { lessonId: 'a', recapOverlay: 'shareCta', title: 'Make 3 questions' },
-            { lessonId: 'b', recapOverlay: 'shareCta', title: 'Answer' },
-            { lessonId: 'c', recapOverlay: 'shareCta', title: 'Follow Up' },
-            { lessonId: 'd', recapOverlay: 'shareCta', title: 'Last' },
-        ],
-    };
-
-    it('records the exported lesson and targets the next lesson', () => {
-        expect(resolveFriendLessonLink({
-            configData: chain, lessonId: 'a', courseId: 'friendchain', courseName: 'Friend Chain', shareCode: 'ab12', succeeded: 3,
-        })).toEqual({
-            courseId: 'friendchain', courseName: 'Friend Chain', recordedLessonId: 'a',
-            lessonId: 'b', shareCode: 'ab12', lessonTitle: 'Make 3 questions',
-        });
-    });
-
-    it('labels with the RECORDED lesson title, not the target lesson title', () => {
-        const payload = resolveFriendLessonLink({
-            configData: chain, lessonId: 'b', courseId: 'friendchain', courseName: 'Friend Chain', shareCode: 'ab12', succeeded: 3,
-        });
-        expect(payload.lessonTitle).toBe('Answer');
-        expect(payload.lessonId).toBe('c');
-        expect(payload.recordedLessonId).toBe('b');
-    });
-
-    it('treats a non-string recorded title as an empty lessonTitle', () => {
-        const noTitle = { lessons: [
-            { lessonId: 'a', recapOverlay: 'shareCta', title: { en: 'x' } },
-            { lessonId: 'b', recapOverlay: 'shareCta', title: 'y' },
-        ] };
-        expect(resolveFriendLessonLink({
-            configData: noTitle, lessonId: 'a', courseId: 'c', courseName: 'C', shareCode: 'ab12', succeeded: 3,
-        })).toEqual({
-            courseId: 'c', courseName: 'C', recordedLessonId: 'a',
-            lessonId: 'b', shareCode: 'ab12', lessonTitle: '',
-        });
-    });
-
-    it('defaults courseName to an empty string when omitted or non-string', () => {
-        const omitted = resolveFriendLessonLink({
-            configData: chain, lessonId: 'a', courseId: 'friendchain', shareCode: 'ab12', succeeded: 3,
-        });
-        expect(omitted.courseName).toBe('');
-        const nonString = resolveFriendLessonLink({
-            configData: chain, lessonId: 'a', courseId: 'friendchain', courseName: 42, shareCode: 'ab12', succeeded: 3,
-        });
-        expect(nonString.courseName).toBe('');
-    });
-
-    it('returns null when the recorded lesson has no next (last chain lesson)', () => {
-        expect(resolveFriendLessonLink({
-            configData: chain, lessonId: 'd', courseId: 'friendchain', courseName: 'Friend Chain', shareCode: 'ab12', succeeded: 3,
-        })).toBeNull();
-    });
-
-    it('returns null for a lesson that is not a shareCta lesson', () => {
-        const withPlain = { lessons: [{ lessonId: 'a', recapOverlay: 'shareCta' }, { lessonId: 'b' }, { lessonId: 'c', recapOverlay: 'shareCta' }] };
-        expect(resolveFriendLessonLink({
-            configData: withPlain, lessonId: 'b', courseId: 'friendchain', shareCode: 'ab12', succeeded: 3,
-        })).toBeNull();
-    });
-
-    it('returns null without a real export or shareCode', () => {
-        expect(resolveFriendLessonLink({
-            configData: chain, lessonId: 'a', courseId: 'friendchain', shareCode: 'ab12', succeeded: 0,
-        })).toBeNull();
-        expect(resolveFriendLessonLink({
-            configData: chain, lessonId: 'a', courseId: 'friendchain', shareCode: '', succeeded: 3,
-        })).toBeNull();
-    });
-
-    it('returns null without a courseId', () => {
-        expect(resolveFriendLessonLink({
-            configData: chain, lessonId: 'a', courseId: '', shareCode: 'ab12', succeeded: 3,
-        })).toBeNull();
-        expect(resolveFriendLessonLink({
-            configData: chain, lessonId: 'a', courseId: undefined, shareCode: 'ab12', succeeded: 3,
-        })).toBeNull();
-    });
-
-    it('returns null for missing configData', () => {
-        expect(resolveFriendLessonLink({
-            configData: null, lessonId: 'a', courseId: 'friendchain', shareCode: 'ab12', succeeded: 3,
-        })).toBeNull();
-        expect(resolveFriendLessonLink({
-            configData: undefined, lessonId: 'a', courseId: 'friendchain', shareCode: 'ab12', succeeded: 3,
-        })).toBeNull();
-        expect(resolveFriendLessonLink({
-            configData: {}, lessonId: 'a', courseId: 'friendchain', shareCode: 'ab12', succeeded: 3,
-        })).toBeNull();
     });
 });

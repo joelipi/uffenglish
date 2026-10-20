@@ -12,6 +12,8 @@ import {
     collectCourseTags,
     listCoursesByTag,
     buildTagPageView,
+    courseTopicOptions,
+    filterCoursesByTag,
 } from './course-tags-logic.js';
 
 // A config with a friend (shareCta) lesson, and one without — both are real
@@ -196,5 +198,50 @@ describe('buildTagPageView', () => {
 
     it('reports ready with the courses', () => {
         expect(buildTagPageView({ tag: 'travel', courses })).toEqual({ state: 'ready', courses });
+    });
+});
+
+describe('courseTopicOptions', () => {
+    it('lists the topics the listed courses carry, once each', () => {
+        const options = courseTopicOptions([
+            { courseId: 'a', tags: ['Travel', 'family'] },
+            { courseId: 'b', tags: ['travel'] },
+        ]);
+        // Sorted by label: "family" before "Travel".
+        expect(options.map((o) => o.tag)).toEqual(['family', 'Travel']);
+        expect(options[1].key).toBe('travel');
+        expect(options[1].courseIds).toEqual(['a', 'b']);
+    });
+
+    it('is empty when no course carries a topic', () => {
+        expect(courseTopicOptions([{ courseId: 'a', tags: [] }])).toEqual([]);
+        expect(courseTopicOptions([])).toEqual([]);
+        expect(courseTopicOptions(undefined)).toEqual([]);
+    });
+});
+
+describe('filterCoursesByTag', () => {
+    const COURSES = [
+        { courseId: 'a', tags: ['travel'] },
+        { courseId: 'b', tags: ['family'] },
+        { courseId: 'c', tags: [] },
+    ];
+
+    it('keeps only the courses that carry the topic', () => {
+        expect(filterCoursesByTag(COURSES, 'travel').map((c) => c.courseId)).toEqual(['a']);
+        expect(filterCoursesByTag(COURSES, 'family').map((c) => c.courseId)).toEqual(['b']);
+    });
+
+    it('matches case-insensitively', () => {
+        expect(filterCoursesByTag(COURSES, 'Travel').map((c) => c.courseId)).toEqual(['a']);
+    });
+
+    it('keeps every course for a blank topic', () => {
+        expect(filterCoursesByTag(COURSES, '')).toEqual(COURSES);
+        expect(filterCoursesByTag(COURSES, undefined)).toEqual(COURSES);
+    });
+
+    it('is empty for a topic no course carries', () => {
+        expect(filterCoursesByTag(COURSES, 'sports')).toEqual([]);
     });
 });

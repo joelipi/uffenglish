@@ -1302,6 +1302,15 @@ describe('recorder auto-render — zero server changes', () => {
             'src/modules/notifications/notification-refresh-logic.js',
             'src/modules/notifications/notification-refresh-logic.test.js',
             'tests/notifications.spec.js',
+            // The topic drop-down on the course lists (/home and /courses).
+            'src/components/BilingualString.jsx',
+            'src/components/courses/CourseTopicFilter.jsx',
+            'src/components/courses/FriendCoursesView.jsx',
+            'src/components/courses/CourseListings.test.jsx',
+            'src/modules/courses/course-tags-logic.js',
+            'src/modules/courses/course-tags-logic.test.js',
+            'src/modules/courses/friend-courses-logic.js',
+            'src/modules/courses/friend-courses-logic.test.js',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);

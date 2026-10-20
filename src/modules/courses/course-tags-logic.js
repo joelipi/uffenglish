@@ -16,10 +16,16 @@
 
 import {
     EXCLUDED_FRIEND_COURSE_IDS,
+    configTags,
     courseHeroImageFor,
     courseMissionFor,
     firstFriendLessonId,
 } from './friend-courses-logic.js';
+
+// The topic helpers live with the other course-metadata helpers
+// (`friend-courses-logic.js`); re-exported here so the topic module stays the
+// single import site for everything topic-related.
+export { configTags };
 
 // The welcome page: where "start without a friend's code" lands.
 export const WELCOME_PATH = '/welcome';
@@ -50,19 +56,6 @@ export function buildTagHref(tag) {
     const normalized = normalizeTag(tag);
     if (!normalized) return TAG_PATH_PREFIX;
     return `${TAG_PATH_PREFIX}/${encodeURIComponent(normalized)}`;
-}
-
-/**
- * The tags of one course config, as authored (trimmed, blanks dropped).
- * @param {object} config - a course config
- * @returns {string[]} the tag labels
- */
-export function configTags(config) {
-    const tags = config && typeof config === 'object' ? config.tags : null;
-    if (!Array.isArray(tags)) return [];
-    return tags
-        .filter((tag) => typeof tag === 'string' && tag.trim() !== '')
-        .map((tag) => tag.trim());
 }
 
 /**
@@ -124,9 +117,39 @@ export function listTaggedCourses(entries) {
  * @returns {Array<{ tag: string, key: string, courseIds: string[] }>} sorted by tag label
  */
 export function collectCourseTags(entries) {
+    return topicOptionsForCourses(listTaggedCourses(entries));
+}
+
+/**
+ * The topics a list of shaped courses carries, as filter options.
+ *
+ * @param {Array<{ courseId: string, tags: string[] }>} courses - shaped courses
+ * @returns {Array<{ tag: string, key: string, courseIds: string[] }>} sorted by tag label
+ */
+export function courseTopicOptions(courses) {
+    return topicOptionsForCourses(courses);
+}
+
+/**
+ * The courses of a list that carry a topic. A blank topic means "all of them".
+ *
+ * @param {Array<{ courseId: string, tags: string[] }>} courses - shaped courses
+ * @param {unknown} tag - the topic (any casing)
+ * @returns {Array<object>} the courses that carry it
+ */
+export function filterCoursesByTag(courses, tag) {
+    const list = Array.isArray(courses) ? courses : [];
+    const key = normalizeTag(tag);
+    if (!key) return list;
+    return list.filter((course) => (course.tags || []).some((t) => normalizeTag(t) === key));
+}
+
+// The shared topic collector: the first authored spelling of a topic wins, the
+// matching key is its normalized form, and the options are sorted by label.
+function topicOptionsForCourses(courses) {
     const byKey = new Map();
-    for (const course of listTaggedCourses(entries)) {
-        for (const tag of course.tags) {
+    for (const course of Array.isArray(courses) ? courses : []) {
+        for (const tag of course.tags || []) {
             const key = normalizeTag(tag);
             if (!key) continue;
             if (!byKey.has(key)) byKey.set(key, { tag, key, courseIds: [] });

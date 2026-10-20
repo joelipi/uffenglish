@@ -92,9 +92,9 @@ function VisitorLoginBanner({ shareCode, lang }) {
 // chain-head lessons plus the login/guest banner; a logged-in visitor sees the
 // lessons they feature in first, then the chain-head lessons, with joint
 // completions badged. `viewer` is null for logged-out visitors.
-export default function FriendLessonLinksSection({ friendLinks, lang = 'en', shareCode, viewer = null, chainHeads = null }) {
+export default function FriendLessonLinksSection({ friendLinks, lang = 'en', shareCode, viewer = null }) {
     const [now, setNow] = useState(() => Date.now());
-    const { mode, groups, isTicking } = buildVisitorPracticeView({ friendLinks, nowMs: now, viewer, chainHeads });
+    const { mode, groups, isTicking } = buildVisitorPracticeView({ friendLinks, nowMs: now, viewer });
 
     // Tick only while at least one link is still live; once the last one
     // expires the effect stops and the expired state renders.
