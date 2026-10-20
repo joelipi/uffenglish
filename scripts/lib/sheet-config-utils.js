@@ -798,6 +798,39 @@ export function withHero(head, hero, courseMission, lessons) {
     return out;
 }
 
+/**
+ * Carry hand-authored course metadata across a regeneration.
+ *
+ * The generator emits only `courseId` / `courseName` / `courseHeroImage` /
+ * `courseMission`, but it OVERWRITES the config file it owns. A `tags` array
+ * is hand-authored course metadata (the master CSV has no column for it), so
+ * it is read back from the file being overwritten and carried into the new
+ * config — otherwise the next config-bot run would silently drop the tags of
+ * every generated course.
+ *
+ * The sheet stays authoritative for everything it does emit: a `tags` array
+ * already present in the generated config wins over the carried-over one.
+ *
+ * @param {object} config - the freshly generated course config
+ * @param {object|null} previous - the config being overwritten (parsed), or null
+ * @returns {object} the config to write
+ */
+export function withCarriedTags(config, previous) {
+    if (!config || typeof config !== 'object') return config;
+    if (Array.isArray(config.tags) && config.tags.length > 0) return config;
+    const previousTags = previous && typeof previous === 'object' ? previous.tags : null;
+    if (!Array.isArray(previousTags) || previousTags.length === 0) return config;
+    const out = {};
+    for (const [key, value] of Object.entries(config)) {
+        out[key] = value;
+        // Course level, next to `courseName` — where the hand-edited configs
+        // keep it.
+        if (key === 'courseName') out.tags = [...previousTags];
+    }
+    if (!('tags' in out)) out.tags = [...previousTags];
+    return out;
+}
+
 function buildMasterCourseConfig(videoRows) {
     const courseId = firstNonBlank(videoRows, 'course_id');
     const courseName = firstNonBlank(videoRows, 'course_name');

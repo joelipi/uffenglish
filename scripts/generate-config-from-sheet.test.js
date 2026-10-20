@@ -124,8 +124,28 @@ describe('generate-config-from-sheet CLI', () => {
         } finally { rmSync(dir, { recursive: true, force: true }); }
     });
 
-    it('CI path: --check over already-present configs exits 0 and rewrites', async () => {
+    it('carries hand-authored course tags over a regeneration', async () => {
         const dir = tmpDir();
+        try {
+            await runCli([`${csvIn(dir, FIXTURE_CSV)}`, `--out=${dir}`]);
+            // Hand-authored course metadata lives in the config file the
+            // generator overwrites; it must survive the re-run.
+            const alphaPath = path.join(dir, 'alpha.json');
+            const alpha = JSON.parse(readFileSync(alphaPath, 'utf8'));
+            alpha.tags = ['preferences', 'money'];
+            writeFileSync(alphaPath, JSON.stringify(alpha, null, 2) + '\n');
+
+            const { code } = await runCli([`${csvIn(dir, FIXTURE_CSV)}`, `--out=${dir}`]);
+            expect(code).toBe(0);
+            const regenerated = JSON.parse(readFileSync(alphaPath, 'utf8'));
+            expect(regenerated.tags).toEqual(['preferences', 'money']);
+            expect(regenerated.courseId).toBe('alpha');
+            // A course with no hand-authored tags gains none.
+            expect(JSON.parse(readFileSync(path.join(dir, 'beta.json'), 'utf8')).tags).toBeUndefined();
+        } finally { rmSync(dir, { recursive: true, force: true }); }
+    });
+
+    it('CI path: --check over already-present configs exits 0 and rewrites', async () => {        const dir = tmpDir();
         try {
             await runCli([`${csvIn(dir, FIXTURE_CSV)}`, `--out=${dir}`]);
             // Corrupt, then the exact configs.yml invocation (--check, no --force).
