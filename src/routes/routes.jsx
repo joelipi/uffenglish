@@ -17,6 +17,8 @@ import FriendsRoute from './FriendsRoute.jsx';
 import PrivacyRoute from './PrivacyRoute.jsx';
 import TermsRoute from './TermsRoute.jsx';
 import CoursesRoute from './CoursesRoute.jsx';
+import WelcomeRoute from './WelcomeRoute.jsx';
+import TagRoute from './TagRoute.jsx';
 import NotFoundRoute from './NotFoundRoute.jsx';
 
 function LessonError() {
@@ -51,6 +53,11 @@ export const routes = [
           // /:shareCode catch-all like the legal pages, or `courses` is read
           // as a share code.
           { path: '/courses', element: <CoursesRoute /> },
+          // The welcome page (choose your topic) and the topic pages it links
+          // to. `/welcome` is a single-segment path, so it must precede the
+          // /:shareCode catch-all below like the other static pages.
+          { path: '/welcome', element: <WelcomeRoute /> },
+          { path: '/tags/:tag', element: <TagRoute /> },
           // Friends directory (logged-in). Must precede the single-segment
           // /:shareCode catch-all like the other static pages, or `friends` is
           // read as a share code.

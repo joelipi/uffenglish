@@ -1,6 +1,10 @@
 {
   "courseId": "wouldrather",
   "courseName": "Would You Rather",
+  "tags": [
+    "music",
+    "preferences"
+  ],
   "lessons": [
     {
       "lessonId": "a",

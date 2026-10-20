@@ -54,6 +54,10 @@ export function resolveHomepageLanguageAdoption({ isLoggedIn, guestLang, detecte
 export const STATIC_SINGLE_SEGMENT_ROUTES = [
     ...PUBLIC_ROUTES,
     '/home', '/profile', '/friends', '/login', '/signup', '/recover-password', '/reset-password',
+    // The welcome page (choose your topic): a static inside page, so an
+    // anonymous visitor gets the guest language/login modal there like on any
+    // other inside page — it must not be read as a share code.
+    '/welcome',
 ];
 
 // User profile pages: the logged-in profile (/profile) and the public

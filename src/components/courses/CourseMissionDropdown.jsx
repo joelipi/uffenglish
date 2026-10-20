@@ -24,8 +24,8 @@ function orderedKeys(mission) {
     ];
 }
 
-export default function CourseMissionDropdown({ lang = 'en', mission }) {
-    const [expanded, setExpanded] = useState(false);
+export default function CourseMissionDropdown({ lang = 'en', mission, defaultExpanded = false }) {
+    const [expanded, setExpanded] = useState(defaultExpanded);
 
     if (!mission || typeof mission !== 'object' || Object.keys(mission).length === 0) return null;
 

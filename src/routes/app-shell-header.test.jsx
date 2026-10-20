@@ -33,6 +33,8 @@ vi.mock('./RootLayout.jsx', async () => {
 vi.mock('./HomeRoute.jsx', () => ({ default: () => React.createElement('div', { 'data-testid': 'page-home' }) }));
 vi.mock('./ProfileRoute.jsx', () => ({ default: () => React.createElement('div', { 'data-testid': 'page-profile' }) }));
 vi.mock('./CoursesRoute.jsx', () => ({ default: () => React.createElement('div', { 'data-testid': 'page-courses' }) }));
+vi.mock('./WelcomeRoute.jsx', () => ({ default: () => React.createElement('div', { 'data-testid': 'page-welcome' }) }));
+vi.mock('./TagRoute.jsx', () => ({ default: () => React.createElement('div', { 'data-testid': 'page-tag' }) }));
 vi.mock('./FriendsRoute.jsx', () => ({ default: () => React.createElement('div', { 'data-testid': 'page-friends' }) }));
 vi.mock('./PrivacyRoute.jsx', () => ({ default: () => React.createElement('div', { 'data-testid': 'page-privacy' }) }));
 vi.mock('./TermsRoute.jsx', () => ({ default: () => React.createElement('div', { 'data-testid': 'page-terms' }) }));
@@ -50,7 +52,11 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // The inside pages of the app: every one of them shows the shared header.
-const INSIDE_PATHS = ['/home', '/profile', '/courses', '/friends', '/privacy', '/terms'];
+// A topic page is declared with its param (`/tags/:tag`); the path rendered
+// here carries a real tag.
+const INSIDE_PATHS = ['/home', '/profile', '/courses', '/friends', '/privacy', '/terms', '/welcome', '/tags/travel'];
+// The same pages as they are DECLARED in the route table.
+const DECLARED_INSIDE_PATHS = ['/home', '/profile', '/courses', '/friends', '/privacy', '/terms', '/welcome', '/tags/:tag'];
 // The pages that keep their own chrome: the public homepage (the root), the
 // lesson player and the public share-code profile.
 const OUTSIDE_PATHS = ['/', '/course/model/lesson/m-g', '/abcd'];
@@ -123,7 +129,7 @@ describe('the app shell in the route table', () => {
     it('mounts exactly the inside pages under the shell', () => {
         const block = shellChildren();
         const paths = [...block.matchAll(/path:\s*'([^']+)'/g)].map((m) => m[1]);
-        expect(paths.sort()).toEqual([...INSIDE_PATHS].sort());
+        expect(paths.sort()).toEqual([...DECLARED_INSIDE_PATHS].sort());
     });
 
     it('keeps the landing page, the lesson player and the public profile out of the shell', () => {

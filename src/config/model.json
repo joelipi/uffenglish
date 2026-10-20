@@ -2,6 +2,10 @@
   "courseId": "model",
   "courseLevel": "B1",
   "courseName": "Grocery Shopping",
+  "tags": [
+    "food",
+    "shopping"
+  ],
   "lessons": [
     {
       "lessonId": "m-t",

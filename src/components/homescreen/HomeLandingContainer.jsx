@@ -9,7 +9,7 @@ import {
     planShareCodeSubmit,
     shareCodeErrorStringKey,
 } from '../../modules/user/share-code-entry-logic.js';
-import { COURSE_LISTINGS_PATH } from '../../modules/courses/friend-courses-logic.js';
+import { WELCOME_PATH } from '../../modules/courses/course-tags-logic.js';
 import { buildShowcaseVideos } from '../../modules/video/showcase-videos.js';
 import HomeLanding from './HomeLanding.jsx';
 
@@ -49,7 +49,9 @@ export default function HomeLandingContainer() {
     }
 
     function handleNoCode() {
-        navigate(COURSE_LISTINGS_PATH);
+        // No friend's code: the learner picks a topic instead, so they land on
+        // the welcome page (the big topic buttons), not on the course list.
+        navigate(WELCOME_PATH);
     }
 
     function handleInputChange() {

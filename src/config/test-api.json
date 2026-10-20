@@ -1,6 +1,9 @@
 {
   "courseId": "test-api",
   "courseLevel": "A1",
+  "tags": [
+    "travel"
+  ],
   "lessons": [
     {
       "lessonId": "ta-t",

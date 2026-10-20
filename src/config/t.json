@@ -2,6 +2,10 @@
   "courseId": "t",
   "courseLevel": "B1",
   "courseName": "Ordering",
+  "tags": [
+    "food",
+    "ordering"
+  ],
   "lessons": [
     {
       "lessonId": "t-t",
