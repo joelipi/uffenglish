@@ -32,7 +32,7 @@ export default function FriendCoursesView({ lang = 'en', courses, isLoading = fa
 
             <ol
                 data-testid="friend-courses-steps"
-                style={{ fontSize: '16px', lineHeight: 1.5, color: '#e9ecef', paddingLeft: '1.5rem', marginBottom: '28px', display: 'flex', flexDirection: 'column', gap: '8px' }}
+                style={{ fontSize: '16px', lineHeight: 1.5, color: '#ffffff', paddingLeft: '1.5rem', marginBottom: '28px', display: 'flex', flexDirection: 'column', gap: '8px' }}
             >
                 <li>{Strings.get('friend_courses_step_1', lang)}</li>
                 <li>{Strings.get('friend_courses_step_2', lang)}</li>
@@ -42,7 +42,7 @@ export default function FriendCoursesView({ lang = 'en', courses, isLoading = fa
                 drop-down below it narrows the list to one topic. */}
             <div
                 data-testid="course-topic-heading"
-                style={{ fontSize: '16px', fontWeight: 600, lineHeight: 1.5, marginBottom: '10px', color: '#e9ecef' }}
+                style={{ fontSize: '16px', fontWeight: 600, lineHeight: 1.5, marginBottom: '10px', color: '#ffffff' }}
             >
                 <BilingualString stringKey="courses_topic_subheading" lang={lang} />
             </div>
@@ -64,7 +64,7 @@ export default function FriendCoursesView({ lang = 'en', courses, isLoading = fa
             )}
 
             {view.state === 'empty' && (
-                <div data-testid="friend-courses-empty" style={{ color: '#adb5bd', textAlign: 'center', padding: '24px 0' }}>
+                <div data-testid="friend-courses-empty" style={{ color: '#ffffff', textAlign: 'center', padding: '24px 0' }}>
                     {Strings.get('friend_courses_empty', lang)}
                 </div>
             )}
@@ -89,7 +89,7 @@ export default function FriendCoursesView({ lang = 'en', courses, isLoading = fa
                                     style={{ width: '100%', aspectRatio: '16 / 9', objectFit: 'cover', borderRadius: '8px', marginBottom: '12px', display: 'block' }}
                                 />
                             )}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#adb5bd', fontSize: '14px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ffffff', fontSize: '14px' }}>
                                 <i className="bi bi-journal-text"></i>
                                 <span>{Strings.get('friend_courses_lesson_count', lang, { count: course.lessonCount })}</span>
                             </div>

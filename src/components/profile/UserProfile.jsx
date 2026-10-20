@@ -20,7 +20,7 @@ const ENGLISH_LEVELS = ['A0', 'A1', 'A2', 'B1', 'B2', 'C1', 'C2', 'Native'];
 function Section({ title, children }) {
     return (
         <div style={{ marginBottom: '24px' }}>
-            <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '16px', color: '#e0e0e0' }}>{title}</h3>
+            <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '16px', color: '#ffffff' }}>{title}</h3>
             {children}
         </div>
     );
@@ -29,7 +29,7 @@ function Section({ title, children }) {
 function FormField({ label, id, children }) {
     return (
         <div style={{ marginBottom: '16px' }}>
-            <label htmlFor={id} style={{ display: 'block', marginBottom: '6px', fontSize: '14px', color: '#adb5bd' }}>{label}</label>
+            <label htmlFor={id} style={{ display: 'block', marginBottom: '6px', fontSize: '14px', color: '#ffffff' }}>{label}</label>
             {children}
         </div>
     );
@@ -289,6 +289,7 @@ export default function UserProfile() {
     const headerStyle = {
         display: 'flex',
         alignItems: 'center',
+        justifyContent: 'center',
         padding: '16px',
         borderBottom: '1px solid #1a3a5a',
         gap: '12px',
@@ -346,10 +347,7 @@ export default function UserProfile() {
         return (
             <div style={containerStyle}>
                 <div style={headerStyle}>
-                    <button onClick={() => navigate('/home')} style={{ background: 'none', border: 'none', color: 'white', fontSize: '20px', cursor: 'pointer' }}>
-                        <i className="bi bi-arrow-left"></i>
-                    </button>
-                    <span style={{ fontSize: '18px', fontWeight: 600 }}>{Strings.get('profile_title', lang)}</span>
+                    <span style={{ fontSize: '25px', fontWeight: 600, textAlign: 'center', width: '100%' }}>{Strings.get('profile_title', lang)}</span>
                 </div>
                 <div style={{ padding: '24px 16px', textAlign: 'center', color: '#ff6b6b' }}>
                     <i className="bi bi-exclamation-triangle-fill" style={{ fontSize: '32px', display: 'block', marginBottom: '12px' }}></i>
@@ -363,16 +361,13 @@ export default function UserProfile() {
         return (
             <div style={containerStyle}>
                 <div style={headerStyle}>
-                    <button onClick={() => navigate('/home')} style={{ background: 'none', border: 'none', color: 'white', fontSize: '20px', cursor: 'pointer' }}>
-                        <i className="bi bi-arrow-left"></i>
-                    </button>
-                    <span style={{ fontSize: '18px', fontWeight: 600 }}>{Strings.get('profile_title', lang)}</span>
+                    <span style={{ fontSize: '25px', fontWeight: 600, textAlign: 'center', width: '100%' }}>{Strings.get('profile_title', lang)}</span>
                 </div>
                 <div style={{ padding: '24px 16px' }}>
                     <div style={{ ...cardStyle, textAlign: 'center' }}>
-                        <i className="bi bi-person-circle" style={{ fontSize: '64px', color: '#6c757d', marginBottom: '16px', display: 'block' }}></i>
+                        <i className="bi bi-person-circle" style={{ fontSize: '64px', color: '#ffffff', marginBottom: '16px', display: 'block' }}></i>
                         <h2 style={{ fontSize: '22px', marginBottom: '12px' }}>{Strings.get('profile_guest_title', lang)}</h2>
-                        <p style={{ color: '#adb5bd', marginBottom: '24px', lineHeight: 1.6 }}>
+                        <p style={{ color: '#ffffff', marginBottom: '24px', lineHeight: 1.6 }}>
                             {Strings.get('profile_guest_message', lang)}
                         </p>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxWidth: '300px', margin: '0 auto' }}>
@@ -395,10 +390,7 @@ export default function UserProfile() {
     return (
         <div style={containerStyle}>
             <div style={headerStyle}>
-                <button onClick={() => navigate('/home')} style={{ background: 'none', border: 'none', color: 'white', fontSize: '20px', cursor: 'pointer' }}>
-                    <i className="bi bi-arrow-left"></i>
-                </button>
-                <span style={{ fontSize: '18px', fontWeight: 600 }}>{Strings.get('profile_title', lang)}</span>
+                <span style={{ fontSize: '25px', fontWeight: 600, textAlign: 'center', width: '100%' }}>{Strings.get('profile_title', lang)}</span>
             </div>
 
             <PWAInstallBanner lang={lang} userId={profile?.$id} />
@@ -441,9 +433,9 @@ export default function UserProfile() {
                     )}
                     <StatusMessage type={avatarMsg?.type} message={avatarMsg?.text} />
                     <h2 style={{ fontSize: '22px', marginBottom: '4px', marginTop: '12px' }}>{displayName}</h2>
-                    <p style={{ color: '#adb5bd', fontSize: '14px', marginBottom: '4px' }}>{email}</p>
-                    {shareCode && <p style={{ color: '#6c757d', fontSize: '13px', marginBottom: '4px' }}>Share Code: {shareCode}</p>}
-                    {joinDate && <p style={{ color: '#6c757d', fontSize: '13px' }}>{Strings.get('profile_member_since', lang, { date: joinDate })}</p>}
+                    <p style={{ color: '#ffffff', fontSize: '14px', marginBottom: '4px' }}>{email}</p>
+                    {shareCode && <p style={{ color: '#ffffff', fontSize: '13px', marginBottom: '4px' }}>Share Code: {shareCode}</p>}
+                    {joinDate && <p style={{ color: '#ffffff', fontSize: '13px' }}>{Strings.get('profile_member_since', lang, { date: joinDate })}</p>}
                 </div>
 
                 {cropperImage && (
@@ -512,23 +504,23 @@ export default function UserProfile() {
                 <Section title={Strings.get('profile_statistics', lang)}>
                     <div style={{ ...cardStyle, display: 'flex', flexDirection: 'column', gap: '16px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ color: '#adb5bd' }}>{Strings.get('profile_streak', lang)}</span>
+                            <span style={{ color: '#ffffff' }}>{Strings.get('profile_streak', lang)}</span>
                             <span style={{ fontSize: '20px', fontWeight: 700 }}>{currentStreak}</span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ color: '#adb5bd' }}>{Strings.get('profile_lessons_completed', lang)}</span>
+                            <span style={{ color: '#ffffff' }}>{Strings.get('profile_lessons_completed', lang)}</span>
                             <span style={{ fontSize: '20px', fontWeight: 700 }}>{lessonsCompleted}</span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ color: '#adb5bd' }}>{Strings.get('profile_friend_count', lang)}</span>
+                            <span style={{ color: '#ffffff' }}>{Strings.get('profile_friend_count', lang)}</span>
                             <span style={{ fontSize: '20px', fontWeight: 700 }}>{friendCount}</span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ color: '#adb5bd' }}>{Strings.get('profile_referrals', lang)}</span>
+                            <span style={{ color: '#ffffff' }}>{Strings.get('profile_referrals', lang)}</span>
                             <span style={{ fontSize: '20px', fontWeight: 700 }}>{referrals}</span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ color: '#adb5bd' }}>{Strings.get('profile_days_active', lang)}</span>
+                            <span style={{ color: '#ffffff' }}>{Strings.get('profile_days_active', lang)}</span>
                             <span style={{ fontSize: '20px', fontWeight: 700 }}>{completedDates.length}</span>
                         </div>
                     </div>

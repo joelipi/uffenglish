@@ -92,22 +92,6 @@ describe('LessonContainer close link', () => {
     });
 });
 
-describe('UserProfile back navigation', () => {
-    it('returns to the dashboard at /home', () => {
-        expect(userProfile).toContain("navigate('/home')");
-    });
-
-    it('no longer returns to /', () => {
-        expect(userProfile).not.toContain("navigate('/')");
-    });
-});
-
-describe('PublicProfile back navigation is unchanged', () => {
-    it('still returns to the public homepage at /', () => {
-        expect(publicProfile).toContain("navigate('/')");
-    });
-});
-
 describe('notifications E2E boots the dashboard', () => {
     it('navigates to /home in bootAndSettle', () => {
         const bootAt = notificationsSpec.indexOf('async function bootAndSettle');

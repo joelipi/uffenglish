@@ -310,7 +310,7 @@ describe('CourseListings scrolling', () => {
 
         const scroll = container.querySelector('[data-testid="friend-courses-scroll"]');
         const shell = scroll.parentElement;
-        const header = container.querySelector('[data-testid="friend-courses-back"]').parentElement;
+        const header = container.querySelector('[data-testid="friend-courses-scroll"]').previousElementSibling;
 
         expect(shell.contains(header)).toBe(true);
         expect(scroll.contains(header)).toBe(false);

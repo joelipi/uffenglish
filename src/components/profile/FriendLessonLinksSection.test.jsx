@@ -56,9 +56,9 @@ describe('FriendLessonLinksSection', () => {
         root = renderSection(container, { friendLinks: links, lang: 'en' });
 
         expect(container.querySelector('[data-testid="friend-lesson-links-heading"]').textContent)
-            .toBe('Practice English with Me Free');
+            .toBe('Click on a lesson to start practicing with  right now free!');
         expect(container.querySelector('[data-testid="friend-lesson-links-subheading"]').textContent)
-            .toBe('click on a lesson link to start.');
+            .toBe(' does not have to be online now, they can respond to you later.');
 
         const heading = container.querySelector('[data-testid="friend-lesson-link-group-heading"]');
         expect(heading.textContent).toBe('Friend Chain');
@@ -184,7 +184,7 @@ describe('FriendLessonLinksSection', () => {
 
         const cta = container.querySelector('[data-testid="friend-lessons-practice-free"]');
         expect(cta.getAttribute('href')).toBe('/courses');
-        expect(cta.textContent).toBe('Practice English Free');
+        expect(cta.textContent).toBe('Start here');
         expect(parseFloat(cta.style.fontSize)).toBeGreaterThanOrEqual(24);
 
         expect(container.querySelector('[data-testid="friend-lesson-links"]')).toBeNull();

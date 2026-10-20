@@ -57,15 +57,12 @@ describe('TagPage', () => {
         container = null;
     });
 
-    it('shows the topic as the heading and links back to the welcome page', () => {
+    it('shows the topic as the heading', () => {
         root = render(container, {});
 
         const heading = container.querySelector('[data-testid="tag-heading"]');
         expect(heading.tagName).toBe('H1');
         expect(heading.textContent).toBe('Family');
-
-        const back = container.querySelector('[data-testid="tag-back"]');
-        expect(back.getAttribute('href')).toBe('/welcome');
     });
 
     it('shows the English topic first and the learner\'s language after it', () => {

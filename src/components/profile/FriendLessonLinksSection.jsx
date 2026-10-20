@@ -46,7 +46,7 @@ function FriendLessonLink({ entry, lang, now }) {
             >
                 {label}
             </a>
-            <p data-testid="friend-lesson-link-countdown" style={{ color: '#adb5bd', fontSize: '14px', margin: '4px 0 0' }}>
+            <p data-testid="friend-lesson-link-countdown" style={{ color: '#ffffff', fontSize: '14px', margin: '4px 0 0' }}>
                 {Strings.get('profile_friend_link_available', lang, { time: formatFriendLinkRemaining(remainingMs) })}
             </p>
             {entry.completedTogether === true && (
@@ -74,7 +74,7 @@ function VisitorLoginBanner({ shareCode, lang }) {
             </a>
             <p
                 data-testid="visitor-guest-note"
-                style={{ color: '#adb5bd', fontSize: '15px', margin: 0 }}
+                style={{ color: '#ffffff', fontSize: '15px', margin: 0 }}
             >
                 {Strings.get('profile_guest_start_free', lang)}
             </p>
@@ -92,7 +92,8 @@ function VisitorLoginBanner({ shareCode, lang }) {
 // chain-head lessons plus the login/guest banner; a logged-in visitor sees the
 // lessons they feature in first, then the chain-head lessons, with joint
 // completions badged. `viewer` is null for logged-out visitors.
-export default function FriendLessonLinksSection({ friendLinks, lang = 'en', shareCode, viewer = null }) {
+export default function FriendLessonLinksSection({ friendLinks, lang = 'en', shareCode, viewer = null, userName = '', name, ownerName, displayName, profileName }) {
+    const resolvedName = userName || name || ownerName || displayName || profileName || '';
     const [now, setNow] = useState(() => Date.now());
     const { mode, groups, isTicking } = buildVisitorPracticeView({ friendLinks, nowMs: now, viewer });
 
@@ -111,7 +112,7 @@ export default function FriendLessonLinksSection({ friendLinks, lang = 'en', sha
                 data-testid="friend-lessons-expired"
                 style={{ ...cardStyle, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', marginBottom: '24px' }}
             >
-                <p data-testid="friend-lessons-expired-message" style={{ color: '#adb5bd', fontSize: '16px', lineHeight: 1.5, margin: 0 }}>
+                <p data-testid="friend-lessons-expired-message" style={{ color: '#ffffff', fontSize: '16px', lineHeight: 1.5, margin: 0 }}>
                     {Strings.get('profile_friend_lessons_expired', lang)}
                 </p>
                 <a
@@ -119,7 +120,7 @@ export default function FriendLessonLinksSection({ friendLinks, lang = 'en', sha
                     href={COURSE_LISTINGS_PATH}
                     style={{ fontSize: '28px', fontWeight: 800, color: '#ffffff', textDecoration: 'underline', lineHeight: 1.2 }}
                 >
-                    {Strings.get('profile_friend_practice_free', lang)}
+                    Start here
                 </a>
             </div>
         );
@@ -135,10 +136,10 @@ export default function FriendLessonLinksSection({ friendLinks, lang = 'en', sha
 
             <div>
                 <h2 data-testid="friend-lesson-links-heading" style={{ color: '#ffffff', fontSize: '28px', fontWeight: 700, margin: 0 }}>
-                    {Strings.get('profile_friend_practice_heading', lang)}
+                    {`Click on a lesson to start practicing with ${resolvedName} right now free!`}
                 </h2>
-                <p data-testid="friend-lesson-links-subheading" style={{ color: '#adb5bd', fontSize: '15px', margin: '4px 0 0' }}>
-                    {Strings.get('profile_friend_practice_subheading', lang)}
+                <p data-testid="friend-lesson-links-subheading" style={{ color: '#ffffff', fontSize: '15px', margin: '4px 0 0' }}>
+                    {`${resolvedName} does not have to be online now, they can respond to you later.`}
                 </p>
             </div>
 

@@ -54,13 +54,13 @@ const deadlineStyle = {
 
 const timestampStyle = {
     display: 'block',
-    color: '#6c757d',
+    color: '#ffffff',
     fontSize: '12px',
     marginTop: '6px',
 };
 
 const emptyStyle = {
-    color: '#adb5bd',
+    color: '#ffffff',
     fontSize: '14px',
     margin: 0,
     padding: '8px 4px',

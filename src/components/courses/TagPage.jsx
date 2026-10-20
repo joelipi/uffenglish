@@ -41,6 +41,7 @@ export default function TagPage({ lang = 'en', tag = '', courses, isLoading = fa
         flexShrink: 0,
         display: 'flex',
         alignItems: 'center',
+        justifyContent: 'center',
         padding: '16px',
         borderBottom: '1px solid #1a3a5a',
         gap: '12px',
@@ -56,15 +57,7 @@ export default function TagPage({ lang = 'en', tag = '', courses, isLoading = fa
     return (
         <div style={containerStyle} data-testid="tag-page">
             <div style={headerStyle}>
-                <Link
-                    to={WELCOME_PATH}
-                    data-testid="tag-back"
-                    aria-label={Strings.get('tag_back', lang)}
-                    style={{ background: 'none', color: 'white', fontSize: '20px', cursor: 'pointer', lineHeight: 1 }}
-                >
-                    <i className="bi bi-arrow-left"></i>
-                </Link>
-                <h1 data-testid="tag-heading" style={{ fontSize: '20px', fontWeight: 700, margin: 0 }}>
+                <h1 data-testid="tag-heading" style={{ fontSize: '25px', fontWeight: 700, margin: 0, textAlign: 'center', width: '100%' }}>
                     {/* The English word first, the learner's language after it. */}
                     <span className="course-tag-label">
                         <BilingualText
@@ -92,7 +85,7 @@ export default function TagPage({ lang = 'en', tag = '', courses, isLoading = fa
                 )}
 
                 {view.state === 'empty' && (
-                    <div data-testid="tag-empty" style={{ color: '#adb5bd', textAlign: 'center', padding: '24px 0' }}>
+                    <div data-testid="tag-empty" style={{ color: '#ffffff', textAlign: 'center', padding: '24px 0' }}>
                         {Strings.get('tag_courses_empty', lang)}
                     </div>
                 )}
@@ -118,7 +111,7 @@ export default function TagPage({ lang = 'en', tag = '', courses, isLoading = fa
                                             style={{ width: '100%', aspectRatio: '16 / 9', objectFit: 'cover', borderRadius: '8px', marginBottom: '12px', display: 'block' }}
                                         />
                                     )}
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#adb5bd', fontSize: '14px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ffffff', fontSize: '14px' }}>
                                         <i className="bi bi-journal-text"></i>
                                         <span>{Strings.get('friend_courses_lesson_count', lang, { count: course.lessonCount })}</span>
                                     </div>

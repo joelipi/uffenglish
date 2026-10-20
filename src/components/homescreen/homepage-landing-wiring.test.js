@@ -29,7 +29,7 @@ describe('HomeLanding app-matched styling + scroll contract', () => {
         expect(homeLandingCss).toContain('--bs-body-bg: #0b1a2a');
         expect(homeLandingCss).toContain('--bs-card-bg: #1a3a5a');
         expect(homeLandingCss).toContain('--bs-border-color: #2a4a6a');
-        expect(homeLandingCss).toContain('--bs-secondary-color: #adb5bd');
+        expect(homeLandingCss).toContain('--bs-secondary-color: #ffffff');
     });
 
     it('lifts the 9:16 phone frame on desktop for this page only', () => {

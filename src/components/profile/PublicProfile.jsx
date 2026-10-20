@@ -39,6 +39,7 @@ export default function PublicProfile({ shareCode }) {
     const headerStyle = {
         display: 'flex',
         alignItems: 'center',
+        justifyContent: 'center',
         padding: '16px',
         borderBottom: '1px solid #1a3a5a',
         gap: '12px',
@@ -67,10 +68,7 @@ export default function PublicProfile({ shareCode }) {
         return (
             <div style={containerStyle}>
                 <div style={headerStyle}>
-                    <button onClick={() => navigate('/')} style={{ background: 'none', border: 'none', color: 'white', fontSize: '20px', cursor: 'pointer' }}>
-                        <i className="bi bi-arrow-left"></i>
-                    </button>
-                    <span style={{ fontSize: '18px', fontWeight: 600 }}>{Strings.get('public_profile_heading', lang)}</span>
+                    <span style={{ fontSize: '25px', fontWeight: 600, textAlign: 'center', width: '100%' }}>Practice English with</span>
                 </div>
                 <div style={{ padding: '24px 16px', textAlign: 'center', color: '#ff6b6b' }}>
                     <i className="bi bi-exclamation-triangle-fill" style={{ fontSize: '32px', display: 'block', marginBottom: '12px' }}></i>
@@ -107,10 +105,12 @@ export default function PublicProfile({ shareCode }) {
     return (
         <div style={containerStyle}>
             <div style={headerStyle}>
-                <button onClick={() => navigate('/')} style={{ background: 'none', border: 'none', color: 'white', fontSize: '20px', cursor: 'pointer' }}>
-                    <i className="bi bi-arrow-left"></i>
-                </button>
-                <span style={{ fontSize: '18px', fontWeight: 600 }}>{Strings.get('public_profile_heading', lang)}</span>
+                <span style={{ fontSize: '25px', fontWeight: 600, textAlign: 'center', width: '100%' }}>
+                    Practice English with <br />
+                    <img src={profilePic} alt={displayName} crossOrigin="anonymous" style={{ width: '192px', height: '192px', borderRadius: '50%', objectFit: 'cover', margin: '8px auto', display: 'block' }} />
+                    <br />
+                    {displayName}
+                </span>
             </div>
 
             <div style={{ padding: '24px 16px', maxWidth: '640px', margin: '0 auto' }}>
@@ -119,11 +119,11 @@ export default function PublicProfile({ shareCode }) {
                         src={profilePic}
                         alt={displayName}
                         crossOrigin="anonymous"
-                        style={{ width: '96px', height: '96px', borderRadius: '50%', objectFit: 'cover', marginBottom: '12px' }}
+                        style={{ width: '192px', height: '192px', borderRadius: '50%', objectFit: 'cover', marginBottom: '12px' }}
                     />
                     <h2 style={{ fontSize: '22px', marginBottom: '4px', marginTop: '12px' }}>{displayName}</h2>
-                    <p style={{ color: '#6c757d', fontSize: '13px', marginBottom: '4px' }}>{Strings.get('public_profile_share_code', lang)} {shareCode}</p>
-                    {joinDate && <p style={{ color: '#6c757d', fontSize: '13px' }}>{Strings.get('profile_member_since', lang, { date: joinDate })}</p>}
+                    <p style={{ color: '#ffffff', fontSize: '13px', marginBottom: '4px' }}>{Strings.get('public_profile_share_code', lang)} {shareCode}</p>
+                    {joinDate && <p style={{ color: '#ffffff', fontSize: '13px' }}>{Strings.get('profile_member_since', lang, { date: joinDate })}</p>}
                 </div>
 
                 <FriendLessonLinksSection
@@ -131,28 +131,29 @@ export default function PublicProfile({ shareCode }) {
                     lang={lang}
                     shareCode={shareCode}
                     viewer={viewer}
+                    userName={displayName}
                 />
 
                 <div style={cardStyle}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ color: '#adb5bd' }}>{Strings.get('profile_streak', lang)}</span>
+                            <span style={{ color: '#ffffff' }}>{Strings.get('profile_streak', lang)}</span>
                             <span style={{ fontSize: '20px', fontWeight: 700 }}>{currentStreak}</span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ color: '#adb5bd' }}>{Strings.get('profile_lessons_completed', lang)}</span>
+                            <span style={{ color: '#ffffff' }}>{Strings.get('profile_lessons_completed', lang)}</span>
                             <span style={{ fontSize: '20px', fontWeight: 700 }}>{lessonsCompleted}</span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ color: '#adb5bd' }}>{Strings.get('profile_friend_count', lang)}</span>
+                            <span style={{ color: '#ffffff' }}>{Strings.get('profile_friend_count', lang)}</span>
                             <span style={{ fontSize: '20px', fontWeight: 700 }}>{friendCount}</span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ color: '#adb5bd' }}>{Strings.get('profile_referrals', lang)}</span>
+                            <span style={{ color: '#ffffff' }}>{Strings.get('profile_referrals', lang)}</span>
                             <span style={{ fontSize: '20px', fontWeight: 700 }}>{referrals}</span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ color: '#adb5bd' }}>{Strings.get('profile_days_active', lang)}</span>
+                            <span style={{ color: '#ffffff' }}>{Strings.get('profile_days_active', lang)}</span>
                             <span style={{ fontSize: '20px', fontWeight: 700 }}>{completedDates.length}</span>
                         </div>
                     </div>

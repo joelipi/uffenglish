@@ -42,6 +42,7 @@ export default function CourseListings({ lang = 'en', courses, isLoading = false
         flexShrink: 0,
         display: 'flex',
         alignItems: 'center',
+        justifyContent: 'center',
         padding: '16px',
         borderBottom: '1px solid #1a3a5a',
         gap: '12px',
@@ -81,15 +82,7 @@ export default function CourseListings({ lang = 'en', courses, isLoading = false
     return (
         <div style={containerStyle}>
             <div style={headerStyle}>
-                <button
-                    type="button"
-                    data-testid="friend-courses-back"
-                    onClick={onBack}
-                    style={{ background: 'none', border: 'none', color: 'white', fontSize: '20px', cursor: 'pointer' }}
-                >
-                    <i className="bi bi-arrow-left"></i>
-                </button>
-                <span style={{ fontSize: '18px', fontWeight: 600 }}>{Strings.get('home_courses', lang)}</span>
+                <span style={{ fontSize: '25px', fontWeight: 600, textAlign: 'center', width: '100%' }}>{Strings.get('home_courses', lang)}</span>
             </div>
 
             {/* Signed-out notice (story 070). Sits OUTSIDE the scroll region so

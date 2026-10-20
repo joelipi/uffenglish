@@ -274,7 +274,7 @@ body { margin: 0; font-family: var(--font-body); font-size: 1rem; font-weight: 4
    theirs under `.uff-home-bs` (never an ancestor of the auth routes), and a
    class already beats the user-agent link color. */
 .auth-link { color: #ffffff; font-weight: 700; text-decoration: underline; }
-.auth-link:hover, .auth-link:focus-visible { color: #adb5bd; }
+.auth-link:hover, .auth-link:focus-visible { color: #ffffff; }
 
 /* --- Cards --- */
 .card {
@@ -2451,7 +2451,7 @@ body { margin: 0; font-family: var(--font-body); font-size: 1rem; font-weight: 4
 }
 
 .hangman-placeholder {
-    color: #666;
+    color: #ffffff;
     font-weight: bold;
     border-bottom: 2px solid #666;
     margin: 0 2px;

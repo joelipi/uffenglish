@@ -256,7 +256,7 @@ export default function HomeLanding({
                                 {Strings.get('home_landing_about_heading', lang)}
                             </h2>
                             <p className="h5 fw-semibold mb-2" data-testid="about-teacher-name">{TEACHER_NAME}</p>
-                            <p className="lead text-secondary mb-0" data-testid="about-teacher-credentials">
+                            <p className="lead text-white mb-0" data-testid="about-teacher-credentials">
                                 {Strings.get('home_landing_about_credentials', lang)}
                             </p>
                         </div>

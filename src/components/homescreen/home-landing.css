@@ -17,8 +17,8 @@
     --bs-body-font-family: var(--font-body);
     --bs-emphasis-color: #ffffff;
     --bs-emphasis-color-rgb: 255, 255, 255;
-    --bs-secondary-color: #adb5bd;
-    --bs-secondary-color-rgb: 173, 181, 189;
+    --bs-secondary-color: #ffffff;
+    --bs-secondary-color-rgb: 255, 255, 255;
     --bs-secondary-bg: #1a3a5a;
     --bs-tertiary-bg: #1a3a5a;
     --bs-tertiary-bg-rgb: 26, 58, 90;

@@ -62,7 +62,7 @@ export default function WelcomePage({ lang = 'en', tags = [], isLoading = false,
     };
 
     const messageStyle = {
-        color: '#adb5bd',
+        color: '#ffffff',
         textAlign: 'center',
         padding: '24px 0',
     };

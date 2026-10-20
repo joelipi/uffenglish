@@ -59,7 +59,7 @@ export default function NotFoundRoute() {
                 <h1 data-testid="not-found-heading" style={{ fontSize: '22px', marginBottom: '8px' }}>
                     {Strings.get('not_found_heading', lang)}
                 </h1>
-                <p data-testid="not-found-body" style={{ color: '#adb5bd', margin: 0 }}>
+                <p data-testid="not-found-body" style={{ color: '#ffffff', margin: 0 }}>
                     {Strings.get('not_found_body', lang)}
                 </p>
                 <div style={actionsStyle}>

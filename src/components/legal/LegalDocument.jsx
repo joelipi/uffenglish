@@ -36,7 +36,7 @@ const thStyle = {
     textAlign: 'left',
     padding: '10px 12px',
     borderBottom: '2px solid #2a4a6a',
-    color: '#e0e0e0',
+    color: '#ffffff',
     fontSize: '15px',
 };
 
