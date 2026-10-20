@@ -327,7 +327,7 @@ const strings = {
     },
     'listen_repeat': {
         en: "Listen and repeat it as quickly as you can...",
-        es: "Escucha y repítelo tan rápido que puedas--",
+        es: "Escucha y repítelo tan rápido que puedas...",
         fr: "Écoutez et répétez-le aussi vite que vous le pouvez...",
         hi: "सुनें और जितनी जल्दी हो सके उसे दोहराएँ...",
         bn: "শুনুন এবং যত দ্রুত পারেন তা পুনরাবৃত্তি করুন..."
@@ -499,26 +499,41 @@ const strings = {
     },
     'feedback_pragmatic_failure': {
         en: "That doesn't quite make sense in this context.",
+        es: "Eso no tiene mucho sentido en este contexto.",
+        pt: "Isso não faz muito sentido neste contexto.",
+        fr: "Cela n'a pas beaucoup de sens dans ce contexte.",
         hi: "इस संदर्भ में यह ठीक से समझ नहीं आता।",
         bn: "এই প্রসঙ্গে এটি ঠিক অর্থবোধক নয়।"
     },
     'feedback_rude': {
         en: "That comes across as a bit rude or insensitive.",
+        es: "Eso resulta un poco grosero o insensible.",
+        pt: "Isso soa um pouco grosseiro ou insensível.",
+        fr: "Cela semble un peu grossier ou insensible.",
         hi: "यह थोड़ा अशिष्ट या असंवेदनशील लगता है।",
         bn: "এটি কিছুটা অভদ্র বা সংবেদনহীন মনে হচ্ছে।"
     },
     'feedback_too_formal': {
         en: "That is a bit too formal for this situation.",
+        es: "Eso es un poco demasiado formal para esta situación.",
+        pt: "Isso é um pouco formal demais para esta situação.",
+        fr: "C'est un peu trop formel pour cette situation.",
         hi: "यह इस स्थिति के लिए थोड़ा बहुत औपचारिक है।",
         bn: "এটি এই পরিস্থিতির জন্য কিছুটা খুব আনুষ্ঠানিক।"
     },
     'feedback_too_informal': {
         en: "That is too casual for this situation.",
+        es: "Eso es demasiado informal para esta situación.",
+        pt: "Isso é informal demais para esta situação.",
+        fr: "C'est trop décontracté pour cette situation.",
         hi: "यह इस स्थिति के लिए बहुत अनौपचारिक है।",
         bn: "এটি এই পরিস্থিতির জন্য খুব অনানুষ্ঠানিক।"
     },
     'feedback_unidiomatic': {
         en: "That sounds a bit unnatural. Here is a more common way to say it.",
+        es: "Suena un poco antinatural. Aquí tienes una forma más común de decirlo.",
+        pt: "Soa um pouco antinatural. Aqui está uma forma mais comum de dizê-lo.",
+        fr: "Cela sonne un peu artificiel. Voici une façon plus courante de le dire.",
         hi: "यह थोड़ा अप्राकृतिक लगता है। इसे कहने का एक अधिक सामान्य तरीका यह है।",
         bn: "এটি কিছুটা অস্বাভাবিক শোনাচ্ছে। এটি বলার আরও প্রচলিত উপায় এখানে দেওয়া হলো।"
     },
@@ -530,16 +545,25 @@ const strings = {
     },
     'stats_repetitions_required': {
         en: "Repetitions:",
+        es: "Repeticiones:",
+        pt: "Repetições:",
+        fr: "Répétitions :",
         hi: "पुनरावृत्तियाँ:",
         bn: "পুনরাবৃত্তি:"
     },
     'stats_attempts_required': {
         en: "Attempts:",
+        es: "Intentos:",
+        pt: "Tentativas:",
+        fr: "Tentatives :",
         hi: "प्रयास:",
         bn: "চেষ্টা:"
     },
     'stats_fluency_score': {
         en: "Fluency Score:",
+        es: "Puntuación de fluidez:",
+        pt: "Pontuação de fluência:",
+        fr: "Score de fluidité :",
         hi: "धाराप्रवाहता स्कोर:",
         bn: "সাবলীলতার স্কোর:"
     },
@@ -842,26 +866,41 @@ const strings = {
     },
     'grammar_perfect': {
         en: "✅ No language errors detected.",
+        es: "✅ No se detectaron errores de idioma.",
+        pt: "✅ Nenhum erro de idioma detectado.",
+        fr: "✅ Aucune erreur de langue détectée.",
         hi: "✅ कोई भाषा त्रुटि नहीं मिली।",
         bn: "✅ কোনো ভাষার ত্রুটি শনাক্ত হয়নি।"
     },
     'intent_perfect': {
         en: "✅ Meaning understood successfully.",
+        es: "✅ Significado comprendido con éxito.",
+        pt: "✅ Significado compreendido com sucesso.",
+        fr: "✅ Signification comprise avec succès.",
         hi: "✅ अर्थ सफलतापूर्वक समझा गया।",
         bn: "✅ অর্থ সফলভাবে বোঝা গেছে।"
     },
     'intent_good_grammar_bad': {
         en: "✅ Your intent was clear! Try practicing the corrected version above next time.",
+        es: "✅ ¡Tu intención quedó clara! Practica la versión corregida de arriba la próxima vez.",
+        pt: "✅ Sua intenção ficou clara! Pratique a versão corrigida acima na próxima vez.",
+        fr: "✅ Votre intention était claire ! Entraînez-vous avec la version corrigée ci-dessus la prochaine fois.",
         hi: "✅ आपका आशय स्पष्ट था! अगली बार ऊपर दिए गए सुधारित संस्करण का अभ्यास करें।",
         bn: "✅ আপনার উদ্দেশ্য স্পষ্ট ছিল! পরের বার উপরের সংশোধিত সংস্করণটি অনুশীলন করুন।"
     },
     'intent_bad_grammar_perfect': {
         en: "❌ That doesn't seem to be the right response for this situation.",
+        es: "❌ Esa no parece ser la respuesta adecuada para esta situación.",
+        pt: "❌ Essa não parece ser a resposta adequada para esta situação.",
+        fr: "❌ Cela ne semble pas être la bonne réponse pour cette situation.",
         hi: "❌ यह इस स्थिति के लिए सही उत्तर नहीं लगता।",
         bn: "❌ এটি এই পরিস্থিতির জন্য সঠিক উত্তর বলে মনে হচ্ছে না।"
     },
     'intent_bad_grammar_bad': {
         en: "❌ Even with corrected grammar, this didn't match the expected meaning. Let's try again!",
+        es: "❌ Incluso con la gramática corregida, no coincidió con el significado esperado. ¡Intentémoslo de nuevo!",
+        pt: "❌ Mesmo com a gramática corrigida, não correspondeu ao significado esperado. Vamos tentar de novo!",
+        fr: "❌ Même avec la grammaire corrigée, cela ne correspondait pas au sens attendu. Réessayons !",
         hi: "❌ सुधारे गए व्याकरण के साथ भी, यह अपेक्षित अर्थ से मेल नहीं खाता। चलिए फिर से प्रयास करें!",
         bn: "❌ সংশোধিত ব্যাকরণ সত্ত্বেও, এটি প্রত্যাশিত অর্থের সাথে মেলেনি। আবার চেষ্টা করি!"
     },
@@ -2358,11 +2397,11 @@ const strings = {
     // Branching step: heading over the multiple-choice buttons.
     'video_choose_how_respond': {
         en: "Choose what you will say.",
-        es: "Elige cómo vas a responder.",
-        pt: "Escolha como você vai responder.",
-        fr: "Choisissez comment vous allez répondre.",
-        hi: "चुनें कि आप कैसे उत्तर देंगे।",
-        bn: "আপনি কীভাবে উত্তর দেবেন তা বেছে নিন।"
+        es: "Elige lo que vas a decir.",
+        pt: "Escolha o que você vai dizer.",
+        fr: "Choisissez ce que vous allez dire.",
+        hi: "चुनें कि आप क्या कहेंगे।",
+        bn: "আপনি কী বলবেন তা বেছে নিন।"
     },
     // Branching step: heading over the NESTED (second-or-deeper) row of buttons,
     // shown once the learner has picked a group at the previous level.
