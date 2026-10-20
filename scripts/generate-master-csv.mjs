@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // scripts/generate-master-csv.mjs
-// Regenerate the committed master CSV (`public/wouldyourather.master.csv`)
-// from the source config (`wouldyourather.source.txt`). Run by
+// Regenerate the committed master CSV (`public/<course>.master.csv`, derived
+// from the source file's name) from the source config (`<course>.source.txt`).
+// Run by
 // .github/workflows/source-to-csv.yml on every push that touches the source,
 // so editing the source on the GitHub web UI is the whole authoring action.
 //
