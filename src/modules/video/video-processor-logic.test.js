@@ -850,19 +850,28 @@ describe('buildUgcSegmentKey', () => {
 });
 
 describe('resolveInviterCode', () => {
-    it('prefers the friend code, falling back to the recorder (self-initiated)', () => {
-        expect(resolveInviterCode({ friendCode: 'zzz9', shareCode: 'ab12' })).toBe('zzz9');
-        expect(resolveInviterCode({ friendCode: '  ', shareCode: 'ab12' })).toBe('ab12');
+    it('is the recorder\'s own code, whatever link the recorder was answering', () => {
+        // A chain clip is addressed by its recorder alone (`<recorder>-<recorder>`):
+        // the learner who opens the recorder's link is the one who computes the
+        // key it looks for, and it knows the recorder's code and nothing else.
         expect(resolveInviterCode({ shareCode: 'ab12' })).toBe('ab12');
+        // A stale persisted friend code must not redirect the clip.
+        expect(resolveInviterCode({ friendCode: 'zzz9', shareCode: 'ab12' })).toBe('ab12');
+        expect(resolveInviterCode({ friendCode: '  ', shareCode: 'ab12' })).toBe('ab12');
+        expect(resolveInviterCode({})).toBe('');
     });
 
-    it('uses the recorder for the ask lesson, even with a stale friend code', () => {
-        // The asker started the chain: their clip is published
-        // `<owner>-<owner>`, and the friend who opens their link looks for
-        // exactly that. A stale persisted friendCode must not redirect it.
-        expect(resolveInviterCode({ friendCode: 'zzz9', shareCode: 'ab12', isAskLesson: true })).toBe('ab12');
-        expect(resolveInviterCode({ friendCode: '  ', shareCode: 'ab12', isAskLesson: true })).toBe('ab12');
-        expect(resolveInviterCode({ shareCode: 'ab12', isAskLesson: true })).toBe('ab12');
+    it('writes the key the reader asks for', async () => {
+        const { resolveShareCodes } = await import('../bilingual/config-normalizer.js');
+        const resolved = resolveShareCodes('{friendCode}{selfCode}-wouldyourather-a-01', {
+            friendCode: 'ab12', selfCode: 'zzz9',
+        });
+        const key = buildUgcSegmentKey({
+            shareCode: 'ab12',
+            inviterCode: resolveInviterCode({ shareCode: 'ab12' }),
+            courseId: 'wouldyourather', lessonId: 'a', index: 1,
+        });
+        expect(`videos/${resolved}.mp4`).toBe(key);
     });
 });
 

@@ -18,7 +18,7 @@ const NOTIFICATIONS = [
     {
         id: 'n1',
         type: 'friend_response',
-        course_id: 'friend',
+        course_id: 'wouldyourather',
         lesson_id: 'b',
         payload: { actorShareCode: 'sam123', actorName: 'Sam' },
         created_at: '2026-09-24T11:00:00.000Z',
@@ -27,7 +27,7 @@ const NOTIFICATIONS = [
     {
         id: 'n2',
         type: 'friend_response',
-        course_id: 'friend',
+        course_id: 'wouldyourather',
         lesson_id: 'b',
         payload: { actorShareCode: 'lee456', actorName: 'Lee' },
         created_at: '2026-09-22T00:00:00.000Z',
@@ -79,49 +79,56 @@ test.describe('home-screen notification bell', () => {
         }, { auth, profile, notifications });
     }
 
-    async function closeGuestModalIfOpen(page) {
-        await page.evaluate(() => {
-            const dialog = document.getElementById('guestLoginModal');
-            if (dialog && dialog.open) dialog.close();
-        });
-    }
-
-    test('shows the unread badge for a registered user', async ({ page }) => {
-        await bootAndSettle(page);
-        await inject(page, { notifications: NOTIFICATIONS });
-
-        await expect(page.getByTestId('notification-bell')).toBeVisible();
-        await expect(page.getByTestId('notification-badge')).toHaveText('1');
-    });
-
-    test('lists the notifications, links to the friend profile, and clears the badge on open', async ({ page }) => {
-        await bootAndSettle(page);
-        await inject(page, { notifications: NOTIFICATIONS });
-
-        await closeGuestModalIfOpen(page);
-        await expect(page.getByTestId('notification-badge')).toHaveText('1');
-        await page.getByTestId('notification-bell').click();
-
-        await expect(page.getByTestId('notification-panel')).toBeVisible();
-        await expect(page.getByTestId('notification-item')).toHaveCount(2);
-        await expect(page.getByTestId('notification-link').first()).toHaveAttribute(
-            'href',
-            'https://ultrafastfluency.com/sam123'
-        );
-        await expect(page.getByTestId('notification-deadline')).toHaveCount(2);
-        await expect(page.getByTestId('notification-timestamp').first()).not.toBeEmpty();
-
-        // Mark-read PATCH + stateful refetch: badge clears, rows remain listed.
-        await expect(page.getByTestId('notification-badge')).toHaveCount(0);
-        await expect(page.getByTestId('notification-item')).toHaveCount(2);
-    });
-
-    test('shows the bell with no badge when the inbox is empty', async ({ page }) => {
+    test('shows the bell for a registered user, with nothing to show', async ({ page }) => {
+        rows = [];
         await bootAndSettle(page);
         await inject(page, { notifications: [] });
 
         await expect(page.getByTestId('notification-bell')).toBeVisible();
         await expect(page.getByTestId('notification-badge')).toHaveCount(0);
+        await expect(page.getByTestId('notification-panel')).toHaveCount(0);
+    });
+
+    test('opens the inbox by itself when a notification arrives, without a reload', async ({ page }) => {
+        rows = [];
+        await bootAndSettle(page);
+        await inject(page, { notifications: [] });
+
+        await expect(page.getByTestId('notification-bell')).toBeVisible();
+        await expect(page.getByTestId('notification-panel')).toHaveCount(0);
+
+        // A friend answers: the server-side row appears.
+        rows = [NOTIFICATIONS[0]];
+
+        // No reload and NO click: the inbox opens by itself and lists the
+        // answer, linking to the friend's profile.
+        await expect(page.getByTestId('notification-panel')).toBeVisible({ timeout: 15000 });
+        await expect(page.getByTestId('notification-item')).toHaveCount(1);
+        await expect(page.getByTestId('notification-link').first()).toHaveAttribute(
+            'href',
+            'https://ultrafastfluency.com/sam123'
+        );
+        await expect(page.getByTestId('notification-deadline')).toHaveCount(1);
+        await expect(page.getByTestId('notification-timestamp').first()).not.toBeEmpty();
+
+        // The inbox is on screen, so the notification counts as viewed: the
+        // badge clears (the mark-read PATCH flips read_at in the stub).
+        await expect(page.getByTestId('notification-badge')).toHaveCount(0);
+    });
+
+    test('lists the notifications of an inbox that was already waiting', async ({ page }) => {
+        // The rows arrived while the app was closed: the learner comes back to
+        // an inbox that opens by itself.
+        rows = NOTIFICATIONS.map((r) => ({ ...r }));
+        await bootAndSettle(page);
+        await inject(page, { notifications: NOTIFICATIONS });
+
+        await expect(page.getByTestId('notification-panel')).toBeVisible({ timeout: 15000 });
+        await expect(page.getByTestId('notification-item')).toHaveCount(2);
+        await expect(page.getByTestId('notification-link').first()).toHaveAttribute(
+            'href',
+            'https://ultrafastfluency.com/sam123'
+        );
     });
 
     test('shows no bell for a logged-out guest', async ({ page }) => {

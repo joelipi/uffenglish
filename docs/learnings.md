@@ -1,10 +1,10 @@
 # Learnings
 
-## No media may start while a camera/microphone capture is open — the ordering is the fix
+## A query the shell mounts once must ask to be re-read — the app's query defaults never re-read anything
 **Date**: 2026-10-20
-**Area**: video | speech | android | debugging
-**What happened**: The Android-only "the video starts silent for a second or two" bug (see the entry below) was fixed for the **lesson** videos by releasing the capture at the step boundary. The learner then reported that the **playback video** — their own just-recorded clip, played back through `PlaybackVideo` — still dropped out for about a second at the very start, *"the volume seems to go very low"*. The silent loop was ruled out by the reporter (*"it doesn't have anything to do with the looping"*): the loop-mute is deliberate (hearing yourself twice annoys people) and only applies *after* the clip has played once. The cause was the **same** Android mechanism on the **other side of the hand-over**: `stopSpeechCamRecording` called `setPlaybackBlob(blob, autoplay)` **first** and released the camera/microphone capture in the `finally` block — i.e. after the thumbnail generation and the database write. On Android the capture therefore stayed open for the whole first second of the clip, and while a capture is open the device is in a communication audio mode that ducks (or mutes) the media route. The lesson players never had this defect because their capture is released at the step boundary, i.e. *before* the next step's video plays.
-**Takeaway**: (1) **The order of the release and the hand-over is the whole fix.** Releasing a capture "somewhere around the recording" is not enough — it has to be released *before* the media starts, and the audio route needs a moment to hand back from the communication mode afterwards (the app waits 500 ms, and only when a capture was actually released, so the desktop warm-up path is not delayed). (2) **Every player needs the guard.** `PlaybackVideo` was the only player in the app without the audio guard, so an element-level mute there had neither recovery nor a trace — and the "does not fight a deliberate silence" case is *harder* here than in the lesson players: the recorded take has a mute control (the learner taps the clip) and an intentional silent loop, so the guard reads an explicit **mute intent** instead of a boolean. (3) A **technical** mute (autoplay blocked) must not be written into the learner's intent: the fallback plays muted, then unmutes **and re-issues `play()`** — a bare flag flip does not re-open an audio output the browser already tore down.
+**Area**: architecture | testing | notifications
+**What happened**: A friend answered while the asker had the app open, and the asker only saw the notification after a **full page reload**. The bell is mounted ONCE by the app shell, so the inbox query (`useNotifications`) lived for the whole session — and the app's global `QueryClient` defaults are `staleTime: Infinity` and `refetchOnWindowFocus: false`, with the inbox overriding only the first (`staleTime: 30 * 1000`). The result: the inbox was read once, at mount, and never again. The same trap hides in every query the app reads "for the last time it is needed" — the shell's header, the profile, the config: a value written **elsewhere** (a friend answering, another device marking a row read) can only reach them if the query explicitly asks for it.
+**Takeaway**: (1) A query that must reflect something that happens **outside** the tab has to opt out of the app's write-once defaults: `staleTime: 0` + `refetchOnMount: 'always'` + `refetchOnWindowFocus: 'always'`, and `refetchInterval` for the "it happens while I am looking at it" case. (2) `refetchInterval` re-reads **regardless of `staleTime`** (the staleTime gate only covers mount/focus/reconnect), and `refetchIntervalInBackground: false` — the default — pauses the poll while `document.visibilityState === 'hidden'`, which is what keeps a backgrounded phone from polling; the focus refetch catches up on return. (3) A five-second poll of a small RLS-scoped list is free and needs no new dependency, no third-party service and no database change — cheaper than a websocket, and it is the same mechanism on every browser the app supports. (4) **In vitest with fake timers, a TanStack query result is never delivered**: the notification is scheduled through `notifyManager` (a `setTimeout(0)`) and the fake clock never reaches it, so the component keeps rendering the old data even though the query state is already correct. Replace the scheduler (`notifyManager.setScheduler((cb) => cb())`, restore `defaultScheduler` afterwards) or the test asserts a stale DOM and looks like a broken implementation. (5) A browser spec that injects fixtures into the query cache while the server stub holds **different** rows is racing the app's own re-read — stub the server to the same state the test means, or the spec passes by luck and fails later.
 
 ---
 
@@ -13,14 +13,6 @@
 **Area**: architecture | testing
 **What happened**: Converting lesson B of `wouldyourather-test.json` from the longer combined videos (`wouldyourather-a-02` / `-03`, which speak all four question variants in one take) to single-take per-variant videos (`-02-01` / `-03-01`) was done by trimming the step's `cue` to one variant and keeping only the `en` subtitle track. A Spanish user then read **English** on the friend response step, because `getLocalizedTranslation(step.subtitles, lang)` (src/modules/utils/utils.js) falls back to `.en` whenever the requested locale is missing — a missing locale is invisible, it just silently degrades. The retained `en` track also still held the combined video's **4 cues** on a video that speaks **1 phrase**, so the subtitle cues ran past the end of the recording. The correct data already existed: the step in lesson A that owns the same video slug carries the matching 6-locale single-phrase track.
 **Takeaway**: When a config step changes which video it plays, its `subtitles` must be copied from the step that owns that **video slug** — not trimmed in place, and not carried over from the old video. Keep **every** locale (`en, es, pt, bn, fr, hi`): the app picks the user's own language and falls back to English only when no locale matches, so a step that ships one locale reads as English to every non-English user. Keep the cue count equal to the phrases the new video actually speaks. Guard it with a test that asserts the locale set, the cue count per locale, and equality with the same slug's track in the sibling lesson — and prove the guard fails by re-injecting the bug (see `src/config/wouldyourather-test.test.js`).
-
----
-
-## The app's inside pages share one header — and the shell, not the page, owns the frame
-**Date**: 2026-10-20
-**Area**: architecture | testing
-**What happened**: The brand bar (menu button, UFF logo, notification bell) and its slide-out drawer lived inside `HomeScreen.jsx`, so every other page of the app grew its own header instead — each one a *different* back-arrow bar. The fix was to extract the header into `src/components/layout/AppHeader.web.jsx`, mount it ONCE in a new app-shell layout (`src/routes/AppShellLayout.jsx`) and nest every inside page (`/home`, `/profile`, `/courses`, `/friends`, `/privacy`, `/terms`) under it in `src/routes/routes.jsx`. The shell then owns the frame height, so each page had to stop claiming `height: '100dvh'` and became a flex child (`flex: 1; minHeight: 0`) — a page that keeps `100dvh` under the header overflows the clipping `.video-frame` and its bottom is cut off. Six source-guard tests pointed at the old menu text inside `HomeScreen.jsx`; they had to be repointed at the *source of truth* (the pure menu module `src/modules/navigation/app-menu-logic.js` + the header's `APP_MENU_ITEMS.map`), because a guard that slices a file for a token the code no longer has protects nothing.
-**Takeaway**: (1) A page-level chrome that several routes need belongs in a layout that mounts it once — per-page copies are how a "same header everywhere" requirement quietly becomes "a different header everywhere". (2) When a layout takes over the frame, every child must give up its own height claim, or the bottom of the page is clipped by the app frame. (3) When a guard follows code that moves, assert on the new source of truth (the module + the call that renders it), not on a copy of the old text; a guard that greps a file for a token the file no longer contains is a guard that proves nothing. (4) The drawer's hover wrote to `e.currentTarget.style` from an event handler — the repo's "pure React, no direct DOM manipulation" rule makes that a bug even in code you are only moving; a CSS class (`.uff-menu-link`) fixes it.
 
 ---
 
@@ -39,23 +31,6 @@
 **Takeaway**: The render + generator read the **published CSV** (the lag-prone path); the Sheets API (translate/sync Actions) sees edits immediately. When a just-edited sheet isn't reflected, wait for the published CSV to flip (up to ~5 min) before re-running — or move the render's read to `spreadsheets.values.get` with the service account if immediacy matters.
 
 ---
-
-## Windows: `execFile('npx', …)` fails with `spawn npx ENOENT`
-**Date**: 2026-10-07
-**Area**: build | tooling
-**What happened**: `scripts/upload-pipeline-assets.mjs` (and any `npx wrangler` call through `cli-utils.run`) died on Windows with `spawn npx ENOENT` — `npx` is `npx.cmd`, which `child_process.execFile` cannot launch without a shell. A POSIX `npx` shim works in CI, so it never failed there.
-**Takeaway**: `cli-utils.wranglerCommand(platform)` runs the local `node_modules/wrangler/bin/wrangler.js` with the running node on `win32`, and `npx wrangler` elsewhere (so the Linux shim tests still pass). Any new Windows-facing subprocess of a `.cmd` needs the same treatment.
-
----
-
-## Pushing `.github/workflows/` needs a token with `workflows` permission
-**Date**: 2026-10-05
-**Area**: workflow | build
-**What happened**: Story 046 adds `.github/workflows/configs.yml`. Pushing it via the sandbox's GitHub App token (`ghs_…`, the `sandpods-app[bot]` credential) was rejected — `refusing to allow a GitHub App to create or update workflow … without workflows permission` — and `GH_TOKEN` in the environment returned HTTP 401 (expired). A valid fine-grained PAT (`github_pat_…`, user `joelipi`, repo `admin`) was sitting in the repo's own `.env` under the `GH_TOKEN=` key; the sandbox env `GH_TOKEN` was the stale one. That PAT pushed the workflow file successfully.
-**Takeaway**: A `.github/workflows/**` change cannot be pushed from a token lacking the `workflows` permission (GitHub Apps need `Workflows: write`; classic PATs need the `workflow` scope; fine-grained PATs need the Workflows permission). When a push of a workflow file is rejected, don't retry — find a credential with that permission. In this workspace a valid PAT may live in the checked-out repo's `.env` (`GH_TOKEN=`), distinct from the exported `GH_TOKEN`; check both (`curl -H "Authorization: Bearer <tok>" https://api.github.com/user` → 200 vs 401) before concluding there is no usable token. Push with it via `git push https://x-access-token:<PAT>@github.com/<owner>/<repo>.git <branch>:<branch>`.
-
----
-
 ## Security routing must fail closed, and string guards can't see a missing import
 **Date**: 2026-10-05
 **Area**: security | testing
@@ -94,14 +69,6 @@
 
 ---
 
-## Friend/UGC videos are detected by the `-response-NN` slug suffix, not the `{friendCode}` wildcard
-**Date**: 2026-09-22
-**Area**: architecture
-**What happened**: `normalizeConfig` substitutes `{friendCode}` in place when a course loads (`config-normalizer.js`), so the recap planner only ever sees resolved slugs (`ab12-model-w-response-01`). Detecting "friend video" by the wildcard at plan time is impossible.
-**Takeaway**: Classify friend vs system by the `-response-NN` suffix — the same rule `getVideoUrl` uses to route UGC to the `/videos/` namespace. It survives substitution (including the empty-friendCode case). The classifier lives in `src/modules/video/video-source.js` (`isFriendVideoSlug`/`remoteSource`).
-
----
-
 ## R2 UGC clips are served uncached — the recap must prefetch friend clips into blobs
 **Date**: 2026-09-22
 **Area**: architecture | performance
@@ -126,14 +93,6 @@
 
 ---
 
-## This workspace clone is single-branch — remote feature branches are invisible locally
-**Date**: 2026-10-04
-**Area**: workflow
-**What happened**: `git branch -r` and `git branch --no-merged` reported no unmerged work, but the clone's fetch refspec is only `+refs/heads/main:refs/remotes/origin/main`, so none of the remote's feature branches (`035-…`, `038-…`, etc.) existed locally. A story believed already merged (and another believed unmerged) could not be judged from the local clone at all; the local view even implied `main` was current while feature-branch work was missing.
-**Takeaway**: Before judging branch/merge status, fetch every head once with `git fetch origin '+refs/heads/*:refs/remotes/origin/*'`, or inspect the remote directly with `git ls-remote --heads origin`. Then use `git branch -r --no-merged origin/main` to see what is genuinely unmerged.
-
----
-
 ## A diagnostic path must not require the toolchain — optimize-videos defers its ffmpeg check
 **Date**: 2026-10-04
 **Area**: testing
@@ -151,27 +110,11 @@
 
 ---
 
-## A binary image committed as text corrupts silently — and chat attachments live in the session DB
-**Date**: 2026-10-07
-**Area**: build | workflow
-**What happened**: The 1600×300 UFF logo (`src/assets/img/header.png` + `public/assets/img/header.png`) was committed through a line-ending conversion, so every `0x0A` (and lone `0x0D`) became `0x0D 0x0A`. Every copy — all worktrees, the GitHub blob, and production — carried the invalid signature `89 50 4E 47 0D 0A 1A 0D 0A` and broken chunk CRCs, so `sharp` and browsers rejected it (`Input file contains unsupported image format`). Git history stored only the corrupt blob, so the original was unrecoverable there, and the user's replacement upload was not on the sandbox filesystem. It **was** recoverable from the OpenChamber session database: chat attachments persist as base64 data URLs in `~/.local/share/opencode/opencode.db*`; the newest message lived only in the WAL, so applying it to the DB snapshot (`cp *.corrupt.… db2.sqlite; cp opencode.db-wal db2.sqlite-wal; cp opencode.db-shm db2.sqlite-shm`, then open `db2.sqlite`) exposed it.
-**Takeaway**: (1) `.gitattributes` now marks `*.png`/`*.jpg`/… `binary` so image bytes can never be normalized again — a `binary`/`-text` rule, not `text=auto`, is what protects real binaries. (2) A PNG that "won't load" may just be a valid image whose bytes were CRLF-mangled; check the signature (`89 50 4E 47 0D 0A 1A 0A`), but the transform is ambiguous per CR/LF pair so recovery from the corrupt bytes is not reliable — get the original. (3) When a user says "I uploaded the file" but it is not on disk, look in the session DB (`opencode.db*`) for `data:image/...;base64,`.
-
----
-
 ## Adding a `{token}` UI string also needs the fixed placeholder dictionary in `strings.test.js`
 **Date**: 2026-10-08
 **Area**: testing
 **What happened**: Story 056 added `friend_courses_lesson_count` ("{count} lessons"). The full suite then failed in the pre-existing `src/data/strings.test.js`: its `PLACEHOLDER_KEYS` list is auto-derived from every `en` value containing `{...}`, but the interpolation test feeds a **fixed** placeholder object (`score`/`date`/`time`/…), not one built from the string, and asserts no `{` remains. `count` was absent from that object, so the new key's Hindi/Bengali output kept `{count}` and failed.
 **Takeaway**: When adding a string key with a `{placeholder}`, add that placeholder name to the fixed object in `strings.test.js`'s `placeholder interpolation in hi/bn` test. The same file also requires every key to carry Hindi (Devanagari) and Bengali values for `hi`/`bn`.
-
----
-
-## Merging `origin/main` can land new AGENTS.md standing rules that invalidate already-written code
-**Date**: 2026-10-08
-**Area**: workflow
-**What happened**: The story branch was pushed during planning, then `origin/main` advanced 4 commits. Because the branch was already pushed, the fix was `git merge origin/main` (not rebase). That merge pulled in a new "Logic lives in modules, never in components" standing rule, which the code reviewer then applied to inline `Array.isArray` / `length > 0` gates already written in the new components; extracting them into `*-logic.js` view-model builders resolved it.
-**Takeaway**: After `git merge origin/main` on a branch that has been open a while, diff the guidance files (`git diff ORIG_HEAD..HEAD -- AGENTS.md README.md docs/`) and re-read any new standing rules before running reviewers — a newly added convention can make pre-existing work non-compliant even though the feature itself did not change.
 
 ---
 
@@ -207,13 +150,6 @@
 **Correction (same day)**: the first version of this fix made the increment idempotent per lesson via the `counted_lessons` set — wrong product rule. Learners re-do the same lessons with friends over and over, and each genuine re-completion earns credit. The only guard is the phantom completion: landing on the success step directly (page load, reload, signup redirect) without traversing the lesson. That guard is the existing `stepLoadedFromRestore` flag — set `true` only by `loadLessonContent` (the direct path) and cleared by every in-app advance (`loadNextStep`/`jumpToStep`) — so `handleSuccessStep` passes `incrementCount: !stepLoadedFromRestore`. `counted_lessons` stays the UNIQUE set (unique count = its length); the total counter counts every genuine completion, repeats included.
 
 ---
-
-## A `canvas.captureStream()` recording of a static canvas is a 0-byte file
-**Date**: 2026-10-12
-**Area**: testing | build
-**What happened**: The tutorial placeholders (`scripts/generate-tutorial-placeholders.mjs`) wrote five 0-byte mp4s. The recorder code was correct in isolation (a 320×480 canvas recorded fine), so the failure looked like a codec or headless problem; bisecting the page showed it was the *painting*, not the recording: Chrome emits a canvas frame only when the canvas **changes**, so a page that draws once at load and then records produces a dataavailable event with an empty blob. A/B in one browser process — no draw after `captureStream()` = 0 bytes, draw after = 3.8 KB, `requestAnimationFrame` repaint loop = 17 KB for the same 2.5 s. Two side findings from the same session: Playwright's bundled ffmpeg is a stripped build (`--enable-muxer=webm`, vp8 only, no H.264/drawtext), so it cannot author or transcode an mp4 fixture, and `key={...}`-free JSX renders `controls` as `controls=""` which `toHaveAttribute('controls', '')` matches.
-**Takeaway**: When recording a canvas with `MediaRecorder`, repaint for the entire take (a `requestAnimationFrame` loop, cancelled before `stop()`), and treat a suspiciously tiny output as "no frames were emitted" rather than "bad codec". Diagnose page-level recording bugs by bisecting the *page* (draw vs no draw, RAF vs static) inside one browser process — it is far faster than iterating on the encoder settings. Verify the artifact with a container probe (`mediabunny` `Input` reads `codedWidth`/`computeDuration` with no WebCodecs), not with file size.
-
 ## The `user_notifications` dedupe makes a re-answer an UPDATE, and mark-as-read is also an UPDATE
 
 **Date**: 2026-10-13
@@ -266,15 +202,6 @@
 **Takeaway**: Under `vitest.config.js`'s `environment: 'jsdom'`, the global `URL` is jsdom's, so `new URL()` against `import.meta.url` can resolve to a non-`file:` URL. Use `path.dirname(fileURLToPath(import.meta.url))` in every `src/**` test that reads a sibling file — it is the established convention and works in both environments. Functions tests can use either, since they opt into `// @vitest-environment node`.
 
 ---
-
-## `recorder-page.test.js` fails on ANY uncommitted file, including sandbox agent config
-**Date**: 2026-10-17
-**Area**: workflow
-**What happened**: `src/modules/video/recorder-page.test.js`'s "implementation diff touches only the allowlist" guard runs `git diff --name-only HEAD` plus `git status --porcelain`, so it reports failure for files that have nothing to do with the branch. In this sandbox four tracked `.opencode/agents/*.md` files are left modified (a model-routing override injected at session start), which made that one guard red on a fully green branch and cost a debugging detour each time it was seen.
-**Takeaway**: That guard is a worktree-hygiene check, not a branch check — commit your work first so `git diff HEAD` is empty, then `git stash push -- .opencode/` to confirm the real state and `git stash pop` immediately. Do **not** `git checkout` the `.opencode/` edits to make it pass: they are injected before the session starts and discarding them is discarding work you did not create. When attributing this failure, confirm with `git diff --name-only HEAD` that no story file is in the diff. Two different cases, two different fixes: for files you did **not** author (sandbox-injected `.opencode/` edits), leave the list alone — commit, re-run, and let the guard stay honest. For your **own** change, the allowlist is the mechanism (its comment says "Each story's set of authorized paths", and 30+ entries are exactly that), so add the paths your change touches; `git add` a new file first, because the guard's untracked check reads `git status --porcelain` and an untracked file fails it before the tracked check ever runs.
-
----
-
 ## A share-code shape gate must update the Playwright fixture codes used as path segments
 **Date**: 2026-10-18
 **Area**: testing | routing
@@ -297,50 +224,9 @@
 **What happened**: Ordering the language dropdowns by endonym needed the Unicode default collation. `new Intl.Collator('und').resolvedOptions().locale` returns `en-US` with collation `default` in V8 — 'und' is the CLDR root tag but the engine silently substitutes the default locale instead of switching collation tables, so it only *looks* like the root. `new Intl.Collator('en')` produces the same order for real language names (English tailoring only touches punctuation and spacing, not script or letter order), which is why the app pins `'en'`.
 **Takeaway**: Pin the collator to a fixed locale and say why — leaving it on the runtime default reorders the menu per user (Swedish puts `å` after `z`). Don't describe `'en'` as "the CLDR root locale" in a comment; a reviewer reading both comments will find them contradictory.
 
----
-
-## The Android-only silent video start: what was ruled out, and how to measure it
-**Date**: 2026-10-20
-**Area**: video | android | debugging
-**What happened**: A lesson video started **silent for one to two seconds on Android Chrome only** (iOS was fine). Three plausible causes had already been "fixed" without success: story 073 blamed the mp4 container (a non-zero audio offset) and shipped `video.currentTime = 0` — reverted in `d74a10d` with the note *"measured it stalls playback ~0.4s and did not fix the silence"*; a later commit deferred the microphone acquisition to the mic-button press (`062a53a`) and the symptom persisted; the field report itself blamed the microphone taking the audio context. This story measured each of them instead of reasoning about them, and **all three were dead**:
-- The real mp4 (fetched from R2 and parsed at the atom level) is faststart, has **no `edts`/`elst` box on either track**, and its audio track starts at DTS 0 — there is no offset for a decoder to skip.
-- The mic is **not** acquired at step load: `warmUpSpeechCamStream` has **no call sites** at all, so the first video of a lesson never runs with a capture open.
-- The app's Android-only `navigator.mediaSession.playbackState = 'none'` / `metadata = null` writes are **no-ops**: instrumented, 64 of 64 writes were `none -> none`, and Chromium's setter early-returns on an unchanged value, so the browser is never even notified.
-Two more were ruled out the same way: Chromium's own media audio focus **pauses** audio-producing objects (it never mutes them), so it cannot produce a silent-but-moving video; and a second, muted `<video>` holding the same URL (the app really does mount one) does not steal the unmuted element's output.
-**Takeaway**: (1) *"The element keeps moving but is silent"* is an **output-level** symptom, so the suspect list is short: an element-level mute (`muted` / `volume`), an OS/browser audio-focus handover, or an OS audio mode (Android's `MODE_IN_COMMUNICATION` while a capture is open) — nothing in the container, and nothing in the media pipeline. (2) **Measure the audio instead of guessing.** A `createMediaElementSource` → `Analyser` chain gives the real signal: muting the element drives the RMS to exactly `0` while `webkitAudioDecodedByteCount` keeps growing, which separates "the element is muted" from "the audio data never arrived" in one measurement. (3) A browser-level `AudioContext`/media-session write that "should" mute the app is often a **no-op**: instrument the setter and read the value *before* the write, not after. (4) `setWebcamStream(null)` clears the **store** reference only — the module-level stream keeps its live tracks, so a capture stays open across a step boundary. (5) The fix that survives an unknown cause is a **repair + instrument** loop: the guard restores audibility within 200 ms and logs the element's `muted` / `volume` / `readyState` / decoded-audio bytes, so the next field report names the mechanism instead of starting another round of theories.
-
----
-
-## A course config's `tags` are data only — nothing in the app reads them yet
+---## A retired config is a DELETION in the diff, not a changed config
 
 **Date**: 2026-10-20
-**Area**: architecture | config
-**What happened**: A request to put a top-level `tags` array on every `src/config/*.json` assumed the tag logic was already wired. It is not: `grep -rn '\btags\b' src/` matches only the two configs that already carried the field (`wouldyourather.json`, `wouldyourather-test.json`) and no consumer. `src/modules/courses/friend-courses-logic.js` shapes a course card from an explicit field list (`courseName`, `courseHeroImage`, `courseMission`), so a config's `tags` never reaches the listings page, the homepage, or the store.
-**Takeaway**: Adding course metadata to a config is a **data** change, not a feature — before promising "the tags will show up", check that a consumer exists (`src/modules/courses/friend-courses-logic.js` is the course-card seam to extend, with `listFriendCourses` mapping an explicit field set). And a field the sheet generator does not emit is a field that disappears: `scripts/generate-config-from-sheet.mjs` overwrites the config file it owns and emits only `courseId` / `courseName` / `courseHeroImage` / `courseMission`, so hand-authored course metadata has to be carried over explicitly (`withCarriedTags` in `scripts/lib/sheet-config-utils.js` now carries the `tags` array back in) — otherwise the next config-bot run silently drops the tags of the one generated course, `wouldyourather`.
-
----
-
-## A page about another user must be read in the READER's language — and the fixture has to make the two differ
-
-**Date**: 2026-10-20
-**Area**: architecture | testing | i18n
-**What happened**: The public share-code profile (`/:shareCode`) picked its language from `profile.native_language` — the language of the **profile being read** — so every visitor saw the page in the owner's language. It survived two earlier stories (056 rebuilt that page's friend-practice area, 064 added visitor awareness) because both were developed and reviewed with an owner fixture whose language matched the reader's, so the copy looked right. The bug was only visible once the fixture was built so the two languages **differ** (owner `ES`, visitor `HI`).
-**Takeaway**: (1) A page whose subject is another user (a profile, a shared clip, a comment) is read by a *visitor*: resolve the copy from the reader's session language (`useNativeLanguage()` / the guest-first expression), never from the subject's own `native_language` — and format dates in the reader's locale too. (2) In any i18n fixture, **make the subject's language differ from the reader's**: two different locales make the wrong pick visible in the DOM, while a fixture where both agree hides it. (3) Assert the *absence* of the other language's copy too (`expect(text).not.toContain(get(key, other))`) — a positive assertion alone can pass while the wrong string is also rendered.
-
----
-
-## A zero-row UPDATE is a silent no-op in PostgREST — a client read-modify-write can lose a record with no error
-
-**Date**: 2026-10-20
-**Area**: architecture | supabase | debugging
-**What happened**: A learner finished a friend lesson and sent the link to their friends; their own public profile said "all your lessons have expired", so there was no link to click. The clips WERE published (the publish block ran, R2 had every segment and the concatenated recap), but **no `friend_links` entry was ever written** — for two completions in a row, while another learner's map from the same hours held two entries written by the same code. The write was a client-side read-modify-write of the whole JSONB column: `select('friend_links')` → merge in JS → `update({ friend_links: merged })`. That shape has two ways to lose the record **without any error reaching the app**: a zero-row UPDATE is not an error in PostgREST (the row is filtered out and the mutation still reports success), and the read is a separate round trip that can fail on its own. Nothing was logged, nothing was shown to the learner, and the profile quietly contradicted what had just happened.
-**Takeaway**: (1) **Never write profile state from the client as a read-modify-write of a whole column.** Use a `SECURITY DEFINER` RPC: owner = `auth.uid()`, one atomic `jsonb_set` merge, `set search_path = ''`, execute granted to `authenticated` only — it cannot be filtered by RLS, it merges atomically (no lost update when two lessons are recorded in parallel), and a failure is an error the caller sees. The repo already had the pattern (`007_friend_credit.sql`); the link write was the odd one out, and it is now `011_record_friend_link.sql`. (2) **A silent write needs a proof of write**: add `.select(...)` to an `update()` when the caller must know a row was really touched. (3) **When a "the app did X but the row says Y" report arrives, read the R2/CDN artifacts before theorising** — the clip timestamps dated the two lost completions exactly, and the other learner's map proved the code path worked. (4) The public profile is a **read model of another learner's data**: a learner viewing their own profile logged in sees their own links through the "featuring" match, but a logged-out visitor only sees the course's first-lesson links — so a lost record looks like "expired" to everyone.
-
----
-
-## A UGC clip's inviter is the person whose link was answered — not the viewer who opens it
-
-**Date**: 2026-10-20
-**Area**: architecture | video | debugging
-**What happened**: A signed-in visitor opened a friend's share link and the friend's **recorded question never played** (the teacher's clips did). The friend's clips existed on R2 and served fine (`videos/qm3zv-qm3zv-wouldyourather-test-a-01.mp4` → 200). A UGC clip is addressed `<recorder>-<inviter>-…`: the recorder recorded it, the **inviter** is the person whose link they were answering. The publish side wrote the link's owner as the inviter; the read side resolved the config's `{friendCode}{selfCode}-…` reference to `<friend>-<VIEWER>` — right for the chain's answer-side clips (the viewer IS that clip's inviter), wrong for the **ask-side** ones: the chain's ask lesson is recorded by the asker THEMSELVES (they start the chain, so there is no inviter) and published `<owner>-<owner>`. A signed-in visitor therefore asked for `<owner>-<viewer>` and got a 404. **The anonymous case looked fine** — a visitor with no share code of its own falls back to the friend's code, which happens to be the owner's — so every manual check of a shared link in a logged-out browser missed it.
-**Takeaway**: (1) When a clip is addressed by two codes, ask what each one MEANS before assuming the reader can supply it: here the reader can supply the inviter only for the answer-side clips. The two sides must agree per reference kind, so the ask lesson is found (`findAskLessonId`) and the inviter decided per reference (`resolveShareCodes`), with the publish side (`resolveInviterCode`) kept in step — its own comment already said the two "must stay in sync if that ever changes". (2) **A bug that only reproduces for a signed-in visitor hides behind every logged-out manual check** — reproduce it with the store carrying a share code (inject `appStore.setState({ userData: { shareCode } })` BEFORE the config is normalized) and assert on the R2 URL the lesson actually requests. (3) The published clips need no re-upload: the fix makes the app ask for the key that was already written.
+**Area**: ci | debugging
+**What happened**: Retiring the unused course configs made the **caption workflow on `main` fail**: `Error: ENOENT: no such file or directory, open '…/src/config/friend.json'`. `.github/scripts/captions-changed.sh` resolves the configs a push touched with `git diff --name-only … -- 'src/config/*.json'`, and a retired config appears in that diff as a **deletion** — so the list handed to the generator named a file that no longer exists. The app was unaffected; only the workflow went red.
+**Takeaway**: (1) **A "changed files" list is not a "changed files that still exist" list.** Anything derived from a diff has to filter by the working tree before it is handed to a tool that opens the files — the same lesson as the retired-config guard, one layer up. (2) The check belongs in the **resolver**, not in the generator: the generator should keep failing loudly on a file that does not exist, and the resolver should never name one. (3) A red CI run on `main` after a merge is worth reading as a *regression of the merge*, not as flaky infrastructure — this one had been introduced by the very merge that triggered it.

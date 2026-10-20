@@ -9,6 +9,7 @@ import {
     getNotificationActorShareCode,
     formatNotificationDate,
     resolveFriendResponseNotification,
+    shouldAutoOpenNotificationPanel,
 } from './notification-logic.js';
 
 const ISO = '2026-09-24T11:00:00.000Z';
@@ -239,5 +240,77 @@ describe('resolveFriendResponseNotification', () => {
 
     it('exposes the friend_response type constant', () => {
         expect(NOTIFICATION_TYPE_FRIEND_RESPONSE).toBe('friend_response');
+    });
+});
+
+describe('shouldAutoOpenNotificationPanel', () => {
+    it('opens when unviewed notifications appeared', () => {
+        expect(shouldAutoOpenNotificationPanel({
+            previousUnreadCount: 0,
+            unreadCount: 1,
+        })).toBe(true);
+        expect(shouldAutoOpenNotificationPanel({
+            previousUnreadCount: 2,
+            unreadCount: 3,
+        })).toBe(true);
+    });
+
+    it('opens on the first load when the inbox already holds unviewed notifications', () => {
+        // The learner came back to an inbox that was waiting for them: the
+        // count grew from nothing to the rows that arrived while they were away.
+        expect(shouldAutoOpenNotificationPanel({
+            previousUnreadCount: 0,
+            unreadCount: 4,
+        })).toBe(true);
+    });
+
+    it('never opens in a lesson (the compact bell keeps the icon only)', () => {
+        expect(shouldAutoOpenNotificationPanel({
+            previousUnreadCount: 0,
+            unreadCount: 3,
+            compact: true,
+        })).toBe(false);
+    });
+
+    it('never opens when there is nothing unviewed', () => {
+        expect(shouldAutoOpenNotificationPanel({
+            previousUnreadCount: 0,
+            unreadCount: 0,
+        })).toBe(false);
+        expect(shouldAutoOpenNotificationPanel({
+            previousUnreadCount: 2,
+            unreadCount: 0,
+        })).toBe(false);
+        // A nonsense previous count must not open an empty inbox either.
+        expect(shouldAutoOpenNotificationPanel({
+            previousUnreadCount: -1,
+            unreadCount: 0,
+        })).toBe(false);
+    });
+
+    it('never opens when the panel is already showing the inbox', () => {
+        expect(shouldAutoOpenNotificationPanel({
+            previousUnreadCount: 0,
+            unreadCount: 3,
+            isOpen: true,
+        })).toBe(false);
+    });
+
+    it('does not open when no new notification arrived', () => {
+        // The count did not change: nothing arrived, so the learner's own
+        // close must be respected.
+        expect(shouldAutoOpenNotificationPanel({
+            previousUnreadCount: 2,
+            unreadCount: 2,
+        })).toBe(false);
+        // The count fell (the learner viewed them): nothing new.
+        expect(shouldAutoOpenNotificationPanel({
+            previousUnreadCount: 3,
+            unreadCount: 1,
+        })).toBe(false);
+    });
+
+    it('defaults to closed without arguments', () => {
+        expect(shouldAutoOpenNotificationPanel()).toBe(false);
     });
 });

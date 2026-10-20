@@ -32,22 +32,28 @@ const OWNER_PROFILE = {
     lessons_completed: 3,
 };
 
+// The one friend course we keep (the dev twin of the generated config).
+const COURSE_ID = 'wouldyourather-test';
+const COURSE_NAME = 'Get $1 million or $5 million?';
+
 const entry = (recordedLessonId, lessonId, lessonTitle, addedAt) => ({
-    courseId: 'friendchain', courseName: 'Friend Chain',
+    courseId: COURSE_ID, courseName: COURSE_NAME,
     recordedLessonId, lessonId, lessonTitle, shareCode: OWNER, addedAt,
 });
 
 const LINKS = {
-    'friendchain:a': entry('a', 'b', 'Ask', '2026-09-24T11:00:00.000Z'),
-    'friendchain:c': entry('c', 'd', 'Follow Up', '2026-09-24T10:00:00.000Z'),
+    [`${COURSE_ID}:a`]: entry('a', 'b', 'Ask', '2026-09-24T11:00:00.000Z'),
+    [`${COURSE_ID}:c`]: entry('c', 'd', 'Follow Up', '2026-09-24T10:00:00.000Z'),
 };
 
 async function seedOwner(page, friendLinks, overrides = {}) {
     await page.goto(`/${OWNER}`);
     // Wait for the profile query to SETTLE before injecting the fixture: the
     // in-flight fetch resolves with "no such profile" and would overwrite the
-    // injected row, leaving the page on "User not found" with no links.
-    await page.waitForLoadState('networkidle');
+    // injected row, leaving the page on "User not found" with no links. The
+    // not-found text IS that settled state, so it is the signal to wait for -
+    // not `networkidle`, which the app's polling (the inbox refresh) never
+    // reaches.
     await expect(page.getByText('User not found')).toBeVisible();
     await page.evaluate(async ({ key, profile }) => {
         const { queryClient } = await import('/src/modules/api/api.js');
@@ -90,7 +96,7 @@ async function seedViewer(page, { countedLessons = [], inbox = [] } = {}) {
 const inboxRow = (lessonId) => ({
     id: `n-${lessonId}`,
     type: 'friend_response',
-    course_id: 'friendchain',
+    course_id: COURSE_ID,
     lesson_id: lessonId,
     payload: { actorShareCode: OWNER },
     created_at: '2026-09-24T11:30:00.000Z',
@@ -105,12 +111,16 @@ test.describe('public-profile visitor awareness', () => {
         );
     });
 
-    test('logged-out visitor sees only the chain-head link plus the banner', async ({ page }) => {
+    test('logged-out visitor sees every recorded link plus the banner', async ({ page }) => {
         await seedOwner(page, LINKS);
 
+        // The profile holds one link per recorded lesson (the ping-pong
+        // chain), so a visitor sees where the chain stands, not just its
+        // first lesson.
         const links = page.getByTestId('friend-lesson-link');
-        await expect(links).toHaveCount(1);
+        await expect(links).toHaveCount(2);
         await expect(links.nth(0)).toHaveText('Ask');
+        await expect(links.nth(1)).toHaveText('Follow Up');
 
         await expect(page.getByTestId('visitor-login-banner')).toBeVisible();
         await expect(page.getByTestId('visitor-login-link')).toHaveText(
@@ -130,7 +140,7 @@ test.describe('public-profile visitor awareness', () => {
     test('logged-in visitor sees featuring lessons first, badged when done together', async ({ page }) => {
         await seedOwner(page, LINKS);
         await seedViewer(page, {
-            countedLessons: ['friendchain_c'],
+            countedLessons: [`${COURSE_ID}_c`],
             inbox: [inboxRow('c')],
         });
 
@@ -147,13 +157,14 @@ test.describe('public-profile visitor awareness', () => {
         await expect(page.getByTestId('visitor-login-banner')).toHaveCount(0);
     });
 
-    test('logged-in visitor with no overlap sees the chain-head list and no banner', async ({ page }) => {
+    test('logged-in visitor with no overlap sees the recorded links and no banner', async ({ page }) => {
         await seedOwner(page, LINKS);
         await seedViewer(page, { countedLessons: [], inbox: [] });
 
         const links = page.getByTestId('friend-lesson-link');
-        await expect(links).toHaveCount(1);
+        await expect(links).toHaveCount(2);
         await expect(links.nth(0)).toHaveText('Ask');
+        await expect(links.nth(1)).toHaveText('Follow Up');
         await expect(page.getByTestId('visitor-login-banner')).toHaveCount(0);
         await expect(page.getByTestId('friend-lesson-link-completed')).toHaveCount(0);
     });

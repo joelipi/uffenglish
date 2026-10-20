@@ -28,8 +28,8 @@ export const DEFAULT_CDN_BASE = 'https://r2.ultrafastfluency.com/assets/videos/'
  * one slug. Falsy slugs and runtime-resolved `{friendCode}` templates are
  * skipped (same rule as poster-utils.introTargets / caption-utils).
  *
- * `questions`-shaped step lists are deliberately ignored: they are vestigial in
- * gt2.json and are not normalized to `steps` by the app.
+ * `questions`-shaped step lists are deliberately ignored: the app normalizes
+ * nothing to `steps`, so a lesson without `steps` has no video target.
  *
  * @param {Array<object>} configs parsed course configs
  * @returns {Array<{slug: string}>}

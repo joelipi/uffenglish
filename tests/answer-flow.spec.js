@@ -1,5 +1,6 @@
 // @ts-check
 import { test, expect } from '@playwright/test';
+import { confirmGuestLanguage } from './helpers/lesson-e2e.js';
 
 test.describe('Answer Flow — mic bypass integration test', () => {
     let errors = [];
@@ -25,7 +26,8 @@ test.describe('Answer Flow — mic bypass integration test', () => {
             if (msg.type() === 'error') errors.push(msg.text());
         });
 
-        await page.goto('/course/gt2/lesson/g-a');
+        await page.goto('/course/model/lesson/m-g');
+        await confirmGuestLanguage(page);
 
         // Wait for lesson to fully initialize
         await page.waitForFunction(() => {

@@ -21,7 +21,17 @@ else
 fi
 
 HEAD="${GITHUB_SHA:-HEAD}"
-FILES="$(git diff --name-only "$BASE" "$HEAD" -- 'src/config/*.json' || true)"
+# Only the configs that still EXIST. A retired course's config shows up in the
+# diff as a DELETION, and the caption generator would fail on the missing file
+# (`ENOENT: … src/config/friend.json`), so a course retirement must not break
+# the caption run.
+FILES=""
+while IFS= read -r file; do
+  if [[ -n "$file" && -f "$file" ]]; then
+    FILES="$FILES $file"
+  fi
+done < <(git diff --name-only "$BASE" "$HEAD" -- 'src/config/*.json' || true)
+FILES="${FILES# }"
 
 # Multi-line values need the heredoc delimiter form of $GITHUB_OUTPUT, or
 # GitHub would truncate `files` to its first line.

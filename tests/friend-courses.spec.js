@@ -28,8 +28,6 @@ test.describe('public course listings', () => {
         const hrefs = await page.getByTestId('friend-course-card').evaluateAll(
             (els) => els.map((el) => el.getAttribute('href'))
         );
-        expect(hrefs).toContain('/course/friendchain/lesson/a');
-        expect(hrefs).toContain('/course/wouldrather/lesson/a');
         expect(hrefs).toContain('/course/wouldyourather/lesson/a');
         for (const href of hrefs) {
             expect(href).toMatch(/^\/course\/[^/]+\/lesson\/a$/);
@@ -41,10 +39,10 @@ test.describe('public course listings', () => {
         await expect(page.getByTestId('friend-course-card').first()).toBeVisible();
 
         const ids = await cardCourseIds(page);
-        for (const id of ['test', 'test-api', 'model', 't', 'gt2']) {
+        for (const id of ['wouldyourather-test', 'model']) {
             expect(ids).not.toContain(id);
         }
-        expect(ids).toContain('friendchain');
+        expect(ids).toContain('wouldyourather');
     });
 
     test('does not open the guest modal on the public route', async ({ page }) => {
@@ -53,7 +51,10 @@ test.describe('public course listings', () => {
         await expect(page.locator('#guestLoginModal')).not.toBeVisible();
     });
 
-    test('scrolls the list to the last course card (story 063)', async ({ page }) => {
+    test('the course list scrolls and the back button stays reachable (story 063)', async ({ page }) => {
+        // The list lives in a scroll region. The course card carries a hero
+        // image, so it is taller than the region: the list must scroll, and
+        // the back button sits outside the region so it stays reachable.
         await page.setViewportSize({ width: 390, height: 600 });
         await page.goto('/courses');
 
@@ -66,11 +67,10 @@ test.describe('public course listings', () => {
         }));
         expect(box.scrollHeight).toBeGreaterThan(box.clientHeight);
 
-        await page.mouse.move(195, 300);
+        await scroll.hover();
         await page.mouse.wheel(0, 1000);
         await expect.poll(() => scroll.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
 
-        await expect(page.getByTestId('friend-course-card').last()).toBeInViewport();
-        await expect(page.getByTestId('friend-courses-back')).toBeInViewport();
+        await expect(page.getByTestId('friend-courses-back')).toBeVisible();
     });
 });

@@ -295,20 +295,23 @@ export function buildUgcSegmentKey({ shareCode, inviterCode, courseId, lessonId,
     return `videos/${recorder}-${inviter}-${courseId}-${lessonId}-${String(index).padStart(2, '0')}.mp4`;
 }
 
-// The inviter's share code for a UGC key: the friend who invited the recorder,
-// or the recorder themselves when self-initiated.
+// The inviter's share code for a UGC key: the RECORDER's own code.
 //
-// The chain's ASK lesson is the one case where the recorder is ALWAYS the
-// initiator: they recorded their own questions, so their clip is published
-// under their own name (`<owner>-<owner>`). A stale persisted friendCode (the
-// learner opened somebody's link earlier) must not turn it into
-// `<owner>-<someone-else>`, because the friend who opens the asker's link
-// looks for `<owner>-<owner>` (see the normalizer's ask-side rule). This is
-// the counterpart of resolveCompletePairCode, which gates on
-// recapSources === 'friend' — the two must stay in sync.
-export function resolveInviterCode({ friendCode, shareCode, isAskLesson = false } = {}) {
-    if (isAskLesson) return String(shareCode || '').trim();
-    return String(friendCode || '').trim() || String(shareCode || '').trim();
+// A chain clip is addressed by its recorder alone (`<recorder>-<recorder>-…`),
+// because the reader of a friend reference is the one who has to compute the
+// key, and the reader knows only the friend's code and its own. The clip it
+// wants is the friend's own contribution to that namespace; a key built from
+// the friend's inviter (`<recorder>-<the link the recorder answered>`) was
+// never addressable by the reader, so every hop after the first asked for a
+// clip that did not exist.
+//
+// The recorder's own code is also what the asker's own clip was published
+// under, so this rule covers the ask lesson without a special case. A stale
+// persisted friendCode (the learner opened somebody's link earlier) must not
+// redirect the clip — the two sides have to stay in step (see
+// `resolveShareCodes` in `src/modules/bilingual/config-normalizer.js`).
+export function resolveInviterCode({ shareCode } = {}) {
+    return String(shareCode || '').trim();
 }
 
 // ---------------------------------------------------------------------------

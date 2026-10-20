@@ -5,7 +5,7 @@ import { test, expect } from '@playwright/test';
 // not be interrupted by the guest login/language modal. These specs exercise
 // the real guard + store + modal with a real browser locale.
 
-const FRIEND_URL = '/course/friend/lesson/b?shareCode=friendtest1';
+const FRIEND_URL = '/course/wouldyourather-test/lesson/b?shareCode=friendtest1';
 const NON_FRIEND_URL = '/course/model/lesson/m-g';
 
 async function waitForGuardRun(page) {
