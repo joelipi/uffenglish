@@ -149,6 +149,29 @@ because a take's group carries the `srt`.
 - `scripts/generate-config-from-sheet.test.js` — the glob pin, with the mutation fixed
   to `replaceAll` (the filter appears twice, so mutating one left the guard green).
 
+## One commit needs a `workflows`-scoped token
+
+The two bot workflows must commit EVERY course's master CSV, not one named
+course's — without it a second course's translations and SRTs are never
+committed:
+
+```
+.github/workflows/sync-srt.yml          add-paths: public/wouldyourather.master.csv -> public/*.master.csv
+.github/workflows/translate-master.yml   add-paths: public/wouldyourather.master.csv -> public/*.master.csv
+```
+
+The sandbox's GitHub App token cannot push a `.github/workflows/` change (it
+has no `workflows` permission), so that change is **not** on `main` yet. It
+is a single commit (`076b-workflow-globs`, also carrying the two workflow
+guard tests that assert the glob). To land it, push that branch with a
+token that has the `workflows` permission — the repo's fine-grained PAT:
+
+```
+git push <workflows-scoped-token>@github.com:joelipi/uffenglish.git 076b-workflow-globs
+```
+
+Until then the two workflows still commit only the one named course's CSV.
+
 ## Out of Scope
 
 - The video render itself (per-course renders, the Modal trigger's parameters) beyond
