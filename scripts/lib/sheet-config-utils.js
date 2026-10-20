@@ -990,13 +990,19 @@ function abababLesson({ id, respond, record, course, index }) {
                 );
             }
             const branchIndex = steps.length;
-            const leaves = groups.map((g, gi) => ({
-                text: labels[gi],
-                chooseStep: g.takes.map((take, vi) => ({
-                    nextStep: gi * g.takes.length + vi + 1,
+            // The leaf offsets address the answer steps in order, so they run
+            // across the groups: group 1's leaves are 1..n, group 2's start
+            // after them. A running count (not a per-group multiple) keeps the
+            // targets right when the groups hold different numbers of takes.
+            let leafOffset = 0;
+            const leaves = groups.map((g, gi) => {
+                const groupLeaves = g.takes.map((take, vi) => ({
+                    nextStep: leafOffset + vi + 1,
                     text: abababPhrase(take.row),
-                })),
-            }));
+                }));
+                leafOffset += g.takes.length;
+                return { text: labels[gi], chooseStep: groupLeaves };
+            });
             steps.push({
                 responseType: 'branching',
                 simpleVideoUrl: `{friendCode}{selfCode}-${course}-${respond.friendNamespace}-${ABABAB_PAD(topic)}`,
