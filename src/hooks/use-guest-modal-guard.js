@@ -5,7 +5,7 @@ import { appStore } from '../modules/store/store.js';
 import { useAuthStatus } from '../modules/api/api.js';
 import { usePreloader } from './usePreloader.js';
 import { isFriendLesson } from '../modules/user/friend-lesson-detection.js';
-import { resolveGuestModalPlan, resolveSilentLanguageReapply, isPublicHomeRoute, isHomepageRoute, resolveHomepageLanguageAdoption, isProfileRoute } from '../modules/user/guest-modal-logic.js';
+import { resolveGuestModalPlan, resolveSilentLanguageReapply, isPublicHomeRoute, isLanguageAdoptingRoute, resolveSilentLanguageAdoption, isProfileRoute } from '../modules/user/guest-modal-logic.js';
 import { HOME_LANGUAGES } from '../data/languages.js';
 
 const AUTH_ROUTES = ['/login', '/signup', '/recover-password', '/reset-password'];
@@ -50,9 +50,13 @@ export function useGuestModalGuard() {
             if (state.guestModalShownThisSession) return;
 
             if (isPublicHomeRoute(path)) {
-                if (isHomepageRoute(path)) {
+                // The homepage and the topic pages are the routes that speak
+                // the visitor's language without a prompt: they adopt the
+                // browser language when the guest has NOT chosen one (the
+                // decision checks the guest's choice first).
+                if (isLanguageAdoptingRoute(path)) {
                     const detectedCode = detectBrowserLanguage();
-                    const plan = resolveHomepageLanguageAdoption({
+                    const plan = resolveSilentLanguageAdoption({
                         isLoggedIn,
                         guestLang: state.guestNativeLanguage,
                         detectedLang: detectedCode,
@@ -61,10 +65,10 @@ export function useGuestModalGuard() {
                     if (plan.action === 'adopt') {
                         state.setGuestDetectedLang(detectedCode);
                         state.setGuestLanguageSilent(plan.language);
-                        console.log('[GuestModalGuard] Homepage — adopted browser language silently:', plan.language);
+                        console.log('[GuestModalGuard] Adopted browser language silently:', plan.language);
                     }
                 }
-                console.log('[GuestModalGuard] Public homepage — not opening the guest modal.');
+                console.log('[GuestModalGuard] Public route — not opening the guest modal.');
                 return;
             }
 

@@ -1183,6 +1183,15 @@ describe('recorder auto-render — zero server changes', () => {
             'src/components/homescreen/HomeLandingContainer.jsx',
             'src/components/homescreen/HomeLandingContainer.test.jsx',
             'tests/topic-pages.spec.js',
+            // The topic pages: the guest modal is suppressed on them (they are
+            // public routes), they adopt the browser language silently, and
+            // their topics are localized (English word first).
+            'src/hooks/use-guest-modal-guard.js',
+            'src/hooks/use-guest-modal-guard-public-route.test.js',
+            'src/modules/user/guest-modal-logic.test.js',
+            'src/modules/courses/course-tag-labels.js',
+            'src/modules/courses/course-tag-labels.test.js',
+            'src/config/course-tags.test.js',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);
