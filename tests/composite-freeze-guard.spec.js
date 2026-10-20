@@ -47,7 +47,7 @@ test.describe('composite freeze guard (story 072)', () => {
         // then pin ready — same pattern as whisper-engine-fallback.spec.js.
         await page.route('**r2.ultrafastfluency.com/whisper/onnx-community/**', HANG);
 
-        await page.goto('/course/wouldyourather/lesson/a', { waitUntil: 'domcontentloaded' });
+        await page.goto('/course/wouldyourather-test/lesson/a', { waitUntil: 'domcontentloaded' });
         await confirmGuestLanguage(page);
 
         // Pin the engine ready so the recording path can start.

@@ -16,7 +16,7 @@ const REAL_COURSE_IDS = readdirSync(path.join(__dirname, '../../config'))
 
 describe('configCourseId', () => {
     it('strips the directory and .json extension', () => {
-        expect(configCourseId('./config/friendchain.json')).toBe('friendchain');
+        expect(configCourseId('./config/wouldyourather.json')).toBe('wouldyourather');
         expect(configCourseId('../../config/wouldyourather.json')).toBe('wouldyourather');
     });
 });
@@ -27,11 +27,11 @@ describe('loadConfigEntries', () => {
         expect(entries.map((e) => e.courseId).sort()).toEqual(REAL_COURSE_IDS);
     });
 
-    it('parses the JSON (friendchain has all 8 lessons)', async () => {
+    it('parses the JSON (the friend course has all 6 lessons)', async () => {
         const entries = await loadConfigEntries();
-        const friendchain = entries.find((e) => e.courseId === 'friendchain');
-        expect(Array.isArray(friendchain.config.lessons)).toBe(true);
-        expect(friendchain.config.lessons).toHaveLength(8);
+        const wyr = entries.find((e) => e.courseId === 'wouldyourather');
+        expect(Array.isArray(wyr.config.lessons)).toBe(true);
+        expect(wyr.config.lessons).toHaveLength(6);
     });
 
     it('skips a module whose loader rejects instead of rejecting the whole call', async () => {
@@ -44,7 +44,7 @@ describe('loadConfigEntries', () => {
 
     it('feeds listFriendCourses to the expected friend courses', async () => {
         const courses = listFriendCourses(await loadConfigEntries());
-        expect(courses.map((c) => c.courseId)).toEqual(['friend', 'friendchain', 'wouldrather', 'wouldyourather']);
+        expect(courses.map((c) => c.courseId)).toEqual(['wouldyourather']);
         for (const course of courses) {
             expect(course.firstLessonId).toBe('a');
         }

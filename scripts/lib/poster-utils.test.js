@@ -78,7 +78,7 @@ describe('introTargets', () => {
         // are generated, so this list grows as courses are added. The generated
         // course opens on a TAKE (wouldyourather-a-01-01), not the take-group.
         expect(slugs).toEqual(
-            ['do_you_have_dark_chocolate', 'do_you_have_rolls_too', 'gtests-0-1-1', 'gtests-1-0', 'testvideo01', 'testvideointro', 'wouldyourather-a-01-01'],
+            ['do_you_have_dark_chocolate', 'do_you_have_rolls_too', 'gtests-1-0', 'wouldyourather-a-01-01'],
         );
     });
 

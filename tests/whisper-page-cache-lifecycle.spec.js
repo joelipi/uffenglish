@@ -15,12 +15,14 @@
 // Real bfcache behavior requires manual on-device iPad Safari testing.
 
 import { test, expect } from '@playwright/test';
+import { confirmGuestLanguage } from './helpers/lesson-e2e.js';
 
-const LESSON_URL = '/course/gt2/lesson/g-a';
+const LESSON_URL = '/course/model/lesson/m-g';
 
 test.describe('Whisper page-cache lifecycle', () => {
     test('setWhisperReady toggles store state correctly', async ({ page }) => {
         await page.goto(LESSON_URL, { waitUntil: 'domcontentloaded' });
+        await confirmGuestLanguage(page);
 
         // Wait for app bootstrap
         await page.waitForFunction(

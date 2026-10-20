@@ -32,14 +32,18 @@ const OWNER_PROFILE = {
     lessons_completed: 3,
 };
 
+// The one friend course we keep (the dev twin of the generated config).
+const COURSE_ID = 'wouldyourather-test';
+const COURSE_NAME = 'Get $1 million or $5 million?';
+
 const entry = (recordedLessonId, lessonId, lessonTitle, addedAt) => ({
-    courseId: 'friendchain', courseName: 'Friend Chain',
+    courseId: COURSE_ID, courseName: COURSE_NAME,
     recordedLessonId, lessonId, lessonTitle, shareCode: OWNER, addedAt,
 });
 
 const LINKS = {
-    'friendchain:a': entry('a', 'b', 'Ask', '2026-09-24T11:00:00.000Z'),
-    'friendchain:c': entry('c', 'd', 'Follow Up', '2026-09-24T10:00:00.000Z'),
+    [`${COURSE_ID}:a`]: entry('a', 'b', 'Ask', '2026-09-24T11:00:00.000Z'),
+    [`${COURSE_ID}:c`]: entry('c', 'd', 'Follow Up', '2026-09-24T10:00:00.000Z'),
 };
 
 async function seedOwner(page, friendLinks, overrides = {}) {
@@ -83,7 +87,7 @@ async function seedViewer(page, { countedLessons = [], inbox = [] } = {}) {
 const inboxRow = (lessonId) => ({
     id: `n-${lessonId}`,
     type: 'friend_response',
-    course_id: 'friendchain',
+    course_id: COURSE_ID,
     lesson_id: lessonId,
     payload: { actorShareCode: OWNER },
     created_at: '2026-09-24T11:30:00.000Z',
@@ -122,7 +126,7 @@ test.describe('public-profile visitor awareness', () => {
     test('logged-in visitor sees featuring lessons first, badged when done together', async ({ page }) => {
         await seedOwner(page, LINKS);
         await seedViewer(page, {
-            countedLessons: ['friendchain_c'],
+            countedLessons: [`${COURSE_ID}_c`],
             inbox: [inboxRow('c')],
         });
 

@@ -3,6 +3,7 @@
 // Uses explicit context options (not the whole device descriptor) so
 // `defaultBrowserType` never leaks into `test.use`.
 import { test, expect, devices } from '@playwright/test';
+import { confirmGuestLanguage } from './helpers/lesson-e2e.js';
 
 const LESSON_G = '/course/model/lesson/m-g';
 const IPHONE_UA = devices['iPhone 13'].userAgent;
@@ -14,30 +15,6 @@ const ROTATE_EN =
 const waitForLesson = (page) =>
     page.waitForFunction(() => window.appStore?.getState()?.configData, null, { timeout: 30000 });
 
-// A native <dialog> renders in the top layer, above any z-index, so the guest
-// modal would intercept clicks on the banner. Clear it before interacting.
-async function dismissGuestModal(page) {
-    const englishOnly = page.locator('#guestEnglishOnlyBtn');
-    const continueBtn = page.locator('#guestContinueBtn');
-    await englishOnly
-        .or(continueBtn)
-        .first()
-        .waitFor({ state: 'visible', timeout: 8000 })
-        .catch(() => {});
-
-    if (await englishOnly.isVisible().catch(() => false)) {
-        await englishOnly.click().catch(() => {});
-        await page.waitForTimeout(200);
-    }
-    if (await continueBtn.isVisible().catch(() => false)) {
-        await continueBtn.click().catch(() => {});
-        await page.waitForTimeout(200);
-    }
-    await expect(page.locator('#guestLoginModal'))
-        .toBeHidden({ timeout: 5000 })
-        .catch(() => {});
-}
-
 test.describe('mobile landscape warning', () => {
     test.use({
         userAgent: IPHONE_UA,
@@ -48,6 +25,7 @@ test.describe('mobile landscape warning', () => {
 
     test('shows the warning with the localized copy in landscape', async ({ page }) => {
         await page.goto(LESSON_G);
+        await confirmGuestLanguage(page);
 
         const warning = page.locator('#landscape-warning');
         await expect(warning).toBeVisible({ timeout: 30000 });
@@ -56,10 +34,10 @@ test.describe('mobile landscape warning', () => {
 
     test('dismiss hides the warning', async ({ page }) => {
         await page.goto(LESSON_G);
+        await confirmGuestLanguage(page);
 
         const warning = page.locator('#landscape-warning');
         await expect(warning).toBeVisible({ timeout: 30000 });
-        await dismissGuestModal(page);
 
         await page.locator('#landscape-warning-dismiss').click();
         await expect(warning).toBeHidden();
@@ -67,10 +45,10 @@ test.describe('mobile landscape warning', () => {
 
     test('warns again after portrait then landscape', async ({ page }) => {
         await page.goto(LESSON_G);
+        await confirmGuestLanguage(page);
 
         const warning = page.locator('#landscape-warning');
         await expect(warning).toBeVisible({ timeout: 30000 });
-        await dismissGuestModal(page);
 
         await page.locator('#landscape-warning-dismiss').click();
         await expect(warning).toBeHidden();
@@ -85,6 +63,7 @@ test.describe('mobile landscape warning', () => {
     test('does not show in portrait', async ({ page }) => {
         await page.setViewportSize(PORTRAIT);
         await page.goto(LESSON_G);
+        await confirmGuestLanguage(page);
         await waitForLesson(page);
 
         await expect(page.locator('#landscape-warning')).toHaveCount(0);
@@ -96,6 +75,7 @@ test.describe('desktop landscape never warns', () => {
 
     test('does not show for a desktop UA in landscape', async ({ page }) => {
         await page.goto(LESSON_G);
+        await confirmGuestLanguage(page);
         await waitForLesson(page);
 
         await expect(page.locator('#landscape-warning')).toHaveCount(0);

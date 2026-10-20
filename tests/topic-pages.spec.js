@@ -36,11 +36,9 @@ test.describe('the topic pages', () => {
         for (const href of hrefs) {
             expect(href).toMatch(/^\/tags\//);
         }
-        // The four course tags under test are all reachable.
-        expect(hrefs).toContain('/tags/travel');
-        expect(hrefs).toContain('/tags/family');
-        expect(hrefs).toContain('/tags/music');
-        expect(hrefs).toContain('/tags/sports');
+        // The course tags under test are all reachable.
+        expect(hrefs).toContain('/tags/food');
+        expect(hrefs).toContain('/tags/preferences');
     });
 
     test('the welcome page renders inside the app shell, with the shared header', async ({ page }) => {
@@ -53,17 +51,17 @@ test.describe('the topic pages', () => {
     test('a topic page lists the courses of that topic and links to the course', async ({ page }) => {
         await openWelcome(page);
 
-        await page.getByTestId('welcome-tag-button').filter({ hasText: 'family' }).click();
+        await page.getByTestId('welcome-tag-button').filter({ hasText: 'preferences' }).click();
 
-        await expect(page.getByTestId('tag-heading')).toHaveText('family');
+        await expect(page.getByTestId('tag-heading')).toHaveText('preferences');
         const cards = page.getByTestId('tag-course-card');
         await expect(cards.first()).toBeVisible();
         const hrefs = await cards.evaluateAll((els) => els.map((el) => el.getAttribute('href')));
         for (const href of hrefs) {
             expect(href).toMatch(/^\/course\/[^/]+\/lesson\/[^/]+$/);
         }
-        // The friend chain course carries the "family" tag.
-        expect(hrefs).toContain('/course/friendchain/lesson/a');
+        // The friend course carries the "preferences" tag.
+        expect(hrefs).toContain('/course/wouldyourather/lesson/a');
         // The shared header is there on a topic page too.
         await expect(page.getByTestId('app-header')).toBeVisible();
     });
@@ -71,7 +69,7 @@ test.describe('the topic pages', () => {
     test('a topic page shows the mission expanded', async ({ page }) => {
         await openWelcome(page);
 
-        await page.getByTestId('welcome-tag-button').filter({ hasText: 'family' }).click();
+        await page.getByTestId('welcome-tag-button').filter({ hasText: 'preferences' }).click();
 
         const mission = page.getByTestId('course-mission').first();
         await expect(mission).toBeVisible();

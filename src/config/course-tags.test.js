@@ -12,14 +12,17 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { EXCLUDED_FRIEND_COURSE_IDS } from '../modules/courses/friend-courses-logic.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // This test lives in src/config, so the config directory IS __dirname.
 const CONFIG_DIR = __dirname;
 const CONFIG_FILES = readdirSync(CONFIG_DIR).filter((f) => f.endsWith('.json')).sort();
 
-// The course tags the test data covers, one per config.
-const REQUIRED_TAGS = ['travel', 'family', 'music', 'sports'];
+// The course tags the test data covers, one per LISTED course. The dev twin
+// (wouldyourather-test.json) is excluded from the listings - the app filters
+// it out, so it must not take part in the uniqueness rule either.
+const REQUIRED_TAGS = ['food', 'preferences'];
 
 function loadConfig(name) {
     return JSON.parse(readFileSync(path.join(CONFIG_DIR, name), 'utf8'));
@@ -56,9 +59,12 @@ describe('course-level tags', () => {
         }
     });
 
-    it('spreads the four test tags one per config', () => {
+    it('spreads the test tags one per listed config', () => {
         const owners = new Map();
         for (const name of CONFIG_FILES) {
+            // The dev twin is not a listed course (the app excludes it), so
+            // its tags never reach a tag page.
+            if (EXCLUDED_FRIEND_COURSE_IDS.includes(name.replace(/\.json$/, ''))) continue;
             // A config without tags contributes nothing, so the assertion below
             // fails on the missing tag instead of throwing a TypeError.
             for (const tag of loadConfig(name).tags || []) {
@@ -69,8 +75,8 @@ describe('course-level tags', () => {
             const tagged = owners.get(tag) || [];
             expect(tagged.length, `tag "${tag}" must be on exactly one config`).toBe(1);
         }
-        // The four tags live on four different configs, so filtering by one
-        // tag selects a single course.
+        // The tags live on different configs, so filtering by one tag selects a
+        // single course.
         const files = REQUIRED_TAGS.map((tag) => (owners.get(tag) || [])[0]);
         expect(new Set(files).size).toBe(REQUIRED_TAGS.length);
     });

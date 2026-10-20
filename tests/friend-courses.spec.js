@@ -28,8 +28,6 @@ test.describe('public course listings', () => {
         const hrefs = await page.getByTestId('friend-course-card').evaluateAll(
             (els) => els.map((el) => el.getAttribute('href'))
         );
-        expect(hrefs).toContain('/course/friendchain/lesson/a');
-        expect(hrefs).toContain('/course/wouldrather/lesson/a');
         expect(hrefs).toContain('/course/wouldyourather/lesson/a');
         for (const href of hrefs) {
             expect(href).toMatch(/^\/course\/[^/]+\/lesson\/a$/);
@@ -41,10 +39,10 @@ test.describe('public course listings', () => {
         await expect(page.getByTestId('friend-course-card').first()).toBeVisible();
 
         const ids = await cardCourseIds(page);
-        for (const id of ['test', 'test-api', 'model', 't', 'gt2']) {
+        for (const id of ['wouldyourather-test', 'model']) {
             expect(ids).not.toContain(id);
         }
-        expect(ids).toContain('friendchain');
+        expect(ids).toContain('wouldyourather');
     });
 
     test('does not open the guest modal on the public route', async ({ page }) => {
@@ -54,7 +52,7 @@ test.describe('public course listings', () => {
     });
 
     test('scrolls the list to the last course card (story 063)', async ({ page }) => {
-        await page.setViewportSize({ width: 390, height: 600 });
+        await page.setViewportSize({ width: 390, height: 320 });
         await page.goto('/courses');
 
         await expect(page.getByTestId('friend-course-card').first()).toBeVisible();
