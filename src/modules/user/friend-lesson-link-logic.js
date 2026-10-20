@@ -9,7 +9,6 @@
 
 import { SHARE_URL_BASE, SHARE_WINDOW_HOURS } from '../video/video-processor-logic.js';
 import { normalizeShareCode, NOTIFICATION_TYPE_FRIEND_RESPONSE } from '../notifications/notification-logic.js';
-import { firstFriendLessonId } from '../courses/friend-courses-logic.js';
 
 // Reuses the single share window (R2 UGC lifecycle, 48h). Do not add a second.
 export const FRIEND_LINK_WINDOW_MS = SHARE_WINDOW_HOURS * 60 * 60 * 1000;
@@ -130,33 +129,6 @@ export function groupActiveFriendLinks(friendLinks, nowMs) {
     return groupEntries(listActiveFriendLinks(friendLinks, nowMs));
 }
 
-// Unique courseIds present in a friendLinks map, ascending. Used to fetch ONLY
-// the configs the profile actually references (a public page must not pull in
-// every course config). Malformed entries are ignored.
-export function listFriendCourseIds(friendLinks) {
-    if (!friendLinks || typeof friendLinks !== 'object' || Array.isArray(friendLinks)) return [];
-    const seen = new Set();
-    for (const entry of Object.values(friendLinks)) {
-        const courseId = entry?.courseId;
-        if (typeof courseId === 'string' && courseId) seen.add(courseId);
-    }
-    return [...seen].sort();
-}
-
-// `{ courseId, config }` entries → Map<courseId, firstLessonId>. A course whose
-// config is missing/not a friend course contributes no head, so the read-time
-// filter fails open for it (see buildVisitorPracticeView).
-export function buildChainHeads(configEntries) {
-    const heads = new Map();
-    if (!Array.isArray(configEntries)) return heads;
-    for (const entry of configEntries) {
-        if (!entry || typeof entry.courseId !== 'string' || !entry.courseId) continue;
-        const firstLessonId = firstFriendLessonId(entry.config);
-        if (firstLessonId) heads.set(entry.courseId, firstLessonId);
-    }
-    return heads;
-}
-
 // Recorder direction of the "featured for the visitor" match: the visitor's own
 // counted_lessons carries the `<courseId>_<recordedLessonId>` key (existing
 // first-underscore convention). Joined on recordedLessonId, never lessonId.
@@ -180,9 +152,9 @@ function viewerNotifiedEntry(entry, notifications, ownerShareCode) {
 /**
  * Visitor-aware render view for the public-profile friend-practice area.
  *
- * - logged out (`viewer` null): only the chain-head (`a`) lessons are listed.
- * - logged in: lessons the visitor features in come first, then the `a`
- *   lessons; a featuring entry never repeats in the `a` group.
+ * - every link the owner recorded is listed, newest first (the profile holds
+ *   one link per recorded lesson);
+ * - logged in: the links the visitor features in come first.
  * - `chainHeads` maps courseId → first shareCta lesson; a course absent from
  *   the map (config fetch failed) fails open and keeps the entry.
  * - every listed entry carries `completedTogether` (the recorder-direction
@@ -191,11 +163,8 @@ function viewerNotifiedEntry(entry, notifications, ownerShareCode) {
  * With neither `viewer` nor any `chainHeads` this delegates to
  * `buildFriendPracticeView`, preserving the pre-visitor output exactly.
  */
-export function buildVisitorPracticeView({ friendLinks, nowMs, viewer = null, chainHeads = null } = {}) {
-    const heads = chainHeads instanceof Map ? chainHeads : new Map();
-    if (!viewer && heads.size === 0) {
-        return buildFriendPracticeView(friendLinks, nowMs);
-    }
+export function buildVisitorPracticeView({ friendLinks, nowMs, viewer = null } = {}) {
+    const active = listActiveFriendLinks(friendLinks, nowMs);
 
     const ownerShareCode = viewer ? normalizeShareCode(viewer.ownerShareCode) : null;
     const countedLessons = viewer?.counted_lessons ?? [];
@@ -205,15 +174,16 @@ export function buildVisitorPracticeView({ friendLinks, nowMs, viewer = null, ch
         && (viewerNotifiedEntry(entry, notifications, ownerShareCode)
             || viewerCountedEntry(entry, countedLessons));
 
-    const isChainHead = (entry) => !heads.has(entry.courseId)
-        || entry.recordedLessonId === heads.get(entry.courseId);
-
-    const active = listActiveFriendLinks(friendLinks, nowMs);
+    // EVERY link the owner recorded is listed, not just the course's first
+    // lesson: the profile holds one link per recorded lesson (the ping-pong
+    // chain — recording `a` links to `b`, recording `b` links to `c`, …), and a
+    // learner who has moved along the chain must still see where it stands.
+    // The links the visitor took part in come first.
     const featuring = active.filter(isFeaturing);
     const featuringSet = new Set(featuring);
     const listed = [
         ...featuring,
-        ...active.filter((entry) => !featuringSet.has(entry) && isChainHead(entry)),
+        ...active.filter((entry) => !featuringSet.has(entry)),
     ].map((entry) => ({
         ...entry,
         completedTogether: viewerCountedEntry(entry, countedLessons),

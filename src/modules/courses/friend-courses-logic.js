@@ -91,6 +91,16 @@ export function courseHeroImageFor(config) {
     return typeof url === 'string' && url.trim() !== '' ? url : null;
 }
 
+// The topics of one course config, as authored (trimmed, blanks dropped). The
+// topic is course-level metadata, so the course lists can filter by it.
+export function configTags(config) {
+    const tags = config && typeof config === 'object' ? config.tags : null;
+    if (!Array.isArray(tags)) return [];
+    return tags
+        .filter((tag) => typeof tag === 'string' && tag.trim() !== '')
+        .map((tag) => tag.trim());
+}
+
 // The in-app URL that starts a course at its first friend lesson. `courseId` is
 // the config FILE basename (AppLayout fetches `/src/config/<courseId>.json`),
 // never `config.courseId` (friend.json/test.json carry a non-file id).
@@ -101,7 +111,7 @@ export function buildCourseStartHref(courseId, lessonId) {
 /**
  * Filter and shape friend courses for the listings page.
  * @param {Array<{ courseId: string, config: object }>} entries - config basename + parsed config
- * @returns {Array<{ courseId: string, courseName: string, lessonCount: number, firstLessonId: string, mission: object|null, heroImage: string|null }>}
+ * @returns {Array<{ courseId: string, courseName: string, lessonCount: number, firstLessonId: string, mission: object|null, heroImage: string|null, tags: string[] }>}
  *          sorted by courseId ascending.
  */
 export function listFriendCourses(entries) {
@@ -119,6 +129,7 @@ export function listFriendCourses(entries) {
             firstLessonId: firstFriendLessonId(e.config),
             mission: courseMissionFor(e.config),
             heroImage: courseHeroImageFor(e.config),
+            tags: configTags(e.config),
         }))
         .filter((c) => !!c.firstLessonId)
         .sort((a, b) => (a.courseId < b.courseId ? -1 : a.courseId > b.courseId ? 1 : 0));

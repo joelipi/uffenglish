@@ -109,3 +109,48 @@ test.describe('the topic pages', () => {
         await expect(page.getByTestId('welcome-heading')).toBeVisible();
     });
 });
+
+// The topic drop-down on the course lists: /home and /courses share the same
+// list view, so the picker is on both.
+test.describe('the topic drop-down on the course lists', () => {
+    test('the courses page offers a topic drop-down under a bilingual subheading', async ({ page }) => {
+        await page.goto('/courses');
+        await expect(page.getByTestId('friend-courses-heading')).toBeVisible();
+
+        const subheading = page.getByTestId('course-topic-heading');
+        await expect(subheading).toContainText('Choose a topic to practice talking about.');
+
+        const select = page.getByTestId('course-topic-select');
+        await expect(select).toBeVisible();
+        const values = await select.locator('option').evaluateAll((els) => els.map((el) => el.value));
+        expect(values[0]).toBe('');
+        expect(values).toContain('family');
+        expect(values).toContain('preferences');
+    });
+
+    test('choosing a topic narrows the course list', async ({ page }) => {
+        await page.goto('/courses');
+        await expect(page.getByTestId('friend-course-card').first()).toBeVisible();
+        const before = await page.getByTestId('friend-course-card').count();
+
+        await page.getByTestId('course-topic-select').selectOption('preferences');
+        const after = await page.getByTestId('friend-course-card').count();
+        expect(after).toBeLessThan(before);
+        expect(after).toBeGreaterThan(0);
+
+        await page.getByTestId('course-topic-select').selectOption('');
+        await expect(page.getByTestId('friend-course-card')).toHaveCount(before);
+    });
+
+    test('the home screen carries the same drop-down', async ({ page }) => {
+        await page.goto('/home');
+        // The home screen is an inside page: the guest language modal opens
+        // for an anonymous visitor.
+        const englishOnly = page.locator('#guestEnglishOnlyBtn');
+        if (await englishOnly.count()) await englishOnly.click().catch(() => {});
+        const continueAsGuest = page.locator('#guestContinueBtn');
+        if (await continueAsGuest.count()) await continueAsGuest.click().catch(() => {});
+
+        await expect(page.getByTestId('course-topic-select')).toBeVisible();
+    });
+});

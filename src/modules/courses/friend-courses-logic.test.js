@@ -94,6 +94,8 @@ describe('listFriendCourses', () => {
         expect(wyr.firstLessonId).toBe('a');
         expect(wyr.mission.mission.en).toBe('talk about preferences');
         expect(wyr.heroImage).toBe('src/assets/img/wouldyouratherhero.jpg');
+        // The course's topics, so the course lists can filter by them.
+        expect(wyr.tags).toEqual(['preferences', 'money', 'getting to know you']);
     });
 
     it('drops the test fixture even though it has shareCta lessons', () => {
@@ -127,6 +129,7 @@ describe('listFriendCourses', () => {
                 C1: { en: 'if I had to choose between [gerund verb X] and [gerund verb Y], my preference would be to [infinitive verb]' },
             },
             heroImage: 'src/assets/img/wouldyouratherhero.jpg',
+            tags: ['preferences', 'money', 'getting to know you'],
         });
     });
 

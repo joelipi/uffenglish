@@ -1,11 +1,32 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
+// The counters are written by a server-side RPC (record_lesson_completion), so
+// the mock plays the SERVER: it owns the baseline, keeps the counted set
+// unique and the day ledger unique, and answers with the resulting counters.
 vi.mock('../api/api.js', () => ({
     syncUserMetaDataMutation: vi.fn(async () => {}),
     getCurrentUser: vi.fn(async () => null),
+    recordLessonCompletion: vi.fn(async ({ courseId, completedLessonId }) => {
+        const key = `${courseId}_${completedLessonId}`;
+        const today = new Date().toLocaleDateString('en-CA');
+        const state = recordLessonCompletion.state;
+        const isFirst = !state.counted.includes(key);
+        const dayAdded = !state.days.includes(today);
+        state.counted = [...new Set([...state.counted, key])];
+        state.days = [...new Set([...state.days, today])];
+        state.count += 1;
+        return {
+            lessonsCompleted: state.count,
+            countedLessons: state.counted,
+            completedDates: state.days,
+            isFirstCompletion: isFirst,
+            dayAdded,
+        };
+    }),
 }));
+recordLessonCompletion.state = { count: 0, counted: [], days: [] };
 
-import { syncUserMetaDataMutation } from '../api/api.js';
+import { syncUserMetaDataMutation, recordLessonCompletion } from '../api/api.js';
 import { saveLessonProgress, calculateCurrentStreak } from './user-profile.js';
 import { appStore } from '../store/store.js';
 
@@ -24,6 +45,8 @@ function lastMeta() {
 describe('saveLessonProgress lesson count', () => {
     beforeEach(() => {
         syncUserMetaDataMutation.mockClear();
+        recordLessonCompletion.mockClear();
+        recordLessonCompletion.state = { count: 0, counted: [], days: [] };
         appStore.setState({
             lessonsCompleted: 0,
             countedLessons: [],
@@ -44,8 +67,11 @@ describe('saveLessonProgress lesson count', () => {
         });
 
         expect(result.lessonsCompleted).toBe(1);
-        expect(lastMeta().lessons_completed).toBe(1);
-        expect(lastMeta().counted_lessons).toEqual(['wouldyourather_a']);
+        expect(recordLessonCompletion).toHaveBeenCalledWith({ courseId: 'wouldyourather', completedLessonId: 'a' });
+        // The client's own write must NOT carry the counters: the server owns
+        // them, and a client-side copy would overwrite the server's row.
+        expect(lastMeta().lessons_completed).toBeUndefined();
+        expect(lastMeta().counted_lessons).toBeUndefined();
     });
 
     it('counts each completed lesson once when a and b are both completed', async () => {
@@ -75,9 +101,7 @@ describe('saveLessonProgress lesson count', () => {
 
         expect(repeat.lessonsCompleted).toBe(2);
         expect(appStore.getState().lessonsCompleted).toBe(2);
-        expect(lastMeta().lessons_completed).toBe(2);
         // The unique set still holds the lesson only once.
-        expect(lastMeta().counted_lessons).toEqual(['wouldyourather_a']);
         expect(appStore.getState().countedLessons).toEqual(['wouldyourather_a']);
     });
 
@@ -87,13 +111,16 @@ describe('saveLessonProgress lesson count', () => {
         const result = await saveLessonProgress('model', 'm-a', userData, {});
 
         expect(result.lessonsCompleted).toBe(0);
+        expect(recordLessonCompletion).not.toHaveBeenCalled();
         expect(lastMeta().lessons_completed).toBeUndefined();
         expect(lastMeta().counted_lessons).toBeUndefined();
         expect(appStore.getState().lessonsCompleted).toBe(0);
     });
 
-    it('baselines off the store so a stale userData still advances the count', async () => {
-        appStore.setState({ lessonsCompleted: 5 });
+    it('baselines off the row, not the client copy (a stale userData still advances)', async () => {
+        // The server owns the baseline, so a stale client copy cannot make the
+        // count go backwards — the case that lost a completion entirely.
+        recordLessonCompletion.state = { count: 5, counted: [], days: [] };
         const userData = { $id: 'user-1', lessons_completed: 0 };
 
         const result = await saveLessonProgress('model', 'm-a', userData, {
@@ -101,7 +128,6 @@ describe('saveLessonProgress lesson count', () => {
         });
 
         expect(result.lessonsCompleted).toBe(6);
-        expect(lastMeta().lessons_completed).toBe(6);
     });
 
     it('falls back to currentLessonId when completedLessonId is absent', async () => {
@@ -112,7 +138,7 @@ describe('saveLessonProgress lesson count', () => {
         });
 
         expect(result.lessonsCompleted).toBe(1);
-        expect(lastMeta().counted_lessons).toEqual(['wouldyourather_a']);
+        expect(recordLessonCompletion).toHaveBeenCalledWith({ courseId: 'wouldyourather', completedLessonId: 'a' });
     });
 
     it('advances past a re-fetched userData object (the store keeps the in-session count)', async () => {
@@ -129,7 +155,6 @@ describe('saveLessonProgress lesson count', () => {
         });
 
         expect(second.lessonsCompleted).toBe(2);
-        expect(lastMeta().lessons_completed).toBe(2);
     });
 
     it('appends today to the date ledger once per day, never duplicating', async () => {
@@ -146,17 +171,16 @@ describe('saveLessonProgress lesson count', () => {
         expect(first.dayCountIncremented).toBe(true);
         expect(second.dayCountIncremented).toBe(false);
         expect(second.newDayCount).toBe(1);
-        // First save writes the day; the second same-day save sends no date
-        // payload at all (no rewrite, no duplicate).
-        expect(syncUserMetaDataMutation.mock.calls[0][0].completed_dates).toEqual([todayStr()]);
+        // The day ledger is the server's now: the client never writes it.
         expect('completed_dates' in lastMeta()).toBe(false);
-        // The in-session object stays in sync so a later save in the same
-        // session baselines off the written ledger, not a stale empty one.
+        // The in-session object stays in sync so the next save in the same
+        // session sees the same ledger the server wrote.
         expect(userData.completed_dates).toEqual([todayStr()]);
     });
 
     it('extends an existing ledger without rewriting history', async () => {
         const userData = { $id: 'user-1', lessons_completed: 4, completed_dates: [daysAgoStr(1)] };
+        recordLessonCompletion.state = { count: 4, counted: [], days: [daysAgoStr(1)] };
 
         const result = await saveLessonProgress('wouldyourather', 'a', userData, {
             updateUserMeta: true, incrementCount: true, completedLessonId: 'a',
@@ -164,7 +188,6 @@ describe('saveLessonProgress lesson count', () => {
 
         expect(result.newDayCount).toBe(2);
         expect(result.newStreak).toBe(2);
-        expect(lastMeta().completed_dates).toEqual([daysAgoStr(1), todayStr()]);
     });
 });
 

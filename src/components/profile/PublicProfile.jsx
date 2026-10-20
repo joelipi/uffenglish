@@ -5,7 +5,6 @@ import { formatProfileJoinDate } from '../../modules/user/public-profile-logic.j
 import Strings from '../../data/strings.js';
 import defaultProfilePic from '../../assets/img/userprofile.png';
 import FriendLessonLinksSection from './FriendLessonLinksSection.jsx';
-import useFriendChainHeads from '../../hooks/useFriendChainHeads.js';
 import { useNativeLanguage } from '../../hooks/use-native-language.js';
 
 export default function PublicProfile({ shareCode }) {
@@ -18,9 +17,6 @@ export default function PublicProfile({ shareCode }) {
     const { data: viewerProfile } = useUserProfile();
     const viewerId = viewerProfile && viewerProfile.$id !== 'guest' ? viewerProfile.$id : null;
     const { data: notifications } = useNotifications(viewerId);
-    // Only the configs this profile's links reference are fetched; a course
-    // whose config cannot be loaded fails open in the read-time filter.
-    const chainHeads = useFriendChainHeads(profile?.friendLinks);
     // The page is localized to the VISITOR's language — the app's guest-first
     // session language — and never to the language of the profile being read.
     // A Spanish learner opening a Hindi speaker's profile reads the page in
@@ -135,7 +131,6 @@ export default function PublicProfile({ shareCode }) {
                     lang={lang}
                     shareCode={shareCode}
                     viewer={viewer}
-                    chainHeads={chainHeads}
                 />
 
                 <div style={cardStyle}>
