@@ -1128,6 +1128,13 @@ describe('recorder auto-render — zero server changes', () => {
             'src/components/notifications/push-optin-wiring.test.jsx',
             'src/components/pwa/pwa-install-wiring.test.jsx',
             'src/modules/notifications/notification-wiring.test.js',
+            // Story 075 (ABABAB pattern through every lesson): the hand-written
+            // model config for the wouldyourather friend course, its backup of
+            // the pre-rewrite state, and the story itself.
+            'src/config/wouldyourather-test.json',
+            'src/config/wouldyourather-test.test.js',
+            'stories/075-ababab-pattern-all-lessons/story.md',
+            'stories/075-ababab-pattern-all-lessons/wouldyourather-test.before.json',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);
