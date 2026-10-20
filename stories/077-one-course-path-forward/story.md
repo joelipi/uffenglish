@@ -37,7 +37,7 @@ So: keep **one** path per flow, point the suite at it, and retire the rest.
    the config load it waits for is gated behind the modal. →
    `src/modules/courses/course-reference-guard.test.js`
 5. **The unit suite is green** — no test fails because of this change. → `npx vitest run`
-   (265 files, 3956 tests, 0 failures) and `npm run lint` (0 errors)
+   (270 files, 3974 tests, 0 failures) and `npm run lint` (0 errors)
 
 ## What changed
 
@@ -93,6 +93,20 @@ Retired: `friend.json`, `friendchain.json`, `wouldrather.json`, `gt2.json`, `t.j
   rule either), and the required tags are the ones the surviving courses carry.
 - `poster-utils.test.js` — the first-step intro slug list.
 
+### What upstream changed under this story
+
+Upstream moved three times while the branch was being verified, and the branch
+merged each time:
+
+- The **topic labels** are now localized (`course_tag_<topic>`), so a topic page
+  is addressed by its display name ("Preferences"), and the topic drop-down's
+  options are the topics of the courses on screen.
+- The **profile lists every recorded link**, not just the chain head (the
+  server-side lesson count replaced the chain-head filter), so the two profile
+  specs now assert the new behaviour.
+- The **topic drop-down** landed on the course lists, and its spec asserted the
+  retired courses' topics.
+
 ### The new guard
 
 `src/modules/courses/course-reference-guard.test.js` reads every spec in `tests/` and
@@ -102,7 +116,7 @@ waits for the config without clearing the gate — fails a unit test instead of 
 
 ## Verification
 
-- **The unit suite is green**: 265 files, 3956 tests, 0 failures. `npm run lint` reports
+- **The unit suite is green**: 270 files, 3974 tests, 0 failures. `npm run lint` reports
   0 errors.
 - **The browser suite**: the failures that remain are pre-existing. Each failing spec was
   run **at the base commit** (before this change) in a separate worktree, with the same
