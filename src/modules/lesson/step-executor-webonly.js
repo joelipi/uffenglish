@@ -70,6 +70,7 @@ export function createLoadStep(deps) {
         clearChat,
         addAIFeedbackMessages,
         enableAudioSystem,
+        releaseSpeechCam,
     } = deps;
 
     return function loadStep(step, lesson, fluencyData) {
@@ -119,7 +120,17 @@ export function createLoadStep(deps) {
             // Unlock AudioContext for iOS video autoplay without triggering camera permissions.
             if (typeof enableAudioSystem === 'function') enableAudioSystem();
         } else {
-            setWebcamStream(null);
+            // A step that plays a video must not run with the camera/mic
+            // capture still open: `setWebcamStream(null)` only clears the store
+            // reference, so the live tracks survive and — on Android — the open
+            // capture keeps the device in a communication audio mode that mutes
+            // the clip's own audio. Release it completely here, at the step
+            // boundary (stories/075-fix-android-silent-video-start).
+            if (typeof releaseSpeechCam === 'function') {
+                releaseSpeechCam();
+            } else {
+                setWebcamStream(null);
+            }
             appStore.getState().setRecordingCountdown(null);
         }
 

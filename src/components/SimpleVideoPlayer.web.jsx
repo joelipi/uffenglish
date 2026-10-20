@@ -10,6 +10,7 @@ import { useNativeLanguage } from '../hooks/use-native-language.js';
 import { isBranchingStep, BRANCH_OVERLAY_PHASE } from '../modules/lesson/branch-choice-logic.js';
 import { getSimpleVideoOverlayTextKey } from '../modules/video/response-decision-logic.js';
 import { useVideoSpeed } from '../hooks/useVideoSpeed.js';
+import { createAudioGuard } from '../modules/video/audio-guard.js';
 import VideoSpeedToggle from './VideoSpeedToggle.jsx';
 import VideoPlayIcon from './VideoPlayIcon.jsx';
 
@@ -28,6 +29,13 @@ export default function SimpleVideoPlayer({ branchDepth = 0 } = {}) {
     const posterCanvasRef = useRef(null);
     const msIntervalRef = useRef(null);
     const foucFallbackRef = useRef(null);
+    // The audio guard keeps the clip audible for the first seconds of playback
+    // and repairs an element that ends up muted (stories/075).
+    const audioGuardRef = useRef(null);
+    // The element `video.load()` was already called for. A second load() on the
+    // same element+source aborts the first resource selection and restarts the
+    // media pipeline, which is how the clip ends up starting without audio.
+    const loadedElementRef = useRef(null);
     const [playing, setPlaying] = useState(false);
     // True while an autoplay attempt is in flight. The play icon is suppressed
     // during this window so it never flashes in the async gap between the video
@@ -122,6 +130,25 @@ export default function SimpleVideoPlayer({ branchDepth = 0 } = {}) {
         };
     }, [isActive]);
 
+    // The audio guard. It samples the element while the clip plays and repairs
+    // one that ends up muted, which is the Android-only "the video starts
+    // silent" symptom (stories/075-fix-android-silent-video-start).
+    useEffect(() => {
+        const guard = createAudioGuard({
+            getElement: () => videoRef.current,
+            isExpectedAudible: () => true,
+            play: () => {
+                const p = videoRef.current?.play();
+                if (p && typeof p.catch === 'function') p.catch(() => {});
+            },
+        });
+        audioGuardRef.current = guard;
+        return () => {
+            guard.stop();
+            audioGuardRef.current = null;
+        };
+    }, []);
+
     const handleVideoLoaded = useCallback(() => {
         if (!loaded) setLoaded(true);
         if (foucFallbackRef.current) clearTimeout(foucFallbackRef.current);
@@ -148,6 +175,9 @@ export default function SimpleVideoPlayer({ branchDepth = 0 } = {}) {
     const handlePlay = useCallback(() => {
         setPlaying(true);
         setAutoplayPending(false);
+        // Watch the element while it plays: a clip that loses its audio (the
+        // Android-only silent start) is repaired within the guard window.
+        audioGuardRef.current?.start();
         if (isAndroid) {
             try {
                 navigator.mediaSession.playbackState = 'none';
@@ -164,6 +194,7 @@ export default function SimpleVideoPlayer({ branchDepth = 0 } = {}) {
 
     const handlePause = useCallback(() => {
         setPlaying(false);
+        audioGuardRef.current?.stop();
         if (isAndroid) {
             if (msIntervalRef.current) {
                 clearInterval(msIntervalRef.current);
@@ -176,6 +207,7 @@ export default function SimpleVideoPlayer({ branchDepth = 0 } = {}) {
     }, []);
 
     const handleEnded = useCallback(() => {
+        audioGuardRef.current?.stop();
         if (isAndroid) {
             if (msIntervalRef.current) {
                 clearInterval(msIntervalRef.current);
@@ -287,7 +319,16 @@ export default function SimpleVideoPlayer({ branchDepth = 0 } = {}) {
                     video.play().then(() => {
                         console.log('[SimpleVideo] Muted autoplay succeeded — unmuting in 100ms.');
                         setAutoplayPending(false);
-                        setTimeout(() => { video.muted = false; }, 100);
+                        setTimeout(() => {
+                            video.muted = false;
+                            // Clearing the flag is not enough on its own: a
+                            // browser that muted the element may have already
+                            // torn the audio output down, so playback is
+                            // re-issued as well. The audio guard verifies the
+                            // element is audible shortly afterwards.
+                            const p = video.play();
+                            if (p && typeof p.catch === 'function') p.catch(() => {});
+                        }, 100);
                     }).catch((e) => {
                         console.log('[SimpleVideo] Muted autoplay also blocked:', e.message);
                         // Autoplay definitively blocked — allow the play icon
@@ -318,7 +359,16 @@ export default function SimpleVideoPlayer({ branchDepth = 0 } = {}) {
             // readyState < 2: call video.load() to resume buffering past metadata.
             // With preload='metadata', the browser stops after readyState=1 and
             // never fires canplay without an explicit load().
-            video.load();
+            //
+            // Only ONCE per element+source. This effect re-runs when it clears
+            // `pendingVideoPlayType` (the iOS transient-activation retry), and a
+            // second load() aborts the first resource selection and restarts
+            // the media pipeline — the clip then starts without audio.
+            const loadKey = video.src;
+            if (loadedElementRef.current?.element !== video || loadedElementRef.current?.key !== loadKey) {
+                loadedElementRef.current = { element: video, key: loadKey };
+                video.load();
+            }
             const onReady = () => {
                 video.removeEventListener('canplay', onReady);
                 clearTimeout(timeoutId);

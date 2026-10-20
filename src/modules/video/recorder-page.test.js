@@ -1105,6 +1105,19 @@ describe('recorder auto-render — zero server changes', () => {
             'src/modules/speech/rerecord-wiring.test.js',
             'src/modules/store/store.test.js',
             'stories/074-rerecord-single-press/story.md',
+            // Story 075 (Android silent lesson-video start): the audio guard
+            // that repairs a muted clip, the pure audibility rules, the wiring
+            // guards, and the capture release at the step boundary. Listed per
+            // this file's per-story convention.
+            'src/modules/video/audio-playback-logic.js',
+            'src/modules/video/audio-playback-logic.test.js',
+            'src/modules/video/audio-guard.js',
+            'src/modules/video/audio-guard.test.js',
+            'src/modules/video/audio-guard-wiring.test.js',
+            'src/components/InteractiveVideoPlayer.web.jsx',
+            'src/components/step-loader.web.js',
+            'tests/audio-guard-repairs-muted-video.spec.js',
+            'stories/075-fix-android-silent-video-start/story.md',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);
