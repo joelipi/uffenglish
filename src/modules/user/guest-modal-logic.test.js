@@ -87,8 +87,10 @@ describe('isPublicHomeRoute', () => {
         expect(isPublicHomeRoute('/tags/travel/')).toBe(true);
     });
 
-    it('is false for the dashboard, auth, lesson, profile and share-code routes', () => {
-        expect(isPublicHomeRoute('/home')).toBe(false);
+    it('is false for the auth, lesson, profile and share-code routes', () => {
+        // The dashboard (/home) IS public: the guest modal would cover the
+        // topic drop-down it shows.
+        expect(isPublicHomeRoute('/home')).toBe(true);
         expect(isPublicHomeRoute('/login')).toBe(false);
         expect(isPublicHomeRoute('/course/model/lesson/g')).toBe(false);
         expect(isPublicHomeRoute('/abc123')).toBe(false);
@@ -103,7 +105,7 @@ describe('isPublicHomeRoute', () => {
     });
 
     it('pins the public route list', () => {
-        expect(PUBLIC_ROUTES).toEqual(['/', '/privacy', '/terms', '/confirm-email', '/courses', '/welcome']);
+        expect(PUBLIC_ROUTES).toEqual(['/', '/privacy', '/terms', '/confirm-email', '/courses', '/welcome', '/home']);
         expect(PUBLIC_ROUTE_PREFIXES).toEqual(['/tags']);
     });
 });
@@ -132,9 +134,10 @@ describe('isHomepageRoute', () => {
 });
 
 describe('isLanguageAdoptingRoute', () => {
-    it('is true for the homepage, the course listings and the topic pages', () => {
+    it('is true for the homepage, the course listings, the dashboard and the topic pages', () => {
         expect(isLanguageAdoptingRoute('/')).toBe(true);
         expect(isLanguageAdoptingRoute('/courses')).toBe(true);
+        expect(isLanguageAdoptingRoute('/home')).toBe(true);
         expect(isLanguageAdoptingRoute('/welcome')).toBe(true);
         expect(isLanguageAdoptingRoute('/tags/travel')).toBe(true);
         expect(isLanguageAdoptingRoute('/tags/getting to know you')).toBe(true);
@@ -144,13 +147,13 @@ describe('isLanguageAdoptingRoute', () => {
         expect(isLanguageAdoptingRoute('/Welcome/')).toBe(true);
         expect(isLanguageAdoptingRoute('/TAGS/travel')).toBe(true);
         expect(isLanguageAdoptingRoute('/Courses/')).toBe(true);
+        expect(isLanguageAdoptingRoute('/Home')).toBe(true);
     });
 
     it('is false for the other public routes and the inside pages', () => {
         expect(isLanguageAdoptingRoute('/privacy')).toBe(false);
         expect(isLanguageAdoptingRoute('/terms')).toBe(false);
         expect(isLanguageAdoptingRoute('/confirm-email')).toBe(false);
-        expect(isLanguageAdoptingRoute('/home')).toBe(false);
         expect(isLanguageAdoptingRoute('/friends')).toBe(false);
     });
 
