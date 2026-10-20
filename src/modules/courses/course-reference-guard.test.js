@@ -81,9 +81,13 @@ describe('the browser suite targets only the reference courses', () => {
 describe('the suite clears the guest gate before it waits for the config', () => {
     it('every spec that waits for configData clears the guest-language gate', () => {
         for (const spec of SPECS) {
-            const waitsForConfig = /waitForFunction\([^)]*configData/.test(spec.source)
-                || /configData\s*&&/.test(spec.source)
-                || /configData\s*!=\s*null/.test(spec.source);
+            // The wait is `page.waitForFunction(() => ...configData...)`, and the
+            // `configData` reference can sit AFTER a closing paren
+            // (`getState()?.configData`), so the window is bounded rather than
+            // "up to the first `)`".
+            const waitsForConfig = /waitForFunction\([\s\S]{0,300}?\bconfigData\b/.test(spec.source)
+                || /\bconfigData\b\s*&&/.test(spec.source)
+                || /\bconfigData\b\s*!=\s*null/.test(spec.source);
             if (!waitsForConfig) continue;
             const clearsGate = spec.source.includes('confirmGuestLanguage(page)')
                 || spec.source.includes('#guestEnglishOnlyBtn');

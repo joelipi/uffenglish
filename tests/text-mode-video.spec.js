@@ -1,5 +1,6 @@
 // @ts-check
 import { test, expect } from '@playwright/test';
+import { confirmGuestLanguage } from './helpers/lesson-e2e.js';
 
 /**
  * Verifies that text-only answers produce a processed video where the user
@@ -35,6 +36,9 @@ test.describe('Text-Mode Video', () => {
         test.setTimeout(90000);
 
         await page.goto('/course/model/lesson/m-g');
+        // The guest-language modal gates the config load, so it has to go
+        // before the config the test waits for can arrive.
+        await confirmGuestLanguage(page);
         await page.waitForFunction(() => window.appStore?.getState()?.configData, { timeout: 20000 });
 
         const result = await page.evaluate(async () => {
