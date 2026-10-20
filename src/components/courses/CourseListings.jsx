@@ -21,7 +21,11 @@ export default function CourseListings({ lang = 'en', courses, isLoading = false
     // both off one predicate keeps them from disagreeing about who is here.
     const isGuest = isGuestViewer(userId, { isResolving });
     const containerStyle = {
-        height: '100dvh',
+        // The app shell (src/routes/AppShellLayout.jsx) owns the frame height
+        // and the shared header, so the page is a flex child of the region
+        // below the header — it must not claim a height of its own.
+        flex: 1,
+        minHeight: 0,
         display: 'flex',
         flexDirection: 'column',
         // index.html hides overflow on html/body (full-screen app shell) and #root is

@@ -1,12 +1,11 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useMemo, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useStore } from 'zustand';
 import { useQuery, useQueries } from '@tanstack/react-query';
 import { appStore } from '../../modules/store/store.js';
-import { useAuthStatus, useUserProfile, useNotifications, fetchUserByShareCode, signOut } from '../../modules/api/api.js';
+import { useUserProfile, useNotifications, fetchUserByShareCode } from '../../modules/api/api.js';
 import Strings from '../../data/strings.js';
 import { useNativeLanguage } from '../../hooks/use-native-language.js';
-import { trackEvent } from '../../modules/utils/posthog.js';
 import { loadConfigEntries, resolveCourseHeroImage } from '../../modules/courses/friend-course-configs.js';
 import { listFriendCourses } from '../../modules/courses/friend-courses-logic.js';
 import {
@@ -15,24 +14,20 @@ import {
     buildFriendLinksMaps,
 } from '../../modules/home/continue-logic.js';
 import FriendCoursesView from '../courses/FriendCoursesView.jsx';
-import NotificationsBell from './NotificationsBell.web.jsx';
-import PWAInstallButton from '../pwa/PWAInstallButton.web.jsx';
 import PWAInstallBanner from '../pwa/PWAInstallBanner.web.jsx';
-import { selectInstallCtaKey } from '../../modules/pwa/install-prompt-logic.js';
-import { readIsApplePlatform } from '../../modules/pwa/install-prompt-webonly.js';
 import PushNotificationsOptIn from '../notifications/PushNotificationsOptIn.web.jsx';
-import headerLogo from '../../assets/img/uff-logo.png';
+import { isRegisteredViewer } from '../../modules/navigation/app-menu-logic.js';
 
 export default function HomeScreen() {
     const navigate = useNavigate();
-    const [menuOpen, setMenuOpen] = useState(false);
     const courseId = useStore(appStore, state => state.courseId);
     const activeLessonId = useStore(appStore, state => state.activeLessonId);
     const lang = useNativeLanguage();
 
-    const { data: isLoggedIn } = useAuthStatus();
     const { data: profile } = useUserProfile();
     const viewerId = profile?.$id;
+    // A guest stub is not an account: no install banner, no push prompt.
+    const registered = isRegisteredViewer(viewerId);
 
     // Single-flight config loader shared by both queries below: concurrent
     // mounts await one `loadConfigEntries()` promise per HomeScreen mount
@@ -138,74 +133,18 @@ export default function HomeScreen() {
         if (fresh) navigate(fresh);
     };
 
-    function closeMenu() { setMenuOpen(false); }
-
-    async function handleSignOut() {
-        closeMenu();
-        trackEvent('sign_out');
-        await signOut();
-        navigate('/');
-    }
-
-    useEffect(() => {
-        if (!menuOpen) return;
-        function onKeyDown(e) {
-            if (e.key === 'Escape') closeMenu();
-        }
-        window.addEventListener('keydown', onKeyDown);
-        return () => window.removeEventListener('keydown', onKeyDown);
-    }, [menuOpen]);
-
-    const brandGradient = 'linear-gradient(135deg, #3a8fd5 0%, #00c0d8 100%)';
-
-    const linkStyle = {
-        color: 'white',
-        textDecoration: 'none',
-        padding: '12px',
-        borderRadius: '8px',
-        fontSize: '16px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '12px',
-    };
-
     const containerStyle = {
-        height: '100dvh',
+        // The app shell (src/routes/AppShellLayout.jsx) owns the frame height
+        // and the shared header, so the dashboard is a flex child of the
+        // region below the header — it must not claim a height of its own.
+        flex: 1,
+        minHeight: 0,
         overflowY: 'auto',
         backgroundColor: '#0b1a2a',
         color: 'white',
         fontFamily: 'var(--font-body)',
         display: 'flex',
         flexDirection: 'column',
-    };
-
-    // The menu's Install entry is a <button>, not a <Link>, so it needs the
-    // link styling plus button resets (no default chrome, full-width hit area).
-    const installBtnStyle = {
-        ...linkStyle,
-        width: '100%',
-        background: 'none',
-        border: 'none',
-        textAlign: 'left',
-        cursor: 'pointer',
-        fontFamily: 'inherit',
-    };
-
-    const topBarStyle = {
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '16px',
-        background: brandGradient,
-    };
-
-    const iconBtnStyle = {
-        background: 'none',
-        border: 'none',
-        color: 'white',
-        fontSize: '28px',
-        cursor: 'pointer',
-        padding: '8px',
     };
 
     // REVISIT LATER: the Continue bar is deliberately hidden for now — there is
@@ -235,103 +174,8 @@ export default function HomeScreen() {
 
     return (
         <div style={containerStyle}>
-            <div style={topBarStyle}>
-                <button onClick={() => setMenuOpen(true)} style={iconBtnStyle}>
-                    <i className="bi bi-list"></i>
-                </button>
-                <img
-                    src={headerLogo}
-                    alt={Strings.get('home_title', lang)}
-                    data-testid="home-logo"
-                    // The logo is a ~5.3:1 wordmark. Pinning `height` and capping only
-                    // `maxWidth` would squeeze it out of proportion, so BOTH
-                    // dimensions are `auto` with a max on each: per CSS 2.1
-                    // §10.4 a replaced element's width/height auto box is sized
-                    // to the intrinsic ratio and then clamped by max-width /
-                    // max-height together, which keeps the wordmark undistorted.
-                    // It is the only elastic child of the row, so on a narrow
-                    // frame (short window -> frame width is 9/16 of the viewport
-                    // height) it gives way instead of pushing the bell past the
-                    // frame's right edge, where #root.video-frame clips it away.
-                    style={{ width: 'auto', height: 'auto', maxWidth: '50%', maxHeight: '40px', minWidth: 0, display: 'block', filter: 'drop-shadow(0 1px 1.5px rgba(0,0,0,0.35))' }}
-                />
-                <div style={{ flexShrink: 0 }}>
-                    {isLoggedIn && viewerId && viewerId !== 'guest'
-                        ? <NotificationsBell userId={viewerId} lang={lang} />
-                        : <div style={{ width: '44px' }} />}
-                </div>
-            </div>
-
-            {menuOpen && (
-                <div onClick={closeMenu} style={{ position: 'fixed', inset: 0, zIndex: 1000, backgroundColor: 'rgba(0,0,0,0.5)' }}>
-                    <div onClick={e => e.stopPropagation()} style={{ position: 'fixed', top: 0, left: 0, bottom: 0, width: '280px', backgroundColor: '#0b1a2a', borderRight: '1px solid #1a3a5a', padding: '24px', zIndex: 1001, display: 'flex', flexDirection: 'column' }}>
-                        <div style={{ background: brandGradient, margin: '-24px -24px 24px -24px', padding: '24px', borderBottom: 'none' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span style={{ fontSize: '20px', fontWeight: 600 }}>{Strings.get('home_menu', lang)}</span>
-                                <button onClick={closeMenu} style={{ background: 'none', border: 'none', color: 'white', fontSize: '24px', cursor: 'pointer' }}>
-                                    <i className="bi bi-x-lg"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <nav style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                            <Link to="/home" onClick={closeMenu} style={{ ...linkStyle, borderLeft: '3px solid transparent' }}
-                                  onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#1a3a5a'; e.currentTarget.style.borderLeftColor = '#00c0d8'; }}
-                                  onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.borderLeftColor = 'transparent'; }}>
-                                <i className="bi bi-house-fill"></i> {Strings.get('home_home', lang)}
-                            </Link>
-                            <Link to="/profile" onClick={closeMenu} style={{ ...linkStyle, borderLeft: '3px solid transparent' }}
-                                  onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#1a3a5a'; e.currentTarget.style.borderLeftColor = '#00c0d8'; }}
-                                  onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.borderLeftColor = 'transparent'; }}>
-                                <i className="bi bi-person-fill"></i> {Strings.get('home_profile', lang)}
-                            </Link>
-                            <Link to="/friends" onClick={closeMenu} style={{ ...linkStyle, borderLeft: '3px solid transparent' }}
-                                  onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#1a3a5a'; e.currentTarget.style.borderLeftColor = '#00c0d8'; }}
-                                  onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.borderLeftColor = 'transparent'; }}>
-                                <i className="bi bi-people-fill"></i> {Strings.get('home_friends', lang)}
-                            </Link>
-                            <Link to="/privacy" onClick={closeMenu} style={{ ...linkStyle, borderLeft: '3px solid transparent' }}
-                                  onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#1a3a5a'; e.currentTarget.style.borderLeftColor = '#00c0d8'; }}
-                                  onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.borderLeftColor = 'transparent'; }}>
-                                <i className="bi bi-shield-lock"></i> {Strings.get('legal_privacy', lang)}
-                            </Link>
-                            <Link to="/terms" onClick={closeMenu} style={{ ...linkStyle, borderLeft: '3px solid transparent' }}
-                                  onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#1a3a5a'; e.currentTarget.style.borderLeftColor = '#00c0d8'; }}
-                                  onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.borderLeftColor = 'transparent'; }}>
-                                <i className="bi bi-file-earmark-text"></i> {Strings.get('legal_terms', lang)}
-                            </Link>
-                            {viewerId && viewerId !== 'guest' && (
-                                <>
-                                    <PWAInstallButton
-                                        label={Strings.get(selectInstallCtaKey({ isApple: readIsApplePlatform() }), lang)}
-                                        style={installBtnStyle}
-                                        onBeforeOpen={closeMenu}
-                                    />
-                                    <PushNotificationsOptIn
-                                        lang={lang}
-                                        variant="menu-item"
-                                        userId={viewerId}
-                                        style={installBtnStyle}
-                                        onBeforeOpen={closeMenu}
-                                    />
-                                </>
-                            )}
-                        </nav>
-                        <div style={{ flex: 1 }} />
-                        {isLoggedIn ? (
-                            <button onClick={handleSignOut} style={{ background: 'none', border: '1px solid #dc3545', color: '#dc3545', padding: '12px', borderRadius: '8px', cursor: 'pointer', fontSize: '16px' }}>
-                                <i className="bi bi-box-arrow-right" style={{ marginRight: '8px' }}></i> {Strings.get('sign_out', lang)}
-                            </button>
-                        ) : (
-                            <Link to="/login" onClick={closeMenu} style={{ background: 'var(--uff-btn-bg)', color: 'var(--uff-btn-fg)', border: 'var(--uff-btn-border)', textDecoration: 'none', padding: '12px', borderRadius: '8px', textAlign: 'center', fontSize: '16px', fontWeight: 600, display: 'block', boxShadow: 'var(--uff-btn-shadow)' }}>
-                                {Strings.get('sign_in', lang)}
-                            </Link>
-                        )}
-                    </div>
-                </div>
-            )}
-
             <div style={{ flex: 1, overflowY: 'auto' }}>
-                {viewerId && viewerId !== 'guest' && (
+                {registered && (
                     <>
                         <PWAInstallBanner lang={lang} userId={viewerId} />
                         <PushNotificationsOptIn lang={lang} variant="prompt" userId={viewerId} />

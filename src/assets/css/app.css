@@ -409,6 +409,18 @@ body { margin: 0; font-family: var(--font-body); font-size: 1rem; font-weight: 4
     --gradient-brand: linear-gradient(135deg, #3a8fd5 0%, #00c0d8 100%);
 }
 
+/* Shared app-header drawer links (src/components/layout/AppHeader.web.jsx).
+   The hover state lives here so the drawer never writes to the DOM from an
+   event handler (AGENTS.md: pure React, no direct DOM manipulation). */
+.uff-menu-link {
+    border-left: 3px solid transparent;
+}
+
+.uff-menu-link:hover {
+    background-color: #1a3a5a;
+    border-left-color: #00c0d8;
+}
+
 /* Italicize localized text (non-English lang attributes) */
 [lang]:not([lang="en"]):not([lang="EN"]) {
     font-style: italic;

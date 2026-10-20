@@ -14,6 +14,8 @@ const read = (rel) => readFileSync(path.join(__dirname, rel), 'utf8');
 const routes = read('../../routes/routes.jsx');
 const homeLanding = read('../homescreen/HomeLanding.jsx');
 const homeScreen = read('../homescreen/HomeScreen.jsx');
+const appHeader = read('../layout/AppHeader.web.jsx');
+const appMenu = read('../../modules/navigation/app-menu-logic.js');
 const privacyRoute = read('../../routes/PrivacyRoute.jsx');
 const termsRoute = read('../../routes/TermsRoute.jsx');
 
@@ -59,21 +61,21 @@ describe('homepage footer', () => {
 });
 
 describe('user-menu drawer', () => {
-    // Scope to the nav block: from the Profile entry to the closing </nav>.
-    const profileAt = homeScreen.indexOf("Strings.get('home_profile'");
-    const navEnd = homeScreen.indexOf('</nav>', profileAt);
-    const menuBlock = homeScreen.slice(profileAt, navEnd);
-
-    it('contains the Profile entry and closes the nav', () => {
-        expect(profileAt).toBeGreaterThan(-1);
-        expect(navEnd).toBeGreaterThan(profileAt);
+    // The drawer is the SHARED app header's menu (every inside page of the
+    // app shows it), so its entries live in one module and the header renders
+    // that module — not a copy of it.
+    it('renders the shared menu entries', () => {
+        expect(appHeader).toContain('APP_MENU_ITEMS.map');
+        expect(appHeader).toContain('to={item.path}');
     });
 
     it('links to the privacy page from the menu', () => {
-        expect(menuBlock).toContain('to="/privacy"');
+        expect(appMenu).toContain("path: '/privacy'");
+        expect(appMenu).toContain("labelKey: 'legal_privacy'");
     });
 
     it('links to the terms page from the menu', () => {
-        expect(menuBlock).toContain('to="/terms"');
+        expect(appMenu).toContain("path: '/terms'");
+        expect(appMenu).toContain("labelKey: 'legal_terms'");
     });
 });

@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import RootLayout from './RootLayout.jsx';
 import AppLayout from './AppLayout.jsx';
+import AppShellLayout from './AppShellLayout.jsx';
 import AuthLayout from './AuthLayout.jsx';
 import HomeRoute from './HomeRoute.jsx';
 import PublicHomeRoute from './PublicHomeRoute.jsx';
@@ -33,25 +34,39 @@ export const routes = [
     element: <RootLayout />,
     children: [
       { path: '/', element: <PublicHomeRoute /> },
-      { path: '/home', element: <HomeRoute /> },
+      // Every INSIDE page of the app is mounted inside the app shell, so they
+      // all show the SAME header (the brand bar + the menu drawer). The public
+      // landing page above, the lesson player and the public share-code
+      // profile stay OUTSIDE the shell — they keep their own chrome.
+      //
+      // The shell's children are declared before the /:shareCode catch-all
+      // below, like every other static route, or `friends` (or `courses`)
+      // would be read as a share code.
+      {
+        element: <AppShellLayout />,
+        children: [
+          { path: '/home', element: <HomeRoute /> },
+          { path: '/profile', element: <ProfileRoute /> },
+          // Public course listings must precede the single-segment
+          // /:shareCode catch-all like the legal pages, or `courses` is read
+          // as a share code.
+          { path: '/courses', element: <CoursesRoute /> },
+          // Friends directory (logged-in). Must precede the single-segment
+          // /:shareCode catch-all like the other static pages, or `friends` is
+          // read as a share code.
+          { path: '/friends', element: <FriendsRoute /> },
+          // Legal pages must precede the single-segment /:shareCode catch-all.
+          { path: '/privacy', element: <PrivacyRoute /> },
+          { path: '/terms', element: <TermsRoute /> },
+        ],
+      },
       { path: '/login', element: <AuthLayout />, children: [{ index: true, element: <LoginRoute /> }] },
       { path: '/signup', element: <AuthLayout />, children: [{ index: true, element: <SignupRoute /> }] },
       { path: '/recover-password', element: <AuthLayout />, children: [{ index: true, element: <RecoverPasswordRoute /> }] },
       { path: '/reset-password', element: <AuthLayout />, children: [{ index: true, element: <ResetPasswordRoute /> }] },
-      { path: '/profile', element: <ProfileRoute /> },
-      // Legal pages must precede the single-segment /:shareCode catch-all.
-      { path: '/privacy', element: <PrivacyRoute /> },
-      { path: '/terms', element: <TermsRoute /> },
       // Public: the confirmation link is opened without a session. Must precede
       // the single-segment /:shareCode catch-all like the legal pages.
       { path: '/confirm-email', element: <AuthLayout />, children: [{ index: true, element: <ConfirmEmailRoute /> }] },
-      // Public course listings must precede the single-segment /:shareCode
-      // catch-all like the legal pages, or `courses` is read as a share code.
-      { path: '/courses', element: <CoursesRoute /> },
-      // Friends directory (logged-in). Must precede the single-segment
-      // /:shareCode catch-all like the other static pages, or `friends` is
-      // read as a share code.
-      { path: '/friends', element: <FriendsRoute /> },
       { path: '/course/:courseId/lesson/:lessonId', element: <AppLayout />, errorElement: <LessonError />, children: [{ index: true, element: <LessonContainer /> }] },
       { path: '/:shareCode', element: <PublicProfileRoute /> },
       // Unknown paths get a real 404 page instead of a silent bounce to `/`.
