@@ -1304,6 +1304,15 @@ describe('recorder auto-render — zero server changes', () => {
             'src/modules/courses/course-tags-logic.test.js',
             'src/modules/courses/friend-courses-logic.js',
             'src/modules/courses/friend-courses-logic.test.js',
+            // The chain's addressing: a chain clip is addressed by its
+            // recorder, so every hop of the friend chain resolves.
+            'src/modules/bilingual/config-normalizer.js',
+            'src/modules/bilingual/config-normalizer.test.js',
+            'src/modules/courses/friend-clip-chain.test.js',
+            'src/modules/video/video-processor-logic.js',
+            'src/modules/video/video-processor-logic.test.js',
+            'src/modules/video/video-processor.web.js',
+            'stories/083-friend-clip-addressing/story.md',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);

@@ -327,67 +327,52 @@ describe('normalizeConfig localizes subtitles to the resolved language', () => {
 });
 
 describe('normalizer/builder UGC contract', () => {
-    // The normalized friend slug must equal the key buildUgcSegmentKey writes
-    // for the same logical clip — WHEN the session codes are the recorder and
-    // the inviter. Any other viewer/code combination addresses a different pair
-    // and must not be expected to match (see the addressing decision).
-    it('resolves to the builder key when session codes are recorder+inviter', async () => {
+    // A chain clip is addressed by its RECORDER alone (`<recorder>-<recorder>`),
+    // so the normalized friend slug must equal the key buildUgcSegmentKey
+    // writes for the same logical clip — for EVERY viewer, signed in or not.
+    it('resolves to the builder key the recorder published', async () => {
         const { resolveShareCodes } = await import('./config-normalizer.js');
         const { buildUgcSegmentKey } = await import('../video/video-processor-logic.js');
         const ref = '{friendCode}{selfCode}-wouldyourather-a-01';
         const resolved = resolveShareCodes(ref, { friendCode: 'hu7ni', selfCode: 'mncb1' });
-        const key = buildUgcSegmentKey({ shareCode: 'hu7ni', inviterCode: 'mncb1', courseId: 'wouldyourather', lessonId: 'a', index: 1 });
-        expect(`videos/${resolved}.mp4`).toBe(key);
-    });
-
-    it('resolves {selfCode} from the viewer code', async () => {
-        const { resolveShareCodes } = await import('./config-normalizer.js');
-        expect(resolveShareCodes('{friendCode}{selfCode}-c-l-01', { friendCode: 'aa11', selfCode: 'bb22' }))
-            .toBe('aa11-bb22-c-l-01');
-        expect(resolveShareCodes('{friendCode}{selfCode}-c-l-01', { friendCode: 'aa11', selfCode: null }))
-            .toBe('aa11-c-l-01');
-    });
-
-    // The asker's OWN recording of the chain's ask lesson is published under
-    // their own name (`<owner>-<owner>`): they started the chain, so there is
-    // no inviter. A signed-in viewer must therefore resolve the ask-side
-    // reference to the friend's code — the viewer's own code would address a
-    // clip that was never published, and the friend's recorded question would
-    // never play.
-    it('resolves the ask-side reference to the friend code, not the viewer code', async () => {
-        const { resolveShareCodes } = await import('./config-normalizer.js');
-        const { buildUgcSegmentKey } = await import('../video/video-processor-logic.js');
-        const resolved = resolveShareCodes('{friendCode}{selfCode}-wouldyourather-a-01', {
-            friendCode: 'hu7ni', selfCode: 'mncb1', askLessonId: 'a',
-        });
-        expect(resolved).toBe('hu7ni-hu7ni-wouldyourather-a-01');
-        // ...which is exactly the key the asker's own publish wrote.
         const key = buildUgcSegmentKey({ shareCode: 'hu7ni', inviterCode: 'hu7ni', courseId: 'wouldyourather', lessonId: 'a', index: 1 });
         expect(`videos/${resolved}.mp4`).toBe(key);
     });
 
-    it('keeps the viewer code for an answer-side reference', async () => {
+    // The second slot is the RECORDER, not the viewer: a viewer whose own code
+    // differs from the friend's must still address the friend's clip. (The
+    // viewer's code would address a clip that was never published.)
+    it('resolves the second slot to the recorder, not the viewer', async () => {
         const { resolveShareCodes } = await import('./config-normalizer.js');
-        // The owner's answer was recorded while answering the viewer, so the
-        // inviter IS the viewer.
-        expect(resolveShareCodes('{friendCode}{selfCode}-wouldyourather-b-04', {
-            friendCode: 'hu7ni', selfCode: 'mncb1', askLessonId: 'a',
-        })).toBe('hu7ni-mncb1-wouldyourather-b-04');
+        expect(resolveShareCodes('{friendCode}{selfCode}-c-l-01', { friendCode: 'aa11', selfCode: 'bb22' }))
+            .toBe('aa11-aa11-c-l-01');
+        // An anonymous viewer (no code of its own) addresses the same clip.
+        expect(resolveShareCodes('{friendCode}{selfCode}-c-l-01', { friendCode: 'aa11', selfCode: null }))
+            .toBe('aa11-aa11-c-l-01');
     });
 
-    it('does not touch a reference that is not the ask lesson', async () => {
+    // A SELF reference (no friend placeholder) keeps the viewer's own code:
+    // the viewer is the recorder of their own clip.
+    it('keeps the viewer code for a self reference', async () => {
+        const { resolveShareCodes } = await import('./config-normalizer.js');
+        expect(resolveShareCodes('{selfCode}-c-l-01', { friendCode: 'aa11', selfCode: 'bb22' }))
+            .toBe('bb22-c-l-01');
+    });
+
+    it('does not touch a reference that carries no placeholder', async () => {
         const { resolveShareCodes } = await import('./config-normalizer.js');
         // A system slug that merely ends in the ask lesson id is not a friend
         // reference: the codes are not placeholders, so nothing changes.
         expect(resolveShareCodes('wouldyourather-a-01', {
-            friendCode: 'hu7ni', selfCode: 'mncb1', askLessonId: 'a',
+            friendCode: 'hu7ni', selfCode: 'mncb1',
         })).toBe('wouldyourather-a-01');
     });
 
     // The reported symptom: a signed-in visitor opened a friend's link and the
-    // friend's recorded question never played, because the app asked R2 for
-    // `<owner>-<viewer>` while the asker had published `<owner>-<owner>`.
-    it('resolves a real course config to the owner\'s own key for the ask-side clip', async () => {
+    // friend's recorded clip never played, because the app asked R2 for a key
+    // built from the viewer's own code while the clip had been published under
+    // the friend's own name.
+    it('resolves a real course config to the friend\'s own key for every friend clip', async () => {
         const configData = JSON.parse(JSON.stringify(wouldyouratherTest));
         const previous = appStore.getState();
         try {
@@ -399,11 +384,17 @@ describe('normalizer/builder UGC contract', () => {
             const askClip = lessonB.steps.find((s) => String(s.simpleVideoUrl || '').includes('wouldyourather-test-a-0'));
             expect(askClip.simpleVideoUrl).toBe('qm3zv-qm3zv-wouldyourather-test-a-01');
 
-            // The answer-side clip keeps the viewer's code: the owner recorded
-            // it while answering the viewer.
+            // The next lesson in the chain plays the PREVIOUS learner's copy of
+            // the same namespace — the friend published it under their own name
+            // too, so it resolves to the friend's own key as well.
+            const lessonC = configData.lessons.find((l) => l.lessonId === 'c');
+            const chainClip = lessonC.steps.find((s) => String(s.simpleVideoUrl || '').includes('wouldyourather-test-a-0'));
+            expect(chainClip.simpleVideoUrl).toBe('qm3zv-qm3zv-wouldyourather-test-a-01');
+
+            // A later namespace (the `c` set) resolves the same way.
             const lessonD = configData.lessons.find((l) => l.lessonId === 'd');
             const answerClip = lessonD.steps.find((s) => String(s.simpleVideoUrl || '').includes('wouldyourather-test-c-0'));
-            expect(answerClip.simpleVideoUrl).toBe('qm3zv-d38bj-wouldyourather-test-c-01');
+            expect(answerClip.simpleVideoUrl).toBe('qm3zv-qm3zv-wouldyourather-test-c-01');
         } finally {
             appStore.setState({ friendCode: previous.friendCode, userData: previous.userData });
         }

@@ -1,14 +1,9 @@
 import Strings from '../../data/strings.js';
 import { getLocalizedTranslation } from '../utils/utils.js';
 import { appStore } from '../store/store.js';
-import { findAskLessonId } from '../courses/friend-courses-logic.js';
 
 const FRIEND_CODE_REGEX = /\{friendCode\}-?/g;
 const SELF_CODE_REGEX = /\{selfCode\}-?/g;
-
-function escapeRegExp(value) {
-    return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
 
 /**
  * Replace a code placeholder with the lower-cased code (plus the separator the
@@ -21,43 +16,34 @@ function substituteCode(value, regex, code) {
 }
 
 /**
- * Whether a friend reference points at the course's ASK lesson, i.e. at the
- * asker's own recording (`{friendCode}{selfCode}-<course>-<askLessonId>-<NN>`).
- */
-export function isAskSideReference(value, askLessonId) {
-    if (typeof value !== 'string' || !askLessonId) return false;
-    if (!value.includes('{friendCode}')) return false;
-    return new RegExp(`-${escapeRegExp(askLessonId)}-\\d+$`).test(value);
-}
-
-/**
  * Resolve the two share-code placeholders a UGC slug can carry:
  * `{friendCode}` (the recorder — the other party) and `{selfCode}` (the
- * inviter). A UGC clip's identity is `{recorder}-{inviter}-…`, so both are
- * needed.
+ * recorder's own code, again).
  *
- * The inviter is the person whose link the recorder was answering:
+ * A chain clip is addressed by its RECORDER alone — `<recorder>-<recorder>-…` —
+ * because the reader is the one who has to compute the key, and the reader
+ * knows only two codes: the friend's and its own. The clip it wants is the
+ * friend's own contribution to that namespace, and the friend published it
+ * under their own name; a key built from the viewer's code
+ * (`<friend>-<viewer>`) was never published, and neither was one built from the
+ * friend's inviter, because the reader cannot know which link the friend was
+ * answering.
  *
- * - For the chain's ANSWER-side clips that is the viewer (the partner whose
- *   question the recorder answered) — so `{selfCode}` is the viewer's own code.
- * - For the chain's ASK-side clips it is the asker THEMSELVES: they recorded
- *   their own questions, so the clip is published `<owner>-<owner>`. A
- *   signed-in viewer would otherwise ask for `<owner>-<viewer>`, get a 404, and
- *   never see the friend's recorded question — the anonymous case only worked
- *   because an anonymous viewer has no code of their own and falls back to the
- *   friend's.
- *
- * `askLessonId` (the course's ask lesson) selects which of the two a reference
- * is. Exported for the normalizer/builder contract test.
+ * So the second slot resolves to the reference's RECORDER: the friend's code for
+ * a friend reference, the viewer's own code for a self reference. That is the
+ * same key the publisher writes (see `resolveInviterCode`,
+ * `src/modules/video/video-processor-logic.js`), so every hop of the chain
+ * resolves — the first (the asker's own clip) and every later one (the previous
+ * learner's contribution to the same namespace).
  */
-export function resolveShareCodes(value, { friendCode, selfCode, askLessonId } = {}) {
+export function resolveShareCodes(value, { friendCode, selfCode } = {}) {
     if (typeof value !== 'string') return value;
-    // Which inviter applies is decided on the TEMPLATE (before the friend
-    // code is substituted into it).
-    const inviter = isAskSideReference(value, askLessonId) ? friendCode : selfCode;
+    // The recorder is decided on the TEMPLATE (before the friend code is
+    // substituted into it).
+    const recorder = value.includes('{friendCode}') ? (friendCode || selfCode) : selfCode;
     let out = value;
     if (out.includes('{friendCode}')) out = substituteCode(out, FRIEND_CODE_REGEX, friendCode);
-    if (out.includes('{selfCode}')) out = substituteCode(out, SELF_CODE_REGEX, inviter);
+    if (out.includes('{selfCode}')) out = substituteCode(out, SELF_CODE_REGEX, recorder);
     return out;
 }
 
@@ -162,19 +148,14 @@ export function normalizeConfig(configData, lang = 'en') {
 
     const userLang = lang || 'en';
 
-    // For anonymous viewers (no own share code) the inviter of a friend's clip
-    // cannot be known; default to the friend's code, which matches the
-    // self-initiated case where the asker published under their own code as
-    // both recorder and inviter.
+    // A friend's clip is addressed by the friend's own code (the recorder), so
+    // the viewer's own code is only needed for a self reference. For anonymous
+    // viewers (no own share code) there is no second code at all: the friend's
+    // code is the recorder of the clip they are about to watch.
     const selfCode = appStore.getState().userData?.shareCode || appStore.getState().friendCode;
     applyShareCodeWildcards(configData, {
         friendCode: appStore.getState().friendCode,
         selfCode,
-        // The asker's OWN recording is published under their own name, so the
-        // ask-side reference must resolve the inviter to the friend code — a
-        // signed-in viewer's own code would address a clip that was never
-        // published.
-        askLessonId: findAskLessonId(configData),
     });
 
     configData.lessons.forEach(lesson => {
