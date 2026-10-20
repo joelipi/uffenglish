@@ -798,6 +798,341 @@ export function withHero(head, hero, courseMission, lessons) {
     return out;
 }
 
+// ---------------------------------------------------------------------------
+// The ABABAB shape.
+//
+// A course is a list of PAIRS: each pair owns a question video set (4 phrasings
+// per topic) and an answer video set (2 options x 4 phrasings per topic). The
+// lessons chain, and the chain is DERIVED from the pair order so the author
+// writes every phrase exactly once:
+//
+//   pair 1 ask    -> record set 1's questions            (no respond phase)
+//   pair 1 answer -> answer set 1, record set 1's questions
+//   pair 2 ask    -> answer set 1, record set 2's questions
+//   pair 2 answer -> answer set 2, record set 2's questions
+//   pair 3 ask    -> answer set 2, record set 3's questions
+//   pair 3 answer -> answer set 3, record set 3's questions
+//
+// A pair's ASK lesson answers the PREVIOUS pair's answer set, so the chain never
+// breaks: every lesson after the first opens on the clips the previous lesson
+// recorded. Every lesson records its own pair's question set.
+//
+// A step is one TAKE (the sheet's `filename`), never the take-group: the
+// `-NN` suffixed video is the one the app plays. The sheet's `srt` column
+// describes the take-GROUP (the render writes one SRT per group), so a take
+// step's subtitle is its own PHRASE - a plain string with no timings, which the
+// player shows for the video's whole length. The `srt` still gates the course
+// (a step is only emitted once the render produced its video), which is what
+// `--require-videos` reads.
+//
+// The rows carry the structure in five columns the bridge writes:
+// `pair_index`, `set_role` (question|answer), `topic_index`, `group_index`
+// (the option for answers, the phrasing for questions) and `variant_index`
+// (the phrasing within the group).
+// ---------------------------------------------------------------------------
+
+const ABABAB_PAD = (n) => String(n).padStart(2, '0');
+
+function abababNum(row, name) {
+    const n = Number(cell(row, name));
+    return Number.isFinite(n) ? n : 0;
+}
+
+/** The take's own text in every locale it was translated into. */
+function abababPhrase(row) {
+    return localizedObject([row], 'phrase', cell(row, 'phrase'));
+}
+
+/**
+ * A branching's group labels, one per option, in every locale. The sheet
+ * carries them newline-separated in `choose_step_text`.
+ */
+function abababGroupLabels(row) {
+    const lines = cell(row, 'choose_step_text').split('\n').map((l) => l.trim()).filter(Boolean);
+    const perLocale = { en: lines };
+    const localized = localizedObject([row], 'choose_step_text', cell(row, 'choose_step_text'));
+    for (const [locale, value] of Object.entries(localized)) {
+        if (locale === 'en') continue;
+        perLocale[locale] = String(value).split('\n').map((l) => l.trim()).filter(Boolean);
+    }
+    const labels = [];
+    for (let i = 0; i < lines.length; i++) {
+        const label = { en: lines[i] };
+        for (const [locale, values] of Object.entries(perLocale)) {
+            if (locale === 'en') continue;
+            if (values[i]) label[locale] = values[i];
+        }
+        labels.push(label);
+    }
+    return labels;
+}
+
+/** Index the sheet rows by their structural coordinates. */
+function abababIndex(rows) {
+    const index = {
+        questionTakes: new Map(),   // "pair|topic|group" -> take row (filename set)
+        questionRecords: new Map(), // "pair|topic|group" -> republish row (filename blank)
+        answerTakes: new Map(),     // "pair|topic|group|variant" -> take row
+        branches: new Map(),        // "pair|topic" -> respond branching row
+        pairs: new Map(),           // pair index -> { askId, answerId, topics:Set }
+    };
+    for (const row of rows) {
+        const pair = abababNum(row, 'pair_index');
+        const label = cell(row, 'filename').trim() || cell(row, 'video_file').trim();
+        if (!pair) throw new Error(`row "${label}" is missing pair_index`);
+        const role = cell(row, 'set_role').trim();
+        const topic = abababNum(row, 'topic_index');
+        const group = abababNum(row, 'group_index');
+        const variant = abababNum(row, 'variant_index');
+        const meta = index.pairs.get(pair) || { askId: '', answerId: '', topics: new Set() };
+        meta.topics.add(topic);
+        index.pairs.set(pair, meta);
+
+        if (role === 'question') {
+            const key = `${pair}|${topic}|${group}`;
+            if (cell(row, 'filename').trim()) {
+                index.questionTakes.set(key, row);
+                if (!meta.askId) meta.askId = cell(row, 'lesson_id').trim();
+            } else {
+                index.questionRecords.set(key, row);
+                if (!meta.answerId) meta.answerId = cell(row, 'lesson_id').trim();
+            }
+        } else if (role === 'answer') {
+            if (cell(row, 'response_type').trim() === 'branching') {
+                index.branches.set(`${pair}|${topic}`, row);
+                if (!meta.answerId) meta.answerId = cell(row, 'lesson_id').trim();
+            } else {
+                index.answerTakes.set(`${pair}|${topic}|${group}|${variant}`, row);
+                if (!meta.answerId) meta.answerId = cell(row, 'lesson_id').trim();
+            }
+        } else {
+            throw new Error(`row "${label}" has unknown set_role "${role}"`);
+        }
+    }
+    return index;
+}
+
+/** The question takes of one (pair, topic), ordered by their group index. */
+function abababQuestionTakes(index, pair, topic) {
+    const takes = [];
+    for (const [key, row] of index.questionTakes) {
+        const [p, t] = key.split('|').map(Number);
+        if (p === pair && t === topic) takes.push({ key, row, group: Number(key.split('|')[2]) });
+    }
+    takes.sort((a, b) => a.group - b.group);
+    return takes;
+}
+
+/** The answer takes of one (pair, topic), grouped by option, in order. */
+function abababAnswerGroups(index, pair, topic) {
+    const groups = new Map();
+    for (const [key, row] of index.answerTakes) {
+        const [p, t, g, v] = key.split('|').map(Number);
+        if (p !== pair || t !== topic) continue;
+        if (!groups.has(g)) groups.set(g, []);
+        groups.get(g).push({ variant: v, row });
+    }
+    return [...groups.entries()]
+        .sort((a, b) => a[0] - b[0])
+        .map(([group, takes]) => ({ group, takes: takes.sort((a, b) => a.variant - b.variant) }));
+}
+
+/** A response step: one take, its phrase as the cue and as a plain subtitle. */
+function abababResponseStep(row, nextStep, publishLessonId) {
+    const phrase = abababPhrase(row);
+    const step = {
+        responseType: 'friendClosedResponse',
+        simpleVideoUrl: cell(row, 'filename').trim(),
+        cue: [phrase],
+    };
+    if (nextStep !== undefined) step.nextStep = nextStep;
+    step.subtitles = { ...phrase };
+    if (publishLessonId) step.publishLessonId = publishLessonId;
+    return step;
+}
+
+/**
+ * One lesson.
+ *
+ * `respond` — the answer set the lesson answers (null for the first ask
+ * lesson, which has no previous set): { pair, friendNamespace }.
+ * `record` — the question set the lesson records: { pair }.
+ */
+function abababLesson({ id, respond, record, course, index }) {
+    const steps = [];
+    const recordTopics = [...index.pairs.get(record.pair).topics].sort((a, b) => a - b);
+
+    // -- opener ---------------------------------------------------------
+    if (respond) {
+        steps.push({
+            responseType: 'lessonIntro',
+            introBackgroundVideoUrl: `{friendCode}{selfCode}-${course}-${respond.friendNamespace}-01`,
+        });
+    } else {
+        const first = abababQuestionTakes(index, record.pair, recordTopics[0]);
+        steps.push({
+            responseType: 'lessonIntro',
+            introBackgroundVideoUrl: cell(first[0].row, 'filename').trim(),
+        });
+    }
+
+    // -- respond phase: the friend's clip, then the answer takes -------
+    if (respond) {
+        const topics = [...index.pairs.get(respond.pair).topics].sort((a, b) => a - b);
+        for (const topic of topics) {
+            const branch = index.branches.get(`${respond.pair}|${topic}`);
+            if (!branch) throw new Error(`pair ${respond.pair} topic ${topic} has no branching row`);
+            const labels = abababGroupLabels(branch);
+            const groups = abababAnswerGroups(index, respond.pair, topic);
+            if (groups.length !== labels.length) {
+                throw new Error(
+                    `pair ${respond.pair} topic ${topic} has ${groups.length} answer group(s) but ${labels.length} label(s)`
+                );
+            }
+            const branchIndex = steps.length;
+            const leaves = groups.map((g, gi) => ({
+                text: labels[gi],
+                chooseStep: g.takes.map((take, vi) => ({
+                    nextStep: gi * g.takes.length + vi + 1,
+                    text: abababPhrase(take.row),
+                })),
+            }));
+            steps.push({
+                responseType: 'branching',
+                simpleVideoUrl: `{friendCode}{selfCode}-${course}-${respond.friendNamespace}-${ABABAB_PAD(topic)}`,
+                chooseStep: leaves,
+            });
+            const flat = groups.flatMap((g) => g.takes);
+            // Every answer step advances past its group to the next branching,
+            // so the offset is known before the step is built. `steps.length`
+            // is the index the step about to be pushed will occupy.
+            // The answer clips publish into the ANSWER set's namespace, which
+            // is redundant only for the lesson that owns that set.
+            const answerSetId = index.pairs.get(respond.pair).answerId;
+            const publish = answerSetId && answerSetId !== id ? answerSetId : undefined;
+            const nextBranch = steps.length + flat.length;
+            flat.forEach((take) => {
+                steps.push(abababResponseStep(take.row, nextBranch - steps.length, publish));
+            });
+        }
+    }
+
+    // -- record phase: choose a phrasing, then record that take ---------
+    for (const topic of recordTopics) {
+        const takes = abababQuestionTakes(index, record.pair, topic);
+        if (!takes.length) throw new Error(`pair ${record.pair} topic ${topic} has no question takes`);
+        steps.push({
+            responseType: 'branching',
+            chooseStep: takes.map((take, i) => ({ nextStep: i + 1, text: abababPhrase(take.row) })),
+        });
+        const nextBranch = steps.length + takes.length;
+        takes.forEach((take) => {
+            const recordRow = index.questionRecords.get(take.key);
+            if (!recordRow) {
+                throw new Error(`no republish row for question take "${cell(take.row, 'filename')}"`);
+            }
+            const publish = cell(recordRow, 'publish_lesson_id').trim();
+            // The republish namespace is the question SET's lesson id; it is
+            // redundant when this lesson owns that set (the ask lesson of the
+            // pair records its own questions).
+            steps.push(abababResponseStep(
+                take.row,
+                nextBranch - steps.length,
+                publish && publish !== id ? publish : undefined
+            ));
+        });
+    }
+
+    return steps;
+}
+
+/**
+ * The ABABAB course config: the lessons in chain order, with the course-level
+ * scalars. Used when the sheet carries the structural columns.
+ */
+function buildAbababCourseConfig(videoRows) {
+    const courseId = firstNonBlank(videoRows, 'course_id');
+    const courseName = firstNonBlank(videoRows, 'course_name');
+    const hero = firstNonBlank(videoRows, 'hero');
+    if (!courseId) throw new Error('missing course_id column value');
+    if (!courseName) throw new Error('missing course_name column value');
+
+    const index = abababIndex(videoRows);
+    const pairIndexes = [...index.pairs.keys()].sort((a, b) => a - b);
+    if (!pairIndexes.length) throw new Error('no pairs in the rows');
+
+    // The lesson header (title, mission, framing) comes from the rows that
+    // belong to THAT lesson, never from the set it borrows.
+    const lessonRows = new Map();
+    for (const row of videoRows) {
+        const lessonId = cell(row, 'lesson_id').trim();
+        if (!lessonId) throw new Error(`row "${cell(row, 'filename')}" is missing lesson_id`);
+        if (!lessonRows.has(lessonId)) lessonRows.set(lessonId, []);
+        lessonRows.get(lessonId).push(row);
+    }
+
+    const lessons = [];
+    pairIndexes.forEach((pair, i) => {
+        const meta = index.pairs.get(pair);
+        const previous = i > 0 ? pairIndexes[i - 1] : null;
+        const previousMeta = previous !== null ? index.pairs.get(previous) : null;
+
+        for (const spec of [
+            {
+                id: meta.askId,
+                respond: previousMeta ? { pair: previous, friendNamespace: previousMeta.askId } : null,
+                record: { pair },
+            },
+            {
+                id: meta.answerId,
+                respond: { pair, friendNamespace: meta.askId },
+                record: { pair },
+            },
+        ]) {
+            const rowsForLesson = lessonRows.get(spec.id) || [];
+            const title = firstNonBlank(rowsForLesson, 'lesson_title');
+            if (!title) throw new Error(`lesson "${spec.id}": missing lesson_title`);
+            const steps = abababLesson({ ...spec, course: courseId, index });
+            // A lesson that plays a friend clip must be `recapSources: 'friend'`
+            // (the recap keeps the friend's half of the conversation). The
+            // sheet's column describes the set the lesson was authored against,
+            // but in the ABABAB chain a pair's ASK lesson also answers the
+            // previous pair's clips, so the rule is derived from the steps.
+            const playsFriendClip = steps.some(
+                (s) => String(s.simpleVideoUrl || s.introBackgroundVideoUrl || '').includes('{friendCode}')
+            );
+            const recapSources = playsFriendClip ? 'friend' : (firstNonBlank(rowsForLesson, 'recap_sources') || 'none');
+            if (!RECAP_SOURCES.includes(recapSources)) {
+                throw new Error(`lesson "${spec.id}": invalid recap_sources "${recapSources}"`);
+            }
+            const recapOverlay = firstNonBlank(rowsForLesson, 'recap_overlay') || 'shareCta';
+            if (!RECAP_OVERLAYS.includes(recapOverlay)) {
+                throw new Error(`lesson "${spec.id}": invalid recap_overlay "${recapOverlay}"`);
+            }
+            const lesson = {
+                lessonId: spec.id, recapSources, recapOverlay,
+                title: localizedObject(rowsForLesson, 'lesson_title', title),
+            };
+            const unit = firstNonBlank(rowsForLesson, 'unit');
+            if (unit) lesson.unit = unit;
+            const mission = firstNonBlank(rowsForLesson, sourceOf('mission'));
+            if (mission) lesson.mission = localizedObject(rowsForLesson, 'mission', mission);
+            for (const col of LEVEL_PATTERN_COLUMNS) {
+                const pattern = firstNonBlank(rowsForLesson, col);
+                if (pattern) lesson[col] = levelPatternObject(rowsForLesson, col, pattern);
+            }
+            lesson.steps = steps;
+            lessons.push(lesson);
+        }
+    });
+
+    const courseMission = courseMissionFromLessons(lessons);
+    const head = { courseId, courseName };
+    const tags = firstNonBlank(videoRows, 'tags');
+    if (tags) head.tags = tags.split('|').map((t) => t.trim()).filter(Boolean);
+    return withHero(head, hero, courseMission, lessons);
+}
+
 /**
  * Carry hand-authored course metadata across a regeneration.
  *
@@ -832,6 +1167,12 @@ export function withCarriedTags(config, previous) {
 }
 
 function buildMasterCourseConfig(videoRows) {
+    // The ABABAB shape is the master format when the sheet carries the
+    // structural columns the bridge writes; a master sheet without them is
+    // the legacy one-step-per-take-group shape.
+    if (videoRows.some((row) => cell(row, 'pair_index').trim())) {
+        return buildAbababCourseConfig(videoRows);
+    }
     const courseId = firstNonBlank(videoRows, 'course_id');
     const courseName = firstNonBlank(videoRows, 'course_name');
     // Course banner: first non-blank wins, like every master-path scalar.

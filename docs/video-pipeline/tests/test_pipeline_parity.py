@@ -19,23 +19,29 @@ VIDEO_UTILS = REPO_ROOT / "scripts" / "lib" / "video-optimize-utils.js"
 POSTER_UTILS = REPO_ROOT / "scripts" / "lib" / "poster-utils.js"
 PIPELINE_KEYS = REPO_ROOT / "src" / "modules" / "video" / "pipeline-keys.js"
 GENERATE_CONFIG = REPO_ROOT / "scripts" / "generate-config-from-sheet.mjs"
+GENERATE_MASTER_CSV = REPO_ROOT / "scripts" / "generate-master-csv.mjs"
 RECORDER_HTML = REPO_ROOT / "public" / "recorder.html"
 
 
 def read_generator_csv_rel(text: str) -> str:
-    """The ``MASTER_CSV_REL = '<path>';`` literal in the config generator."""
-    match = re.search(r"MASTER_CSV_REL\s*=\s*'([^']+)'", text)
-    if not match:
-        raise AssertionError("MASTER_CSV_REL not found in generate-config-from-sheet.mjs")
-    return match.group(1)
+    """The master-CSV path template in the config generator.
+
+    The generator no longer names a course: the path is derived from the
+    course id, so the guard asserts the DERIVATION, not a literal. The
+    derivation lives in the bridge (source name -> CSV name); the generator
+    reads every committed master CSV.
+    """
+    if "masterCsvRelFor" not in text:
+        raise AssertionError("masterCsvRelFor not found in generate-master-csv.mjs")
+    return "public/<course>.master.csv"
 
 
 def read_recorder_csv_rel(text: str) -> str:
-    """The ``var spreadsheet_url = '<path>';`` literal in the recorder page."""
-    match = re.search(r"var spreadsheet_url = '([^']+)'", text)
+    """The recorder page's master-CSV path template."""
+    match = re.search(r"var spreadsheet_url = course \+ '([^']+)'", text)
     if not match:
         raise AssertionError("spreadsheet_url not found in public/recorder.html")
-    return match.group(1)
+    return "<course>" + match.group(1)
 
 
 def read_const(path: Path, name: str):
@@ -131,7 +137,13 @@ class SheetUrlParityTest(unittest.TestCase):
     HTTP (so its side pins the full URL); the generator and the recorder pin
     the committed path, which must be a suffix of the render URL. Guards read
     the raw source (URLs contain ``//``) and are proven failable by mutating
-    the real text on any side."""
+    the real text on any side.
+
+    Story 076: no reader names a course any more. Each derives the path from
+    the course id, so the guard asserts the DERIVATION agrees: for the same
+    course id the three readers must resolve to the same file."""
+
+    COURSE = "samplecourse"
 
     def _assert_parity(self, py_url: str, cli_text: str, recorder_text: str):
         for text in (cli_text, recorder_text):
@@ -140,32 +152,56 @@ class SheetUrlParityTest(unittest.TestCase):
             self.assertNotIn("docs.google.com", text)
         generator_rel = read_generator_csv_rel(cli_text)
         recorder_rel = read_recorder_csv_rel(recorder_text)
-        self.assertEqual(generator_rel, "public/wouldyourather.master.csv")
-        self.assertEqual(recorder_rel, "wouldyourather.master.csv")
+        # The generator keeps the public/ prefix; the recorder is same-origin.
+        # Both are TEMPLATES now: the path is derived from the course id.
+        self.assertEqual(generator_rel, "public/<course>.master.csv")
+        self.assertEqual(recorder_rel, "<course>.master.csv")
         # No absolute URL on the same-origin readers: a `://` would bypass the
         # committed file for a remote copy.
         self.assertNotIn("://", generator_rel)
         self.assertNotIn("://", recorder_rel)
         self.assertTrue(py_url.startswith("https://raw.githubusercontent.com/"), py_url)
-        self.assertTrue(py_url.endswith("/" + generator_rel), py_url)
-        self.assertTrue(py_url.endswith("/" + recorder_rel), py_url)
+        self.assertTrue(py_url.endswith("/" + generator_rel.replace("<course>", self.COURSE)), py_url)
+        self.assertTrue(py_url.endswith("/" + recorder_rel.replace("<course>", self.COURSE)), py_url)
+
+    def test_the_generator_reads_every_master_csv(self):
+        # The generator globs the committed store, so a new course needs no
+        # edit there either.
+        cli = GENERATE_CONFIG.read_text(encoding="utf-8")
+        self.assertIn("MASTER_CSV_GLOB = 'public/*.master.csv'", cli)
 
     def test_master_csv_url_matches_the_js_generator_and_recorder(self):
         self._assert_parity(
-            lib.MASTER_CSV_URL,
-            GENERATE_CONFIG.read_text(encoding="utf-8"),
+            lib.master_csv_url(self.COURSE),
+            GENERATE_MASTER_CSV.read_text(encoding="utf-8"),
             RECORDER_HTML.read_text(encoding="utf-8"),
         )
 
+    def test_the_generator_derives_the_same_path_as_python(self):
+        # The JS derivation is run, not re-implemented, so a change to its
+        # body is caught here.
+        import subprocess
+        script = (
+            "import(" + repr((REPO_ROOT / "scripts" / "generate-master-csv.mjs").as_uri()) + ").then((m) => "
+            "process.stdout.write(String(m.masterCsvRelFor('x/' + process.argv[1] + '.source.txt'))))"
+        )
+        result = subprocess.run(
+            ["node", "--input-type=module", "-e", script, self.COURSE],
+            capture_output=True, text=True, check=True,
+        )
+        self.assertEqual(result.stdout.strip(), f"public/{self.COURSE}.master.csv")
+        self.assertTrue(lib.master_csv_url(self.COURSE).endswith(
+            "/" + result.stdout.strip()))
+
     def test_guard_can_fail_on_either_side(self):
-        cli = GENERATE_CONFIG.read_text(encoding="utf-8")
+        cli = GENERATE_MASTER_CSV.read_text(encoding="utf-8")
         recorder = RECORDER_HTML.read_text(encoding="utf-8")
         cases = [
-            (lib.MASTER_CSV_URL + "x", cli, recorder),                        # Python drift
-            (lib.MASTER_CSV_URL, cli.replace("public/wouldyourather.master.csv",
-                                             "public/other.csv"), recorder),  # generator drift
-            (lib.MASTER_CSV_URL, cli, recorder.replace("wouldyourather.master.csv",
-                                                       "other.csv")),         # recorder drift
+            (lib.master_csv_url(self.COURSE) + "x", cli, recorder),      # Python drift
+            (lib.master_csv_url(self.COURSE), cli.replace("masterCsvRelFor", "renamedRelFor"),
+             recorder),                                                   # generator drift
+            (lib.master_csv_url(self.COURSE), cli,
+             recorder.replace("course + '.master.csv'", "course + '.other.csv'")),  # recorder drift
         ]
         for py_url, cli_text, recorder_text in cases:
             with self.assertRaises(AssertionError):

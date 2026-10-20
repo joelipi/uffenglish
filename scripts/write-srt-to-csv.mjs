@@ -21,7 +21,7 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { flagValue } from './lib/cli-utils.js';
 import { parseCsv, serializeWithHeaderLine, rawHeaderLine } from './lib/sheet-config-utils.js';
-import { MASTER_CSV_REL } from './generate-config-from-sheet.mjs';
+import { masterCsvPaths } from './generate-config-from-sheet.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -135,7 +135,7 @@ Usage:
 
 Options:
   --csv=<path>      video_data.csv downloaded from R2 (required)
-  --master=<path>   Master CSV file (default: the committed public/wouldyourather.master.csv)
+  --master=<path>   Master CSV file (default: every committed public/*.master.csv)
   --help, -h        Show this help`;
 
 async function main() {
@@ -144,31 +144,39 @@ async function main() {
 
     const csvPath = flagValue(args, '--csv');
     const masterFlag = flagValue(args, '--master');
-    const masterPath = masterFlag ? path.resolve(masterFlag) : path.join(ROOT, MASTER_CSV_REL);
+    // With no --master, every committed master CSV is updated: the step keys
+    // are course-prefixed, so one course's SRTs can never land in another's.
+    const masterPaths = masterFlag
+        ? [path.resolve(masterFlag)]
+        : masterCsvPaths(ROOT);
 
     if (!csvPath) {
         console.error('ERROR: --csv=<path> is required.');
         process.exit(1);
     }
-
-    const [videoDataText, masterText] = await Promise.all([
-        fs.readFile(csvPath, 'utf8'),
-        fs.readFile(masterPath, 'utf8'),
-    ]);
-    const { csv } = await runWriteSrtToCsv({ videoDataText, masterText });
-    if (csv === null) return;
-
-    // Same-directory temp file + rename (story-047 rule): a killed run never
-    // leaves a half-written store.
-    const tmpPath = `${masterPath}.tmp-${process.pid}`;
-    try {
-        await fs.writeFile(tmpPath, csv);
-        await fs.rename(tmpPath, masterPath);
-    } catch (err) {
-        await fs.rm(tmpPath, { force: true });
-        throw err;
+    if (!masterPaths.length) {
+        console.error('ERROR: no master CSV files found');
+        process.exit(1);
     }
-    console.log(`WROTE ${masterPath}`);
+
+    const videoDataText = await fs.readFile(csvPath, 'utf8');
+    for (const masterPath of masterPaths) {
+        const masterText = await fs.readFile(masterPath, 'utf8');
+        const { csv } = await runWriteSrtToCsv({ videoDataText, masterText });
+        if (csv === null) continue;
+
+        // Same-directory temp file + rename (story-047 rule): a killed run never
+        // leaves a half-written store.
+        const tmpPath = `${masterPath}.tmp-${process.pid}`;
+        try {
+            await fs.writeFile(tmpPath, csv);
+            await fs.rename(tmpPath, masterPath);
+        } catch (err) {
+            await fs.rm(tmpPath, { force: true });
+            throw err;
+        }
+        console.log(`WROTE ${masterPath}`);
+    }
 }
 
 const invokedDirectly = process.argv[1]

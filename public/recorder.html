@@ -896,7 +896,10 @@ node_video_preview.play(); // Explicitly restart playback
         }
 
         async function loadScriptDataFromSheets() {
-            var spreadsheet_url = 'wouldyourather.master.csv';
+            // Which course's committed master CSV to read. The path is derived
+            // from the course id, so a new course needs no edit here.
+            var course = new URLSearchParams(location.search).get('course') || 'wouldyourather';
+            var spreadsheet_url = course + '.master.csv';
             
             appCoreLog("Requesting remote CSV data...");
             try {

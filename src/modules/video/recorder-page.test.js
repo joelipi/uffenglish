@@ -249,7 +249,10 @@ describe('recorder page — same-origin master CSV', () => {
     };
 
     const assertLoaderContract = (slice) => {
-        expect(slice).toContain("var spreadsheet_url = 'wouldyourather.master.csv'");
+        // Story 076: the page derives the path from the course id, so a new
+        // course needs no edit here.
+        expect(slice).toContain("var spreadsheet_url = course + '.master.csv'");
+        expect(slice).toContain("get('course')");
         expect(slice).not.toContain('docs.google.com');
         expect(slice).not.toContain('2PACX');
         expect(slice).not.toContain('gid=');
@@ -270,7 +273,7 @@ describe('recorder page — same-origin master CSV', () => {
         const good = loaderSlice();
         // Presence tokens: removing the relative URL trips the guard.
         const noUrl = good.replace(
-            "var spreadsheet_url = 'wouldyourather.master.csv'",
+            "var spreadsheet_url = course + '.master.csv'",
             "var spreadsheet_url = 'other.csv'"
         );
         expect(noUrl).not.toBe(good);
@@ -286,16 +289,17 @@ describe('recorder page — same-origin master CSV', () => {
 
     it('the relative URL resolves to the committed CSV from both served paths', async () => {
         const html = page();
-        const match = /var spreadsheet_url = '([^']+)'/.exec(
+        const match = /var spreadsheet_url = course \+ '([^']+)'/.exec(
             html.slice(html.indexOf('async function loadScriptDataFromSheets()'))
         );
-        expect(match, 'spreadsheet_url literal').not.toBeNull();
-        const literal = match[1];
-        expect(literal.startsWith('http')).toBe(false);
+        expect(match, 'spreadsheet_url expression').not.toBeNull();
+        const suffix = match[1];
         // Pages serves the page at both /recorder.html and /recorder; the
-        // relative fetch must land on /wouldyourather.master.csv either way.
+        // relative fetch must land on /<course>.master.csv either way.
         for (const base of ['http://x/recorder.html', 'http://x/recorder']) {
-            expect(new URL(literal, base).pathname).toBe('/wouldyourather.master.csv');
+            for (const course of ['wouldyourather', 'othercourse']) {
+                expect(new URL(course + suffix, base).pathname).toBe(`/${course}.master.csv`);
+            }
         }
     });
 
@@ -955,10 +959,13 @@ describe('recorder auto-render — zero server changes', () => {
             'src/config/wouldyourather.json',
             'src/config/wouldyourather-test.json',
             'src/config/wouldyourather.test.js',
+            'src/config/ababab-generated-contract.test.js',
             // Story 066 (recorder auto-render).
             'public/recorder.html',
             'src/modules/video/recorder-page.test.js',
             'scripts/translate-master-csv.mjs',
+            'scripts/sync-srt-workflow.test.js',
+            'scripts/translate-master-workflow.test.js',
             'scripts/translate-master-csv.test.js',
             'scripts/lib/gemini.js',
             'scripts/lib/gemini.test.js',
@@ -1002,6 +1009,8 @@ describe('recorder auto-render — zero server changes', () => {
             'scripts/lib/gemini.js',
             'scripts/lib/gemini.test.js',
             'scripts/translate-master-csv.mjs',
+            'scripts/sync-srt-workflow.test.js',
+            'scripts/translate-master-workflow.test.js',
             // Zoho CPaaS email migration.
             '.env.example',
             'docs/auth-emails.md',
@@ -1151,8 +1160,34 @@ describe('recorder auto-render — zero server changes', () => {
             'stories/075-ababab-pattern-all-lessons/lesson-c.proposed.json',
             'stories/075-ababab-pattern-all-lessons/lesson-c.review.json',
             'stories/075-ababab-pattern-all-lessons/wouldyourather-test.review.json',
-            // Course-level `tags` on every course config (test data for the
-            // tag-based course filtering) and the guard that pins them.
+            'src/config/wouldyourather.json',
+            'src/config/wouldyourather.test.js',
+            'src/config/ababab-generated-contract.test.js',
+            'public/wouldyourather.master.csv',
+            'public/recorder.html',
+            'wouldyourather.source.txt',
+            '.github/workflows/sync-srt.yml',
+            '.github/workflows/translate-master.yml',
+            'docs/product.md',
+            'docs/video-pipeline/pipeline_lib.py',
+            'docs/video-pipeline/tests/test_pipeline_lib.py',
+            'docs/video-pipeline/tests/test_pipeline_parity.py',
+            'docs/video-pipeline/tests/test_modal_app_source.py',
+            'scripts/lib/sheet-config-utils.js',
+            'scripts/lib/sheet-config-utils.test.js',
+            'scripts/lib/source-bridge-utils.js',
+            'scripts/lib/source-bridge-utils.test.js',
+            'scripts/lib/poster-utils.test.js',
+            'scripts/generate-master-csv.mjs',
+            'scripts/generate-master-csv.test.js',
+            'scripts/generate-config-from-sheet.mjs',
+            'scripts/generate-config-from-sheet.test.js',
+            'scripts/translate-master-csv.mjs',
+            'scripts/sync-srt-workflow.test.js',
+            'scripts/translate-master-workflow.test.js',
+            'scripts/write-srt-to-csv.mjs',
+            'src/modules/video/model-config.test.js',
+            'stories/076-generate-ababab-config/story.md',
             'src/config/friend.json',
             'src/config/friendchain.json',
             'src/config/gt2.json',
@@ -1163,10 +1198,7 @@ describe('recorder auto-render — zero server changes', () => {
             'src/config/wouldrather.json',
             'src/config/course-tags.test.js',
             'docs/reviews/course-tags-review.md',
-            // The topic pages: the welcome page ("choose your topic"), the tag
-            // pages it links to, the pure logic behind them, and the home
-            // page's "start without a friend's code" now landing on the
-            // welcome page.
+            's "start without a friend',
             'src/components/courses/WelcomePage.jsx',
             'src/components/courses/WelcomePageContainer.jsx',
             'src/components/courses/WelcomePage.test.jsx',
