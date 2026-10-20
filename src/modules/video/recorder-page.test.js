@@ -287,6 +287,23 @@ describe('recorder page — same-origin master CSV', () => {
         }
     });
 
+    it('refuses to load without a course, instead of guessing one', () => {
+        // The course decides which master CSV the page reads AND which course
+        // every render request names, so a missing one must fail loudly
+        // rather than silently work on the wrong course.
+        const slice = loaderSlice();
+        expect(slice).toContain("get('course')");
+        expect(slice).toContain('NO COURSE');
+        expect(slice).not.toContain("|| 'wouldyourather'");
+    });
+
+    it('every render request carries the course', () => {
+        const html = page();
+        const posts = [...html.matchAll(/body: JSON\.stringify\(\{ files: ([^}]+)\}/g)].map((m) => m[0]);
+        expect(posts.length).toBeGreaterThan(0);
+        for (const post of posts) expect(post).toContain('course: global_recorder_course');
+    });
+
     it('the relative URL resolves to the committed CSV from both served paths', async () => {
         const html = page();
         const match = /var spreadsheet_url = course \+ '([^']+)'/.exec(
@@ -354,7 +371,7 @@ describe('recorder page — same-origin master CSV', () => {
         const html = page();
         const fetchedUrls = [];
         const dom = new JSDOM(html, {
-            url: 'http://127.0.0.1:9/recorder.html',
+            url: 'http://127.0.0.1:9/recorder.html?course=wouldyourather',
             runScripts: 'dangerously',
             beforeParse(pageWindow) {
                 pageWindow.fetch = async (url) => {
@@ -466,7 +483,7 @@ describe('recorder page — countdown overlay paints', () => {
         const html = page();
         const csv = fs.readFileSync(path.join(REPO_ROOT, 'public/wouldyourather.master.csv'), 'utf8');
         const dom = new JSDOM(html, {
-            url: 'http://127.0.0.1:9/recorder.html',
+            url: 'http://127.0.0.1:9/recorder.html?course=wouldyourather',
             runScripts: 'dangerously',
             beforeParse(pageWindow) {
                 pageWindow.fetch = async () => ({ ok: true, text: async () => csv });
@@ -572,7 +589,7 @@ describe('recorder page — lesson auto-render', () => {
         const { JSDOM } = await import('jsdom');
         const html = fs.readFileSync(PAGE_PATH, 'utf8');
         const dom = new JSDOM(html, {
-            url: 'http://127.0.0.1:9/recorder.html',
+            url: 'http://127.0.0.1:9/recorder.html?course=wouldyourather',
             runScripts: 'dangerously',
             beforeParse(pageWindow) {
                 pageWindow.fetch = stub;
@@ -1003,6 +1020,10 @@ describe('recorder auto-render — zero server changes', () => {
             'scripts/generate-config-from-sheet.mjs',
             'scripts/generate-config-from-sheet.test.js',
             'scripts/generate-sheet-from-source.mjs',
+            'docs/video-pipeline/trigger_app.py',
+            'docs/video-pipeline/modal_app.py',
+            'functions/api/pipeline/render.js',
+            'functions/api/pipeline/render.test.js',
             'scripts/source-to-csv-workflow.test.js',
             '.github/workflows/source-to-csv.yml',
             'src/modules/courses/friend-courses-logic.test.js',
@@ -1184,6 +1205,10 @@ describe('recorder auto-render — zero server changes', () => {
             'scripts/generate-config-from-sheet.mjs',
             'scripts/generate-config-from-sheet.test.js',
             'scripts/generate-sheet-from-source.mjs',
+            'docs/video-pipeline/trigger_app.py',
+            'docs/video-pipeline/modal_app.py',
+            'functions/api/pipeline/render.js',
+            'functions/api/pipeline/render.test.js',
             'scripts/translate-master-csv.mjs',
             'scripts/sync-srt-workflow.test.js',
             'scripts/translate-master-workflow.test.js',
