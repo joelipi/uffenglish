@@ -285,7 +285,7 @@ describe('CourseListings scrolling', () => {
         container = null;
     });
 
-    it('owns its scrolling: 100dvh clipping shell with a scrollable body region', () => {
+    it('owns its scrolling: a flex child of the app shell with a scrollable body region', () => {
         root = render(container, { courses: COURSES });
 
         const scroll = container.querySelector('[data-testid="friend-courses-scroll"]');
@@ -294,7 +294,12 @@ describe('CourseListings scrolling', () => {
         expect(scroll.style.flex || scroll.style.flexGrow).toBeTruthy();
 
         const shell = scroll.parentElement;
-        expect(shell.style.height).toBe('100dvh');
+        // The frame height belongs to the app shell
+        // (src/routes/AppShellLayout.jsx): the page is a flex child of the
+        // region below the shared header, so it must not claim a height.
+        expect(shell.style.flexGrow).toBe('1');
+        expect(shell.style.minHeight).toBe('0px');
+        expect(shell.style.height).toBe('');
         expect(shell.style.display).toBe('flex');
         expect(shell.style.flexDirection).toBe('column');
         expect(shell.style.overflow).toBe('hidden');

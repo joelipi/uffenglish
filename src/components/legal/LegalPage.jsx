@@ -11,7 +11,11 @@ export default function LegalPage({ markdown, titleKey }) {
     const lang = useNativeLanguage();
 
     const containerStyle = {
-        height: '100dvh',
+        // The app shell (src/routes/AppShellLayout.jsx) owns the frame height
+        // and the shared header, so the page is a flex child of the region
+        // below the header — it must not claim a height of its own.
+        flex: 1,
+        minHeight: 0,
         display: 'flex',
         flexDirection: 'column',
         // body/html are overflow:hidden in index.html (full-screen app shell),
@@ -22,13 +26,17 @@ export default function LegalPage({ markdown, titleKey }) {
         fontFamily: 'var(--font-body)',
     };
 
-    const topBarStyle = {
+    // The page title row. It is NOT a second header: the shared app header
+    // (the brand bar) is already above it, so this row is a plain title strip
+    // in the same style the other inside pages use — never a second gradient
+    // bar stacked under the header's.
+    const titleRowStyle = {
         flexShrink: 0,
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'space-between',
         padding: '16px',
-        background: 'linear-gradient(135deg, #3a8fd5 0%, #00c0d8 100%)',
+        borderBottom: '1px solid #1a3a5a',
+        gap: '12px',
     };
 
     const scrollStyle = {
@@ -45,7 +53,7 @@ export default function LegalPage({ markdown, titleKey }) {
 
     return (
         <div style={containerStyle}>
-            <div style={topBarStyle}>
+            <div style={titleRowStyle}>
                 <Link
                     to="/"
                     data-testid="legal-back"
@@ -55,7 +63,6 @@ export default function LegalPage({ markdown, titleKey }) {
                     <i className="bi bi-arrow-left"></i>
                 </Link>
                 <span style={{ fontSize: '18px', fontWeight: 600 }}>{Strings.get(titleKey, lang)}</span>
-                <div style={{ width: '40px' }} />
             </div>
 
             <div data-testid="legal-scroll" style={scrollStyle}>

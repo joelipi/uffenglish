@@ -1,5 +1,13 @@
 # Learnings
 
+## The app's inside pages share one header — and the shell, not the page, owns the frame
+**Date**: 2026-10-20
+**Area**: architecture | testing
+**What happened**: The brand bar (menu button, UFF logo, notification bell) and its slide-out drawer lived inside `HomeScreen.jsx`, so every other page of the app grew its own header instead — each one a *different* back-arrow bar. The fix was to extract the header into `src/components/layout/AppHeader.web.jsx`, mount it ONCE in a new app-shell layout (`src/routes/AppShellLayout.jsx`) and nest every inside page (`/home`, `/profile`, `/courses`, `/friends`, `/privacy`, `/terms`) under it in `src/routes/routes.jsx`. The shell then owns the frame height, so each page had to stop claiming `height: '100dvh'` and became a flex child (`flex: 1; minHeight: 0`) — a page that keeps `100dvh` under the header overflows the clipping `.video-frame` and its bottom is cut off. Six source-guard tests pointed at the old menu text inside `HomeScreen.jsx`; they had to be repointed at the *source of truth* (the pure menu module `src/modules/navigation/app-menu-logic.js` + the header's `APP_MENU_ITEMS.map`), because a guard that slices a file for a token the code no longer has protects nothing.
+**Takeaway**: (1) A page-level chrome that several routes need belongs in a layout that mounts it once — per-page copies are how a "same header everywhere" requirement quietly becomes "a different header everywhere". (2) When a layout takes over the frame, every child must give up its own height claim, or the bottom of the page is clipped by the app frame. (3) When a guard follows code that moves, assert on the new source of truth (the module + the call that renders it), not on a copy of the old text; a guard that greps a file for a token the file no longer contains is a guard that proves nothing. (4) The drawer's hover wrote to `e.currentTarget.style` from an event handler — the repo's "pure React, no direct DOM manipulation" rule makes that a bug even in code you are only moving; a CSS class (`.uff-menu-link`) fixes it.
+
+---
+
 ## A hook used without an import passes lint and tests when no test renders the component
 **Date**: 2026-10-07
 **Area**: testing
@@ -215,7 +223,7 @@
 **Date**: 2026-10-14
 **Area**: build | testing
 **What happened**: A full `npx vitest run` in this worktree fails 4 test files (201 files: 4 failed / 197 passed) with 2793 tests passing: `scripts/lib/pwa-build-output.test.js` (its `npm run build` child fails loading `vite.config.js`), `functions/api/push/send.test.js`, `src/components/pwa/pwa-install-contract.test.jsx` and `src/components/pwa/pwa-install-wiring.test.jsx`. All four are module-resolution errors — `vite-plugin-pwa`, `@block65/webcrypto-web-push` and `@khmyznikov/pwa-install` are absent from the shared `node_modules` (`ls node_modules/<pkg>` confirms). Nothing in `package.json` or the repo source changed.
-**Takeaway**: These 4 failures are the sandbox baseline, not a regression — compare against this count before investigating a "new" failure, and when a verify gate fails on these files, prove the cause is a missing package rather than debugging the source. The failures are collection-time (no tests run), so the "Test Files X failed / Tests Y passed" summary is the quickest signal.
+**Takeaway**: These 4 failures are the sandbox baseline, not a regression — compare against this count before investigating a "new" failure, and when a verify gate fails on these files, prove the cause is a missing package rather than debugging the source. The failures are collection-time (no tests run), so the "Test Files X failed / Tests Y passed" summary is the quickest signal. They are fixable: `npm install <pkg> --no-save --no-audit --no-fund` in the checkout that owns the shared `node_modules` (the worktree's `node_modules` is often a symlink to it) makes the file collect again, so a green suite is reachable instead of "4 pre-existing failures".
 
 ---
 

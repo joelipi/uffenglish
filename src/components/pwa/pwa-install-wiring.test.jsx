@@ -122,22 +122,22 @@ describe('install wiring source guards', () => {
         expect(rootLayout).toContain('<PWAInstallDialog />');
     });
 
-    it('renders the entry point in the home menu with platform-aware localized copy', () => {
-        const homeScreen = read('../homescreen/HomeScreen.jsx');
-        expect(homeScreen).toContain("import PWAInstallButton from '../pwa/PWAInstallButton.web.jsx'");
-        expect(homeScreen).toContain('<PWAInstallButton');
+    it('renders the entry point in the shared app-header menu with platform-aware localized copy', () => {
+        const appHeader = read('../layout/AppHeader.web.jsx');
+        expect(appHeader).toContain("import PWAInstallButton from '../pwa/PWAInstallButton.web.jsx'");
+        expect(appHeader).toContain('<PWAInstallButton');
         // Apple platforms see "Add to Home Screen", everyone else "Install app".
-        expect(homeScreen).toContain('selectInstallCtaKey');
-        expect(homeScreen).toContain('readIsApplePlatform');
+        expect(appHeader).toContain('selectInstallCtaKey');
+        expect(appHeader).toContain('readIsApplePlatform');
         // Guests never see install affordances: the menu entry is gated on a
         // real signed-in user, like the notification opt-in below it.
-        const buttonAt = homeScreen.indexOf('<PWAInstallButton');
-        const gateAt = homeScreen.lastIndexOf("viewerId !== 'guest'", buttonAt);
+        const buttonAt = appHeader.indexOf('<PWAInstallButton');
+        const gateAt = appHeader.lastIndexOf('{registered && (', buttonAt);
         expect(gateAt).toBeGreaterThan(-1);
     });
 
-    it('keeps the heavy web component out of the home screen subtree', () => {
-        // HomeScreen.test.jsx renders the whole menu; importing the dialog
+    it('keeps the heavy web component out of the header subtree', () => {
+        // AppHeader.test.jsx renders the whole menu; importing the dialog
         // package there would drag the Lit bundle into jsdom.
         expect(read('PWAInstallButton.web.jsx')).not.toContain('@khmyznikov/pwa-install');
         expect(read('PWAInstallDialog.web.jsx')).toContain("import '@khmyznikov/pwa-install'");
