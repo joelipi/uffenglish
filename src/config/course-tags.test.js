@@ -1,0 +1,90 @@
+// src/config/course-tags.test.js
+// Every course config carries a course-level `tags` array, so the tag data the
+// app reads is present on every course (not just the two that shipped with
+// tags). The set of config files is DISCOVERED from the directory, so a new
+// config that forgets its tags fails this guard instead of escaping it.
+//
+// The four course tags under test (`travel`, `family`, `music`, `sports`) are
+// spread one per config: a filter by tag must select exactly one course, which
+// is what makes them useful as test data.
+
+import { describe, it, expect } from 'vitest';
+import { readFileSync, readdirSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+// This test lives in src/config, so the config directory IS __dirname.
+const CONFIG_DIR = __dirname;
+const CONFIG_FILES = readdirSync(CONFIG_DIR).filter((f) => f.endsWith('.json')).sort();
+
+// The course tags the test data covers, one per config.
+const REQUIRED_TAGS = ['travel', 'family', 'music', 'sports'];
+
+function loadConfig(name) {
+    return JSON.parse(readFileSync(path.join(CONFIG_DIR, name), 'utf8'));
+}
+
+/**
+ * The course-level tag contract for one config.
+ * @param {object} config - the parsed course config
+ * @param {string} name - the config file name (for the failure message)
+ */
+function assertCourseTags(config, name) {
+    expect(Array.isArray(config.tags), `${name} must have a top-level tags array`).toBe(true);
+    expect(config.tags.length, `${name} must carry at least one tag`).toBeGreaterThan(0);
+    for (const tag of config.tags) {
+        expect(typeof tag, `${name} tag must be a string`).toBe('string');
+        expect(tag.trim(), `${name} tag must not be blank`).not.toBe('');
+    }
+    expect(new Set(config.tags).size, `${name} tags must be unique`).toBe(config.tags.length);
+    // Course level, not lesson level: the tags belong to the course, so no
+    // lesson may carry its own.
+    for (const lesson of config.lessons || []) {
+        expect(lesson.tags, `${name} lesson ${lesson.lessonId} must not carry tags`).toBeUndefined();
+    }
+}
+
+describe('course-level tags', () => {
+    it('discovers more than one config file (a guard over one file proves nothing)', () => {
+        expect(CONFIG_FILES.length).toBeGreaterThan(1);
+    });
+
+    it('every course config carries course-level tags', () => {
+        for (const name of CONFIG_FILES) {
+            assertCourseTags(loadConfig(name), name);
+        }
+    });
+
+    it('spreads the four test tags one per config', () => {
+        const owners = new Map();
+        for (const name of CONFIG_FILES) {
+            // A config without tags contributes nothing, so the assertion below
+            // fails on the missing tag instead of throwing a TypeError.
+            for (const tag of loadConfig(name).tags || []) {
+                owners.set(tag, [...(owners.get(tag) || []), name]);
+            }
+        }
+        for (const tag of REQUIRED_TAGS) {
+            const tagged = owners.get(tag) || [];
+            expect(tagged.length, `tag "${tag}" must be on exactly one config`).toBe(1);
+        }
+        // The four tags live on four different configs, so filtering by one
+        // tag selects a single course.
+        const files = REQUIRED_TAGS.map((tag) => (owners.get(tag) || [])[0]);
+        expect(new Set(files).size).toBe(REQUIRED_TAGS.length);
+    });
+
+    it('the guard can fail: a config without tags is rejected', () => {
+        expect(() => assertCourseTags({ lessons: [] }, 'no-tags.json')).toThrow(/tags array/);
+    });
+
+    it('the guard can fail: a config with a blank tag is rejected', () => {
+        expect(() => assertCourseTags({ tags: ['ok', '  '], lessons: [] }, 'blank-tag.json')).toThrow(/blank/);
+    });
+
+    it('the guard can fail: lesson-level tags are rejected', () => {
+        const config = { tags: ['ok'], lessons: [{ lessonId: 'a', tags: ['nope'] }] };
+        expect(() => assertCourseTags(config, 'lesson-tags.json')).toThrow(/must not carry tags/);
+    });
+});

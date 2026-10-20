@@ -2,6 +2,10 @@
   "courseId": "gt2",
   "courseLevel": "B1",
   "courseName": "Ordering a Drink",
+  "tags": [
+    "food",
+    "drinks"
+  ],
   "lessons": [
     {
       "lessonId": "g-a",

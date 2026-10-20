@@ -1151,6 +1151,17 @@ describe('recorder auto-render — zero server changes', () => {
             'stories/075-ababab-pattern-all-lessons/lesson-c.proposed.json',
             'stories/075-ababab-pattern-all-lessons/lesson-c.review.json',
             'stories/075-ababab-pattern-all-lessons/wouldyourather-test.review.json',
+            // Course-level `tags` on every course config (test data for the
+            // tag-based course filtering) and the guard that pins them.
+            'src/config/friend.json',
+            'src/config/friendchain.json',
+            'src/config/gt2.json',
+            'src/config/model.json',
+            'src/config/t.json',
+            'src/config/test-api.json',
+            'src/config/test.json',
+            'src/config/wouldrather.json',
+            'src/config/course-tags.test.js',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);
