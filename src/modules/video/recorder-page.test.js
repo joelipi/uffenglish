@@ -1135,6 +1135,7 @@ describe('recorder auto-render — zero server changes', () => {
             'src/config/wouldyourather-test.test.js',
             'stories/075-ababab-pattern-all-lessons/story.md',
             'stories/075-ababab-pattern-all-lessons/wouldyourather-test.before.json',
+            'stories/075-ababab-pattern-all-lessons/lesson-c.proposed.json',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);
