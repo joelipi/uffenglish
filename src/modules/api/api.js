@@ -402,7 +402,7 @@ export function useFriendProfiles(ids) {
 
 // Records a friend-challenge follow-up link in the owner's profile.
 //
-// Server-side RPC (migration 008). The client used to READ the whole
+// Server-side RPC (migration 011). The client used to READ the whole
 // `friend_links` map, merge one entry and write the map back with an UPDATE on
 // `user_profiles`: a zero-row UPDATE is NOT an error in PostgREST, so the link
 // could vanish SILENTLY — the profile then showed "all your lessons have

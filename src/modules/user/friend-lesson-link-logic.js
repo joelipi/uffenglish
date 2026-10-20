@@ -80,7 +80,7 @@ export function formatFriendLinkRemaining(remainingMs) {
 // player can be mid-chain with several people at once, and a profile shows one
 // link per lesson they recorded), so the map key is
 // `courseId:recordedLessonId`. The merge itself is SERVER-side now
-// (`record_friend_link`, migration 008): a client-side read-modify-write could
+// (`record_friend_link`, migration 011): a client-side read-modify-write could
 // lose an entry SILENTLY, because a zero-row UPDATE is not an error in
 // PostgREST — the profile then showed "all lessons expired" right after the
 // learner recorded one.

@@ -164,7 +164,7 @@ describe('formatFriendLinkRemaining', () => {
     });
 });
 
-// The map merge moved server-side (`record_friend_link`, migration 008): a
+// The map merge moved server-side (`record_friend_link`, migration 011): a
 // client-side read-modify-write could lose an entry SILENTLY, because a
 // zero-row UPDATE is not an error in PostgREST. Its shape is guarded by
 // src/modules/api/friend-link-write-migration.test.js.
