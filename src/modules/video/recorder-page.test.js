@@ -1105,6 +1105,19 @@ describe('recorder auto-render — zero server changes', () => {
             'src/modules/speech/rerecord-wiring.test.js',
             'src/modules/store/store.test.js',
             'stories/074-rerecord-single-press/story.md',
+            // Story 075 (Android silent lesson-video start): the audio guard
+            // that repairs a muted clip, the pure audibility rules, the wiring
+            // guards, and the capture release at the step boundary. Listed per
+            // this file's per-story convention.
+            'src/modules/video/audio-playback-logic.js',
+            'src/modules/video/audio-playback-logic.test.js',
+            'src/modules/video/audio-guard.js',
+            'src/modules/video/audio-guard.test.js',
+            'src/modules/video/audio-guard-wiring.test.js',
+            'src/components/InteractiveVideoPlayer.web.jsx',
+            'src/components/step-loader.web.js',
+            'tests/audio-guard-repairs-muted-video.spec.js',
+            'stories/075-fix-android-silent-video-start/story.md',
             // Shared app header: every inside page of the app renders the same
             // header (the brand bar + menu drawer), mounted once by the app
             // shell. The public landing page, the lesson player and the public

@@ -100,6 +100,24 @@ export function safelyStopStream() {
 }
 
 /**
+ * Release the camera/microphone capture completely.
+ *
+ * `setWebcamStream(null)` only clears the STORE's reference — the module-level
+ * `speechCamStream` keeps its live tracks, so the capture stays open. On
+ * Android an open capture holds the device in a communication audio mode,
+ * which mutes media playback while it is open; that is the Android-only
+ * "lesson video starts silent" symptom (stories/075).
+ *
+ * The release happens at a STEP BOUNDARY (before the next step's video plays),
+ * never mid-flow, so story 072's mid-flow teardown-and-rebuild avoidance (and
+ * its OOM rationale) is preserved.
+ */
+export function releaseSpeechCamStream() {
+    setWebcamStream(null);
+    safelyStopStream();
+}
+
+/**
  * Wraps a raw (usually 16:9) camera stream in a real 9:16 canvas so the preview
  * and the recorded clip are always Reels-size. Each frame is centre-cropped into
  * the canvas (the same cover-fill the placeholder uses), and the camera's own
