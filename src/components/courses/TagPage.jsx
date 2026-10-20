@@ -57,7 +57,7 @@ export default function TagPage({ lang = 'en', tag = '', courses, isLoading = fa
     return (
         <div style={containerStyle} data-testid="tag-page">
             <div style={headerStyle}>
-                <h1 data-testid="tag-heading" style={{ fontSize: '25px', fontWeight: 700, margin: 0, textAlign: 'center', width: '100%' }}>
+                <h1 data-testid="tag-heading" style={{ fontSize: '25px', fontWeight: 700, fontStyle: 'italic', fontFamily: 'var(--font-heading)', margin: 0, textAlign: 'center', width: '100%' }}>
                     {/* The English word first, the learner's language after it. */}
                     <span className="course-tag-label">
                         <BilingualText

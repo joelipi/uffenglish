@@ -96,7 +96,7 @@ export default function Friends() {
     return (
         <div style={containerStyle}>
             <div style={headerStyle}>
-                <span data-testid="friends-heading" style={{ fontSize: '25px', fontWeight: 600, textAlign: 'center', width: '100%' }}>{Strings.get('friends_heading', lang)}</span>
+                <h1 data-testid="friends-heading" style={{ fontSize: '25px', fontWeight: 700, fontStyle: 'italic', fontFamily: 'var(--font-heading)', textAlign: 'center', width: '100%', margin: 0 }}>{Strings.get('friends_heading', lang)}</h1>
             </div>
 
             <div style={{ padding: '24px 16px', maxWidth: '640px', margin: '0 auto' }}>

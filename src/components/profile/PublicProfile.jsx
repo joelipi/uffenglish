@@ -68,7 +68,7 @@ export default function PublicProfile({ shareCode }) {
         return (
             <div style={containerStyle}>
                 <div style={headerStyle}>
-                    <span style={{ fontSize: '25px', fontWeight: 600, textAlign: 'center', width: '100%' }}>Practice English with</span>
+                    <h1 style={{ fontSize: '25px', fontWeight: 700, fontStyle: 'italic', fontFamily: 'var(--font-heading)', textAlign: 'center', width: '100%', margin: 0 }}>Practice English with</h1>
                 </div>
                 <div style={{ padding: '24px 16px', textAlign: 'center', color: '#ff6b6b' }}>
                     <i className="bi bi-exclamation-triangle-fill" style={{ fontSize: '32px', display: 'block', marginBottom: '12px' }}></i>
@@ -105,12 +105,12 @@ export default function PublicProfile({ shareCode }) {
     return (
         <div style={containerStyle}>
             <div style={headerStyle}>
-                <span style={{ fontSize: '25px', fontWeight: 600, textAlign: 'center', width: '100%' }}>
+                <h1 style={{ fontSize: '25px', fontWeight: 700, fontStyle: 'italic', fontFamily: 'var(--font-heading)', textAlign: 'center', width: '100%', margin: 0 }}>
                     Practice English with <br />
                     <img src={profilePic} alt={displayName} crossOrigin="anonymous" style={{ width: '192px', height: '192px', borderRadius: '50%', objectFit: 'cover', margin: '8px auto', display: 'block' }} />
                     <br />
                     {displayName}
-                </span>
+                </h1>
             </div>
 
             <div style={{ padding: '24px 16px', maxWidth: '640px', margin: '0 auto' }}>

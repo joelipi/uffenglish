@@ -347,7 +347,7 @@ export default function UserProfile() {
         return (
             <div style={containerStyle}>
                 <div style={headerStyle}>
-                    <span style={{ fontSize: '25px', fontWeight: 600, textAlign: 'center', width: '100%' }}>{Strings.get('profile_title', lang)}</span>
+                    <h1 style={{ fontSize: '25px', fontWeight: 700, fontStyle: 'italic', fontFamily: 'var(--font-heading)', textAlign: 'center', width: '100%', margin: 0 }}>{Strings.get('profile_title', lang)}</h1>
                 </div>
                 <div style={{ padding: '24px 16px', textAlign: 'center', color: '#ff6b6b' }}>
                     <i className="bi bi-exclamation-triangle-fill" style={{ fontSize: '32px', display: 'block', marginBottom: '12px' }}></i>
@@ -361,7 +361,7 @@ export default function UserProfile() {
         return (
             <div style={containerStyle}>
                 <div style={headerStyle}>
-                    <span style={{ fontSize: '25px', fontWeight: 600, textAlign: 'center', width: '100%' }}>{Strings.get('profile_title', lang)}</span>
+                    <h1 style={{ fontSize: '25px', fontWeight: 700, fontStyle: 'italic', fontFamily: 'var(--font-heading)', textAlign: 'center', width: '100%', margin: 0 }}>{Strings.get('profile_title', lang)}</h1>
                 </div>
                 <div style={{ padding: '24px 16px' }}>
                     <div style={{ ...cardStyle, textAlign: 'center' }}>
@@ -390,7 +390,7 @@ export default function UserProfile() {
     return (
         <div style={containerStyle}>
             <div style={headerStyle}>
-                <span style={{ fontSize: '25px', fontWeight: 600, textAlign: 'center', width: '100%' }}>{Strings.get('profile_title', lang)}</span>
+                <h1 style={{ fontSize: '25px', fontWeight: 700, fontStyle: 'italic', fontFamily: 'var(--font-heading)', textAlign: 'center', width: '100%', margin: 0 }}>{Strings.get('profile_title', lang)}</h1>
             </div>
 
             <PWAInstallBanner lang={lang} userId={profile?.$id} />

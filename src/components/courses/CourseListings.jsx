@@ -82,7 +82,7 @@ export default function CourseListings({ lang = 'en', courses, isLoading = false
     return (
         <div style={containerStyle}>
             <div style={headerStyle}>
-                <span style={{ fontSize: '25px', fontWeight: 600, textAlign: 'center', width: '100%' }}>{Strings.get('home_courses', lang)}</span>
+                <h1 style={{ fontSize: '25px', fontWeight: 700, fontStyle: 'italic', fontFamily: 'var(--font-heading)', textAlign: 'center', width: '100%', margin: 0 }}>{Strings.get('home_courses', lang)}</h1>
             </div>
 
             {/* Signed-out notice (story 070). Sits OUTSIDE the scroll region so

@@ -55,7 +55,7 @@ export default function LegalPage({ markdown, titleKey }) {
     return (
         <div style={containerStyle}>
             <div style={titleRowStyle}>
-                <span style={{ fontSize: '25px', fontWeight: 600, textAlign: 'center', width: '100%' }}>{Strings.get(titleKey, lang)}</span>
+                <h1 style={{ fontSize: '25px', fontWeight: 700, fontStyle: 'italic', fontFamily: 'var(--font-heading)', textAlign: 'center', width: '100%', margin: 0 }}>{Strings.get(titleKey, lang)}</h1>
             </div>
 
             <div data-testid="legal-scroll" style={scrollStyle}>
