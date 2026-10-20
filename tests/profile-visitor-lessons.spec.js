@@ -50,8 +50,10 @@ async function seedOwner(page, friendLinks, overrides = {}) {
     await page.goto(`/${OWNER}`);
     // Wait for the profile query to SETTLE before injecting the fixture: the
     // in-flight fetch resolves with "no such profile" and would overwrite the
-    // injected row, leaving the page on "User not found" with no links.
-    await page.waitForLoadState('networkidle');
+    // injected row, leaving the page on "User not found" with no links. The
+    // not-found text IS that settled state, so it is the signal to wait for -
+    // not `networkidle`, which the app's polling (the inbox refresh) never
+    // reaches.
     await expect(page.getByText('User not found')).toBeVisible();
     await page.evaluate(async ({ key, profile }) => {
         const { queryClient } = await import('/src/modules/api/api.js');
