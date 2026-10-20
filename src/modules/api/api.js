@@ -527,5 +527,45 @@ export async function recordFriendCompletion({ ownerShareCode, courseId, lessonI
   }
 }
 
+// Records a lesson completion on the caller's own profile row and returns the
+// resulting counters.
+//
+// Server-side RPC (migration 012): the client used to add one to a baseline it
+// read from a store copy, and write the whole thing back with an upsert — a
+// write that can be lost SILENTLY (a zero-row upsert is not an error in
+// PostgREST) and that is skipped entirely when the store has no profile copy
+// yet. A learner who finished a lesson then saw their own public profile say
+// they had completed nothing.
+//
+// The RPC keys on the session (auth.uid()), so it needs no user id, no client
+// baseline and no store copy: the row's own values are the baseline, and the
+// increment is atomic. It returns the resulting counters so the client can
+// update its store without guessing.
+//
+// Fails loud but never breaks the lesson flow: a guest has no session, so the
+// completion stays local until the signup credit applies it.
+export async function recordLessonCompletion({ courseId, completedLessonId } = {}) {
+  if (!courseId || !completedLessonId) return null;
+  try {
+    const { data, error } = await supabase.rpc('record_lesson_completion', {
+      p_course_id: courseId,
+      p_completed_lesson_id: completedLessonId,
+    });
+    if (error) throw error;
+    if (!data) return null;
+    console.log(`[Gamification] Lesson completed. Total lessons: ${data.lessons_completed}`);
+    return {
+      lessonsCompleted: Number(data.lessons_completed || 0),
+      countedLessons: Array.isArray(data.counted_lessons) ? data.counted_lessons : [],
+      completedDates: Array.isArray(data.completed_dates) ? data.completed_dates : [],
+      isFirstCompletion: data.is_first_completion === true,
+      dayAdded: data.day_added === true,
+    };
+  } catch (error) {
+    console.error('🚨 recordLessonCompletion error:', error);
+    return null;
+  }
+}
+
 // AI functions moved to ai.js but keep re-export for compat
 export { askEnglishTutor, evaluateWithAI } from './ai.js';

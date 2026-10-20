@@ -28,9 +28,6 @@ vi.mock('../../modules/api/api.js', () => ({
     fetchProfileIdentityRow: vi.fn(),
     syncUserMetaDataMutation: vi.fn(),
 }));
-vi.mock('../../hooks/useFriendChainHeads.js', () => ({
-    default: () => new Map(),
-}));
 
 import PublicProfile from './PublicProfile.jsx';
 import { appStore } from '../../modules/store/store.js';
