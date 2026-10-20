@@ -223,7 +223,7 @@
 **Date**: 2026-10-14
 **Area**: build | testing
 **What happened**: A full `npx vitest run` in this worktree fails 4 test files (201 files: 4 failed / 197 passed) with 2793 tests passing: `scripts/lib/pwa-build-output.test.js` (its `npm run build` child fails loading `vite.config.js`), `functions/api/push/send.test.js`, `src/components/pwa/pwa-install-contract.test.jsx` and `src/components/pwa/pwa-install-wiring.test.jsx`. All four are module-resolution errors — `vite-plugin-pwa`, `@block65/webcrypto-web-push` and `@khmyznikov/pwa-install` are absent from the shared `node_modules` (`ls node_modules/<pkg>` confirms). Nothing in `package.json` or the repo source changed.
-**Takeaway**: These 4 failures are the sandbox baseline, not a regression — compare against this count before investigating a "new" failure, and when a verify gate fails on these files, prove the cause is a missing package rather than debugging the source. The failures are collection-time (no tests run), so the "Test Files X failed / Tests Y passed" summary is the quickest signal.
+**Takeaway**: These 4 failures are the sandbox baseline, not a regression — compare against this count before investigating a "new" failure, and when a verify gate fails on these files, prove the cause is a missing package rather than debugging the source. The failures are collection-time (no tests run), so the "Test Files X failed / Tests Y passed" summary is the quickest signal. They are fixable: `npm install <pkg> --no-save --no-audit --no-fund` in the checkout that owns the shared `node_modules` (the worktree's `node_modules` is often a symlink to it) makes the file collect again, so a green suite is reachable instead of "4 pre-existing failures".
 
 ---
 
