@@ -29,12 +29,16 @@ changed config, and a course retirement must not break the caption run.
 ```bash
 FILES=""
 while IFS= read -r file; do
-  [[ -n "$file" && -f "$file" ]] && FILES="$FILES $file"
+  if [[ -n "$file" && -f "$file" ]]; then
+    FILES="$FILES $file"
+  fi
 done < <(git diff --name-only "$BASE" "$HEAD" -- 'src/config/*.json' || true)
 ```
 
 The existence check is on the working tree, so it also covers a config that was
-renamed or moved.
+renamed or moved. The loop body is an `if` block, not a `[[ … ]] && …` list:
+under `set -euo pipefail` a failing AND-list hands a non-zero status to the
+loop, which the shell can act on (the code reviewer's finding).
 
 ## Acceptance criteria
 
