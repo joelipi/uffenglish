@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import Strings from '../../data/strings.js';
 import { buildCourseStartHref, buildCourseListView } from '../../modules/courses/friend-courses-logic.js';
 import { WELCOME_PATH } from '../../modules/courses/course-tags-logic.js';
+import { courseTagTranslation } from '../../modules/courses/course-tag-labels.js';
+import { BilingualText } from '../BilingualText.jsx';
 import CourseMissionDropdown from './CourseMissionDropdown.jsx';
 
 const cardStyle = {
@@ -63,7 +65,14 @@ export default function TagPage({ lang = 'en', tag = '', courses, isLoading = fa
                     <i className="bi bi-arrow-left"></i>
                 </Link>
                 <h1 data-testid="tag-heading" style={{ fontSize: '20px', fontWeight: 700, margin: 0 }}>
-                    {tag}
+                    {/* The English word first, the learner's language after it. */}
+                    <span className="course-tag-label">
+                        <BilingualText
+                            translationData={courseTagTranslation(tag) || tag}
+                            userLang={lang}
+                            spanPrefix=" "
+                        />
+                    </span>
                 </h1>
             </div>
 
