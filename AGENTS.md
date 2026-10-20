@@ -19,6 +19,8 @@ This repo relies heavily on tests that assert on source text ("guards"). Several
 
 Before trusting a guard, prove it can fail by temporarily injecting the thing it forbids. And when it goes red, **confirm the guard you meant is the one that failed** — a mutation that trips some neighbouring text assertion leaves you believing a behavioural guard is proven when it never fired.
 
+**Restore the mutated file with `git checkout -- <path>`, not a hand-rolled backup copy.** A `cp` backup taken before the mutation can itself be captured mid-mutation (or overwritten by the next mutation's backup), and the defect then survives into the commit — where it looks like the implementation is wrong rather than the proof harness. `git checkout -- <path>` restores from the index, which holds the clean version. Re-read the diff after the proof run (`git diff -- <path>`) before committing.
+
 **Scope a guard's assertions to the region they are about, and discover its inputs.** Two traps that both leave a guard green forever:
 - `toContain('someIdentifier')` over a whole file is satisfied by a *destructuring* or an *import*, not by the rendering you meant to check. Delete the JSX and it stays green. Slice to the block (bounded at a real marker) and assert the call/attribute *inside* that slice.
 - A guard that names its files by hand stops guarding the day a second consumer appears. Walk the tree (`readdirSync` recursion) and assert the discovered set, so a new consumer fails the guard instead of silently escaping it. Strip comments before matching, or the guard's own prose about the bug matches itself; assemble self-matching patterns from parts.
@@ -52,6 +54,17 @@ Two rules follow from the shell owning the frame:
 - **The landing page (`/`), the lesson player, the auth pages, the public share-code profile (`/:shareCode`) and the 404 stay OUTSIDE the shell** — they keep their own chrome, and their containers keep their own `100dvh`.
 
 The drawer's entries and the "is this viewer registered?" gate live in the pure module `src/modules/navigation/app-menu-logic.js` (the header stays render-only), and the drawer's hover state is a CSS class (`.uff-menu-link` in `src/assets/css/app.css`), never a `e.currentTarget.style` write from an event handler.
+
+## No media may start while a camera/microphone capture is open
+
+On Android an open capture holds the device in a communication audio mode, and the media route then ducks (or mutes) whatever plays next — the Android-only "the video starts silent for a second or two" bug (`stories/075-fix-android-silent-video-start`). Releasing the capture "somewhere around the recording" is not enough: it has to be released **before** the media starts, and the audio route needs a moment to hand back afterwards.
+
+- **The lesson videos**: the capture is released at the **step boundary** — before the next step's video plays (`step-executor-webonly.js`'s injected `releaseSpeechCam`).
+- **The recorded take** (`PlaybackVideo`): the capture is released **before** `setPlaybackBlob`, and the route is given `CAPTURE_RELEASE_SETTLE_MS` to settle before the blob is handed over (`speech.web.js` + the pure `src/modules/speech/capture-release-logic.js`). The wait only happens when a capture was actually released, so the desktop warm-up path (`keepStreamAlive: true`) is not delayed.
+
+`setWebcamStream(null)` clears the **store** reference only — the module-level stream keeps its live tracks, so a capture stays open. Every release goes through `safelyStopStream()`.
+
+**Every player carries the audio guard** (`src/modules/video/audio-guard.js`), and the guard must respect a deliberate silence: `PlaybackVideo` reads an explicit **mute intent** (the learner tapped the clip, or it already played once and now loops silently) instead of a boolean, and a *technical* mute (autoplay blocked) must never be written into that intent.
 
 ## Pipeline grouping must match the config's step granularity
 
@@ -246,6 +259,8 @@ Execute small, incremental changes and routine bug fixes immediately without ask
 **`window.appStore` only exists on routes that mount `AppLayout`.** The bridge is set by `useAppBootstrap` (`src/hooks/use-app-bootstrap-webonly.js`), which only the lesson player mounts — so on `/`, `/:shareCode`, `/courses` or the legal pages `window.appStore` is `undefined` and a spec that writes the store fails with "Cannot read properties of undefined". Import the module in the page context instead (the same singleton the app uses): `await page.evaluate(async () => { const { appStore } = await import('/src/modules/store/store.js'); appStore.setState({ guestNativeLanguage: 'HI' }); })`.
 
 **Establish the Playwright baseline before blaming your change.** Many specs fail in this sandbox for environment reasons (no local API backend → Supabase 4xx, viewport/layout assertions, `configData` never resolving). To tell a regression from the noise, run the same spec list against the pre-change code **in the same worktree** (`git checkout origin/main -- <paths>`, run, then `git checkout HEAD -- <paths>`) and compare the failure sets. Never swap files while a suite is running — it invalidates that run.
+
+**Interleave the baseline runs, and expect the pre-change code to be flaky too.** A single "pre-change" run and a single "post-change" run on a loaded machine is not a comparison: specs flake on both sides, and the flakiest ones (`audio-guard-repairs-muted-video.spec.js` — its mount waits for the clip to start playing — plus `tutorial-modal` and `whisper-engine-fallback`) fail on the *pre-change* code as well. Alternate `git checkout <pre-change-ref>` / `git checkout <branch>` runs of the same spec and compare the **rates**, not single runs; a spec that fails on the pre-change code is flaky, not a regression. The full suite takes ~20 minutes, so re-run only the specs that differ rather than the whole list.
 
 **Console discipline — treat these as bugs:**
 - Any unexpected or relevant console error or warning

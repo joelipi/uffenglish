@@ -1,5 +1,13 @@
 # Learnings
 
+## No media may start while a camera/microphone capture is open — the ordering is the fix
+**Date**: 2026-10-20
+**Area**: video | speech | android | debugging
+**What happened**: The Android-only "the video starts silent for a second or two" bug (see the entry below) was fixed for the **lesson** videos by releasing the capture at the step boundary. The learner then reported that the **playback video** — their own just-recorded clip, played back through `PlaybackVideo` — still dropped out for about a second at the very start, *"the volume seems to go very low"*. The silent loop was ruled out by the reporter (*"it doesn't have anything to do with the looping"*): the loop-mute is deliberate (hearing yourself twice annoys people) and only applies *after* the clip has played once. The cause was the **same** Android mechanism on the **other side of the hand-over**: `stopSpeechCamRecording` called `setPlaybackBlob(blob, autoplay)` **first** and released the camera/microphone capture in the `finally` block — i.e. after the thumbnail generation and the database write. On Android the capture therefore stayed open for the whole first second of the clip, and while a capture is open the device is in a communication audio mode that ducks (or mutes) the media route. The lesson players never had this defect because their capture is released at the step boundary, i.e. *before* the next step's video plays.
+**Takeaway**: (1) **The order of the release and the hand-over is the whole fix.** Releasing a capture "somewhere around the recording" is not enough — it has to be released *before* the media starts, and the audio route needs a moment to hand back from the communication mode afterwards (the app waits 500 ms, and only when a capture was actually released, so the desktop warm-up path is not delayed). (2) **Every player needs the guard.** `PlaybackVideo` was the only player in the app without the audio guard, so an element-level mute there had neither recovery nor a trace — and the "does not fight a deliberate silence" case is *harder* here than in the lesson players: the recorded take has a mute control (the learner taps the clip) and an intentional silent loop, so the guard reads an explicit **mute intent** instead of a boolean. (3) A **technical** mute (autoplay blocked) must not be written into the learner's intent: the fallback plays muted, then unmutes **and re-issues `play()`** — a bare flag flip does not re-open an audio output the browser already tore down.
+
+---
+
 ## A config step's subtitle tracks are per-locale AND per-phrase — trimming either breaks playback
 **Date**: 2026-10-20
 **Area**: architecture | testing

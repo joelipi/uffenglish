@@ -88,10 +88,43 @@ field report is a diagnosis rather than another round of theories.
 - The recap renderer (`video-processor.web.js`) and the after-video tail
   (`after-video-player.web.js`) — they own their audio through WebAudio
   already and are not part of the lesson-video path.
-- The `PlaybackVideo` component (the recorded-take playback), which has its own
-  explicit mute UI and is not a lesson video.
 - iOS behaviour. Nothing here may regress the iOS autoplay path, which is the
   one that currently works.
+
+### The recorded take (added after the first round shipped)
+
+The first round of this story covered the **lesson** videos only. The field
+report that followed was specific: the **playback video** — the learner's own
+just-recorded clip, played back through `PlaybackVideo` — still drops out for
+about a second right at the start, *"the volume seems to go very low"*. The
+silent loop was ruled out by the reporter (*"it doesn't have anything to do with
+the looping"*): the loop-mute is deliberate — hearing yourself twice annoys
+people — and it only affects the clip **after** it has played once.
+
+That residual symptom has one app-level cause the app CAN control, and it is
+**the same Android mechanism as F2 — but on the other side of the hand-over**:
+
+**F4 — The capture is released AFTER the recorded take reaches the player.**
+`stopSpeechCamRecording` handed the blob to `setPlaybackBlob` **first** and
+released the camera/microphone capture in the `finally` block — i.e. after the
+thumbnail generation and the database write. On Android the capture therefore
+stayed open for the whole first second of the clip, and while it is open the
+device is in a communication audio mode that ducks (or mutes) the media route.
+The learner hears their own recording start quiet.
+
+The lesson players never had this defect: story 072/075 release the capture at
+the **step boundary**, i.e. *before* the next step's video plays. The recorded
+take is the one path where the capture was still open when the clip started.
+
+**⇒ The fix is an ordering fix: close the capture BEFORE the hand-over, and
+give the audio route a moment to hand back from the communication mode before
+the clip starts.** The wait only happens when a capture was actually released,
+so the desktop warm-up path (the capture deliberately survives the recording)
+is not delayed at all.
+
+The recorded take also had **no audio guard** — it was the only player in the
+app without one — so an element-level mute had no recovery and left no trace.
+
 
 ## Implementation approach
 
@@ -252,6 +285,38 @@ Create `src/modules/video/audio-guard.js` and `src/modules/video/audio-guard.tes
   story's paths (the repo's convention for every story that touches
   `src/**`).
 
+### Task 7 — The recorded take (F4)
+
+- `src/modules/speech/capture-release-logic.js` — a pure module:
+  - `CAPTURE_RELEASE_SETTLE_MS` (500) — how long the audio route needs after
+    the capture is released before the clip may start.
+  - `shouldReleaseCaptureBeforePlayback({ releaseAfterRecording, playback })` —
+    the capture is closed before the hand-over only when it is closed at the
+    end of the recording anyway (Android always; anywhere when the caller
+    asked for a full teardown).
+  - `waitForAudioRouteSettle(delayMs, sleep)` — the wait, with an injectable
+    sleep so it is testable without real time.
+- `speech.web.js`:
+  - the capture is released **before** `setPlaybackBlob`, and the audio route
+    is given the settle time before the blob is handed over;
+  - the release is idempotent (`releaseCapture()`), so the `finally` block
+    cannot double-release it;
+  - the desktop warm-up path (`keepStreamAlive: true`) is unchanged — the
+    capture is not released and nothing is delayed.
+- `src/components/PlaybackVideo.jsx`:
+  - the same audio guard as the lesson players;
+  - the guard **stands down** when the clip is meant to be silent — the learner
+    tapped it to mute, or it already played once and now loops silently
+    (`muteIntentRef`);
+  - the blocked-autoplay fallback unmutes **and re-issues `play()`** after the
+    unmute, and does **not** write the technical mute into the learner's mute
+    intent.
+- Source guards for all of the above, each proven able to fail.
+- A Playwright spec that records a WebM in the page (the shape the app
+  records), hands it to the player, forces the element muted and asserts the
+  app restores audibility — plus the negative case: a clip the learner muted on
+  purpose stays muted.
+
 ## Technical Context
 
 - `vitest ^4.1.6` — `environment: 'jsdom'`, `globals: true`. The pure module
@@ -276,8 +341,18 @@ Create `src/modules/video/audio-guard.js` and `src/modules/video/audio-guard.tes
   audibility; it never mutes.
 - **The guard must not fight a user who muted the clip on purpose.** The lesson
   players have no mute control, but `isExpectedAudible` is injected so the
-  guard stays correct if one is added.
+  guard stays correct if one is added. The recorded take *does* have a mute
+  control (the learner taps the clip) and a deliberate silent loop, so its
+  guard reads an explicit **mute intent** — the guard only ever restores
+  audibility, and it never undoes a silence the learner (or the product) asked
+  for.
+- **An open capture is the app's own responsibility, on both sides of the
+  hand-over.** Releasing it at the step boundary (F2) fixed the lesson videos;
+  releasing it before the recorded take reaches the player (F4) fixes the
+  recorded take. The rule: *no media may start while a capture is open.*
 - **Story 072's release rule is load-bearing** (`docs/learnings.md:158` — the
   9:16 composite OOM'd Android while Whisper was resident). The capture is
   released at the **step boundary**, never mid-flow, so the mid-flow teardown
-  that story avoided never happens.
+  that story avoided never happens. The recorded take's release happens at the
+  **end of the recording** — the same boundary — and only moves *earlier*
+  within it, never into the middle of a step.
