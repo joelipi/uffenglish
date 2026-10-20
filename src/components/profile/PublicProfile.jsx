@@ -115,13 +115,6 @@ export default function PublicProfile({ shareCode }) {
 
             <div style={{ padding: '24px 16px', maxWidth: '640px', margin: '0 auto' }}>
                 <div style={{ ...cardStyle, textAlign: 'center', marginBottom: '24px' }}>
-                    <img
-                        src={profilePic}
-                        alt={displayName}
-                        crossOrigin="anonymous"
-                        style={{ width: '192px', height: '192px', borderRadius: '50%', objectFit: 'cover', marginBottom: '12px' }}
-                    />
-                    <h2 style={{ fontSize: '22px', marginBottom: '4px', marginTop: '12px' }}>{displayName}</h2>
                     <p style={{ color: '#ffffff', fontSize: '13px', marginBottom: '4px' }}>{Strings.get('public_profile_share_code', lang)} {shareCode}</p>
                     {joinDate && <p style={{ color: '#ffffff', fontSize: '13px' }}>{Strings.get('profile_member_since', lang, { date: joinDate })}</p>}
                 </div>
