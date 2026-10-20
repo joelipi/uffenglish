@@ -32,6 +32,10 @@ const RESOLUTION_FILES = [
     ['src', 'components', 'homescreen', 'HomeScreen.jsx'],
     ['src', 'components', 'homescreen', 'HomeLandingContainer.jsx'],
     ['src', 'components', 'friends', 'Friends.jsx'],
+    // The public share-code profile is read by a VISITOR, so it must localize
+    // to the visitor's language — never to the language of the profile being
+    // read (the owner's `native_language`).
+    ['src', 'components', 'profile', 'PublicProfile.jsx'],
     ['src', 'routes', 'AppLayout.jsx'],
 ];
 
