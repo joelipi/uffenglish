@@ -1,4 +1,4 @@
--- 008_record_friend_link.sql
+-- 011_record_friend_link.sql
 -- Records the follow-up friend link on the learner's OWN profile, right after
 -- a friend lesson's clip is published.
 --
