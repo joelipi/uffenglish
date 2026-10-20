@@ -1,6 +1,5 @@
 import { getCurrentUser, getCurrentSession, logout, supabase } from './supabase.js';
 import { getGeoInfo } from '../media/geo-service.js';
-import { upsertFriendLinkMap } from '../user/friend-lesson-link-logic.js';
 import { normalizeFriendIds } from '../user/friends-logic.js';
 
 export { getCurrentUser };
@@ -401,24 +400,36 @@ export function useFriendProfiles(ids) {
   });
 }
 
-// Records a friend-challenge follow-up link in the owner's profile. Reads the
-// current friend_links map, merges the new entry (keyed per recorded lesson,
-// `courseId:recordedLessonId`, see upsertFriendLinkMap), and persists the whole
-// map. Expiry is render-time only; nothing is deleted here.
+// Records a friend-challenge follow-up link in the owner's profile.
+//
+// Server-side RPC (migration 008). The client used to READ the whole
+// `friend_links` map, merge one entry and write the map back with an UPDATE on
+// `user_profiles`: a zero-row UPDATE is NOT an error in PostgREST, so the link
+// could vanish SILENTLY — the profile then showed "all your lessons have
+// expired" right after the learner recorded one, and the link they had sent to
+// their friends was nowhere to be found. The RPC merges atomically on the
+// server, derives the owner from auth.uid() (the client never has to know its
+// own user id) and reports a failure as an error the caller can see.
 export function useAddFriendLinkMutation() {
   const queryClientHook = useQueryClient();
   return useMutation({
-    mutationFn: async ({ userId, entry }) => {
-      const { data: row, error: readError } = await supabase
-        .from('user_profiles').select('friend_links').eq('id', userId).single();
-      if (readError) throw readError;
-      const merged = upsertFriendLinkMap(row?.friend_links, entry);
-      const { error } = await supabase
-        .from('user_profiles').update({ friend_links: merged }).eq('id', userId);
+    mutationFn: async ({ entry }) => {
+      const { error } = await supabase.rpc('record_friend_link', {
+        p_course_id: entry.courseId,
+        p_recorded_lesson_id: entry.recordedLessonId,
+        p_next_lesson_id: entry.lessonId,
+        p_course_name: entry.courseName,
+        p_lesson_title: entry.lessonTitle,
+      });
       if (error) throw error;
       console.log('[friendLessonLink] saved', entry);
-      return merged;
+      return entry;
     },
+    // The link is what the learner sends to their friends: one flaky round
+    // trip must not lose it. The server merge is atomic and idempotent, so a
+    // retry is safe (it refreshes the entry's addedAt, like a re-record).
+    retry: 2,
+    retryDelay: (attempt) => attempt * 1000,
     onSuccess: () => {
       // Prefix-matches both ['user','profile'] and ['user','profile','shareCode', code].
       queryClientHook.invalidateQueries({ queryKey: ['user', 'profile'] });

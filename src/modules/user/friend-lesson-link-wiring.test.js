@@ -59,6 +59,18 @@ describe('SuccessButtons wiring', () => {
         expect(successButtons).toContain('friendLinkMutation.mutateAsync({');
     });
 
+    it('hands the entry to the mutation (the owner is derived server-side)', () => {
+        const start = successButtons.indexOf('friendLinkMutation.mutateAsync({');
+        expect(start).toBeGreaterThan(-1);
+        const end = successButtons.indexOf('});', start);
+        const block = successButtons.slice(start, end + 3);
+        expect(block).toContain('entry: payload');
+        // The client no longer passes its own user id: the RPC derives the
+        // owner from auth.uid(), so a stale/missing id cannot send the write
+        // to the wrong row (or to no row at all).
+        expect(block).not.toContain('userId');
+    });
+
     it('calls the resolver with the chain payload shape (no askPublished)', () => {
         const start = successButtons.indexOf('resolveFriendLessonLink({');
         expect(start).toBeGreaterThan(-1);
@@ -85,7 +97,19 @@ describe('api.js public read + write plumbing', () => {
         expect(api).toContain('account_status,friend_links');
     });
 
-    it('merges through upsertFriendLinkMap', () => {
-        expect(api).toContain('upsertFriendLinkMap(row?.friend_links, entry)');
+    it('writes the link through the server-side RPC, not a client read-modify-write', () => {
+        expect(api).toContain("supabase.rpc('record_friend_link'");
+        expect(api).toContain('p_course_id: entry.courseId');
+        expect(api).toContain('p_recorded_lesson_id: entry.recordedLessonId');
+        expect(api).toContain('p_next_lesson_id: entry.lessonId');
+        // A client-side read-modify-write of the whole map is what let the link
+        // vanish silently (a zero-row UPDATE is not an error in PostgREST).
+        expect(api).not.toContain('upsertFriendLinkMap(row?.friend_links, entry)');
+        expect(api).not.toContain("from('user_profiles').update({ friend_links:");
+    });
+
+    it('retries the link write so one flaky round trip cannot lose it', () => {
+        expect(api).toMatch(/retry:\s*2/);
+        expect(api).toMatch(/retryDelay:/);
     });
 });

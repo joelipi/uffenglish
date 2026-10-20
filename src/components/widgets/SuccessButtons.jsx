@@ -213,10 +213,12 @@ export function VideoButton({ canvasRef }) {
               succeeded: exportResult?.succeeded,
             });
             if (payload) {
-              await friendLinkMutation.mutateAsync({
-                userId: userData.$id,
-                entry: { ...payload, addedAt: new Date().toISOString() },
-              });
+              // The link is what the learner sends to their friends, so it must
+              // not be lost to one flaky round trip. The mutation retries
+              // (see useAddFriendLinkMutation) and the server merge is atomic
+              // and idempotent, so a retry is safe: it refreshes the entry's
+              // addedAt, which is exactly what a re-record does.
+              await friendLinkMutation.mutateAsync({ entry: payload });
               trackEvent('friend_lesson_link_created', payload);
             }
 
