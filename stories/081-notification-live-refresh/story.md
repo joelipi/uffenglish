@@ -69,10 +69,10 @@ it is unit-testable and reusable by the React Native port:
 
 `useNotifications(userId)` spreads those options into the query. Nothing else
 changes: the same query key, the same RLS-scoped select, the same mark-read
-mutation. The only other edit is that a failed read now logs (`[notifications]
-fetch failed:`) before it throws — a poll that fails silently every five
-seconds would leave the user looking at a stale bell with nothing in the
-console to explain it.
+mutation, the same error handling (a failed read still throws, and the query
+records the error as it did before — the poll repeats the failure every five
+seconds, so logging it each time would only fill the console with the same
+line).
 
 **Why polling and not a websocket:** the poll is one small `GET` every five
 seconds, only while the page is visible, and it uses the query layer the app

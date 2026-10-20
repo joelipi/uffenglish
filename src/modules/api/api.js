@@ -463,12 +463,7 @@ export function useNotifications(userId) {
         .eq('recipient_id', userId)
         .order('created_at', { ascending: false })
         .limit(50);
-      if (error) {
-        // The inbox is re-read every few seconds, so a broken read repeats —
-        // but a silent failure would leave the user staring at a stale bell.
-        console.error('[notifications] fetch failed:', error);
-        throw error;
-      }
+      if (error) throw error;
       console.log('[notifications] fetched', data?.length ?? 0);
       return data || [];
     },
