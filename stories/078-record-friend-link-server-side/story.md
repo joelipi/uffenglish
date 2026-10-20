@@ -52,8 +52,8 @@ row in the same session. The link write was the odd one out.
   unchanged.
 - **The public profile's visitor-aware rendering** (story 064): the chain-head
   filter and the featured-first ordering stay as they are.
-- **Backfilling links that were already lost.** A record is created when a
-  lesson is recorded; the migration does not invent history.
+- **A generic backfill of lost links.** The migration does not invent history;
+  only the one incident below was repaired by hand (see "Data repair").
 - **Merging into `main`.**
 
 ## Implementation approach
@@ -152,3 +152,21 @@ already has for `007_friend_credit.sql`.
   `authenticated` only, no new table and no new RLS policy.
 - **The link's owner is the learner**, so the RPC can only ever write the
   caller's own row — the client cannot point the write at somebody else.
+
+## Data repair (one incident)
+
+The learner who reported the problem had two completions whose links were
+never written (2026-10-19 16:21 and 2026-10-20 05:40 — both with their clips
+published to R2). Their two entries were restored by hand, with the shape the
+RPC writes and the **true publish timestamps** (`addedAt` = the moment the
+clips finished uploading), so their 48h windows match what actually happened:
+
+| key | points at | `addedAt` |
+| --- | --- | --- |
+| `wouldyourather-test:a` | lesson `b` | `2026-10-19T16:21:48Z` |
+| `wouldyourather-test:b` | lesson `c` | `2026-10-20T05:40:02Z` |
+
+Their profile shows the link again (verified against the live site: the
+"all your lessons have expired" state is gone). No other row was touched, and
+the RPC cannot write to another user's row — so this repair cannot be repeated
+by a client.
