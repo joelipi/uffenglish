@@ -1,5 +1,13 @@
 # Learnings
 
+## A query the shell mounts once must ask to be re-read — the app's query defaults never re-read anything
+**Date**: 2026-10-20
+**Area**: architecture | testing | notifications
+**What happened**: A friend answered while the asker had the app open, and the asker only saw the notification after a **full page reload**. The bell is mounted ONCE by the app shell, so the inbox query (`useNotifications`) lived for the whole session — and the app's global `QueryClient` defaults are `staleTime: Infinity` and `refetchOnWindowFocus: false`, with the inbox overriding only the first (`staleTime: 30 * 1000`). The result: the inbox was read once, at mount, and never again. The same trap hides in every query the app reads "for the last time it is needed" — the shell's header, the profile, the config: a value written **elsewhere** (a friend answering, another device marking a row read) can only reach them if the query explicitly asks for it.
+**Takeaway**: (1) A query that must reflect something that happens **outside** the tab has to opt out of the app's write-once defaults: `staleTime: 0` + `refetchOnMount: 'always'` + `refetchOnWindowFocus: 'always'`, and `refetchInterval` for the "it happens while I am looking at it" case. (2) `refetchInterval` re-reads **regardless of `staleTime`** (the staleTime gate only covers mount/focus/reconnect), and `refetchIntervalInBackground: false` — the default — pauses the poll while `document.visibilityState === 'hidden'`, which is what keeps a backgrounded phone from polling; the focus refetch catches up on return. (3) A five-second poll of a small RLS-scoped list is free and needs no new dependency, no third-party service and no database change — cheaper than a websocket, and it is the same mechanism on every browser the app supports. (4) **In vitest with fake timers, a TanStack query result is never delivered**: the notification is scheduled through `notifyManager` (a `setTimeout(0)`) and the fake clock never reaches it, so the component keeps rendering the old data even though the query state is already correct. Replace the scheduler (`notifyManager.setScheduler((cb) => cb())`, restore `defaultScheduler` afterwards) or the test asserts a stale DOM and looks like a broken implementation. (5) A browser spec that injects fixtures into the query cache while the server stub holds **different** rows is racing the app's own re-read — stub the server to the same state the test means, or the spec passes by luck and fails later.
+
+---
+
 ## No media may start while a camera/microphone capture is open — the ordering is the fix
 **Date**: 2026-10-20
 **Area**: video | speech | android | debugging
