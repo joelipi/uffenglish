@@ -1163,6 +1163,26 @@ describe('recorder auto-render — zero server changes', () => {
             'src/config/wouldrather.json',
             'src/config/course-tags.test.js',
             'docs/reviews/course-tags-review.md',
+            // The topic pages: the welcome page ("choose your topic"), the tag
+            // pages it links to, the pure logic behind them, and the home
+            // page's "start without a friend's code" now landing on the
+            // welcome page.
+            'src/components/courses/WelcomePage.jsx',
+            'src/components/courses/WelcomePageContainer.jsx',
+            'src/components/courses/WelcomePage.test.jsx',
+            'src/components/courses/TagPage.jsx',
+            'src/components/courses/TagPageContainer.jsx',
+            'src/components/courses/TagPage.test.jsx',
+            'src/components/courses/CourseMissionDropdown.jsx',
+            'src/modules/courses/course-tags-logic.js',
+            'src/modules/courses/course-tags-logic.test.js',
+            'src/modules/courses/course-tags-wiring.test.js',
+            'src/modules/user/guest-modal-logic.js',
+            'src/routes/WelcomeRoute.jsx',
+            'src/routes/TagRoute.jsx',
+            'src/components/homescreen/HomeLandingContainer.jsx',
+            'src/components/homescreen/HomeLandingContainer.test.jsx',
+            'tests/topic-pages.spec.js',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);
