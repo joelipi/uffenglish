@@ -1,6 +1,7 @@
 import { getCurrentUser, getCurrentSession, logout, supabase } from './supabase.js';
 import { getGeoInfo } from '../media/geo-service.js';
 import { normalizeFriendIds } from '../user/friends-logic.js';
+import { resolveNotificationRefreshOptions } from '../notifications/notification-refresh-logic.js';
 
 export { getCurrentUser };
 import defaultProfilePic from '../../assets/img/userprofile.png';
@@ -449,7 +450,12 @@ export function useNotifications(userId) {
   return useQuery({
     queryKey: ['notifications', userId],
     enabled: !!userId && userId !== 'guest',
-    staleTime: 30 * 1000,
+    // The bell is mounted once by the app shell, so this query lives for the
+    // whole session: without a refresh rule a notification that arrives while
+    // the app is open stays invisible until the page is reloaded. The policy
+    // (re-read on mount, on focus, and every few seconds while the page is
+    // visible) lives in the pure module so it can be unit-tested.
+    ...resolveNotificationRefreshOptions(userId),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('user_notifications')

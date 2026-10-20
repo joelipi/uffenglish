@@ -9,7 +9,6 @@ import { VideoRenderPlanner, TEXT_MODE_DURATION_MS, TAILING_DURATION_MS, resolve
 import { AFTER_SUCCESS_BASE } from './after-video-logic.js';
 import { startAfterVideoLoop } from './after-video-player.web.js';
 import { remoteSource } from './video-source.js';
-import { isAskLesson } from '../courses/friend-courses-logic.js';
 import { DEFAULT_USER_AVATAR_URL } from '../user/tutor-config.js';
 import { getAvatarBlobUrl } from '../avatar/avatar.service.js';
 import { maybeAssignPosterAvatar } from '../avatar/poster-avatar.js';
@@ -1604,15 +1603,11 @@ export async function exportSegmentsToR2(lessonId, segments = [], stitchedBlob =
         // target, so clips land where a friend's lesson looks for them. Also
         // upload the sibling jpg thumb generated from the raw webcam blob.
         const { lessonId: targetLessonId, index: segmentIndex } = targets[i];
-        // The chain's ASK lesson is recorded by its asker themselves, so it is
-        // published under their own name — the friend who opens their link
-        // looks for `<owner>-<owner>`. Every other lesson was recorded while
-        // answering somebody, so the inviter is that link's owner.
-        const inviterCode = resolveInviterCode({
-            friendCode: snapshot.friendCode,
-            shareCode,
-            isAskLesson: isAskLesson(snapshot.configData, lessonId),
-        });
+        // A chain clip is published under the recorder's own name
+        // (`<recorder>-<recorder>`): the learner who opens the recorder's link
+        // is the one who computes the key it looks for, and it knows the
+        // recorder's code and nothing else.
+        const inviterCode = resolveInviterCode({ shareCode });
         const key = buildUgcSegmentKey({ shareCode, inviterCode, courseId, lessonId: targetLessonId, index: segmentIndex });
         const thumbKey = getUgcThumbKey(key);
         const thumbBlob = step.thumbBlob || null;

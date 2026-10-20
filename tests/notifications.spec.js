@@ -117,6 +117,10 @@ test.describe('home-screen notification bell', () => {
     });
 
     test('shows the bell with no badge when the inbox is empty', async ({ page }) => {
+        // The SERVER's inbox is empty, not just the injected cache row: the
+        // bell now re-reads the inbox when it mounts, so a server that still
+        // holds rows would legitimately put a badge on the bell.
+        rows = [];
         await bootAndSettle(page);
         await inject(page, { notifications: [] });
 
@@ -127,5 +131,28 @@ test.describe('home-screen notification bell', () => {
     test('shows no bell for a logged-out guest', async ({ page }) => {
         await bootAndSettle(page);
         await expect(page.getByTestId('notification-bell')).toHaveCount(0);
+    });
+
+    // The bug this covers: the bell is mounted ONCE by the app shell, so the
+    // inbox query lived for the whole session and never re-read itself — a
+    // notification that arrived while the app was open stayed invisible until
+    // the page was RELOADED. The inbox now refreshes itself every few seconds
+    // while the page is visible.
+    test('shows a notification that arrives while the page is open, without a reload', async ({ page }) => {
+        rows = [];
+        await bootAndSettle(page);
+        await inject(page, { notifications: [] });
+
+        await expect(page.getByTestId('notification-bell')).toBeVisible();
+        await expect(page.getByTestId('notification-badge')).toHaveCount(0);
+
+        // A friend answers: the server-side row appears.
+        rows = [NOTIFICATIONS[0]];
+
+        // No reload — the poll brings it in.
+        await expect(page.getByTestId('notification-badge')).toHaveText('1', { timeout: 15000 });
+
+        await page.getByTestId('notification-bell').click();
+        await expect(page.getByTestId('notification-item')).toHaveCount(1);
     });
 });
