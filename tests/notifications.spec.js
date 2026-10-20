@@ -128,4 +128,27 @@ test.describe('home-screen notification bell', () => {
         await bootAndSettle(page);
         await expect(page.getByTestId('notification-bell')).toHaveCount(0);
     });
+
+    // The bug this covers: the bell is mounted ONCE by the app shell, so the
+    // inbox query lived for the whole session and never re-read itself — a
+    // notification that arrived while the app was open stayed invisible until
+    // the page was RELOADED. The inbox now refreshes itself every few seconds
+    // while the page is visible.
+    test('shows a notification that arrives while the page is open, without a reload', async ({ page }) => {
+        rows = [];
+        await bootAndSettle(page);
+        await inject(page, { notifications: [] });
+
+        await expect(page.getByTestId('notification-bell')).toBeVisible();
+        await expect(page.getByTestId('notification-badge')).toHaveCount(0);
+
+        // A friend answers: the server-side row appears.
+        rows = [NOTIFICATIONS[0]];
+
+        // No reload — the poll brings it in.
+        await expect(page.getByTestId('notification-badge')).toHaveText('1', { timeout: 15000 });
+
+        await page.getByTestId('notification-bell').click();
+        await expect(page.getByTestId('notification-item')).toHaveCount(1);
+    });
 });

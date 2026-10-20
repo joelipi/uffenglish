@@ -1295,6 +1295,13 @@ describe('recorder auto-render — zero server changes', () => {
             'src/modules/courses/course-tag-labels.js',
             'src/modules/courses/course-tag-labels.test.js',
             'src/config/course-tags.test.js',
+            // Story 081 (the in-app inbox refreshes itself).
+            'stories/081-notification-live-refresh/story.md',
+            'src/modules/api/api.js',
+            'src/modules/api/api.notifications-refresh.test.js',
+            'src/modules/notifications/notification-refresh-logic.js',
+            'src/modules/notifications/notification-refresh-logic.test.js',
+            'tests/notifications.spec.js',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);
