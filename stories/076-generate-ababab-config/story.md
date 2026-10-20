@@ -152,28 +152,35 @@ because a take's group carries the `srt`.
 - `scripts/generate-config-from-sheet.test.js` — the glob pin, with the mutation fixed
   to `replaceAll` (the filter appears twice, so mutating one left the guard green).
 
-## One commit needs a `workflows`-scoped token
+## The recorder picks its course from a dropdown
 
-The two bot workflows must commit EVERY course's master CSV, not one named
-course's — without it a second course's translations and SRTs are never
-committed:
+The studio never named a course, so working on a second one meant editing
+the page. It now lists the courses the repo can author:
 
-```
-.github/workflows/sync-srt.yml          add-paths: public/wouldyourather.master.csv -> public/*.master.csv
-.github/workflows/translate-master.yml   add-paths: public/wouldyourather.master.csv -> public/*.master.csv
-```
+- `public/courses.json` — `{ "courses": [...] }`, generated from the repo's
+  `*.source.txt` files by `scripts/generate-course-index.mjs`
+- the studio fetches that index and fills a **Course** dropdown (first in the
+  setup panel, on its own row)
+- the chosen course is what the studio reads, uploads for, and names on
+  every render request, so the studio and the pipeline always agree
+- `?course=<id>` still wins when present, and the choice is remembered for
+  the session; a plain `/recorder` works again
 
-The sandbox's GitHub App token cannot push a `.github/workflows/` change (it
-has no `workflows` permission), so that change is **not** on `main` yet. It
-is a single commit (`076b-workflow-globs`, also carrying the two workflow
-guard tests that assert the glob). To land it, push that branch with a
-token that has the `workflows` permission — the repo's fine-grained PAT:
+## The bots are course-agnostic
 
-```
-git push <workflows-scoped-token>@github.com:joelipi/uffenglish.git 076b-workflow-globs
-```
+Three workflow changes make the authoring/translation bots handle every course
+rather than one named course:
 
-Until then the two workflows still commit only the one named course's CSV.
+- `sync-srt.yml` / `translate-master.yml` — commit EVERY course's master CSV
+  (`public/*.master.csv`), not one named course's. Without it a second
+  course's SRTs and translations are never committed.
+- `source-to-csv.yml` — regenerate `public/courses.json` whenever the
+  authoring flow runs, so a new course appears in the recorder's picker
+  without a separate step.
+
+The render's one-click chain also needs the dispatch credentials, which live
+in the Modal `uff-github` secret (`GH_DISPATCH_REPO` / `GH_DISPATCH_TOKEN`) —
+the pipeline reads nothing else from it, so it holds exactly those two keys.
 
 ## Out of Scope
 
@@ -185,3 +192,5 @@ Until then the two workflows still commit only the one named course's CSV.
   overrides the URL entirely.
 - The eight hand-authored `src/config/*.json` files.
 - `wouldyourather-test.json` stays as the hand-written test course.
+- The render's internals: one Modal deployment per course, and batching
+  several courses into one render.

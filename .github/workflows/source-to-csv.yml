@@ -1,8 +1,8 @@
 name: Sync Source to Master CSV
 
-# Push-the-button authoring: the operator edits `wouldyourather.source.txt`
+# Push-the-button authoring: the operator edits `<course>.source.txt`
 # (e.g. directly in the GitHub web UI) and this Action validates it and
-# regenerates the committed `public/wouldyourather.master.csv` every consumer
+# regenerates the committed `public/<course>.master.csv` every consumer
 # reads (recorder same-origin, generator from disk, Modal render over HTTP).
 # Translations survive regeneration: a `*_<lang>` cell is carried over iff its
 # English source is byte-identical, else blanked for the translator to refill.
@@ -65,12 +65,14 @@ jobs:
             base=$(basename "$src" .source.txt)
             node scripts/generate-master-csv.mjs --source="$src" --out="public/$base.master.csv" $DRY_RUN_FLAG 2>&1 | tee -a /tmp/source-sync.log
           done
+          # The recorder's course picker reads this list.
+          node scripts/generate-course-index.mjs $DRY_RUN_FLAG 2>&1 | tee -a /tmp/source-sync.log
       - name: Commit master CSV
         uses: ./.github/actions/bot-commit/
         with:
           bot-name: uff-authoring-bot
           commit-message: "chore(authoring): regenerate master CSV from the source [skip authoring]"
-          add-paths: public/*.master.csv
+          add-paths: public/*.master.csv public/courses.json
           no-change-echo: no master CSV changes
           regenerate: |
             set -euo pipefail
@@ -79,6 +81,7 @@ jobs:
               base=$(basename "$src" .source.txt)
               node scripts/generate-master-csv.mjs --source="$src" --out="public/$base.master.csv" 2>&1 | tee -a /tmp/source-sync.log
             done
+            node scripts/generate-course-index.mjs 2>&1 | tee -a /tmp/source-sync.log
       - name: Summarize
         if: always()
         run: |

@@ -513,6 +513,11 @@
 
         <div class="setup-admin-panel">
             <div class="setup-row">
+                <select id="dom-select-course" class="setup-select">
+                    <option value="">Course...</option>
+                </select>
+            </div>
+            <div class="setup-row">
                 <select id="dom-select-mic" class="setup-select">
                     <option value="">Detecting Microphones...</option>
                 </select>
@@ -898,14 +903,70 @@ node_video_preview.play(); // Explicitly restart playback
             appCoreLog("UI Synchronized to Script Line " + current_pos);
         }
 
+        // The courses this studio can work on, read from the committed index
+        // (public/courses.json), which the authoring flow regenerates from the
+        // repo's *.source.txt files. No course name is baked in here.
+        function courseIndexUrl() {
+            return 'courses.json';
+        }
+
+        function selectedCourse() {
+            var fromUrl = new URLSearchParams(location.search).get('course');
+            if (fromUrl) { return fromUrl; }
+            var stored = sessionStorage.getItem('uff_course');
+            if (stored) { return stored; }
+            var picker = document.getElementById('dom-select-course');
+            if (picker && picker.value) { return picker.value; }
+            return '';
+        }
+
+        async function loadCourseIndex() {
+            var picker = document.getElementById('dom-select-course');
+            if (!picker) { return; }
+            var courses = [];
+            try {
+                var response = await fetch(courseIndexUrl() + '?t=' + Date.now());
+                if (response.ok) {
+                    var parsed = JSON.parse(await response.text());
+                    if (parsed && Array.isArray(parsed.courses)) { courses = parsed.courses; }
+                }
+            } catch (e) {
+                appCoreLog('COURSE INDEX FAILED: ' + e.message);
+            }
+            var current = selectedCourse();
+            picker.innerHTML = '';
+            if (!courses.length) {
+                var none = document.createElement('option');
+                none.value = '';
+                none.textContent = 'No courses found';
+                picker.appendChild(none);
+                picker.disabled = true;
+                return;
+            }
+            picker.disabled = false;
+            for (var i = 0; i < courses.length; i++) {
+                var option = document.createElement('option');
+                option.value = courses[i];
+                option.textContent = courses[i];
+                picker.appendChild(option);
+            }
+            if (current && courses.indexOf(current) !== -1) {
+                picker.value = current;
+            } else if (courses.length) {
+                picker.value = courses[0];
+            }
+            global_recorder_course = picker.value;
+            sessionStorage.setItem('uff_course', picker.value);
+        }
+
         async function loadScriptDataFromSheets() {
             // Which course's committed master CSV to read. The path is derived
             // from the course id, so a new course needs no edit here. The
-            // course is REQUIRED: guessing one would render the wrong course's
-            // takes, so an unknown course fails loudly instead.
-            var course = new URLSearchParams(location.search).get('course');
+            // course comes from the picker (or ?course=); guessing one would
+            // render the wrong course's takes.
+            var course = selectedCourse();
             if (!course) {
-                appCoreLog("NO COURSE — open this page with ?course=<courseId>");
+                appCoreLog("NO COURSE — pick one in the Course dropdown");
                 return;
             }
             global_recorder_course = course;
@@ -1420,10 +1481,22 @@ node_video_preview.play(); // Explicitly restart playback
          * INITIAL SYSTEM BOOT
          * ==========================================
          */
-        window.onload = function() {
+        window.onload = async function() {
             appCoreLog("System Application Launch...");
             global_uploaded_takes = loadPersistedSet('uff_uploaded_takes');
             global_rendered_lessons = loadPersistedSet('uff_rendered_lessons');
+            await loadCourseIndex();
+            // Switching course reloads the studio so the CSV, the take list and
+            // the render requests all belong to the same course.
+            var picker = document.getElementById('dom-select-course');
+            if (picker) {
+                picker.addEventListener('change', function() {
+                    sessionStorage.setItem('uff_course', picker.value);
+                    var url = new URL(location.href);
+                    url.searchParams.set('course', picker.value);
+                    location.href = url.toString();
+                });
+            }
             loadScriptDataFromSheets();
         };
 
