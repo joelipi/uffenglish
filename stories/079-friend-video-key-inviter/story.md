@@ -108,6 +108,18 @@ and this is that change.
    0
    → commands and output recorded in the completion report
 
+## Superseded
+
+Story [083-friend-clip-addressing](../083-friend-clip-addressing/story.md) replaced
+the rule this story introduced. The ask-side rule below ("a reference to the
+ask lesson resolves the inviter to the owner") was a special case of a general
+one: **a chain clip is addressed by its RECORDER alone**
+(`<recorder>-<recorder>-…`), because the reader of a friend reference is the
+only party that can compute the key and it knows just the friend's code and its
+own. Both sides now use that rule, and the chain guard
+(`src/modules/courses/friend-clip-chain.test.js`) walks a whole chain with the
+app's own logic.
+
 ## Notes for reviewers
 
 - **The anonymous case was never broken**, so the symptom only appears for a
