@@ -10,7 +10,9 @@ from that:
   app's lesson loader reads `steps`, so **a gt2 lesson cannot load at all** — 20 spec
   loads pointed at it, each a guaranteed 30-second timeout.
 - The remaining failures are specs that load a **regular** course without dismissing the
-  guest modal, so `configData` never resolves and the spec times out.
+  guest modal. The modal gates the config load (`config-normalizer.js`
+  `isConfigLanguageSettled`), so a spec that waits for `configData` before confirming the
+  language deadlocks.
 
 The config set is also mostly duplication. Four friend courses are live in the listing
 (`friend`, `friendchain`, `wouldrather`, `wouldyourather`) plus two fixtures and the
@@ -18,6 +20,25 @@ regular-flow course, and each of the 100+ unit-test references to them is a plac
 course set can drift.
 
 So: keep **one** path per flow, point the suite at it, and retire the rest.
+
+## Acceptance criteria
+
+1. **The course set is one path per flow.** `src/config/` holds `model.json` (the
+   regular-flow reference), `wouldyourather.json` (the generated friend course the
+   pipeline ships) and `wouldyourather-test.json` (its hand-written model, the dev twin
+   the contract test guards). The listed friend courses are exactly `['wouldyourather']`.
+   → `src/modules/courses/friend-course-configs.test.js`,
+   `src/modules/courses/friend-courses-logic.test.js`
+2. **Every spec navigates only to a reference course.** A spec that points at a retired
+   config proves nothing — gt2's lessons have no `steps`, so the app could never load
+   them. → `src/modules/courses/course-reference-guard.test.js`
+3. **No spec names a retired course.** → `src/modules/courses/course-reference-guard.test.js`
+4. **A spec that waits for the store's `configData` clears the guest gate.** Otherwise
+   the config load it waits for is gated behind the modal. →
+   `src/modules/courses/course-reference-guard.test.js`
+5. **The unit suite is green** and **the browser suite's failures are pre-existing** —
+   proven by running the same spec files before and after the change. → `npx vitest run`,
+   `npx playwright test`
 
 ## What changed
 
@@ -46,6 +67,17 @@ Retired: `friend.json`, `friendchain.json`, `wouldrather.json`, `gt2.json`, `t.j
     the respond lesson)
 - `gt2` was never a course the app could load, so pointing the specs at it proved
   nothing.
+- Every spec that loads a regular course now clears the guest-language gate through the
+  shared `confirmGuestLanguage` helper **before** it waits for `configData`.
+  `answer-flow`, `lesson-g-video`, `playback-video`, `poster-check`, `regression-guard`
+  and `whisper-page-cache-lifecycle` timed out on that wait; `landscape-warning` had the
+  same bug in two of its five tests (the landscape banner only mounts once the lesson
+  shell does).
+- The profile-link specs (`friend-lesson-link`, `profile-visitor-lessons`) seed a
+  synthetic profile but read the **real** config for the chain head, so they are
+  retargeted to the twin's course id.
+- The listing specs (`friend-courses`, `topic-pages`) assert the surviving course set:
+  one listed friend course, and the tags the surviving courses carry.
 
 ### The unit tests that used the retired configs as fixtures
 
@@ -62,12 +94,23 @@ Retired: `friend.json`, `friendchain.json`, `wouldrather.json`, `gt2.json`, `t.j
   rule either), and the required tags are the ones the surviving courses carry.
 - `poster-utils.test.js` — the first-step intro slug list.
 
+### The new guard
+
+`src/modules/courses/course-reference-guard.test.js` reads every spec in `tests/` and
+holds the three rules above, so a spec that drifts back to a retired course — or that
+waits for the config without clearing the gate — fails a unit test instead of a
+30-second browser timeout.
+
 ## Verification
 
-- Every failing spec set was run **before and after** this change: the failure sets are
-  identical, so nothing here was failing because of the ABABAB work either.
-- The suite's own baseline: with the retired courses gone, no spec loads a course the app
-  cannot render, and the two reference courses are the documented ones.
+- **The unit suite is green**: 260 files, 3889 tests, 0 failures. `npm run lint` reports
+  0 errors.
+- **The browser suite**: the failures that remain were each run **before and after** the
+  change with the same result — they are pre-existing (the absent local backend, the
+  headless audio path, a layout assertion). The retargeting and the guest-gate fix
+  removed the rest.
+- The guard was proved able to fail: a spec that pointed at a retired course, and a spec
+  that waited for `configData` without clearing the gate, each turn it red.
 
 ## Out of Scope
 

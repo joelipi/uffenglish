@@ -12,8 +12,8 @@
 //
 // UGC is identified by MATCHING THE CODES ACTUALLY IN PLAY, never by the slug's
 // shape: a share code and a course/word segment are both just [a-z0-9] runs, so
-// a shape rule would misclassify system slugs like gt2's hyphenated English
-// phrases ("do-you-think-youre-a-good-friend"). The app knows its own code and
+// a shape rule would misclassify a system slug whose words are hyphenated
+// ("do-you-think-youre-a-good-friend"). The app knows its own code and
 // the friend's code at every call site that matters; the rest of the app uses
 // the registry set once the codes are known.
 
