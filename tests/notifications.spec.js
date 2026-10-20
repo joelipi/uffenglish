@@ -18,7 +18,7 @@ const NOTIFICATIONS = [
     {
         id: 'n1',
         type: 'friend_response',
-        course_id: 'friend',
+        course_id: 'wouldyourather',
         lesson_id: 'b',
         payload: { actorShareCode: 'sam123', actorName: 'Sam' },
         created_at: '2026-09-24T11:00:00.000Z',
@@ -27,7 +27,7 @@ const NOTIFICATIONS = [
     {
         id: 'n2',
         type: 'friend_response',
-        course_id: 'friend',
+        course_id: 'wouldyourather',
         lesson_id: 'b',
         payload: { actorShareCode: 'lee456', actorName: 'Lee' },
         created_at: '2026-09-22T00:00:00.000Z',

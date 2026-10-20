@@ -12,26 +12,14 @@ import {
     listFriendCourses,
     buildCourseListView,
 } from './friend-courses-logic.js';
-import friend from '../../config/friend.json';
-import friendchain from '../../config/friendchain.json';
-import wouldrather from '../../config/wouldrather.json';
 import wouldyourather from '../../config/wouldyourather.json';
 import model from '../../config/model.json';
-import t from '../../config/t.json';
-import gt2 from '../../config/gt2.json';
-import testApi from '../../config/test-api.json';
-import testConfig from '../../config/test.json';
+import wouldyouratherTest from '../../config/wouldyourather-test.json';
 
 const REAL_ENTRIES = [
-    { courseId: 'friend', config: friend },
-    { courseId: 'friendchain', config: friendchain },
-    { courseId: 'wouldrather', config: wouldrather },
     { courseId: 'wouldyourather', config: wouldyourather },
+    { courseId: 'wouldyourather-test', config: wouldyouratherTest },
     { courseId: 'model', config: model },
-    { courseId: 't', config: t },
-    { courseId: 'gt2', config: gt2 },
-    { courseId: 'test-api', config: testApi },
-    { courseId: 'test', config: testConfig },
 ];
 
 describe('isFriendLesson', () => {
@@ -81,7 +69,7 @@ describe('firstFriendLessonId', () => {
 
 describe('buildCourseStartHref', () => {
     it('builds the lesson route from the course id and lesson id', () => {
-        expect(buildCourseStartHref('wouldrather', 'a')).toBe('/course/wouldrather/lesson/a');
+        expect(buildCourseStartHref('wouldyourather', 'a')).toBe('/course/wouldyourather/lesson/a');
     });
 });
 
@@ -94,65 +82,67 @@ describe('COURSE_LISTINGS_PATH', () => {
 describe('listFriendCourses', () => {
     it('keeps only shareCta courses (except the test fixture) from the real configs', () => {
         const courses = listFriendCourses(REAL_ENTRIES);
-        expect(courses.map((c) => c.courseId)).toEqual(['friend', 'friendchain', 'wouldrather', 'wouldyourather']);
+        expect(courses.map((c) => c.courseId)).toEqual(['wouldyourather']);
     });
 
     it('lists the Would You Rather course under its own name (not "Friend Challenge")', () => {
         const courses = listFriendCourses(REAL_ENTRIES);
-        const wouldratherCourse = courses.find((c) => c.courseId === 'wouldrather');
-        expect(wouldratherCourse).toEqual({
-            courseId: 'wouldrather',
-            courseName: 'Would You Rather',
-            lessonCount: 6,
-            firstLessonId: 'a',
-            mission: {
-                mission: {
-                    en: 'Talk about preferences with WOULD RATHER.',
-                    es: 'Hablar de preferencias con WOULD RATHER',
-                    pt: 'Falar de preferencias com WOULD RATHER',
-                    bn: 'WOULD RATHER ব্যবহার করে নিজের পছন্দ বা অগ্রাধিকার প্রকাশ করা।',
-                },
-            },
-            heroImage: null,
-            // The course's topics, so the course lists can filter by them.
-            tags: ['music', 'preferences'],
-        });
+        const wyr = courses.find((c) => c.courseId === 'wouldyourather');
+        expect(wyr.courseId).toBe('wouldyourather');
+        expect(wyr.courseName).toBe('Get $1 million or $5 million?');
+        expect(wyr.lessonCount).toBe(6);
+        expect(wyr.firstLessonId).toBe('a');
+        expect(wyr.mission.mission.en).toBe('talk about preferences');
+        expect(wyr.heroImage).toBe('src/assets/img/wouldyouratherhero.jpg');
+        // The course's topics, so the course lists can filter by them.
+        expect(wyr.tags).toEqual(['preferences', 'money', 'getting to know you']);
     });
 
     it('drops the test fixture even though it has shareCta lessons', () => {
         const courses = listFriendCourses(REAL_ENTRIES);
-        expect(EXCLUDED_FRIEND_COURSE_IDS).toContain('test');
-        expect(courses.some((c) => c.courseId === 'test')).toBe(false);
-        // Sanity: the fixture really would qualify otherwise.
-        expect(isFriendCourse(testConfig)).toBe(true);
+        expect(EXCLUDED_FRIEND_COURSE_IDS).toContain('wouldyourather-test');
+        expect(courses.some((c) => c.courseId === 'wouldyourather-test')).toBe(false);
+        // Sanity: the dev twin really would qualify otherwise.
+        expect(isFriendCourse(wouldyouratherTest)).toBe(true);
     });
 
     it('shapes each course with basename, name, lesson count, first lesson, mission and hero', () => {
-        const friendchainCourse = listFriendCourses(REAL_ENTRIES).find((c) => c.courseId === 'friendchain');
-        expect(friendchainCourse).toEqual({
-            courseId: 'friendchain',
-            courseName: 'Friend Challenge',
-            lessonCount: 8,
+        const wyr = listFriendCourses(REAL_ENTRIES).find((c) => c.courseId === 'wouldyourather');
+        expect(wyr).toEqual({
+            courseId: 'wouldyourather',
+            courseName: 'Get $1 million or $5 million?',
+            lessonCount: 6,
             firstLessonId: 'a',
             mission: {
                 mission: {
-                    en: 'Talk about preferences with WOULD RATHER.',
-                    es: 'Hablar de preferencias con WOULD RATHER',
-                    pt: 'Falar de preferencias com WOULD RATHER',
-                    bn: 'WOULD RATHER ব্যবহার করে নিজের পছন্দ বা অগ্রাধিকার প্রকাশ করা।',
+                    en: 'talk about preferences',
+                    es: 'hablar sobre preferencias',
+                    pt: 'falar sobre preferências',
+                    bn: 'পছন্দ সম্পর্কে কথা বলুন',
+                    fr: 'parler de préférences',
+                    hi: 'पसंद के बारे में बात करें',
                 },
+                A1: { en: 'X or Y' },
+                A2: { en: 'which is better, noun X or noun Y' },
+                B1: { en: 'would rather + [verb stem X] or [verb stem Y]' },
+                B2: { en: 'given the choice between [gerund verb X] and [gerund verb Y]' },
+                C1: { en: 'if I had to choose between [gerund verb X] and [gerund verb Y], my preference would be to [infinitive verb]' },
             },
-            heroImage: null,
-            tags: ['family', 'friends'],
+            heroImage: 'src/assets/img/wouldyouratherhero.jpg',
+            tags: ['preferences', 'money', 'getting to know you'],
         });
     });
 
-    it('uses the file basename, not config.courseId (friend.json carries a non-file id)', () => {
-        const friendCourse = listFriendCourses(REAL_ENTRIES).find((c) => c.courseId === 'friend');
-        expect(friendCourse.courseId).toBe('friend');
-        expect(friendCourse.firstLessonId).toBe('a');
-        expect(buildCourseStartHref(friendCourse.courseId, friendCourse.firstLessonId))
-            .toBe('/course/friend/lesson/a');
+    it('uses the file basename, not config.courseId', () => {
+        // The loader passes the file basename as the course id, so a config
+        // whose own courseId field says otherwise is still addressed by its
+        // file name.
+        const courses = listFriendCourses([
+            { courseId: 'somefile', config: { courseId: 'other', lessons: [{ lessonId: 'a', recapOverlay: 'shareCta' }] } },
+        ]);
+        expect(courses[0].courseId).toBe('somefile');
+        expect(buildCourseStartHref(courses[0].courseId, courses[0].firstLessonId))
+            .toBe('/course/somefile/lesson/a');
     });
 
     it('drops a course whose only shareCta lesson has no lessonId', () => {
@@ -242,8 +232,8 @@ describe('courseMissionFor', () => {
     });
 
     it('falls back through the real friend config to its first lesson mission', () => {
-        expect(courseMissionFor(friendchain).mission.en)
-            .toBe('Talk about preferences with WOULD RATHER.');
+        expect(courseMissionFor(wouldyourather).mission.en)
+            .toBe('talk about preferences');
     });
 
     it('reads the wouldyourather top-level mission with its CEFR levels', () => {
@@ -279,7 +269,7 @@ describe('COURSE_MISSION_FALLBACK_KEYS', () => {
 });
 
 describe('buildCourseListView', () => {
-    const courses = [{ courseId: 'friendchain', courseName: 'Friend Chain', lessonCount: 8, firstLessonId: 'a' }];
+    const courses = [{ courseId: 'wouldyourather', courseName: 'Would You Rather', lessonCount: 6, firstLessonId: 'a' }];
 
     it('reports loading first (even if courses are already present)', () => {
         expect(buildCourseListView({ courses, isLoading: true })).toEqual({ state: 'loading', courses: [] });

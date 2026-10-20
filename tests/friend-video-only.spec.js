@@ -54,7 +54,7 @@ test.describe('friend lessons: video-recording mode only', () => {
         // Hang the download so the engine never flips underneath us, then pin ready.
         await page.route('**r2.ultrafastfluency.com/whisper/onnx-community/**', HANG);
 
-        await bootstrap(page, '/course/friend/lesson/b');
+        await bootstrap(page, '/course/wouldyourather-test/lesson/b');
         await page.evaluate(() => {
             window.appStore.getState().setWhisperReady(true);
             window.appStore.getState().setWhisperEngineFailed(false);
@@ -72,7 +72,7 @@ test.describe('friend lessons: video-recording mode only', () => {
         test.setTimeout(60000);
         await page.route('**r2.ultrafastfluency.com/whisper/onnx-community/**', HANG);
 
-        await bootstrap(page, '/course/friend/lesson/b');
+        await bootstrap(page, '/course/wouldyourather-test/lesson/b');
         await forceChooser(page);
 
         await expect(page.locator('#continueButton')).toBeVisible();
@@ -87,7 +87,7 @@ test.describe('friend lessons: video-recording mode only', () => {
         await page.route('**r2.ultrafastfluency.com/whisper/**', r => r.abort('failed'));
         await page.route('**cdn.jsdelivr.net/**', r => r.abort('failed'));
 
-        await bootstrap(page, '/course/friend/lesson/b');
+        await bootstrap(page, '/course/wouldyourather-test/lesson/b');
         await page.waitForFunction(
             () => window.appStore?.getState()?.isWhisperEngineFailed === true,
             null,

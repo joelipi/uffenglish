@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import friendchainConfig from '../../config/friendchain.json';
+import friendConfig from '../../config/wouldyourather-test.json';
 import { isAnswerSideFriendLesson, resolveFriendCredit, pendingCreditKey, appendPendingCredit } from './friend-credit-logic.js';
 
 const base = {
-    configData: friendchainConfig,
-    courseId: 'friendchain',
+    configData: friendConfig,
+    courseId: 'wouldyourather-test',
     ownerShareCode: 'Ab12CD',
     actorShareCode: 'xY34zZ',
     completedInApp: true,
@@ -12,17 +12,17 @@ const base = {
 
 describe('isAnswerSideFriendLesson', () => {
     it('is false for the prompt (first) lesson, which plays none of the owner clips', () => {
-        expect(isAnswerSideFriendLesson({ configData: friendchainConfig, lessonId: 'a' })).toBe(false);
+        expect(isAnswerSideFriendLesson({ configData: friendConfig, lessonId: 'a' })).toBe(false);
     });
 
     it('is true for chain lessons after the first', () => {
-        for (const lessonId of ['b', 'c', 'h']) {
-            expect(isAnswerSideFriendLesson({ configData: friendchainConfig, lessonId })).toBe(true);
+        for (const lessonId of ['b', 'c', 'f']) {
+            expect(isAnswerSideFriendLesson({ configData: friendConfig, lessonId })).toBe(true);
         }
     });
 
     it('is false for unknown lessons and missing configs', () => {
-        expect(isAnswerSideFriendLesson({ configData: friendchainConfig, lessonId: 'zzz' })).toBe(false);
+        expect(isAnswerSideFriendLesson({ configData: friendConfig, lessonId: 'zzz' })).toBe(false);
         expect(isAnswerSideFriendLesson({ configData: null, lessonId: 'b' })).toBe(false);
         expect(isAnswerSideFriendLesson()).toBe(false);
     });
@@ -32,7 +32,7 @@ describe('resolveFriendCredit', () => {
     it('returns the owner payload for an in-app answer-side completion', () => {
         expect(resolveFriendCredit({ ...base, lessonId: 'b' })).toEqual({
             ownerShareCode: 'ab12cd',
-            courseId: 'friendchain',
+            courseId: 'wouldyourather-test',
             lessonId: 'b',
         });
     });
@@ -57,7 +57,7 @@ describe('resolveFriendCredit', () => {
     it('allows a guest completion through (no actor code yet — deferred to signup)', () => {
         expect(resolveFriendCredit({ ...base, lessonId: 'b', actorShareCode: null })).toEqual({
             ownerShareCode: 'ab12cd',
-            courseId: 'friendchain',
+            courseId: 'wouldyourather-test',
             lessonId: 'b',
         });
     });
@@ -81,8 +81,8 @@ describe('pendingCreditKey', () => {
 });
 
 describe('appendPendingCredit', () => {
-    const b = { ownerShareCode: 'ab12', courseId: 'friendchain', lessonId: 'b' };
-    const c = { ownerShareCode: 'ab12', courseId: 'friendchain', lessonId: 'c' };
+    const b = { ownerShareCode: 'ab12', courseId: 'wouldyourather-test', lessonId: 'b' };
+    const c = { ownerShareCode: 'ab12', courseId: 'wouldyourather-test', lessonId: 'c' };
 
     it('appends distinct lessons so each survives until signup', () => {
         expect(appendPendingCredit(appendPendingCredit([], b), c)).toEqual([b, c]);

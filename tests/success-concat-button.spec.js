@@ -321,10 +321,10 @@ test.describe('Success screen — concat button reveal', () => {
     });
 
     test('friend-challenge lesson shows only Share, then Continue joins it after the Share tap', async ({ page }) => {
-        // A genuine shareCta lesson (wouldrather-a): the model config used
-        // elsewhere in this file has no shareCta lesson, so its index lookup
-        // cannot construct a friend row.
-        await page.goto('/course/wouldrather/lesson/a');
+        // A genuine shareCta lesson (the friend course's lesson a): the model
+        // config used elsewhere in this file has no shareCta lesson, so its
+        // index lookup cannot construct a friend row.
+        await page.goto('/course/wouldyourather-test/lesson/a');
         await confirmGuestLanguage(page);
         await page.evaluate(() => {
             const s = window.appStore.getState();

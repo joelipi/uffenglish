@@ -1,5 +1,6 @@
 // Diagnostic E2E for lesson g — why video will not play
 import { test, expect } from '@playwright/test';
+import { confirmGuestLanguage } from './helpers/lesson-e2e.js';
 
 const LESSON_G = '/course/model/lesson/m-g';
 const SLUGS_G = [
@@ -33,6 +34,7 @@ test('lesson g — video will not play diagnostic (local)', async ({ page }) => 
   page.on('requestfailed', r => failedRequests.push(`${r.method()} ${r.url()} → ${r.failure()?.errorText}`));
 
   await page.goto(LESSON_G, { waitUntil: 'domcontentloaded' });
+  await confirmGuestLanguage(page);
 
   // bootstrap waits — lesson g needs configData + activeLessonId + currentVideo intro (async preloadLessonAssets + loadLessonContent)
   await page.waitForFunction(() => window.appStore?.getState()?.configData, null, { timeout: 20000 });

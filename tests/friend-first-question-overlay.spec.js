@@ -58,7 +58,7 @@ test.describe('friend lessons: first question skips the mode chooser', () => {
 
     test('friend lesson a: first response step plays the clip, then raises the 028 overlay', async ({ page }) => {
         await page.route(/\.mp4(\?.*)?$/, HANG);
-        await page.goto('/course/wouldrather/lesson/a');
+        await page.goto('/course/wouldyourather-test/lesson/a');
         await confirmGuestLanguage(page);
         await waitForLessonReady(page, 'a');
 
@@ -99,7 +99,7 @@ test.describe('friend lessons: first question skips the mode chooser', () => {
 
     test('friend lesson via ?shareCode= on b: first response step goes interactive', async ({ page }) => {
         await page.route(/\.mp4(\?.*)?$/, HANG);
-        await page.goto('/course/wouldrather/lesson/b?shareCode=friendtest1');
+        await page.goto('/course/wouldyourather-test/lesson/b?shareCode=friendtest1');
         await confirmGuestLanguage(page);
         await waitForLessonReady(page, 'b');
 
