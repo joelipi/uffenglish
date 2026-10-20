@@ -12,14 +12,28 @@ export const ENGLISH_LANG = 'EN';
 // email-confirmation landing page is opened from an inbox with no session, and
 // the course listings page is linked from the expired state of a public
 // profile, so it must be readable without the modal.
-export const PUBLIC_ROUTES = ['/', '/privacy', '/terms', '/confirm-email', '/courses'];
+//
+// The topic chooser (/welcome) and the topic pages (/tags/<topic>) are public
+// for the same reason: they are where a visitor WITHOUT a friend's code goes
+// ("Start without friend's code"), and a language/login prompt in the middle of
+// that path interrupts it — the modal would also cover the topic buttons, so
+// the visitor could not even pick a topic until they dismissed it.
+export const PUBLIC_ROUTES = ['/', '/privacy', '/terms', '/confirm-email', '/courses', '/welcome'];
+
+// Route prefixes that are public to everyone: every path UNDER one of them is
+// public too (the topic pages, `/tags/<topic>`). Kept apart from PUBLIC_ROUTES
+// because those are exact paths.
+export const PUBLIC_ROUTE_PREFIXES = ['/tags'];
 
 export function isPublicHomeRoute(pathname) {
     if (typeof pathname !== 'string' || pathname === '') return false;
     // React Router matches paths case-insensitively and tolerates trailing
     // slashes, so normalize to the canonical form before the exact-match lookup.
     const normalized = (pathname.replace(/\/+$/, '') || '/').toLowerCase();
-    return PUBLIC_ROUTES.includes(normalized);
+    if (PUBLIC_ROUTES.includes(normalized)) return true;
+    return PUBLIC_ROUTE_PREFIXES.some(
+        (prefix) => normalized === prefix || normalized.startsWith(prefix + '/'),
+    );
 }
 
 export const HOMEPAGE_ROUTE = '/';
@@ -31,12 +45,31 @@ export function isHomepageRoute(pathname) {
     return (pathname.replace(/\/+$/, '') || '/').toLowerCase() === HOMEPAGE_ROUTE;
 }
 
-// Whether the homepage should silently adopt the browser language. English is a
+// True for the routes that SILENTLY adopt the browser language for an
+// anonymous visitor: the homepage, the topic chooser (/welcome) and the topic
+// pages (/tags/<topic>).
+//
+// On those pages the copy is the first thing a visitor reads and the guest
+// modal is suppressed (they are public routes), so the page must speak the
+// visitor's language without prompting for it. Without this, a visitor who
+// opens a topic page directly — never through the homepage — would read
+// English only.
+export function isLanguageAdoptingRoute(pathname) {
+    if (isHomepageRoute(pathname)) return true;
+    if (typeof pathname !== 'string' || pathname === '') return false;
+    const normalized = (pathname.replace(/\/+$/, '') || '/').toLowerCase();
+    if (normalized === '/welcome') return true;
+    return PUBLIC_ROUTE_PREFIXES.some(
+        (prefix) => normalized === prefix || normalized.startsWith(prefix + '/'),
+    );
+}
+
+// Whether a route should silently adopt the browser language. English is a
 // no-op (English already renders); a logged-in user or an already chosen guest
 // language wins; an unsupported code (e.g. DE/JA) is a no-op so
-// guestNativeLanguage stays within the homepage's six languages.
+// guestNativeLanguage stays within the app's six languages.
 // Returns { action: 'adopt', language } | { action: 'noop' }.
-export function resolveHomepageLanguageAdoption({ isLoggedIn, guestLang, detectedLang, supportedLangs } = {}) {
+export function resolveSilentLanguageAdoption({ isLoggedIn, guestLang, detectedLang, supportedLangs } = {}) {
     if (isLoggedIn) return { action: 'noop' };
     if (guestLang) return { action: 'noop' };
     if (!detectedLang || detectedLang === ENGLISH_LANG) return { action: 'noop' };
@@ -54,10 +87,6 @@ export function resolveHomepageLanguageAdoption({ isLoggedIn, guestLang, detecte
 export const STATIC_SINGLE_SEGMENT_ROUTES = [
     ...PUBLIC_ROUTES,
     '/home', '/profile', '/friends', '/login', '/signup', '/recover-password', '/reset-password',
-    // The welcome page (choose your topic): a static inside page, so an
-    // anonymous visitor gets the guest language/login modal there like on any
-    // other inside page — it must not be read as a share code.
-    '/welcome',
 ];
 
 // User profile pages: the logged-in profile (/profile) and the public

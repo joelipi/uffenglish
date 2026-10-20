@@ -855,6 +855,15 @@ describe('resolveInviterCode', () => {
         expect(resolveInviterCode({ friendCode: '  ', shareCode: 'ab12' })).toBe('ab12');
         expect(resolveInviterCode({ shareCode: 'ab12' })).toBe('ab12');
     });
+
+    it('uses the recorder for the ask lesson, even with a stale friend code', () => {
+        // The asker started the chain: their clip is published
+        // `<owner>-<owner>`, and the friend who opens their link looks for
+        // exactly that. A stale persisted friendCode must not redirect it.
+        expect(resolveInviterCode({ friendCode: 'zzz9', shareCode: 'ab12', isAskLesson: true })).toBe('ab12');
+        expect(resolveInviterCode({ friendCode: '  ', shareCode: 'ab12', isAskLesson: true })).toBe('ab12');
+        expect(resolveInviterCode({ shareCode: 'ab12', isAskLesson: true })).toBe('ab12');
+    });
 });
 
 describe('isPublishableClip', () => {

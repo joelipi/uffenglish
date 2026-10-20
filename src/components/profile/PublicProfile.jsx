@@ -28,7 +28,11 @@ export default function PublicProfile({ shareCode }) {
     const lang = useNativeLanguage();
 
     const containerStyle = {
-        height: '100dvh',
+        // The app shell (src/routes/AppShellLayout.jsx) owns the frame height
+        // and the shared header, so the page is a flex child of the region
+        // below the header — it must not claim a height of its own.
+        flex: 1,
+        minHeight: 0,
         overflowY: 'auto',
         backgroundColor: '#0b1a2a',
         color: 'white',
@@ -54,7 +58,7 @@ export default function PublicProfile({ shareCode }) {
     if (isLoading) {
         return (
             <div style={containerStyle}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100dvh' }}>
+                <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <div className="spinner-border" role="status" style={{ width: '3rem', height: '3rem' }}>
                         <span className="visually-hidden">Loading...</span>
                     </div>

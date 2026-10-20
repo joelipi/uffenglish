@@ -16,6 +16,10 @@ import {
     resolveCompositeWatchdog,
     COMPOSITE_WATCHDOG_MS,
 } from './portrait-capture-logic.js';
+import {
+    shouldReleaseCaptureBeforePlayback,
+    waitForAudioRouteSettle,
+} from './capture-release-logic.js';
 import Strings from '../../data/strings.js';
 import { getAppLanguage } from '../bilingual/config-normalizer.js';
 import { trackEvent } from '../utils/posthog.js';
@@ -455,6 +459,19 @@ export async function startDeferredSpeechCamRecording() {
 // recorded blob + Whisper WASM is what OOM'd Android). `keepStreamAlive` is only
 // a warmup optimisation; the next step rebuilds the stream via warmUp.
 export function stopSpeechCamRecording({ download = true, persist = false, meta = {}, keepStreamAlive = false, playback = true, autoplay = false } = {}) {
+    // The capture may be closed twice — once before the clip is handed to the
+    // player and once in the finally block — so the release is idempotent.
+    let captureReleased = false;
+    const releaseCapture = () => {
+        if (captureReleased) return;
+        captureReleased = true;
+        setWebcamStream(null);
+        safelyStopStream();
+    };
+    // Whether the capture is closed when the recording ends anyway. Android
+    // always closes it (the composite must not stay alive into Whisper);
+    // everywhere else the caller decides via `keepStreamAlive`.
+    const releaseAfterRecording = shouldForceReleaseComposite({ isAndroid, keepStreamAlive, recordingStarted: true });
     try {
         if (speechCamRecorder && speechCamRecorder.state !== 'inactive') {
             const recorder = speechCamRecorder;
@@ -474,7 +491,28 @@ export function stopSpeechCamRecording({ download = true, persist = false, meta 
                         blobToReturn = blob;
                         console.warn('[DBUG] blob created, size:', blob.size, 'playback:', playback);
 
-                        if (playback && blob.size > 0) appStore.getState().setPlaybackBlob(blob, autoplay);
+                        if (playback && blob.size > 0) {
+                            // The capture must be closed BEFORE the clip reaches the
+                            // player. On Android an open capture holds the device in a
+                            // communication audio mode, and the media route then ducks
+                            // (or mutes) the clip's own audio — the learner hears a
+                            // quiet or missing first second of their own recording
+                            // (stories/075-fix-android-silent-video-start).
+                            //
+                            // The capture used to be released in the finally block, i.e.
+                            // AFTER the hand-over and after the thumbnail generation
+                            // and the database write — so the capture was still open
+                            // for the whole first second of the clip.
+                            if (shouldReleaseCaptureBeforePlayback({ releaseAfterRecording, playback: true })) {
+                                releaseCapture();
+                                // The audio route needs a moment to hand back from the
+                                // communication mode to the media mode. The wait only
+                                // happens when a capture was actually released, so the
+                                // desktop warm-up path is not delayed at all.
+                                await waitForAudioRouteSettle();
+                            }
+                            appStore.getState().setPlaybackBlob(blob, autoplay);
+                        }
 
                         if (download && blob.size > 0) {
                             const url = URL.createObjectURL(blob);
@@ -506,7 +544,7 @@ export function stopSpeechCamRecording({ download = true, persist = false, meta 
                             compositeFreezeReporter.reset();
                             compositeFreezeReporter = null;
                         }
-                        if (shouldForceReleaseComposite({ isAndroid, keepStreamAlive, recordingStarted: true })) { setWebcamStream(null); safelyStopStream(); }
+                        if (releaseAfterRecording) { releaseCapture(); }
                         resolve(blobToReturn);
                     }
                 };
@@ -524,7 +562,7 @@ export function stopSpeechCamRecording({ download = true, persist = false, meta 
                 compositeFreezeReporter.reset();
                 compositeFreezeReporter = null;
             }
-            if (shouldForceReleaseComposite({ isAndroid, keepStreamAlive, recordingStarted: false })) { setWebcamStream(null); safelyStopStream(); }
+            if (shouldForceReleaseComposite({ isAndroid, keepStreamAlive, recordingStarted: false })) { releaseCapture(); }
             else setWebcamStream(null);
             return Promise.resolve(null);
         }
@@ -536,7 +574,7 @@ export function stopSpeechCamRecording({ download = true, persist = false, meta 
             compositeFreezeTickTimer = null;
         }
         compositeFreezeReporter = null;
-        setWebcamStream(null); safelyStopStream();
+        releaseCapture();
         return Promise.resolve(null);
     }
 }

@@ -2,6 +2,8 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import Strings from '../../data/strings.js';
 import { buildTagHref } from '../../modules/courses/course-tags-logic.js';
+import { courseTagTranslation } from '../../modules/courses/course-tag-labels.js';
+import { BilingualText } from '../BilingualText.jsx';
 
 // The welcome page (`/welcome`): "choose your topic", one big button per tag.
 //
@@ -109,7 +111,16 @@ export default function WelcomePage({ lang = 'en', tags = [], isLoading = false,
                                 data-testid="welcome-tag-button"
                                 style={tagButtonStyle}
                             >
-                                {tag.tag}
+                                {/* The English word first, the learner's language
+                                    after it: a learner still learning English may
+                                    not know what the topic means in English. */}
+                                <span className="course-tag-label">
+                                    <BilingualText
+                                        translationData={courseTagTranslation(tag.tag) || tag.tag}
+                                        userLang={lang}
+                                        spanPrefix=" "
+                                    />
+                                </span>
                             </Link>
                         ))}
                     </div>

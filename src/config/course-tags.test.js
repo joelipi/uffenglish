@@ -12,6 +12,8 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { strings } from '../data/strings.js';
+import { courseTagStringKey } from '../modules/courses/course-tag-labels.js';
 import { EXCLUDED_FRIEND_COURSE_IDS } from '../modules/courses/friend-courses-logic.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -92,5 +94,32 @@ describe('course-level tags', () => {
     it('the guard can fail: lesson-level tags are rejected', () => {
         const config = { tags: ['ok'], lessons: [{ lessonId: 'a', tags: ['nope'] }] };
         expect(() => assertCourseTags(config, 'lesson-tags.json')).toThrow(/must not carry tags/);
+    });
+});
+
+// A topic is data (the config's `tags`), but its NAME is copy: a learner who
+// is still learning English may not know what "travel" means, so every topic
+// needs a translated label in the strings table. The topics are DISCOVERED from
+// the configs, so a new tag fails this guard until it is translated.
+//
+// The assertion reads the RAW strings table: `Strings.get()` falls back to
+// English, so a dropped locale would still be truthy (AGENTS.md).
+describe('every topic has a translated label', () => {
+    const LOCALES = ['en', 'es', 'pt', 'fr', 'hi', 'bn'];
+
+    it('carries every locale for every topic the configs use', () => {
+        const tags = new Set();
+        for (const name of CONFIG_FILES) {
+            for (const tag of loadConfig(name).tags || []) tags.add(tag);
+        }
+        expect(tags.size).toBeGreaterThan(0);
+        for (const tag of tags) {
+            const key = courseTagStringKey(tag);
+            const entry = strings[key];
+            expect(entry, `${tag} has no label (expected the string key "${key}")`).toBeTruthy();
+            for (const lang of LOCALES) {
+                expect(entry[lang], `${key}/${lang}`).toBeTruthy();
+            }
+        }
     });
 });

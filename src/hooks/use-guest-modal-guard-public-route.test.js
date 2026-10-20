@@ -47,8 +47,10 @@ describe('guest-modal guard public-homepage skip', () => {
 });
 
 describe('guest-modal guard homepage browser-language adoption', () => {
-    it('adopts the browser language inside the public-homepage branch', () => {
-        expect(block).toContain('isHomepageRoute(path)');
+    it('adopts the browser language inside the public-route branch', () => {
+        // The homepage AND the topic pages adopt the browser language; the
+        // decision itself checks the guest's own choice first.
+        expect(block).toContain('isLanguageAdoptingRoute(path)');
         expect(block).toContain('detectBrowserLanguage()');
         expect(block).toContain('state.setGuestLanguageSilent(');
     });

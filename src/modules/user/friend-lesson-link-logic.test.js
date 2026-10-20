@@ -8,7 +8,6 @@ import {
     getFriendLinkRemainingMs,
     isFriendLinkActive,
     formatFriendLinkRemaining,
-    upsertFriendLinkMap,
     listActiveFriendLinks,
     groupActiveFriendLinks,
     buildFriendPracticeView,
@@ -165,54 +164,10 @@ describe('formatFriendLinkRemaining', () => {
     });
 });
 
-describe('upsertFriendLinkMap', () => {
-    it('treats null and {} as an empty map', () => {
-        expect(upsertFriendLinkMap(null, entryFriend)).toEqual({ 'friend:a': entryFriend });
-        expect(upsertFriendLinkMap({}, entryFriend)).toEqual({ 'friend:a': entryFriend });
-    });
-
-    it('keys by courseId:recordedLessonId, so different recorded lessons both survive', () => {
-        const a = { ...entryFriend, recordedLessonId: 'a', lessonId: 'b' };
-        const c = { ...entryFriend, recordedLessonId: 'c', lessonId: 'd' };
-        const merged = upsertFriendLinkMap({ 'friend:a': a }, c);
-        expect(Object.keys(merged).sort()).toEqual(['friend:a', 'friend:c']);
-        expect(merged['friend:c']).toEqual(c);
-    });
-
-    it('replaces the entry for the same course+recorded lesson (addedAt reset)', () => {
-        const oldEntry = { ...entryFriend, addedAt: iso(NOW - 5 * HOUR) };
-        const newEntry = { ...entryFriend, addedAt: iso(NOW) };
-        const merged = upsertFriendLinkMap({ 'friend:a': oldEntry }, newEntry);
-        expect(merged['friend:a']).toEqual(newEntry);
-    });
-
-    it('falls back to ${courseId}:${lessonId} for a legacy entry without recordedLessonId', () => {
-        const legacy = { courseId: 'friend', lessonId: 'b', shareCode: 'ab12', addedAt: iso(NOW) };
-        expect(upsertFriendLinkMap({}, legacy)).toEqual({ 'friend:b': legacy });
-    });
-
-    it('falls back to the course id when neither recordedLessonId nor lessonId is present', () => {
-        const noLesson = { courseId: 'friend', shareCode: 'ab12', addedAt: iso(NOW) };
-        expect(upsertFriendLinkMap({}, noLesson)).toEqual({ friend: noLesson });
-    });
-
-    it('keeps distinct courses for the same recorded lesson id', () => {
-        const merged = upsertFriendLinkMap({ 'friend:a': entryFriend }, entryOther);
-        expect(Object.keys(merged).sort()).toEqual(['friend:a', 'other:a']);
-        expect(merged['other:a']).toEqual(entryOther);
-    });
-
-    it('does not mutate the input map', () => {
-        const input = { 'friend:a': entryFriend };
-        upsertFriendLinkMap(input, entryOther);
-        expect(input).toEqual({ 'friend:a': entryFriend });
-    });
-
-    it('ignores non-object input', () => {
-        expect(upsertFriendLinkMap('x', entryFriend)).toEqual({ 'friend:a': entryFriend });
-        expect(upsertFriendLinkMap([entryFriend], entryFriend)).toEqual({ 'friend:a': entryFriend });
-    });
-});
+// The map merge moved server-side (`record_friend_link`, migration 011): a
+// client-side read-modify-write could lose an entry SILENTLY, because a
+// zero-row UPDATE is not an error in PostgREST. Its shape is guarded by
+// src/modules/api/friend-link-write-migration.test.js.
 
 describe('listActiveFriendLinks', () => {
     it('keeps only entries inside the 48h window', () => {

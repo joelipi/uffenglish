@@ -246,9 +246,12 @@ describe('FriendLessonLinksSection visitor awareness', () => {
         expect(href.startsWith('/login?redirect=')).toBe(true);
         expect(decodeURIComponent(href.slice('/login?redirect='.length))).toBe('/owner1');
 
-        const guest = container.querySelector('[data-testid="visitor-guest-link"]');
-        expect(guest.textContent).toBe('No account yet? You can start practicing free.');
-        expect(guest.getAttribute('href')).toBe('#friend-lesson-links');
+        const guest = container.querySelector('[data-testid="visitor-guest-note"]');
+        expect(guest.textContent).toBe('No account yet? Start practicing free. Click one of the links below to start.');
+        // Plain text, not a link: it points at the links below it.
+        expect(guest.tagName).toBe('P');
+        expect(guest.querySelector('a')).toBeNull();
+        expect(container.querySelector('[data-testid="visitor-guest-link"]')).toBeNull();
 
         expect(container.querySelectorAll('#friend-lesson-links')).toHaveLength(1);
     });

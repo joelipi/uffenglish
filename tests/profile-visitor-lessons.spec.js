@@ -48,11 +48,18 @@ const LINKS = {
 
 async function seedOwner(page, friendLinks, overrides = {}) {
     await page.goto(`/${OWNER}`);
+    // Wait for the profile query to SETTLE before injecting the fixture: the
+    // in-flight fetch resolves with "no such profile" and would overwrite the
+    // injected row, leaving the page on "User not found" with no links.
+    await page.waitForLoadState('networkidle');
     await expect(page.getByText('User not found')).toBeVisible();
     await page.evaluate(async ({ key, profile }) => {
         const { queryClient } = await import('/src/modules/api/api.js');
         queryClient.setQueryData(['user', 'profile', 'shareCode', key], profile);
     }, { key: OWNER, profile: { ...OWNER_PROFILE, friendLinks, ...overrides } });
+    // The injected row is now the query's data; wait for the render that shows
+    // it, so the next assertion never races the re-render.
+    await expect(page.getByTestId('friend-lesson-links').or(page.getByTestId('friend-lessons-expired'))).toBeVisible();
 }
 
 // The visitor's language is the app's guest-first session language, which
@@ -116,10 +123,11 @@ test.describe('public-profile visitor awareness', () => {
         await expect(page.getByTestId('visitor-login-link')).toHaveAttribute(
             'href', `/login?redirect=${encodeURIComponent(`/${OWNER}`)}`
         );
-        await expect(page.getByTestId('visitor-guest-link')).toHaveText(
-            'No account yet? You can start practicing free.'
+        await expect(page.getByTestId('visitor-guest-note')).toHaveText(
+            'No account yet? Start practicing free. Click one of the links below to start.'
         );
-        await expect(page.getByTestId('visitor-guest-link')).toHaveAttribute('href', '#friend-lesson-links');
+        // Plain text, not a link: it points at the links below it.
+        await expect(page.getByTestId('visitor-guest-link')).toHaveCount(0);
         await expect(page.getByTestId('friend-lesson-link-completed')).toHaveCount(0);
     });
 

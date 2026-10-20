@@ -76,20 +76,14 @@ export function formatFriendLinkRemaining(remainingMs) {
     return `${totalMinutes}m`;
 }
 
-// Immutable merge for the `friend_links` jsonb column. One entry per recorded
-// lesson (a player can be mid-chain with several people at once, and a profile
-// shows one link per lesson they recorded), so the map key is
-// `courseId:recordedLessonId`. The `${courseId}:${lessonId}` / bare-`courseId`
-// fallbacks are purely defensive for callers that pass an entry without a
-// recordedLessonId (the current resolver always sets it); they only affect the
-// key chosen for such a write and do not guarantee a 039-era row survives.
-export function upsertFriendLinkMap(existing, entry) {
-    const map = (existing && typeof existing === 'object' && !Array.isArray(existing)) ? existing : {};
-    const key = entry.recordedLessonId
-        ? `${entry.courseId}:${entry.recordedLessonId}`
-        : (entry.lessonId ? `${entry.courseId}:${entry.lessonId}` : entry.courseId);
-    return { ...map, [key]: entry };
-}
+// The `friend_links` jsonb column holds one entry per recorded lesson (a
+// player can be mid-chain with several people at once, and a profile shows one
+// link per lesson they recorded), so the map key is
+// `courseId:recordedLessonId`. The merge itself is SERVER-side now
+// (`record_friend_link`, migration 011): a client-side read-modify-write could
+// lose an entry SILENTLY, because a zero-row UPDATE is not an error in
+// PostgREST — the profile then showed "all lessons expired" right after the
+// learner recorded one.
 
 // Entries still inside the 48h window, newest first. Entries without a
 // lessonId (legacy) or shareCode (unusable) are dropped.

@@ -1,24 +1,12 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
-import headerLogo from '../assets/img/uff-logo.png';
 
 export default function AuthLayout() {
     return (
-        <div style={{ height: '100vh', backgroundColor: '#0b1a2a', overflowY: 'auto' }}>
-            <header
-                style={{
-                    background: 'linear-gradient(135deg, #3a8fd5 0%, #00c0d8 100%)',
-                    padding: '0.75rem 1rem',
-                    textAlign: 'center',
-                    boxShadow: '0 2px 12px rgba(0, 0, 0, 0.35)',
-                }}
-            >
-                <img
-                    src={headerLogo}
-                    alt="UFF"
-                    style={{ height: 'auto', width: 'auto', maxHeight: 40, maxWidth: '50vw', display: 'inline-block' }}
-                />
-            </header>
+        <div style={{ flex: 1, minHeight: 0, backgroundColor: '#0b1a2a', overflowY: 'auto' }}>
+            {/* The app shell (src/routes/AppShellLayout.jsx) provides the header
+                above this page — the brand bar with the UFF logo — so the auth
+                pages do NOT carry a second one of their own. */}
             <div style={{ minHeight: '100%', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '2rem 1rem 4rem' }}>
                 <div style={{
                     backgroundColor: '#1a3a5a',

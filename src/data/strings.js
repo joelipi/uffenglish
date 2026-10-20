@@ -1464,12 +1464,12 @@ const strings = {
         bn: "আপনারা একসাথে যে পাঠগুলো করেছেন তা দেখতে লগ ইন করুন।"
     },
     'profile_guest_start_free': {
-        en: "No account yet? You can start practicing free.",
-        es: "¿Aún no tienes una cuenta? Puedes empezar a practicar gratis.",
-        pt: "Ainda não tem uma conta? Você pode começar a praticar grátis.",
-        fr: "Pas encore de compte ? Vous pouvez commencer à vous entraîner gratuitement.",
-        hi: "अभी तक खाता नहीं है? आप मुफ़्त में अभ्यास शुरू कर सकते हैं।",
-        bn: "এখনও অ্যাকাউন্ট নেই? আপনি বিনামূল্যে অনুশীলন শুরু করতে পারেন।"
+        en: "No account yet? Start practicing free. Click one of the links below to start.",
+        es: "¿Aún no tienes una cuenta? Empieza a practicar gratis. Haz clic en uno de los enlaces de abajo para empezar.",
+        pt: "Ainda não tem uma conta? Comece a praticar grátis. Clique em um dos links abaixo para começar.",
+        fr: "Pas encore de compte ? Commencez à vous entraîner gratuitement. Cliquez sur l'un des liens ci-dessous pour commencer.",
+        hi: "अभी तक खाता नहीं है? मुफ़्त में अभ्यास शुरू करें। शुरू करने के लिए नीचे दिए गए लिंक में से किसी एक पर क्लिक करें।",
+        bn: "এখনও অ্যাকাউন্ট নেই? বিনামূল্যে অনুশীলন শুরু করুন। শুরু করতে নিচে দেওয়া লিঙ্কগুলোর যেকোনো একটিতে ক্লিক করুন।"
     },
     'profile_completed_together': {
         en: "You did this together",
@@ -2981,6 +2981,108 @@ const strings = {
         fr: "Aucun cours pour ce sujet pour le moment. Revenez bientôt.",
         hi: "इस विषय के लिए अभी कोई पाठ्यक्रम नहीं है। कृपया जल्द ही दोबारा देखें।",
         bn: "এই বিষয়ের জন্য এখনও কোনো কোর্স নেই। শীঘ্রই আবার দেখুন।"
+    },
+    // The course topics (the `tags` array of a course config). A learner who is
+    // still learning English may not know what a topic means in English, so the
+    // English word comes FIRST and the learner's own language follows it. The
+    // key is the topic with its spaces replaced by underscores
+    // (`course-tag-labels.js`); a topic with no entry here falls back to the
+    // config's own spelling.
+    'course_tag_drinks': {
+        en: "Drinks",
+        es: "Bebidas",
+        pt: "Bebidas",
+        fr: "Boissons",
+        hi: "पेय",
+        bn: "পানীয়"
+    },
+    'course_tag_family': {
+        en: "Family",
+        es: "Familia",
+        pt: "Família",
+        fr: "Famille",
+        hi: "परिवार",
+        bn: "পরিবার"
+    },
+    'course_tag_food': {
+        en: "Food",
+        es: "Comida",
+        pt: "Comida",
+        fr: "Nourriture",
+        hi: "खाना",
+        bn: "খাবার"
+    },
+    'course_tag_friends': {
+        en: "Friends",
+        es: "Amigos",
+        pt: "Amigos",
+        fr: "Amis",
+        hi: "दोस्त",
+        bn: "বন্ধুরা"
+    },
+    'course_tag_getting_to_know_you': {
+        en: "Getting to know you",
+        es: "Conocerte",
+        pt: "Conhecer-te",
+        fr: "Faire connaissance",
+        hi: "आपसे परिचित होना",
+        bn: "আপনার সাথে পরিচিত হওয়া"
+    },
+    'course_tag_money': {
+        en: "Money",
+        es: "Dinero",
+        pt: "Dinheiro",
+        fr: "Argent",
+        hi: "पैसा",
+        bn: "টাকা"
+    },
+    'course_tag_music': {
+        en: "Music",
+        es: "Música",
+        pt: "Música",
+        fr: "Musique",
+        hi: "संगीत",
+        bn: "সংগীত"
+    },
+    'course_tag_ordering': {
+        en: "Ordering",
+        es: "Pedir comida",
+        pt: "Pedir comida",
+        fr: "Commander",
+        hi: "ऑर्डर करना",
+        bn: "অর্ডার করা"
+    },
+    'course_tag_preferences': {
+        en: "Preferences",
+        es: "Preferencias",
+        pt: "Preferências",
+        fr: "Préférences",
+        hi: "पसंद",
+        bn: "পছন্দ"
+    },
+    'course_tag_shopping': {
+        en: "Shopping",
+        es: "Compras",
+        pt: "Compras",
+        fr: "Courses",
+        hi: "खरीदारी",
+        bn: "কেনাকাটা"
+    },
+    'course_tag_sports': {
+        en: "Sports",
+        es: "Deportes",
+        pt: "Desporto",
+        fr: "Sports",
+        hi: "खेल",
+        bn: "খেলাধুলা"
+    },
+    'course_tag_travel': {
+        en: "Travel",
+        es: "Viajes",
+        pt: "Viagens",
+        fr: "Voyage",
+        hi: "यात्रा",
+        bn: "ভ্রমণ"
     }
 };
 

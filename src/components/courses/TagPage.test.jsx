@@ -62,10 +62,18 @@ describe('TagPage', () => {
 
         const heading = container.querySelector('[data-testid="tag-heading"]');
         expect(heading.tagName).toBe('H1');
-        expect(heading.textContent).toBe('family');
+        expect(heading.textContent).toBe('Family');
 
         const back = container.querySelector('[data-testid="tag-back"]');
         expect(back.getAttribute('href')).toBe('/welcome');
+    });
+
+    it('shows the English topic first and the learner\'s language after it', () => {
+        root = render(container, { lang: 'es' });
+
+        const heading = container.querySelector('[data-testid="tag-heading"]');
+        expect(heading.textContent).toBe('Family Familia');
+        expect(heading.querySelector('[lang="es"]').textContent.trim()).toBe('Familia');
     });
 
     it('lists one card per course, linking to the course like the listings page', () => {

@@ -3007,3 +3007,13 @@ ul.incorrectWords li::before {
     min-width: 2.2em;
     text-align: center;
 }
+
+/* A course topic on the topic chooser (/welcome) and a topic page
+   (/tags/<topic>): the English word first, the learner's language after it.
+   The translation is the quieter half of the pair — the English word is what
+   the learner is learning, so it keeps the weight. */
+.course-tag-label [lang] {
+    margin-left: 6px;
+    font-weight: 600;
+    opacity: 0.8;
+}

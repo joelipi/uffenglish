@@ -65,10 +65,30 @@ describe('WelcomePage', () => {
 
         const buttons = Array.from(container.querySelectorAll('[data-testid="welcome-tag-button"]'));
         expect(buttons).toHaveLength(2);
-        expect(buttons[0].textContent).toBe('travel');
-        expect(buttons[1].textContent).toBe('family');
+        expect(buttons[0].textContent).toBe('Travel');
+        expect(buttons[1].textContent).toBe('Family');
         expect(buttons[0].getAttribute('href')).toBe('/tags/travel');
         expect(buttons[1].getAttribute('href')).toBe('/tags/family');
+    });
+
+    it('shows the English topic first and the learner\'s language after it', () => {
+        // A learner who is still learning English may not know what the topic
+        // means in English, so both words are on the button: English first.
+        root = render(container, { lang: 'es' });
+
+        const buttons = Array.from(container.querySelectorAll('[data-testid="welcome-tag-button"]'));
+        expect(buttons[0].textContent).toBe('Travel Viajes');
+        expect(buttons[1].textContent).toBe('Family Familia');
+        // The translation carries its own language attribute.
+        expect(buttons[0].querySelector('[lang="es"]').textContent.trim()).toBe('Viajes');
+    });
+
+    it('shows only the English word for an English learner', () => {
+        root = render(container, { lang: 'en' });
+
+        const buttons = Array.from(container.querySelectorAll('[data-testid="welcome-tag-button"]'));
+        expect(buttons[0].textContent).toBe('Travel');
+        expect(buttons[0].querySelector('[lang="en"]')).toBeNull();
     });
 
     it('shows a spinner while the topics load, and no buttons', () => {
