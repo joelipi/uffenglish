@@ -1149,6 +1149,7 @@ describe('recorder auto-render — zero server changes', () => {
             'stories/075-ababab-pattern-all-lessons/story.md',
             'stories/075-ababab-pattern-all-lessons/wouldyourather-test.before.json',
             'stories/075-ababab-pattern-all-lessons/lesson-c.proposed.json',
+            'stories/075-ababab-pattern-all-lessons/lesson-c.review.json',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);
