@@ -53,13 +53,22 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // The inside pages of the app: every one of them shows the shared header.
 // A topic page is declared with its param (`/tags/:tag`); the path rendered
-// here carries a real tag.
-const INSIDE_PATHS = ['/home', '/profile', '/courses', '/friends', '/privacy', '/terms', '/welcome', '/tags/travel'];
+// here carries a real tag. The public share-code profile and the 404 page are
+// inside pages too (only the landing page and the lesson player keep their own
+// chrome).
+const INSIDE_PATHS = [
+    '/home', '/profile', '/courses', '/friends', '/privacy', '/terms', '/welcome', '/tags/travel',
+    '/login', '/signup', '/confirm-email', '/abcd', '/a/b/c',
+];
 // The same pages as they are DECLARED in the route table.
-const DECLARED_INSIDE_PATHS = ['/home', '/profile', '/courses', '/friends', '/privacy', '/terms', '/welcome', '/tags/:tag'];
-// The pages that keep their own chrome: the public homepage (the root), the
-// lesson player and the public share-code profile.
-const OUTSIDE_PATHS = ['/', '/course/model/lesson/m-g', '/abcd'];
+const DECLARED_INSIDE_PATHS = [
+    '/home', '/profile', '/courses', '/friends', '/privacy', '/terms', '/welcome', '/tags/:tag',
+    '/login', '/signup', '/recover-password', '/reset-password', '/confirm-email',
+    '/:shareCode', '*',
+];
+// The pages that keep their own chrome: the public homepage (the root) and
+// the lesson player.
+const OUTSIDE_PATHS = ['/', '/course/model/lesson/m-g'];
 
 describe('the shared header on every inside page', () => {
     let container;
@@ -132,12 +141,17 @@ describe('the app shell in the route table', () => {
         expect(paths.sort()).toEqual([...DECLARED_INSIDE_PATHS].sort());
     });
 
-    it('keeps the landing page, the lesson player and the public profile out of the shell', () => {
+    it('keeps the landing page and the lesson player out of the shell', () => {
         // Assert on the DECLARED paths, not on the raw block: a comment in the
         // block naming a route must not satisfy (or break) the guard.
         const paths = [...shellChildren().matchAll(/path:\s*'([^']+)'/g)].map((m) => m[1]);
         expect(paths).not.toContain('/');
         expect(paths.some((p) => p.startsWith('/course/'))).toBe(false);
-        expect(paths).not.toContain('/:shareCode');
+    });
+
+    it('mounts the public share-code profile and the 404 page inside the shell', () => {
+        const paths = [...shellChildren().matchAll(/path:\s*'([^']+)'/g)].map((m) => m[1]);
+        expect(paths).toContain('/:shareCode');
+        expect(paths).toContain('*');
     });
 });

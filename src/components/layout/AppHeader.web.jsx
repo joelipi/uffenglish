@@ -3,9 +3,9 @@
 // bell) plus the slide-out navigation drawer.
 //
 // It is mounted ONCE by the app shell (src/routes/AppShellLayout.jsx), so every
-// inside page of the app shows the very same header. The public landing page
-// (/), the lesson player and the public share-code profile sit OUTSIDE the
-// shell and keep their own chrome.
+// inside page of the app shows the very same header. Only the public landing
+// page (/) and the lesson player sit OUTSIDE the shell and keep their own
+// chrome.
 //
 // Web-only: the drawer closes on Escape (a DOM key listener) and it pulls in
 // the web install / push affordances. The React Native port adds an

@@ -48,12 +48,12 @@ A new static single-segment **inside** page (e.g. `/home`) is not public — it 
 
 ## Every inside page renders inside the app shell — and the shell owns the frame
 
-The shared header (the brand bar: menu button, UFF logo, notification bell, plus the slide-out drawer) lives in `src/components/layout/AppHeader.web.jsx` and is mounted ONCE by `src/routes/AppShellLayout.jsx`. Every **inside** page of the app — `/home`, `/profile`, `/courses`, `/friends`, `/privacy`, `/terms`, `/welcome`, `/tags/:tag` — is a child of that shell in `src/routes/routes.jsx`, so they all show the same header from one place. A new inside page must be added to the shell's `children` (and to the expected list in `src/routes/app-shell-header.test.jsx`), never given a header of its own.
+The shared header (the brand bar: menu button, UFF logo, notification bell, plus the slide-out drawer) lives in `src/components/layout/AppHeader.web.jsx` and is mounted ONCE by `src/routes/AppShellLayout.jsx`. **Every page of the app except the public landing page (`/`) and the lesson player (`/course/:courseId/lesson/:lessonId`) is a child of that shell** in `src/routes/routes.jsx` — `/home`, `/profile`, `/courses`, `/friends`, `/privacy`, `/terms`, `/welcome`, `/tags/:tag`, the auth pages (`/login`, `/signup`, `/recover-password`, `/reset-password`, `/confirm-email`), the public share-code profile (`/:shareCode`) and the 404 (`*`) — so they all show the same header from one place. A new page must be added to the shell's `children` (and to the expected list in `src/routes/app-shell-header.test.jsx`), never given a header of its own. The auth pages keep their own centred card but **not** a second logo bar — the shell's header carries the logo.
 
 Two rules follow from the shell owning the frame:
 
 - **A page inside the shell must not claim `height: '100dvh'`.** It is a flex child of the region below the header: use `flex: 1; minHeight: 0` and let the page own its scrolling. A `100dvh` page under the header overflows the clipping `.video-frame` and the bottom of the page is cut off.
-- **The landing page (`/`), the lesson player, the auth pages, the public share-code profile (`/:shareCode`) and the 404 stay OUTSIDE the shell** — they keep their own chrome, and their containers keep their own `100dvh`.
+- **Only the landing page (`/`) and the lesson player stay OUTSIDE the shell** — they keep their own chrome, and their containers keep their own `100dvh`. Everything else (including the public share-code profile and the 404) is inside the shell.
 
 The drawer's entries and the "is this viewer registered?" gate live in the pure module `src/modules/navigation/app-menu-logic.js` (the header stays render-only), and the drawer's hover state is a CSS class (`.uff-menu-link` in `src/assets/css/app.css`), never a `e.currentTarget.style` write from an event handler.
 
