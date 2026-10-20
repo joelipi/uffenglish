@@ -206,15 +206,25 @@ MAX_SHEET_REDIRECTS = 5
 # Local-vs-container seams
 # --------------------------------------------------------------------------- #
 
-def resolve_sheet_url(environ=None, course_id: str = "wouldyourather") -> str:
+def resolve_sheet_url(environ=None, course_id: str = "") -> str:
     """The master CSV URL: ``PIPELINE_SHEET_URL`` when set, else the course's.
 
     The override keeps story 040's "change content without a ``modal deploy``"
     property: an operator can point the render at another CSV (e.g. a branch
     copy on ``raw.githubusercontent.com`` for testing).
+
+    ``course_id`` is REQUIRED: the render must read the CSV of the course it
+    was asked to render, and no course is named here. A render that arrives
+    without one fails loudly rather than silently reading another course's
+    rows.
     """
     env = os.environ if environ is None else environ
-    return env.get("PIPELINE_SHEET_URL") or master_csv_url(course_id)
+    override = env.get("PIPELINE_SHEET_URL")
+    if override:
+        return override
+    if not course_id:
+        raise ValueError("course_id is required: the render must name the course to read")
+    return master_csv_url(course_id)
 
 
 def resolve_work_dir(environ=None) -> Path:

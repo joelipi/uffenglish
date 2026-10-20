@@ -56,7 +56,7 @@ jobs:
         with:
           bot-name: uff-srt-bot
           commit-message: "chore(srt): write pipeline SRT into the master CSV [skip srt]"
-          add-paths: public/wouldyourather.master.csv
+          add-paths: public/*.master.csv
           no-change-echo: no srt changes
           regenerate: |
             set -euo pipefail

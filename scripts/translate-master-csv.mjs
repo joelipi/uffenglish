@@ -51,7 +51,7 @@ Usage:
   node scripts/translate-master-csv.mjs [options]
 
 Options:
-  --csv=<path>          Master CSV file (default: the committed public/wouldyourather.master.csv)
+  --csv=<path>          Master CSV file (default: every committed public/*.master.csv)
   --languages=es,pt,bn,fr,hi  Target languages (default: ${SHEET_LANGUAGES.join(',')})
   --dry-run             Print the plan and would-be cells; write nothing
   --force               Retranslate non-blank target cells (operator-only)

@@ -252,7 +252,6 @@ describe('recorder page — same-origin master CSV', () => {
         // Story 076: the page derives the path from the course id, so a new
         // course needs no edit here.
         expect(slice).toContain("var spreadsheet_url = course + '.master.csv'");
-        expect(slice).toContain("get('course')");
         expect(slice).not.toContain('docs.google.com');
         expect(slice).not.toContain('2PACX');
         expect(slice).not.toContain('gid=');
@@ -285,6 +284,38 @@ describe('recorder page — same-origin master CSV', () => {
         ]) {
             expect(() => assertLoaderContract(good + injected), injected).toThrow();
         }
+    });
+
+    it('takes the course from the picker, never from a baked-in default', () => {
+        // The course decides which master CSV the page reads AND which course
+        // every render request names, so it comes from the picker (or ?course=)
+        // and no course is named in the page.
+        const html = page();
+        expect(html).toContain("get('course')");
+        expect(html).not.toContain("|| 'wouldyourather'");
+        expect(html).toContain('NO COURSE');
+    });
+
+    it('offers the courses from the committed index, with no course named', () => {
+        const html = page();
+        // The list is data (public/courses.json), regenerated from the repo's
+        // *.source.txt files by scripts/generate-course-index.mjs.
+        expect(html).toContain("id=\"dom-select-course\"");
+        expect(html).toContain("fetch(courseIndexUrl()");
+        expect(html).not.toContain('wouldyourather.master.csv');
+        const index = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'public/courses.json'), 'utf8'));
+        expect(Array.isArray(index.courses)).toBe(true);
+        expect(index.courses.length).toBeGreaterThan(0);
+        for (const course of index.courses) {
+            expect(course, 'course id').toMatch(/^[A-Za-z0-9][A-Za-z0-9_-]*$/);
+        }
+    });
+
+    it('every render request carries the course', () => {
+        const html = page();
+        const posts = [...html.matchAll(/body: JSON\.stringify\(\{ files: ([^}]+)\}/g)].map((m) => m[0]);
+        expect(posts.length).toBeGreaterThan(0);
+        for (const post of posts) expect(post).toContain('course: global_recorder_course');
     });
 
     it('the relative URL resolves to the committed CSV from both served paths', async () => {
@@ -354,11 +385,17 @@ describe('recorder page — same-origin master CSV', () => {
         const html = page();
         const fetchedUrls = [];
         const dom = new JSDOM(html, {
-            url: 'http://127.0.0.1:9/recorder.html',
+            url: 'http://127.0.0.1:9/recorder.html?course=wouldyourather',
             runScripts: 'dangerously',
             beforeParse(pageWindow) {
                 pageWindow.fetch = async (url) => {
                     fetchedUrls.push(String(url));
+                    if (String(url).indexOf('courses.json') !== -1) {
+                        return {
+                            ok: true,
+                            text: async () => JSON.stringify({ courses: ['wouldyourather'] }),
+                        };
+                    }
                     return fetchImpl(String(url));
                 };
             },
@@ -393,10 +430,19 @@ describe('recorder page — same-origin master CSV', () => {
             expect(win.global_script_phrases.length).toBe(108);
             expect(win.global_script_phrases.every((e) => String(e.filename || '').trim() !== '')).toBe(true);
             // One same-origin fetch for the committed CSV — never Google.
-            expect(fetchedUrls).toHaveLength(1);
-            expect(fetchedUrls[0]).toContain('wouldyourather.master.csv');
-            expect(fetchedUrls[0]).toContain('?t=');
-            expect(fetchedUrls[0]).not.toContain('docs.google');
+            // The studio reads the course index, then that course's master CSV.
+            expect(fetchedUrls).toHaveLength(2);
+            expect(fetchedUrls[0]).toContain('courses.json');
+            expect(fetchedUrls[1]).toContain('wouldyourather.master.csv');
+            // The picker is filled from the index and selects the course.
+            const picker = win.document.getElementById('dom-select-course');
+            expect(picker, 'course picker').not.toBeNull();
+            expect([...picker.options].map((o) => o.value)).toEqual(['wouldyourather']);
+            expect(picker.value).toBe('wouldyourather');
+            for (const url of fetchedUrls) {
+                expect(url).toContain('?t=');
+                expect(url).not.toContain('docs.google');
+            }
             // The display synced to the first take (loader ran to completion).
             expect(win.document.getElementById('dom-progress-count').textContent).toContain('/ 108');
         } finally {
@@ -466,7 +512,7 @@ describe('recorder page — countdown overlay paints', () => {
         const html = page();
         const csv = fs.readFileSync(path.join(REPO_ROOT, 'public/wouldyourather.master.csv'), 'utf8');
         const dom = new JSDOM(html, {
-            url: 'http://127.0.0.1:9/recorder.html',
+            url: 'http://127.0.0.1:9/recorder.html?course=wouldyourather',
             runScripts: 'dangerously',
             beforeParse(pageWindow) {
                 pageWindow.fetch = async () => ({ ok: true, text: async () => csv });
@@ -572,7 +618,7 @@ describe('recorder page — lesson auto-render', () => {
         const { JSDOM } = await import('jsdom');
         const html = fs.readFileSync(PAGE_PATH, 'utf8');
         const dom = new JSDOM(html, {
-            url: 'http://127.0.0.1:9/recorder.html',
+            url: 'http://127.0.0.1:9/recorder.html?course=wouldyourather',
             runScripts: 'dangerously',
             beforeParse(pageWindow) {
                 pageWindow.fetch = stub;
@@ -962,6 +1008,11 @@ describe('recorder auto-render — zero server changes', () => {
             'src/config/ababab-generated-contract.test.js',
             // Story 066 (recorder auto-render).
             'public/recorder.html',
+            'public/courses.json',
+            'scripts/generate-course-index.mjs',
+            'scripts/generate-course-index.test.js',
+            '.github/workflows/source-to-csv.yml',
+            'scripts/source-to-csv-workflow.test.js',
             'src/modules/video/recorder-page.test.js',
             'scripts/translate-master-csv.mjs',
             'scripts/sync-srt-workflow.test.js',
@@ -1002,6 +1053,11 @@ describe('recorder auto-render — zero server changes', () => {
             'src/modules/courses/friend-course-configs.test.js',
             'scripts/generate-config-from-sheet.mjs',
             'scripts/generate-config-from-sheet.test.js',
+            'scripts/generate-sheet-from-source.mjs',
+            'docs/video-pipeline/trigger_app.py',
+            'docs/video-pipeline/modal_app.py',
+            'functions/api/pipeline/render.js',
+            'functions/api/pipeline/render.test.js',
             'scripts/source-to-csv-workflow.test.js',
             '.github/workflows/source-to-csv.yml',
             'src/modules/courses/friend-courses-logic.test.js',
@@ -1125,7 +1181,12 @@ describe('recorder auto-render — zero server changes', () => {
             'src/modules/video/audio-guard-wiring.test.js',
             'src/components/InteractiveVideoPlayer.web.jsx',
             'src/components/step-loader.web.js',
+            'src/components/PlaybackVideo.jsx',
+            'src/modules/speech/capture-release-logic.js',
+            'src/modules/speech/capture-release-logic.test.js',
+            'src/modules/speech/capture-release-wiring.test.js',
             'tests/audio-guard-repairs-muted-video.spec.js',
+            'tests/playback-video-audio-guard.spec.js',
             'stories/075-fix-android-silent-video-start/story.md',
             // Shared app header: every inside page of the app renders the same
             // header (the brand bar + menu drawer), mounted once by the app
@@ -1165,6 +1226,11 @@ describe('recorder auto-render — zero server changes', () => {
             'src/config/ababab-generated-contract.test.js',
             'public/wouldyourather.master.csv',
             'public/recorder.html',
+            'public/courses.json',
+            'scripts/generate-course-index.mjs',
+            'scripts/generate-course-index.test.js',
+            '.github/workflows/source-to-csv.yml',
+            'scripts/source-to-csv-workflow.test.js',
             'wouldyourather.source.txt',
             '.github/workflows/sync-srt.yml',
             '.github/workflows/translate-master.yml',
@@ -1182,6 +1248,11 @@ describe('recorder auto-render — zero server changes', () => {
             'scripts/generate-master-csv.test.js',
             'scripts/generate-config-from-sheet.mjs',
             'scripts/generate-config-from-sheet.test.js',
+            'scripts/generate-sheet-from-source.mjs',
+            'docs/video-pipeline/trigger_app.py',
+            'docs/video-pipeline/modal_app.py',
+            'functions/api/pipeline/render.js',
+            'functions/api/pipeline/render.test.js',
             'scripts/translate-master-csv.mjs',
             'scripts/sync-srt-workflow.test.js',
             'scripts/translate-master-workflow.test.js',

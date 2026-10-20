@@ -21,7 +21,8 @@ const read = () => readFileSync(WORKFLOW, 'utf8');
 
 function assertSourceToCsvContract(text) {
     expect(text).toContain('branches: [main]');
-    expect(text).toContain('wouldyourather.source.txt');
+    // The authoring surface is any course's source file, not one course's.
+    expect(text).toContain("'*.source.txt'");
     expect(text).toContain('scripts/generate-master-csv.mjs');
     expect(text).toContain('workflow_dispatch:');
     expect(text).toContain('inputs.dry_run');
@@ -57,7 +58,7 @@ describe('source-to-csv.yml source guard', () => {
     it('the guard can fail on each pinned token', () => {
         const good = read();
         const tokens = [
-            'branches: [main]', 'wouldyourather.source.txt',
+            'branches: [main]', "'*.source.txt'",
             'scripts/generate-master-csv.mjs', 'workflow_dispatch:',
             'group: master-csv', 'queue: max',
             'token: ${{ secrets.GH_NEW_TOKEN }}',

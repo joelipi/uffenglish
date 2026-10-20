@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // scripts/generate-config-from-sheet.mjs
-// Read the committed master CSV (`public/wouldyourather.master.csv`) and write
+// Read every committed master CSV (`public/*.master.csv`) and write
 // one `src/config/<courseId>.json` per course it defines
 // (stories/042-generate-config-from-sheet, multi-course story 046). The
 // committed CSV is the source of truth for both videos and configs (story

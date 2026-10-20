@@ -1,12 +1,12 @@
 import { useNavigate } from 'react-router-dom';
 import { useUserByShareCode, useAuthStatus, useUserProfile, useNotifications } from '../../modules/api/api.js';
-import { appStore } from '../../modules/store/store.js';
 import { calculateCurrentStreak } from '../../modules/user/user-profile.js';
+import { formatProfileJoinDate } from '../../modules/user/public-profile-logic.js';
 import Strings from '../../data/strings.js';
-import { LOCALE_MAP } from '../../data/languages.js';
 import defaultProfilePic from '../../assets/img/userprofile.png';
 import FriendLessonLinksSection from './FriendLessonLinksSection.jsx';
 import useFriendChainHeads from '../../hooks/useFriendChainHeads.js';
+import { useNativeLanguage } from '../../hooks/use-native-language.js';
 
 export default function PublicProfile({ shareCode }) {
     const navigate = useNavigate();
@@ -21,6 +21,11 @@ export default function PublicProfile({ shareCode }) {
     // Only the configs this profile's links reference are fetched; a course
     // whose config cannot be loaded fails open in the read-time filter.
     const chainHeads = useFriendChainHeads(profile?.friendLinks);
+    // The page is localized to the VISITOR's language — the app's guest-first
+    // session language — and never to the language of the profile being read.
+    // A Spanish learner opening a Hindi speaker's profile reads the page in
+    // Spanish, so the owner's `native_language` must not pick the copy here.
+    const lang = useNativeLanguage();
 
     const containerStyle = {
         height: '100dvh',
@@ -59,26 +64,25 @@ export default function PublicProfile({ shareCode }) {
     }
 
     if (!profile) {
-        const viewerLang = appStore.getState().guestNativeLanguage || appStore.getState().userData?.native_language || 'en';
         return (
             <div style={containerStyle}>
                 <div style={headerStyle}>
                     <button onClick={() => navigate('/')} style={{ background: 'none', border: 'none', color: 'white', fontSize: '20px', cursor: 'pointer' }}>
                         <i className="bi bi-arrow-left"></i>
                     </button>
-                    <span style={{ fontSize: '18px', fontWeight: 600 }}>{Strings.get('public_profile_heading', viewerLang)}</span>
+                    <span style={{ fontSize: '18px', fontWeight: 600 }}>{Strings.get('public_profile_heading', lang)}</span>
                 </div>
                 <div style={{ padding: '24px 16px', textAlign: 'center', color: '#ff6b6b' }}>
                     <i className="bi bi-exclamation-triangle-fill" style={{ fontSize: '32px', display: 'block', marginBottom: '12px' }}></i>
-                    <p>{Strings.get('public_profile_not_found', viewerLang)}</p>
+                    <p>{Strings.get('public_profile_not_found', lang)}</p>
                 </div>
             </div>
         );
     }
 
-    const lang = profile.native_language?.toLowerCase() || 'en';
     const displayName = profile.display_name || [profile.firstName, profile.lastName].filter(Boolean).join(' ') || '';
-    const joinDate = profile.joinDate ? new Date(profile.joinDate).toLocaleDateString(LOCALE_MAP[profile.native_language] || 'en') : '';
+    // The join date is formatted in the VISITOR's locale, not the owner's.
+    const joinDate = formatProfileJoinDate(profile.joinDate, lang);
     const rawPic = profile.profilePictureUrl;
     const profilePic = rawPic || defaultProfilePic;
     const completedDates = Array.isArray(profile.completed_dates) ? profile.completed_dates : [];
@@ -118,7 +122,7 @@ export default function PublicProfile({ shareCode }) {
                         style={{ width: '96px', height: '96px', borderRadius: '50%', objectFit: 'cover', marginBottom: '12px' }}
                     />
                     <h2 style={{ fontSize: '22px', marginBottom: '4px', marginTop: '12px' }}>{displayName}</h2>
-                    <p style={{ color: '#6c757d', fontSize: '13px', marginBottom: '4px' }}>Share Code: {shareCode}</p>
+                    <p style={{ color: '#6c757d', fontSize: '13px', marginBottom: '4px' }}>{Strings.get('public_profile_share_code', lang)} {shareCode}</p>
                     {joinDate && <p style={{ color: '#6c757d', fontSize: '13px' }}>{Strings.get('profile_member_since', lang, { date: joinDate })}</p>}
                 </div>
 

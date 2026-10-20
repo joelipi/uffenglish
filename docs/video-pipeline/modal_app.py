@@ -115,13 +115,13 @@ def _sheet_fetch(url):
     return urllib.request.urlopen(url, timeout=30)
 
 
-def _fetch_assets(workdir):
+def _fetch_assets(workdir, course_id: str = ""):
     os.makedirs(workdir, exist_ok=True)
     # Story 065: the committed master CSV is the render's input, not the R2
     # object. Fetch it over HTTP into the work dir as `video_data.csv`;
     # `pipeline-assets/video_data.csv` is now only the post-render output the
     # orchestrator uploads after computing the `srt` column.
-    csv_text = fetch_sheet_csv(resolve_sheet_url(), _sheet_fetch)
+    csv_text = fetch_sheet_csv(resolve_sheet_url(course_id=course_id), _sheet_fetch)
     with open(os.path.join(workdir, "video_data.csv"), "w", encoding="utf-8") as fh:
         fh.write(csv_text)
     for tree in FETCH_TREES:
@@ -223,12 +223,14 @@ def orchestrator(spec: dict):
 
     job_id = spec["jobId"]
     files = spec["files"]
+    # The course whose master CSV this render reads. The trigger requires it.
+    course_id = spec["course"]
     os.makedirs(WORKDIR, exist_ok=True)
     started = time.time()
 
     try:
         _write_status(job_id, "running", "fetch")
-        _fetch_assets(WORKDIR)
+        _fetch_assets(WORKDIR, course_id=course_id)
         _fetch_takes(WORKDIR, files)
 
         # Create the pipeline's sub-directories (no_silence/, output/social, …)
