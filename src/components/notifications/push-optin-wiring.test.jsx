@@ -308,12 +308,16 @@ describe('PushNotificationsOptIn — installed-app prompt', () => {
 });
 
 describe('push opt-in wiring source guards', () => {
-    it('mounts both variants in HomeScreen, gated on a real signed-in user', () => {
+    it('mounts the prompt variant on the dashboard and the menu variant in the shared header', () => {
         const homeScreen = read('../homescreen/HomeScreen.jsx');
         expect(homeScreen).toContain("import PushNotificationsOptIn from '../notifications/PushNotificationsOptIn.web.jsx'");
         expect(homeScreen).toContain('<PushNotificationsOptIn lang={lang} variant="prompt" userId={viewerId} />');
-        expect(homeScreen).toContain('variant="menu-item"');
-        expect(homeScreen).toContain("viewerId && viewerId !== 'guest'");
+        // The menu entry moved to the shared app header (every inside page
+        // shows that menu), gated on a real signed-in user.
+        const appHeader = read('../layout/AppHeader.web.jsx');
+        expect(appHeader).toContain("import PushNotificationsOptIn from '../notifications/PushNotificationsOptIn.web.jsx'");
+        expect(appHeader).toContain('variant="menu-item"');
+        expect(appHeader).toContain('isRegisteredViewer(viewerId)');
     });
 
     it('mounts the notification prompt on /profile and /courses for signed-in users', () => {

@@ -11,7 +11,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const read = (rel) => readFileSync(path.join(__dirname, rel), 'utf8');
 
 const routes = read('./routes.jsx');
-const homeScreen = read('../components/homescreen/HomeScreen.jsx');
+const appMenu = read('../modules/navigation/app-menu-logic.js');
+const appHeader = read('../components/layout/AppHeader.web.jsx');
 const guestModalLogic = read('../modules/user/guest-modal-logic.js');
 
 describe('Friends route registration', () => {
@@ -31,11 +32,11 @@ describe('Friends route registration', () => {
 
 describe('Friends hamburger menu link', () => {
     it('links the menu Friends entry at /friends', () => {
-        const menuAt = homeScreen.indexOf("Strings.get('home_friends'");
-        expect(menuAt).toBeGreaterThan(-1);
-        const linkAt = homeScreen.lastIndexOf('<Link', menuAt);
-        const menuBlock = homeScreen.slice(linkAt, menuAt);
-        expect(menuBlock).toContain('to="/friends"');
+        // The drawer is the shared app header's menu: the entry lives in the
+        // menu module and the header renders that module.
+        expect(appMenu).toContain("path: '/friends'");
+        expect(appMenu).toContain("labelKey: 'home_friends'");
+        expect(appHeader).toContain('APP_MENU_ITEMS.map');
     });
 });
 

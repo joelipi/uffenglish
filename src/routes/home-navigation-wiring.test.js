@@ -11,6 +11,8 @@ const read = (rel) => readFileSync(path.join(__dirname, rel), 'utf8');
 
 const loginRoute = read('./LoginRoute.jsx');
 const homeScreen = read('../components/homescreen/HomeScreen.jsx');
+const appHeader = read('../components/layout/AppHeader.web.jsx');
+const appMenu = read('../modules/navigation/app-menu-logic.js');
 const lessonContainer = read('../components/LessonContainer.jsx');
 const userProfile = read('../components/profile/UserProfile.jsx');
 const publicProfile = read('../components/profile/PublicProfile.jsx');
@@ -31,32 +33,49 @@ describe('LoginRoute post-auth redirect', () => {
 // (behaviour) — rather than repeated here as a third home, so a future edit to
 // `SignupRoute.jsx` has a single guard to satisfy.
 
-describe('HomeScreen dashboard menu Home link', () => {
-    const menuAt = homeScreen.indexOf("Strings.get('home_home'");
-    const linkAt = homeScreen.lastIndexOf('<Link', menuAt);
-    const menuBlock = homeScreen.slice(linkAt, menuAt);
-
+// The drawer is the SHARED app header's menu (every inside page shows it), so
+// the entries live in one module and the header renders that module.
+describe('app menu Home link', () => {
     it('links the menu Home entry at /home', () => {
-        expect(menuBlock).toContain('to="/home"');
+        expect(appMenu).toContain("path: '/home'");
+        expect(appMenu).toContain("labelKey: 'home_home'");
     });
 
     it('no longer links the menu Home entry at /', () => {
-        expect(menuBlock).not.toContain('to="/"');
+        // The landing page is not a drawer entry (the drawer lists the app's
+        // inside pages only), so a bare "/" path must not reappear.
+        expect(appMenu).not.toContain("path: '/'");
+    });
+
+    it('renders the shared entries in the header', () => {
+        // The header must render the module's list, not a copy of it.
+        expect(appHeader).toContain('APP_MENU_ITEMS.map');
+        expect(appHeader).toContain('to={item.path}');
     });
 });
 
-describe('HomeScreen sign-out', () => {
-    const signOutAt = homeScreen.indexOf('async function handleSignOut');
-    // End at the next guaranteed top-level marker (the `const brandGradient`
-    // declaration that follows the useEffect), never at EOF (AGENTS.md).
-    const brandAt = homeScreen.indexOf('const brandGradient', signOutAt);
-    const signOutBlock = homeScreen.slice(signOutAt, brandAt);
+describe('app menu sign-out', () => {
+    const signOutAt = appHeader.indexOf('async function handleSignOut');
+    // End at the next guaranteed top-level marker (the Escape-key effect that
+    // follows), never at EOF (AGENTS.md).
+    const effectAt = appHeader.indexOf('useEffect', signOutAt);
+    const signOutBlock = appHeader.slice(signOutAt, effectAt);
 
     it('returns to the public homepage after sign out', () => {
         expect(signOutAt).toBeGreaterThan(-1);
-        expect(brandAt).toBeGreaterThan(signOutAt);
+        expect(effectAt).toBeGreaterThan(signOutAt);
         expect(signOutBlock).toContain("navigate('/')");
         expect(signOutBlock).toContain('async function handleSignOut');
+    });
+});
+
+// The header is mounted ONCE by the app shell, so a page that renders its own
+// brand bar would show the header twice.
+describe('the dashboard does not render its own header', () => {
+    it('has no brand bar or bell of its own', () => {
+        expect(homeScreen).not.toContain('data-testid="home-logo"');
+        expect(homeScreen).not.toContain('<NotificationsBell');
+        expect(homeScreen).not.toContain('data-testid="app-header"');
     });
 });
 

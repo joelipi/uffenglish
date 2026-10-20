@@ -6,7 +6,11 @@ import defaultProfilePic from '../../assets/img/userprofile.png';
 import { getFriendUserIds, buildFriendsList } from '../../modules/user/friends-logic.js';
 
 const containerStyle = {
-    height: '100dvh',
+    // The app shell (src/routes/AppShellLayout.jsx) owns the frame height and
+    // the shared header, so the page is a flex child of the region below the
+    // header — it must not claim a height of its own.
+    flex: 1,
+    minHeight: 0,
     overflowY: 'auto',
     backgroundColor: '#0b1a2a',
     color: 'white',

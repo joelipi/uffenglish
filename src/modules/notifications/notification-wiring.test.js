@@ -16,7 +16,8 @@ const nativeProcessor = read('../video/video-processor.native.jsx');
 const notificationLogic = read('./notification-logic.js');
 const notificationList = read('../../components/homescreen/NotificationList.web.jsx');
 const notificationsBell = read('../../components/homescreen/NotificationsBell.web.jsx');
-const homeScreen = read('../../components/homescreen/HomeScreen.jsx');
+const appHeader = read('../../components/layout/AppHeader.web.jsx');
+const appMenuLogic = read('../navigation/app-menu-logic.js');
 
 describe('api.js notification plumbing', () => {
     it('defines the inbox query scoped to the recipient', () => {
@@ -63,7 +64,8 @@ describe('native export contract', () => {
 
 // Platform separation (React Native–portable): rules must stay in the pure
 // logic module; the web list must not reach the data layer; the container wires
-// hooks to the view; HomeScreen only mounts the bell for a registered user.
+// hooks to the view; the shared app header mounts the bell for a registered
+// user only.
 describe('logic / presentation separation', () => {
     it('keeps notification-logic.js free of React / React Native / DOM imports', () => {
         expect(notificationLogic).not.toMatch(/from ['"]react['"]/);
@@ -94,10 +96,14 @@ describe('logic / presentation separation', () => {
         expect(notificationsBell).toContain('useMarkNotificationsRead()');
     });
 
-    it('mounts the bell in HomeScreen only for a registered user', () => {
-        expect(homeScreen).toContain("from './NotificationsBell.web.jsx'");
-        expect(homeScreen).toContain('<NotificationsBell userId={viewerId} lang={lang} />');
-        expect(homeScreen).toContain("viewerId !== 'guest'");
-        expect(homeScreen).toContain("width: '44px'");
+    it('mounts the bell in the shared app header only for a registered user', () => {
+        // The header is mounted once by the app shell, so the bell shows on
+        // every inside page — but only for a real signed-in user.
+        expect(appHeader).toContain("from '../homescreen/NotificationsBell.web.jsx'");
+        expect(appHeader).toContain('<NotificationsBell userId={viewerId} lang={lang} />');
+        expect(appHeader).toContain('isRegisteredViewer(viewerId)');
+        expect(appHeader).toContain("width: '44px'");
+        // The guest rule itself lives in the pure menu module.
+        expect(appMenuLogic).toContain("viewerId !== 'guest'");
     });
 });

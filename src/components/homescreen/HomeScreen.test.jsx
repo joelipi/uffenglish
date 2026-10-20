@@ -35,14 +35,10 @@ vi.mock('../../modules/home/continue-logic.js', async (importOriginal) => {
 // Mock the side-effecting ones so the top bar (brand logo) is under test
 // without a network or store bootstrap.
 vi.mock('../../modules/api/api.js', () => ({
-    useAuthStatus: () => ({ data: false }),
     useUserProfile: (...args) => apiMocks.useUserProfileImpl(...args),
     useNotifications: (...args) => apiMocks.useNotificationsImpl(...args),
     fetchUserByShareCode: (...args) => apiMocks.fetchUserByShareCodeImpl(...args),
-    signOut: vi.fn(),
 }));
-vi.mock('../../modules/utils/posthog.js', () => ({ trackEvent: vi.fn() }));
-vi.mock('./NotificationsBell.web.jsx', () => ({ default: () => null }));
 vi.mock('../../modules/courses/friend-course-configs.js', () => ({
     configCourseId: (p) => String(p).replace(/^.*\//, '').replace(/\.json$/, ''),
     resolveCourseHeroImage: (ref) => ref,
@@ -118,13 +114,13 @@ describe('HomeScreen', () => {
         });
     }
 
-    it('renders the UFF logo image in the top bar instead of the text headline', async () => {
+    it('renders no header of its own — the app shell provides the shared one', async () => {
+        // The brand bar + menu drawer live in the shared app header
+        // (src/components/layout/AppHeader.web.jsx), mounted once by the app
+        // shell. A brand bar here would show the header twice.
         await renderHome();
-        const logo = container.querySelector('[data-testid="home-logo"]');
-        expect(logo).not.toBeNull();
-        expect(logo.tagName).toBe('IMG');
-        expect(logo.getAttribute('alt')).toBe('Ultra Fast Fluency');
-        expect(container.textContent).not.toContain('Ultra Fast Fluency');
+        expect(container.querySelector('[data-testid="app-header"]')).toBeNull();
+        expect(container.querySelector('[data-testid="home-logo"]')).toBeNull();
     });
 
     it('renders no install banner without a signed-in user', async () => {

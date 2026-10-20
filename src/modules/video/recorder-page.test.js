@@ -1118,6 +1118,29 @@ describe('recorder auto-render — zero server changes', () => {
             'src/components/step-loader.web.js',
             'tests/audio-guard-repairs-muted-video.spec.js',
             'stories/075-fix-android-silent-video-start/story.md',
+            // Shared app header: every inside page of the app renders the same
+            // header (the brand bar + menu drawer), mounted once by the app
+            // shell. The public landing page, the lesson player and the public
+            // share-code profile keep their own chrome.
+            'src/components/layout/AppHeader.web.jsx',
+            'src/components/layout/AppHeader.test.jsx',
+            'src/modules/navigation/app-menu-logic.js',
+            'src/modules/navigation/app-menu-logic.test.js',
+            'src/routes/AppShellLayout.jsx',
+            'src/routes/app-shell-header.test.jsx',
+            'src/routes/routes.jsx',
+            'src/routes/friends-navigation-wiring.test.js',
+            'src/components/homescreen/HomeScreen.jsx',
+            'src/components/homescreen/HomeScreen.test.jsx',
+            'src/components/profile/UserProfile.jsx',
+            'src/components/courses/CourseListings.jsx',
+            'src/components/courses/CourseListings.test.jsx',
+            'src/components/friends/Friends.jsx',
+            'src/components/legal/LegalPage.jsx',
+            'src/components/legal/legal-wiring.test.js',
+            'src/components/notifications/push-optin-wiring.test.jsx',
+            'src/components/pwa/pwa-install-wiring.test.jsx',
+            'src/modules/notifications/notification-wiring.test.js',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);

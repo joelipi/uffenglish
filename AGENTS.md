@@ -40,6 +40,17 @@ Several scripts and Functions here upload to R2 (`scripts/set-whisper-model-cach
 
 `useGuestModalGuard` opens the guest language/login modal for anonymous visitors on every non-auth route unless `isPublicHomeRoute(path)` is true (`src/modules/user/guest-modal-logic.js`). Any page that must be readable without that modal (e.g. `/privacy`, `/terms`) has to be added to `PUBLIC_ROUTES`; the lookup normalizes trailing slashes and case to mirror React Router's matching (`/Privacy`, `/privacy/` resolve to the page). Declare static routes before the single-segment `/:shareCode` catch-all, and cover the non-canonical forms in `guest-modal-logic.test.js`.
 
+## Every inside page renders inside the app shell — and the shell owns the frame
+
+The shared header (the brand bar: menu button, UFF logo, notification bell, plus the slide-out drawer) lives in `src/components/layout/AppHeader.web.jsx` and is mounted ONCE by `src/routes/AppShellLayout.jsx`. Every **inside** page of the app — `/home`, `/profile`, `/courses`, `/friends`, `/privacy`, `/terms` — is a child of that shell in `src/routes/routes.jsx`, so they all show the same header from one place. A new inside page must be added to the shell's `children` (and to the expected list in `src/routes/app-shell-header.test.jsx`), never given a header of its own.
+
+Two rules follow from the shell owning the frame:
+
+- **A page inside the shell must not claim `height: '100dvh'`.** It is a flex child of the region below the header: use `flex: 1; minHeight: 0` and let the page own its scrolling. A `100dvh` page under the header overflows the clipping `.video-frame` and the bottom of the page is cut off.
+- **The landing page (`/`), the lesson player, the auth pages, the public share-code profile (`/:shareCode`) and the 404 stay OUTSIDE the shell** — they keep their own chrome, and their containers keep their own `100dvh`.
+
+The drawer's entries and the "is this viewer registered?" gate live in the pure module `src/modules/navigation/app-menu-logic.js` (the header stays render-only), and the drawer's hover state is a CSS class (`.uff-menu-link` in `src/assets/css/app.css`), never a `e.currentTarget.style` write from an event handler.
+
 ## Pipeline grouping must match the config's step granularity
 
 `docs/video-pipeline/video_pipeline.py` groups processed clips by the CSV `filename` prefix (`group_prefix_for_filename`, the leading non-digit run), which collapses a whole lesson on the overlay master (`wouldyourather_b01_i01` → `wouldyourather_b`) while the app config's step is the `video_file` column. The rendered video, the join and the SRT must all key by `pipeline_lib.group_key_for_filename` (non-blank `video_file`, else the legacy filename prefix), and `scripts/write-srt-to-sheet.mjs` mirrors that rule. When adding a stage that groups clips, route it through the shared key and assert it (a stage that re-derives its own prefix silently disagrees with the config). Compare step keys by **equality**, never `startswith`: sibling keys share a prefix (`wouldyourather_b01_i` is a prefix of `wouldyourather_b01_ii01`), so a substring match selects the wrong row (e.g. the wrong `bgMusic`). The publish plan (`pipeline_lib.plan_publish`) must name the **concatenated** file the render actually wrote — `<join>.mp4`, else `<video_file>_full<VIDEO_EXTENSION>` — never the per-take `processed_*` intermediates (publishing those 404s every slug the app config references); the published R2 key still drops the internal suffix (`assets/videos/<slug>.mp4`).
