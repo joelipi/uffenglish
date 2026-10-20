@@ -18,7 +18,11 @@ export const ENGLISH_LANG = 'EN';
 // ("Start without friend's code"), and a language/login prompt in the middle of
 // that path interrupts it — the modal would also cover the topic buttons, so
 // the visitor could not even pick a topic until they dismissed it.
-export const PUBLIC_ROUTES = ['/', '/privacy', '/terms', '/confirm-email', '/courses', '/welcome'];
+//
+// The dashboard (/home) is public for the same reason: it shows the same
+// course list as /courses, with the same topic drop-down, and the modal would
+// cover that drop-down too.
+export const PUBLIC_ROUTES = ['/', '/privacy', '/terms', '/confirm-email', '/courses', '/welcome', '/home'];
 
 // Route prefixes that are public to everyone: every path UNDER one of them is
 // public too (the topic pages, `/tags/<topic>`). Kept apart from PUBLIC_ROUTES
@@ -59,7 +63,7 @@ export function isLanguageAdoptingRoute(pathname) {
     if (isHomepageRoute(pathname)) return true;
     if (typeof pathname !== 'string' || pathname === '') return false;
     const normalized = (pathname.replace(/\/+$/, '') || '/').toLowerCase();
-    if (normalized === '/welcome' || normalized === '/courses') return true;
+    if (normalized === '/welcome' || normalized === '/courses' || normalized === '/home') return true;
     return PUBLIC_ROUTE_PREFIXES.some(
         (prefix) => normalized === prefix || normalized.startsWith(prefix + '/'),
     );
@@ -87,7 +91,7 @@ export function resolveSilentLanguageAdoption({ isLoggedIn, guestLang, detectedL
 // against routes.jsx so a new static route cannot be silently misclassified.
 export const STATIC_SINGLE_SEGMENT_ROUTES = [
     ...PUBLIC_ROUTES,
-    '/home', '/profile', '/friends', '/login', '/signup', '/recover-password', '/reset-password',
+    '/profile', '/friends', '/login', '/signup', '/recover-password', '/reset-password',
 ];
 
 // User profile pages: the logged-in profile (/profile) and the public

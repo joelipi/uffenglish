@@ -138,15 +138,15 @@ test.describe('the topic drop-down on the course lists', () => {
         await expect(page.getByTestId('friend-course-card')).toHaveCount(before);
     });
 
-    test('the home screen carries the same drop-down', async ({ page }) => {
+    test('the home screen carries the same drop-down, with no guest modal over it', async ({ page }) => {
         await page.goto('/home');
-        // The home screen is an inside page: the guest language modal opens
-        // for an anonymous visitor.
-        const englishOnly = page.locator('#guestEnglishOnlyBtn');
-        if (await englishOnly.count()) await englishOnly.click().catch(() => {});
-        const continueAsGuest = page.locator('#guestContinueBtn');
-        if (await continueAsGuest.count()) await continueAsGuest.click().catch(() => {});
 
-        await expect(page.getByTestId('course-topic-select')).toBeVisible();
+        // The dashboard is a public route: the guest language/login modal
+        // would cover the topic drop-down, so it must not open here.
+        await expect(page.locator('#guestLoginModal')).not.toBeVisible();
+
+        const select = page.getByTestId('course-topic-select');
+        await expect(select).toBeVisible();
+        await expect(page.getByTestId('course-topic-heading')).toContainText('Choose a topic to practice talking about.');
     });
 });
