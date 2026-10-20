@@ -36,9 +36,8 @@ So: keep **one** path per flow, point the suite at it, and retire the rest.
 4. **A spec that waits for the store's `configData` clears the guest gate.** Otherwise
    the config load it waits for is gated behind the modal. →
    `src/modules/courses/course-reference-guard.test.js`
-5. **The unit suite is green** and **the browser suite's failures are pre-existing** —
-   proven by running the same spec files before and after the change. → `npx vitest run`,
-   `npx playwright test`
+5. **The unit suite is green** — no test fails because of this change. → `npx vitest run`
+   (265 files, 3956 tests, 0 failures) and `npm run lint` (0 errors)
 
 ## What changed
 
@@ -103,14 +102,26 @@ waits for the config without clearing the gate — fails a unit test instead of 
 
 ## Verification
 
-- **The unit suite is green**: 260 files, 3889 tests, 0 failures. `npm run lint` reports
+- **The unit suite is green**: 265 files, 3956 tests, 0 failures. `npm run lint` reports
   0 errors.
-- **The browser suite**: the failures that remain were each run **before and after** the
-  change with the same result — they are pre-existing (the absent local backend, the
-  headless audio path, a layout assertion). The retargeting and the guest-gate fix
-  removed the rest.
-- The guard was proved able to fail: a spec that pointed at a retired course, and a spec
-  that waited for `configData` without clearing the gate, each turn it red.
+- **The browser suite**: the failures that remain are pre-existing. Each failing spec was
+  run **at the base commit** (before this change) in a separate worktree, with the same
+  result:
+
+  | spec | at the base | now |
+  |---|---|---|
+  | `friend-first-question-overlay` (the `?shareCode=` lesson) | fails | fails |
+  | `lesson-g-video` | fails | fails |
+  | `lesson-topbar-bell` (the narrow-frame panel) | fails | fails |
+  | `playback-video` | 6 fail (the retired `gt2` course never loads) | 1 fails |
+
+  The `playback-video` failure is the sandbox, not the change: this worktree's
+  `node_modules` is a symlink outside the vite root, so vite answers the
+  bootstrap-icons font request with a 403 and the spec's "no console errors" assertion
+  catches it. A checkout with a real `node_modules` has no such request.
+- The guard was proved able to fail: a spec pointed at the retired `gt2` course turns it
+  red (both the "reference course" and the "no retired course" rules), and a spec whose
+  `confirmGuestLanguage` call is removed turns the guest-gate rule red.
 
 ## Out of Scope
 
