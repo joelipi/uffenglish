@@ -44,7 +44,11 @@ renamed or moved.
      changed config and not the retired one
 2. the guard can fail
    → proved by mutation before the commit (dropping the `-f` check turns it red)
-3. `npx vitest run` reports 0 failures
+3. the resolver survives a config that is not there
+   → the loop body uses an `if` block, not a `[[ … ]] && …` list: under
+     `set -euo pipefail` an AND-list's failure is a non-zero status the loop
+     would hand to the shell (the code reviewer's finding)
+4. `npx vitest run` reports 0 failures
    → recorded in the completion report
 
 ## Out of scope

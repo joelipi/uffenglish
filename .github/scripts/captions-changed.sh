@@ -27,7 +27,9 @@ HEAD="${GITHUB_SHA:-HEAD}"
 # the caption run.
 FILES=""
 while IFS= read -r file; do
-  [[ -n "$file" && -f "$file" ]] && FILES="$FILES $file"
+  if [[ -n "$file" && -f "$file" ]]; then
+    FILES="$FILES $file"
+  fi
 done < <(git diff --name-only "$BASE" "$HEAD" -- 'src/config/*.json' || true)
 FILES="${FILES# }"
 
