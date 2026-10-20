@@ -124,22 +124,25 @@ test.describe('the topic drop-down on the course lists', () => {
         await expect(select).toBeVisible();
         const values = await select.locator('option').evaluateAll((els) => els.map((el) => el.value));
         expect(values[0]).toBe('');
-        expect(values).toContain('family');
-        expect(values).toContain('preferences');
+        // The options are the topics of the courses ON SCREEN, so the picker
+        // can never offer a topic with no course behind it.
+        expect(values.slice(1).sort()).toEqual(['getting to know you', 'money', 'preferences']);
     });
 
-    test('choosing a topic narrows the course list', async ({ page }) => {
+    test('choosing a topic keeps the course that carries it', async ({ page }) => {
+        // The one listed course carries every topic the drop-down offers, so
+        // the list cannot get shorter here; the filtering itself is covered by
+        // the component test, which renders several courses.
         await page.goto('/courses');
         await expect(page.getByTestId('friend-course-card').first()).toBeVisible();
-        const before = await page.getByTestId('friend-course-card').count();
 
         await page.getByTestId('course-topic-select').selectOption('preferences');
-        const after = await page.getByTestId('friend-course-card').count();
-        expect(after).toBeLessThan(before);
-        expect(after).toBeGreaterThan(0);
+        await expect(page.getByTestId('friend-course-card')).toHaveCount(1);
+        await expect(page.getByTestId('friend-course-card').first())
+            .toHaveAttribute('href', '/course/wouldyourather/lesson/a');
 
         await page.getByTestId('course-topic-select').selectOption('');
-        await expect(page.getByTestId('friend-course-card')).toHaveCount(before);
+        await expect(page.getByTestId('friend-course-card')).toHaveCount(1);
     });
 
     test('the home screen carries the same drop-down', async ({ page }) => {

@@ -84,10 +84,10 @@ test.describe('public-profile friend-challenge links', () => {
             .toHaveText('Available for 47h 0m');
     });
 
-    test('logged-out visitor sees only the chain-head link, under a course heading', async ({ page }) => {
-        // Story 064: logged-out visitors see only chain-head (`a`) lessons;
-        // the `c` entry is filtered at read time (chain head comes from the
-        // real course config served by the dev server).
+    test('logged-out visitor sees every recorded link, under a course heading', async ({ page }) => {
+        // The profile holds one link per recorded lesson (the ping-pong
+        // chain), so a visitor sees where the chain stands, not just its
+        // first lesson.
         await seedProfile(page, {
             [`${COURSE_ID}:a`]: entry(COURSE_ID, COURSE_NAME, 'a', 'b', 'Ask', '2026-09-24T11:00:00.000Z'),
             [`${COURSE_ID}:c`]: entry(COURSE_ID, COURSE_NAME, 'c', 'd', 'Follow Up', '2026-09-24T10:00:00.000Z'),
@@ -96,12 +96,17 @@ test.describe('public-profile friend-challenge links', () => {
         await expect(page.getByTestId('friend-lesson-link-group-heading')).toHaveText(COURSE_NAME);
 
         const links = page.getByTestId('friend-lesson-link');
-        await expect(links).toHaveCount(1);
+        await expect(links).toHaveCount(2);
         await expect(links.nth(0)).toHaveAttribute(
             'href',
             `https://ultrafastfluency.com/course/${COURSE_ID}/lesson/b?shareCode=k9gy`
         );
         await expect(links.nth(0)).toHaveText('Ask');
+        await expect(links.nth(1)).toHaveAttribute(
+            'href',
+            `https://ultrafastfluency.com/course/${COURSE_ID}/lesson/d?shareCode=k9gy`
+        );
+        await expect(links.nth(1)).toHaveText('Follow Up');
     });
 
     test('shows the expired state once the 48h window has passed', async ({ page }) => {

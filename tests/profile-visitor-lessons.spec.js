@@ -109,12 +109,16 @@ test.describe('public-profile visitor awareness', () => {
         );
     });
 
-    test('logged-out visitor sees only the chain-head link plus the banner', async ({ page }) => {
+    test('logged-out visitor sees every recorded link plus the banner', async ({ page }) => {
         await seedOwner(page, LINKS);
 
+        // The profile holds one link per recorded lesson (the ping-pong
+        // chain), so a visitor sees where the chain stands, not just its
+        // first lesson.
         const links = page.getByTestId('friend-lesson-link');
-        await expect(links).toHaveCount(1);
+        await expect(links).toHaveCount(2);
         await expect(links.nth(0)).toHaveText('Ask');
+        await expect(links.nth(1)).toHaveText('Follow Up');
 
         await expect(page.getByTestId('visitor-login-banner')).toBeVisible();
         await expect(page.getByTestId('visitor-login-link')).toHaveText(
@@ -151,13 +155,14 @@ test.describe('public-profile visitor awareness', () => {
         await expect(page.getByTestId('visitor-login-banner')).toHaveCount(0);
     });
 
-    test('logged-in visitor with no overlap sees the chain-head list and no banner', async ({ page }) => {
+    test('logged-in visitor with no overlap sees the recorded links and no banner', async ({ page }) => {
         await seedOwner(page, LINKS);
         await seedViewer(page, { countedLessons: [], inbox: [] });
 
         const links = page.getByTestId('friend-lesson-link');
-        await expect(links).toHaveCount(1);
+        await expect(links).toHaveCount(2);
         await expect(links.nth(0)).toHaveText('Ask');
+        await expect(links.nth(1)).toHaveText('Follow Up');
         await expect(page.getByTestId('visitor-login-banner')).toHaveCount(0);
         await expect(page.getByTestId('friend-lesson-link-completed')).toHaveCount(0);
     });
