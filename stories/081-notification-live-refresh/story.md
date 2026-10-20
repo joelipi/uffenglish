@@ -102,6 +102,9 @@ mount refetch covers the "the user opened the app" case immediately.
 - `tests/notifications.spec.js`
   → the browser assertion: a notification that arrives while `/home` is open
     appears in the badge **without a reload**
+  → and the "empty inbox" case now empties the **stubbed server** too: that
+    spec injected an empty inbox into the query cache while the server still
+    held two rows, which only passed while the inbox was never re-read
 
 ## Acceptance criteria
 
