@@ -346,3 +346,113 @@ describe('CourseListings scrolling', () => {
         }
     });
 });
+
+// The topic picker on the course lists: a subheading that says what it is
+// for, and a drop-down that narrows the list to one topic.
+describe('CourseListings topic filter', () => {
+    let container;
+    let root;
+
+    const TOPIC_COURSES = [
+        {
+            courseId: 'friendchain',
+            courseName: 'Friend Chain',
+            lessonCount: 8,
+            firstLessonId: 'a',
+            mission: null,
+            heroImage: null,
+            tags: ['family', 'friends'],
+        },
+        {
+            courseId: 'wouldyourather',
+            courseName: 'Prefs',
+            lessonCount: 2,
+            firstLessonId: 'a',
+            mission: null,
+            heroImage: null,
+            tags: ['preferences'],
+        },
+    ];
+
+    // React tracks the select's value, so the native setter is used to change
+    // it — assigning `select.value` alone would not fire the change handler.
+    const selectTopic = (select, value) => {
+        const setter = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value').set;
+        act(() => {
+            setter.call(select, value);
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+    };
+
+    beforeEach(() => {
+        container = document.createElement('div');
+        document.body.appendChild(container);
+    });
+
+    afterEach(() => {
+        if (root) act(() => root.unmount());
+        container.remove();
+        root = null;
+        container = null;
+    });
+
+    it('shows the subheading just above the drop-down, English first', () => {
+        root = render(container, { courses: TOPIC_COURSES });
+
+        const subheading = container.querySelector('[data-testid="course-topic-heading"]');
+        expect(subheading).not.toBeNull();
+        expect(subheading.textContent).toContain('Choose a topic to practice talking about.');
+        // The subheading sits directly above the drop-down.
+        const filter = container.querySelector('[data-testid="course-topic-filter"]');
+        expect(subheading.compareDocumentPosition(filter) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
+    it('localizes the subheading, English first', () => {
+        root = render(container, { courses: TOPIC_COURSES, lang: 'es' });
+
+        const subheading = container.querySelector('[data-testid="course-topic-heading"]');
+        expect(subheading.textContent).toContain('Elige un tema para practicar hablando.');
+        expect(subheading.textContent.indexOf('Choose a topic')).toBeLessThan(subheading.textContent.indexOf('Elige un tema'));
+    });
+
+    it('offers one option per topic, plus "all topics"', () => {
+        root = render(container, { courses: TOPIC_COURSES });
+
+        const select = container.querySelector('[data-testid="course-topic-select"]');
+        const options = Array.from(select.querySelectorAll('option'));
+        expect(options[0].textContent).toBe('All topics');
+        expect(options.map((o) => o.value)).toEqual(['', 'family', 'friends', 'preferences']);
+        // The options carry the bilingual topic name: English first.
+        expect(options[1].textContent).toBe('Family');
+    });
+
+    it('narrows the cards to the courses of the chosen topic', () => {
+        root = render(container, { courses: TOPIC_COURSES });
+
+        expect(container.querySelectorAll('[data-testid="friend-course-card"]')).toHaveLength(2);
+
+        const select = container.querySelector('[data-testid="course-topic-select"]');
+        selectTopic(select, 'preferences');
+
+        const cards = container.querySelectorAll('[data-testid="friend-course-card"]');
+        expect(cards).toHaveLength(1);
+        expect(cards[0].textContent).toContain('Prefs');
+    });
+
+    it('"all topics" brings every course back', () => {
+        root = render(container, { courses: TOPIC_COURSES });
+
+        const select = container.querySelector('[data-testid="course-topic-select"]');
+        selectTopic(select, 'family');
+        expect(container.querySelectorAll('[data-testid="friend-course-card"]')).toHaveLength(1);
+
+        selectTopic(select, '');
+        expect(container.querySelectorAll('[data-testid="friend-course-card"]')).toHaveLength(2);
+    });
+
+    it('shows no drop-down when no course carries a topic', () => {
+        root = render(container, { courses: [{ courseId: 'a', courseName: 'A', lessonCount: 1, firstLessonId: 'a', mission: null, heroImage: null, tags: [] }] });
+
+        expect(container.querySelector('[data-testid="course-topic-filter"]')).toBeNull();
+    });
+});

@@ -114,6 +114,8 @@ describe('listFriendCourses', () => {
                 },
             },
             heroImage: null,
+            // The course's topics, so the course lists can filter by them.
+            tags: ['music', 'preferences'],
         });
     });
 
@@ -141,6 +143,7 @@ describe('listFriendCourses', () => {
                 },
             },
             heroImage: null,
+            tags: ['family', 'friends'],
         });
     });
 

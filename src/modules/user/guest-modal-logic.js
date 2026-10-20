@@ -46,19 +46,20 @@ export function isHomepageRoute(pathname) {
 }
 
 // True for the routes that SILENTLY adopt the browser language for an
-// anonymous visitor: the homepage, the topic chooser (/welcome) and the topic
-// pages (/tags/<topic>).
+// anonymous visitor: the homepage, the course listings (/courses), the topic
+// chooser (/welcome) and the topic pages (/tags/<topic>).
 //
 // On those pages the copy is the first thing a visitor reads and the guest
 // modal is suppressed (they are public routes), so the page must speak the
 // visitor's language without prompting for it. Without this, a visitor who
 // opens a topic page directly — never through the homepage — would read
-// English only.
+// English only, and the topic names (English word + the learner's word) would
+// lose their translation.
 export function isLanguageAdoptingRoute(pathname) {
     if (isHomepageRoute(pathname)) return true;
     if (typeof pathname !== 'string' || pathname === '') return false;
     const normalized = (pathname.replace(/\/+$/, '') || '/').toLowerCase();
-    if (normalized === '/welcome') return true;
+    if (normalized === '/welcome' || normalized === '/courses') return true;
     return PUBLIC_ROUTE_PREFIXES.some(
         (prefix) => normalized === prefix || normalized.startsWith(prefix + '/'),
     );

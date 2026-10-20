@@ -2988,6 +2988,30 @@ const strings = {
     // key is the topic with its spaces replaced by underscores
     // (`course-tag-labels.js`); a topic with no entry here falls back to the
     // config's own spelling.
+    'courses_topic_subheading': {
+        en: "Choose a topic to practice talking about.",
+        es: "Elige un tema para practicar hablando.",
+        pt: "Escolha um tema para praticar a falar.",
+        fr: "Choisissez un sujet pour vous entraîner à parler.",
+        hi: "बातचीत का अभ्यास करने के लिए एक विषय चुनें।",
+        bn: "কথা বলার অনুশীলনের জন্য একটি বিষয় বেছে নিন।"
+    },
+    'courses_topic_filter': {
+        en: "Topic",
+        es: "Tema",
+        pt: "Tópico",
+        fr: "Sujet",
+        hi: "विषय",
+        bn: "বিষয়"
+    },
+    'courses_topic_all': {
+        en: "All topics",
+        es: "Todos los temas",
+        pt: "Todos os temas",
+        fr: "Tous les sujets",
+        hi: "सभी विषय",
+        bn: "সব বিষয়"
+    },
     'course_tag_drinks': {
         en: "Drinks",
         es: "Bebidas",

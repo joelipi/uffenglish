@@ -132,8 +132,9 @@ describe('isHomepageRoute', () => {
 });
 
 describe('isLanguageAdoptingRoute', () => {
-    it('is true for the homepage and the topic pages', () => {
+    it('is true for the homepage, the course listings and the topic pages', () => {
         expect(isLanguageAdoptingRoute('/')).toBe(true);
+        expect(isLanguageAdoptingRoute('/courses')).toBe(true);
         expect(isLanguageAdoptingRoute('/welcome')).toBe(true);
         expect(isLanguageAdoptingRoute('/tags/travel')).toBe(true);
         expect(isLanguageAdoptingRoute('/tags/getting to know you')).toBe(true);
@@ -142,12 +143,12 @@ describe('isLanguageAdoptingRoute', () => {
     it('matches the non-canonical URLs the router resolves', () => {
         expect(isLanguageAdoptingRoute('/Welcome/')).toBe(true);
         expect(isLanguageAdoptingRoute('/TAGS/travel')).toBe(true);
+        expect(isLanguageAdoptingRoute('/Courses/')).toBe(true);
     });
 
     it('is false for the other public routes and the inside pages', () => {
         expect(isLanguageAdoptingRoute('/privacy')).toBe(false);
         expect(isLanguageAdoptingRoute('/terms')).toBe(false);
-        expect(isLanguageAdoptingRoute('/courses')).toBe(false);
         expect(isLanguageAdoptingRoute('/confirm-email')).toBe(false);
         expect(isLanguageAdoptingRoute('/home')).toBe(false);
         expect(isLanguageAdoptingRoute('/friends')).toBe(false);

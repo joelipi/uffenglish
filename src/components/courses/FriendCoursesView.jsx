@@ -1,7 +1,10 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import Strings from '../../data/strings.js';
 import { buildCourseStartHref, buildCourseListView } from '../../modules/courses/friend-courses-logic.js';
+import { courseTopicOptions, filterCoursesByTag } from '../../modules/courses/course-tags-logic.js';
+import BilingualString from '../BilingualString.jsx';
 import CourseMissionDropdown from './CourseMissionDropdown.jsx';
+import CourseTopicFilter from './CourseTopicFilter.jsx';
 
 const cardStyle = {
     backgroundColor: '#1a3a5a',
@@ -12,6 +15,11 @@ const cardStyle = {
 
 export default function FriendCoursesView({ lang = 'en', courses, isLoading = false, isError = false }) {
     const view = buildCourseListView({ courses, isLoading, isError });
+    // The topic filter narrows the list in place: the selected topic lives
+    // here, the filtering decision lives in the pure module.
+    const [topic, setTopic] = useState('');
+    const topics = useMemo(() => courseTopicOptions(view.courses), [view.courses]);
+    const visibleCourses = useMemo(() => filterCoursesByTag(view.courses, topic), [view.courses, topic]);
 
     return (
         <div style={{ padding: '24px 16px', maxWidth: '640px', margin: '0 auto' }}>
@@ -29,6 +37,17 @@ export default function FriendCoursesView({ lang = 'en', courses, isLoading = fa
                 <li>{Strings.get('friend_courses_step_1', lang)}</li>
                 <li>{Strings.get('friend_courses_step_2', lang)}</li>
             </ol>
+
+            {/* The topic picker: the subheading says what it is for, the
+                drop-down below it narrows the list to one topic. */}
+            <div
+                data-testid="course-topic-heading"
+                style={{ fontSize: '16px', fontWeight: 600, lineHeight: 1.5, marginBottom: '10px', color: '#e9ecef' }}
+            >
+                <BilingualString stringKey="courses_topic_subheading" lang={lang} />
+            </div>
+
+            <CourseTopicFilter lang={lang} topics={topics} selected={topic} onSelect={setTopic} />
 
             {view.state === 'loading' && (
                 <div data-testid="friend-courses-loading" style={{ textAlign: 'center', padding: '32px 0' }}>
@@ -52,7 +71,7 @@ export default function FriendCoursesView({ lang = 'en', courses, isLoading = fa
 
             {view.state === 'ready' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    {view.courses.map((course) => (
+                    {visibleCourses.map((course) => (
                         <a
                             key={course.courseId}
                             data-testid="friend-course-card"
