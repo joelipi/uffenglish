@@ -53,6 +53,35 @@ export function getUnreadCount(notifications) {
     return notifications.reduce((count, n) => count + (n && !n.read_at ? 1 : 0), 0);
 }
 
+/**
+ * Should the inbox panel open by itself?
+ *
+ * The bell is mounted once by the app shell, so the panel is the only place a
+ * notification can announce itself: when unviewed notifications APPEAR, the
+ * panel opens (a friend answered while the app was open, or while it was
+ * closed and the learner came back to an inbox that was waiting for them).
+ *
+ * - `compact` → never. That is the lesson player's inline bell: a panel that
+ *   opened by itself would drop over the lesson content while the learner is
+ *   speaking or recording. The learner clicks it there, as before.
+ * - `isOpen` → never (it is already showing the inbox).
+ * - `unreadCount <= 0` → never (nothing unviewed).
+ * - otherwise → only when the unread count GREW. A count that did not change
+ *   means no new notification arrived, and the learner's own close must be
+ *   respected.
+ */
+export function shouldAutoOpenNotificationPanel({
+    previousUnreadCount = 0,
+    unreadCount = 0,
+    compact = false,
+    isOpen = false,
+} = {}) {
+    if (compact) return false;
+    if (isOpen) return false;
+    if (unreadCount <= 0) return false;
+    return unreadCount > previousUnreadCount;
+}
+
 // Newest first; non-array / junk entries are ignored.
 export function listNotifications(notifications) {
     if (!Array.isArray(notifications)) return [];
