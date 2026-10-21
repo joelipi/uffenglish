@@ -1465,6 +1465,17 @@ const strings = {
         hi: "इस उपयोगकर्ता के सभी पाठ 48 घंटे बाद समाप्त हो गए हैं; एक नया पाठ शुरू करें और उन्हें लिंक भेजें ताकि वे फिर से अंग्रेज़ी का अभ्यास कर सकें।",
         bn: "এই ব্যবহারকারীর সমস্ত পাঠ ৪৮ ঘণ্টা পরে মেয়াদোত্তীর্ণ হয়ে গেছে; একটি নতুন পাঠ শুরু করুন এবং তাকে লিঙ্ক পাঠান যাতে সে আবার ইংরেজি চর্চা করতে পারে।"
     },
+    // Variant of the expired-state message: there ARE open links, but the
+    // visitor already completed every one of them with this profile owner, so
+    // there is nothing left for them to answer.
+    'profile_friend_lessons_all_completed': {
+        en: "There are no open lessons right now. You've already completed them together — start a brand new lesson in a new course and send them the link.",
+        es: "No hay lecciones abiertas ahora mismo. Ya las completaron juntos: empieza una lección nueva en un curso nuevo y envíale el enlace.",
+        pt: "Não há lições abertas no momento. Vocês já as concluíram juntos — comece uma lição nova em um curso novo e envie o link.",
+        fr: "Il n'y a pas de leçons ouvertes pour le moment. Vous les avez déjà terminées ensemble — commencez une nouvelle leçon dans un nouveau cours et envoyez-lui le lien.",
+        hi: "अभी कोई खुला पाठ नहीं है। आपने उन्हें पहले ही साथ में पूरा कर लिया है — किसी नए कोर्स में एक नया पाठ शुरू करें और उन्हें लिंक भेजें।",
+        bn: "এখন কোনো খোলা পাঠ নেই। আপনি সেগুলো ইতিমধ্যে একসাথে সম্পন্ন করেছেন — একটি নতুন কোর্সে নতুন পাঠ শুরু করুন এবং তাকে লিঙ্ক পাঠান।"
+    },
     'profile_friend_practice_free': {
         en: "Practice English Free",
         es: "Practica inglés gratis",
@@ -1630,20 +1641,12 @@ const strings = {
         bn: "এখনও কোনো বিজ্ঞপ্তি নেই"
     },
     'notifications_friend_response': {
-        en: "{name} created a video with your questions",
-        es: "{name} creó un video con tus preguntas",
-        pt: "{name} criou um vídeo com as suas perguntas",
-        fr: "{name} a créé une vidéo avec vos questions",
-        hi: "{name} ने आपके सवालों के साथ एक वीडियो बनाया",
-        bn: "{name} আপনার প্রশ্নগুলো নিয়ে একটি ভিডিও তৈরি করেছে"
-    },
-    'notifications_respond_deadline': {
-        en: "You only have 48 hours to respond",
-        es: "Solo tienes 48 horas para responder",
-        pt: "Você só tem 48 horas para responder",
-        fr: "Vous n'avez que 48 heures pour répondre",
-        hi: "आपके पास जवाब देने के लिए केवल 48 घंटे हैं",
-        bn: "আপনার কাছে উত্তর দেওয়ার জন্য মাত্র 48 ঘণ্টা আছে"
+        en: "{name} continued your conversation lesson! 🥳See if you need to respond.",
+        es: "{name} ¡continuó tu lección de conversación! 🥳Mira si necesitas responder.",
+        pt: "{name} continuou sua aula de conversa! 🥳Veja se você precisa responder.",
+        fr: "{name} a poursuivi votre leçon de conversation ! 🥳Voyez si vous devez répondre.",
+        hi: "{name} ने आपकी बातचीत का पाठ जारी रखा! 🥳देखें कि आपको जवाब देना है या नहीं।",
+        bn: "{name} আপনার কথোপকথনের পাঠ চালিয়ে গেছেন! 🥳দেখুন আপনাকে উত্তর দিতে হবে কি না।"
     },
     'notifications_someone': {
         en: "A friend",

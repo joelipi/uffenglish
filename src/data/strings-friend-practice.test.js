@@ -11,6 +11,8 @@ const KEYS = {
     profile_friend_links_subheading: '{name} does not have to be online now, they can respond to you later.',
     profile_friend_start_here: 'Start here',
     profile_friend_lessons_expired: "All this user's lessons have expired after 48 hours, start a new lesson and send them the link to get them back into practicing English.",
+    // Variant shown when every OPEN link is already badged for the visitor.
+    profile_friend_lessons_all_completed: "There are no open lessons right now. You've already completed them together — start a brand new lesson in a new course and send them the link.",
     profile_friend_practice_free: 'Practice English Free',
     // A profile link is labelled by its POSITION in the course chain, derived
     // from the course config at read time (a stored lesson title went stale

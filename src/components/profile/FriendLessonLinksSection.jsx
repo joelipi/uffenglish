@@ -107,7 +107,10 @@ function VisitorLoginBanner({ shareCode, lang }) {
 //
 // Visitor awareness (all read-time): a logged-out visitor sees every recorded
 // link plus the login/guest banner; a logged-in visitor sees the links they
-// took part in first, with joint completions badged and struck through.
+// took part in first, with joint completions badged and struck through. When
+// EVERY open link is already badged for this visitor there is nothing left to
+// answer, so the area shows the "no open lessons right now" variant (start a
+// brand new lesson) instead of a list of finished links.
 // `viewer` is null for logged-out visitors.
 export default function FriendLessonLinksSection({ friendLinks, lang = 'en', shareCode, viewer = null, userName = '', name, ownerName, displayName, profileName, lessonOrdinals = {} }) {
     const resolvedName = userName || name || ownerName || displayName || profileName || '';
@@ -139,6 +142,30 @@ export default function FriendLessonLinksSection({ friendLinks, lang = 'en', sha
                 >
                     {Strings.get('profile_friend_start_here', lang)}
                 </a>
+            </div>
+        );
+    }
+
+    // Every OPEN link is one this visitor already completed with the owner:
+    // there is nothing left to answer. Show a variant of the expired-state
+    // message that points at a brand new lesson, not a list of finished links.
+    if (mode === 'all-completed') {
+        return (
+            <div
+                id="friend-lesson-links"
+                data-testid="friend-lessons-all-completed"
+                style={{ ...cardStyle, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', marginBottom: '24px' }}
+            >
+                <p data-testid="friend-lessons-all-completed-message" style={{ color: '#ffffff', fontSize: '16px', lineHeight: 1.5, margin: 0 }}>
+                    {Strings.get('profile_friend_lessons_all_completed', lang)}
+                </p>
+                <Link
+                    data-testid="friend-lessons-practice-free"
+                    to={COURSE_LISTINGS_PATH}
+                    style={{ fontSize: '28px', fontWeight: 800, color: '#ffffff', textDecoration: 'underline', lineHeight: 1.2 }}
+                >
+                    {Strings.get('profile_friend_start_here', lang)}
+                </Link>
             </div>
         );
     }

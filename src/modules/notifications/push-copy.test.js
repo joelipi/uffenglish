@@ -86,7 +86,7 @@ describe('buildPushNotification', () => {
         const en = buildPushNotification({ ...row, id: 'row-1', lang: 'en' });
         expect(en).toEqual({
             title: 'New video with your questions',
-            body: 'Ada created a video with your questions',
+            body: 'Ada continued your conversation lesson! 🥳See if you need to respond.',
             url: '/ab12',
             tag: 'row1',
         });
@@ -108,13 +108,13 @@ describe('buildPushNotification', () => {
     it('uses an English fallback for an unknown or missing language', () => {
         const other = buildPushNotification({ ...row, lang: 'OTHER' });
         const missing = buildPushNotification({ ...row });
-        expect(other.body).toBe('Ada created a video with your questions');
-        expect(missing.body).toBe('Ada created a video with your questions');
+        expect(other.body).toBe('Ada continued your conversation lesson! 🥳See if you need to respond.');
+        expect(missing.body).toBe('Ada continued your conversation lesson! 🥳See if you need to respond.');
     });
 
     it('falls back to a generic actor name when the row has none', () => {
         const copy = buildPushNotification({ ...row, actorName: '   ', lang: 'en' });
-        expect(copy.body).toBe('A friend created a video with your questions');
+        expect(copy.body).toBe('A friend continued your conversation lesson! 🥳See if you need to respond.');
     });
 
     it('returns null for a type the app does not push', () => {

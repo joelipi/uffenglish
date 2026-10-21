@@ -54,36 +54,37 @@ describe('NotificationList.web', () => {
         container = null;
     });
 
-    it('renders the message, profile link, static deadline and timestamp', () => {
+    it('renders the message, profile link and timestamp', () => {
         render([older, fresh]);
 
         const items = container.querySelectorAll('[data-testid="notification-item"]');
         expect(items).toHaveLength(2);
 
         const first = items[0];
-        expect(first.textContent).toContain('Sam created a video with your questions');
+        expect(first.textContent).toContain('Sam continued your conversation lesson! 🥳See if you need to respond.');
         const link = first.querySelector('[data-testid="notification-link"]');
         expect(link.getAttribute('href')).toBe(`${window.location.origin}/sam123`);
-        expect(first.querySelector('[data-testid="notification-deadline"]').textContent)
-            .toBe('You only have 48 hours to respond');
         expect(first.querySelector('[data-testid="notification-timestamp"]').textContent).not.toBe('');
     });
 
-    it('renders the static deadline for every friend_response row regardless of age', () => {
+    it('no row promises a reply: the 48-hour deadline line is gone', () => {
+        // The line said "You only have 48 hours to respond" on EVERY
+        // friend_response — including the one the chain's closing lesson
+        // produces, where there is no lesson left to respond to. It was
+        // removed, not reworded, so the row must not carry it any more.
         render([older, fresh]);
-        expect(container.querySelectorAll('[data-testid="notification-deadline"]')).toHaveLength(2);
+        expect(container.querySelectorAll('[data-testid="notification-deadline"]')).toHaveLength(0);
+        expect(container.textContent).not.toContain('48 hours');
     });
 
-    it('localizes the message and deadline', () => {
+    it('localizes the message', () => {
         render([fresh], { lang: 'es' });
-        expect(container.textContent).toContain('Sam creó un video con tus preguntas');
-        expect(container.textContent).toContain('Solo tienes 48 horas para responder');
+        expect(container.textContent).toContain('Sam ¡continuó tu lección de conversación! 🥳Mira si necesitas responder.');
     });
 
     it('omits the timestamp when created_at is invalid but keeps the rest', () => {
         render([{ ...fresh, created_at: 'not-a-date' }]);
         expect(container.querySelector('[data-testid="notification-item"]')).not.toBeNull();
-        expect(container.querySelector('[data-testid="notification-deadline"]')).not.toBeNull();
         expect(container.querySelector('[data-testid="notification-timestamp"]')).toBeNull();
     });
 
@@ -114,13 +115,13 @@ describe('NotificationList.web', () => {
 
     it('falls back to "A friend" when the actor name is missing', () => {
         render([{ ...fresh, payload: { actorShareCode: 'sam123' } }]);
-        expect(container.textContent).toContain('A friend created a video with your questions');
+        expect(container.textContent).toContain('A friend continued your conversation lesson! 🥳See if you need to respond.');
     });
 
     it('renders a non-link message when the actor share code is missing', () => {
         render([{ ...fresh, payload: { actorName: 'Sam' } }]);
         expect(container.querySelectorAll('[data-testid="notification-item"]')).toHaveLength(1);
         expect(container.querySelector('[data-testid="notification-link"]')).toBeNull();
-        expect(container.textContent).toContain('Sam created a video with your questions');
+        expect(container.textContent).toContain('Sam continued your conversation lesson! 🥳See if you need to respond.');
     });
 });
