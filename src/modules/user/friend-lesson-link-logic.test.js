@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
     FRIEND_LINK_WINDOW_MS,
     nextFriendLessonId,
+    isTerminalFriendLesson,
     hasEarlierShareCtaLesson,
     buildFriendLessonLink,
     toFriendLessonHref,
@@ -66,6 +67,41 @@ describe('nextFriendLessonId', () => {
         expect(nextFriendLessonId(chain, undefined)).toBeNull();
         const noOverlay = { lessons: [{ lessonId: 'a' }, { lessonId: 'b', recapOverlay: 'shareCta' }] };
         expect(nextFriendLessonId(noOverlay, 'a')).toBeNull();
+    });
+});
+
+describe('isTerminalFriendLesson', () => {
+    const chain = {
+        lessons: [
+            { lessonId: 'a', recapOverlay: 'shareCta' },
+            { lessonId: 'b', recapOverlay: 'shareCta' },
+            { lessonId: 'c', recapOverlay: 'shareCta' },
+        ],
+    };
+
+    it('is true only for the last shareCta lesson', () => {
+        expect(isTerminalFriendLesson(chain, 'a')).toBe(false);
+        expect(isTerminalFriendLesson(chain, 'b')).toBe(false);
+        expect(isTerminalFriendLesson(chain, 'c')).toBe(true);
+    });
+
+    it('ignores non-chain lessons that follow the last chain lesson', () => {
+        const withTail = {
+            lessons: [
+                { lessonId: 'a', recapOverlay: 'shareCta' },
+                { lessonId: 'z', recapOverlay: 'fluency' },
+            ],
+        };
+        expect(isTerminalFriendLesson(withTail, 'a')).toBe(true);
+    });
+
+    it('is false for a non-shareCta lesson and for malformed input', () => {
+        expect(isTerminalFriendLesson(chain, 'z')).toBe(false);
+        expect(isTerminalFriendLesson(null, 'c')).toBe(false);
+        expect(isTerminalFriendLesson({}, 'c')).toBe(false);
+        expect(isTerminalFriendLesson(chain, null)).toBe(false);
+        const noOverlay = { lessons: [{ lessonId: 'a' }] };
+        expect(isTerminalFriendLesson(noOverlay, 'a')).toBe(false);
     });
 });
 

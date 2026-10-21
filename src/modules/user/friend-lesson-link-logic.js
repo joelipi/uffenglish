@@ -36,6 +36,17 @@ export function nextFriendLessonId(configData, lessonId) {
     return null;
 }
 
+// True when `lessonId` is a shareCta chain lesson with no shareCta lesson after
+// it — the end of the chain. A terminal lesson still shares its video (that is
+// the only way the friend gets it) but nothing can answer it, so the share copy
+// must not promise a reply. Derived from config order, never a config flag:
+// `recapOverlay` already defines chain membership, so it cannot also mean
+// "last one".
+export function isTerminalFriendLesson(configData, lessonId) {
+    return chainIndex(configData, lessonId) !== -1
+        && nextFriendLessonId(configData, lessonId) === null;
+}
+
 // True when `lessonId` is itself a shareCta chain lesson and a shareCta lesson
 // appears before it in config order. The answer ("response") side of a chain is
 // any chain lesson except the first; a non-chain lesson is never the answer side.

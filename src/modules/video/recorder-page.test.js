@@ -1118,6 +1118,12 @@ describe('recorder auto-render — zero server changes', () => {
             'src/components/profile/UserProfile.jsx',
             'src/data/strings.js',
             'src/data/strings-friend-practice.test.js',
+            // Last chain lesson: terminal share copy (burnt card, success CTA,
+            // share text) — all derived from config order.
+            'src/components/widgets/SuccessScreen.jsx',
+            'src/modules/video/video-share.web.js',
+            'src/modules/video/video-share-message.test.js',
+            'src/modules/video/video-processor-share-cta.test.js',
             'src/modules/courses/guest-viewer-logic.js',
             'src/modules/courses/guest-viewer-logic.test.js',
             'src/routes/LoginRoute.jsx',

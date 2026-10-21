@@ -13,6 +13,8 @@ const read = (rel) => readFileSync(path.join(__dirname, rel), 'utf8');
 const webProcessor = read('../video/video-processor.web.js');
 const nativeProcessor = read('../video/video-processor.native.jsx');
 const successButtons = read('../../components/widgets/SuccessButtons.jsx');
+const successScreen = read('../../components/widgets/SuccessScreen.jsx');
+const videoShare = read('../video/video-share.web.js');
 const api = read('../api/api.js');
 
 describe('exportSegmentsToR2 return contract', () => {
@@ -111,5 +113,46 @@ describe('api.js public read + write plumbing', () => {
     it('retries the link write so one flaky round trip cannot lose it', () => {
         expect(api).toMatch(/retry:\s*2/);
         expect(api).toMatch(/retryDelay:/);
+    });
+});
+
+// The last chain lesson has nothing to answer, so its three copy surfaces must
+// switch to the terminal copy. Terminality is derived (config order) and the
+// share link is unchanged: it is the learner's PROFILE, where their other live
+// lessons live. A config flag would change chain membership, which
+// `recapOverlay` already defines.
+describe('terminal chain lesson copy wiring', () => {
+    it('picks the share message from the lesson, keeping the profile link', () => {
+        const start = videoShare.indexOf('export function buildShareMessage');
+        const end = videoShare.indexOf('\n}', start);
+        expect(start).toBeGreaterThan(-1);
+        expect(end).toBeGreaterThan(start);
+        const block = videoShare.slice(start, end);
+        expect(block).toContain('isTerminalFriendLesson(configData, successLessonId)');
+        expect(block).toContain("'share_message_terminal'");
+        expect(block).toContain("'share_message'");
+        expect(block).toContain('buildShareUrl(userData?.shareCode)');
+    });
+
+    it('picks the success CTA from the lesson', () => {
+        expect(successScreen).toContain('isTerminalFriendLesson(configData, lessonId)');
+        expect(successScreen).toContain("'share_cta_success_terminal'");
+        expect(successScreen).toContain("'share_cta_success'");
+    });
+
+    it('picks the burnt-card first line from the lesson', () => {
+        const start = webProcessor.indexOf('const shareCta = isShareCtaEnabled');
+        const end = webProcessor.indexOf(': null;', start);
+        expect(start).toBeGreaterThan(-1);
+        expect(end).toBeGreaterThan(start);
+        const block = webProcessor.slice(start, end);
+        expect(block).toContain('isTerminalFriendLesson(configData, lessonId)');
+        expect(block).toContain("'share_cta_respond_now_terminal'");
+        expect(block).toContain("'share_cta_respond_now'");
+    });
+
+    it('never keys terminal copy off the recapOverlay variant', () => {
+        expect(webProcessor).not.toContain("isShareCtaEnabled('terminal')");
+        expect(successScreen).not.toContain("=== 'terminal'");
     });
 });
