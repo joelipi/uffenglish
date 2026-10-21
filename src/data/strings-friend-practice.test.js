@@ -12,6 +12,10 @@ const KEYS = {
     profile_friend_start_here: 'Start here',
     profile_friend_lessons_expired: "All this user's lessons have expired after 48 hours, start a new lesson and send them the link to get them back into practicing English.",
     profile_friend_practice_free: 'Practice English Free',
+    // A profile link is labelled by its POSITION in the course chain, derived
+    // from the course config at read time (a stored lesson title went stale
+    // after a rename). Two numbers, so it is safe to re-litigate the label.
+    profile_friend_lesson_number: 'Lesson {n} of {total}',
     friend_courses_heading: 'Choose a conversation to have with your friends and practice English with them free.',
     // Story 070: signup is lazy, so step 1 now names the account the lesson
     // creates. The under-five-minutes promise is kept — it is what makes
@@ -50,6 +54,16 @@ describe('friend-practice / friend-courses strings', () => {
     it('interpolates {count} in the lesson-count string', () => {
         expect(get('friend_courses_lesson_count', 'en', { count: 5 })).toBe('5 lessons');
         expect(get('friend_courses_lesson_count', 'es', { count: 5 })).toBe('5 lecciones');
+    });
+
+    it('interpolates both numbers in the profile lesson label', () => {
+        expect(get('profile_friend_lesson_number', 'en', { n: 3, total: 6 })).toBe('Lesson 3 of 6');
+        expect(get('profile_friend_lesson_number', 'es', { n: 3, total: 6 })).toBe('Lección 3 de 6');
+        expect(get('profile_friend_lesson_number', 'fr', { n: 3, total: 6 })).toBe('Leçon 3 sur 6');
+        for (const lang of ['pt', 'hi', 'bn']) {
+            expect(get('profile_friend_lesson_number', lang, { n: 1, total: 6 }), lang)
+                .not.toContain('{');
+        }
     });
 
     it('returns the localized subheading for es, not the English fallback', () => {

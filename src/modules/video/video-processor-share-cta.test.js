@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import Strings from '../../data/strings.js';
+import Strings, { getBilingual } from '../../data/strings.js';
 import {
     SHARE_URL_BASE,
     buildShareUrl,
@@ -199,6 +199,26 @@ describe('terminal chain lesson copy', () => {
         const copy = Strings.get('share_message_terminal', lang);
         expect(copy).toContain('{url}');
         expect(copy).not.toContain('48');
+    });
+
+    // `Strings.get` falls back to English when a locale is missing, so a
+    // get()-based check can never fail on a dropped translation. Assert the
+    // RAW entry through getBilingual (localized === null when absent).
+    it.each(['es', 'pt', 'fr', 'hi', 'bn'])(
+        'has a real (non-fallback) %s translation for both terminal strings',
+        (lang) => {
+            for (const key of ['share_cta_success_terminal', 'share_message_terminal']) {
+                const { localized } = getBilingual(key, lang);
+                expect(localized, `${key} ${lang} is missing`).toBeTruthy();
+                expect(localized, `${key} ${lang} is still the English copy`)
+                    .not.toBe(Strings.get(key, 'en'));
+            }
+        }
+    );
+
+    it('pins the approved English terminal success copy', () => {
+        expect(Strings.get('share_cta_success_terminal', 'en'))
+            .toBe('Share this video with friends, family, and colleagues. Then start a new conversation with them.');
     });
 
     it('keeps the terminal share text pointing at the learner profile', () => {
