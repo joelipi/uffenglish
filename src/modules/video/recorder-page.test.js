@@ -1488,6 +1488,14 @@ describe('recorder auto-render — zero server changes', () => {
             'src/components/profile/UserProfile.jsx',
             'src/routes/NotFoundRoute.jsx',
             'src/routes/home-navigation-wiring.test.js',
+            // Story 086 (Continue gated on the clip upload).
+            'stories/086-gate-continue-button-on-upload/story.md',
+            'src/modules/lesson/success-continue-logic.js',
+            'src/modules/lesson/success-continue-logic.test.js',
+            'src/components/widgets/SuccessButtons.jsx',
+            'src/components/widgets/SuccessButtons.test.jsx',
+            'src/components/widgets/clips-uploading-warning-wiring.test.js',
+            'tests/success-concat-button.spec.js',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);

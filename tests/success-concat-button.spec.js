@@ -386,4 +386,29 @@ test.describe('Success screen — concat button reveal', () => {
         await page.evaluate(() => window.appStore.getState().setClipsPublishing(false));
         await expect(page.locator('#clipsUploadingWarning')).toHaveCount(0);
     });
+
+    test('Continue stays hidden while the clips upload and returns when the warning clears', async ({ page }) => {
+        await setupSuccessScreen(page);
+        await page.evaluate(() => {
+            const s = window.appStore.getState();
+            s.setSuccessVideoBlob(new Blob(['fake'], { type: 'video/webm' }));
+            s.setSuccessVideoState('ready');
+            s.setSuccessRepeatButtonVisible(true);
+            s.setSuccessContinueVisible(true);
+        });
+
+        // No upload running → the Continue button is on screen.
+        await expect(page.locator('#continueButtonSuccess')).toBeVisible();
+
+        // The clips are uploading: the warning is up and Continue is gone —
+        // leaving the lesson now would abort the upload.
+        await page.evaluate(() => window.appStore.getState().setClipsPublishing(true));
+        await expect(page.locator('#clipsUploadingWarning')).toBeVisible();
+        await expect(page.locator('#continueButtonSuccess')).toHaveCount(0);
+
+        // The upload finished → the warning is gone and Continue is back.
+        await page.evaluate(() => window.appStore.getState().setClipsPublishing(false));
+        await expect(page.locator('#clipsUploadingWarning')).toHaveCount(0);
+        await expect(page.locator('#continueButtonSuccess')).toBeVisible();
+    });
 });
