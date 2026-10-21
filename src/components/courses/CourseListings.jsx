@@ -15,7 +15,7 @@ import { isGuestViewer, buildCoursesSignInHref } from '../../modules/courses/gue
 // `isGuestViewer` so they can never disagree about who is signed in. The notice
 // waits for the profile query (`isResolving`) before claiming either way; the
 // banners mount immediately and self-gate on `userId` internally.
-export default function CourseListings({ lang = 'en', courses, isLoading = false, isError = false, userId = null, isResolving = false, onBack }) {
+export default function CourseListings({ lang = 'en', courses, isLoading = false, isError = false, userId = null, isResolving = false }) {
     // `isResolving` is the profile query still loading: the viewer is unknown,
     // so neither the guest notice nor the signed-in banners render yet. Gating
     // both off one predicate keeps them from disagreeing about who is here.

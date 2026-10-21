@@ -1534,6 +1534,13 @@ describe('recorder auto-render — zero server changes', () => {
             // Main's badge test mocks react-router-dom; the friend-practice
             // link is a <Link>, so the mock has to provide it.
             'src/components/profile/PublicProfile.test.jsx',
+            // The two specs that were red on main (the removed back button and
+            // the unreachable interactive phase in the generated course).
+            'src/components/courses/CourseListings.jsx',
+            'src/components/courses/CourseListingsContainer.jsx',
+            'src/components/courses/CourseListings.test.jsx',
+            'tests/friend-courses.spec.js',
+            'tests/friend-first-question-overlay.spec.js',
             // Story 086 (Continue gated on the clip upload).
             'stories/086-gate-continue-button-on-upload/story.md',
             'src/modules/lesson/success-continue-logic.js',

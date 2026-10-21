@@ -51,10 +51,13 @@ test.describe('public course listings', () => {
         await expect(page.locator('#guestLoginModal')).not.toBeVisible();
     });
 
-    test('the course list scrolls and the back button stays reachable (story 063)', async ({ page }) => {
+    test('the course list scrolls and the way out stays reachable (story 063)', async ({ page }) => {
         // The list lives in a scroll region. The course card carries a hero
-        // image, so it is taller than the region: the list must scroll, and
-        // the back button sits outside the region so it stays reachable.
+        // image, so it is taller than the region: the list must scroll.
+        //
+        // The page has no back button of its own any more — the app shell's
+        // header (outside the scroll region) is the way out, so it has to stay
+        // visible while the list is scrolled.
         await page.setViewportSize({ width: 390, height: 600 });
         await page.goto('/courses');
 
@@ -71,6 +74,8 @@ test.describe('public course listings', () => {
         await page.mouse.wheel(0, 1000);
         await expect.poll(() => scroll.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
 
-        await expect(page.getByTestId('friend-courses-back')).toBeVisible();
+        // The header is outside the scroll region, so the way out never scrolls
+        // away with the list.
+        await expect(page.getByTestId('app-header')).toBeVisible();
     });
 });
