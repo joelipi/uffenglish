@@ -1,5 +1,13 @@
 # Learnings
 
+## A rejection hook that runs after `processing/transcribing` must move the phase back itself
+**Date**: 2026-10-21
+**Area**: architecture | speech
+**What happened**: A Bluetooth microphone delivered a live stream with no frames. The take was all zeros, `stopLocalAudioTap()` flattened it, the waveform drew flat and `transcribeAudioBuffer` waited forever (no timeout, and the worker's `onerror` never settled the pending promise). The learner pressed stop and never got out: `onRecordingStop` transitions to `processing/transcribing`, whose mapping sets `bottomState: 'hidden'` — and `onStopEarly` only showed the "TRY AGAIN" message. `triggerPreflightRejected` is not consumed anywhere in `src/`, so **no** rejection hook (`onStopEarly`, `onPreflightRejected`, `onGibberishDetected`) returns to a phase that mounts the mic. The message was actionable in text and not in UI.
+**Takeaway**: Every UI hook whose job is "this take failed, try again" must end with a phase transition (today `recording/answering`, guarded so an already-correct phase does not log "Unexpected transition"). Check it with a store-level test of the recovery helper, not only a source guard — a `text` assertion cannot see a missing control. `onNoAudioCaptured` and `onStopEarly` were fixed from a pure `src/modules/lesson/no-audio-recovery-logic.js`; `onPreflightRejected` and `onGibberishDetected` still have the dead end. Separately: a capture that carries no signal (`analyzeCapturedAudio` in `src/modules/speech/speech.core.js`) must be reported before Whisper, because a silent buffer can never produce a transcript and an unanswered worker promise is unbounded — `transcribeAudioBuffer` now settles on a 45 s timeout, worker error, failed `postMessage` and `terminate`.
+
+---
+
 ## Making a lesson terminal leaves one copy surface behind: the answer notification
 **Date**: 2026-10-21
 **Area**: product | notifications
