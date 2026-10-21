@@ -434,7 +434,7 @@ describe('generate-config-from-sheet master format', () => {
             const config = JSON.parse(readFileSync(path.join(dir, 'wvr.json'), 'utf8'));
             expect(config).toEqual({
                 courseId: 'wvr',
-                courseName: 'WVR',
+                courseName: { en: 'WVR' },
                 lessons: [
                     {
                         lessonId: 'a', recapSources: 'none', recapOverlay: 'shareCta',

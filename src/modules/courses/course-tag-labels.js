@@ -14,6 +14,7 @@
 // No DOM, no React, no data access.
 
 import { strings } from '../../data/strings.js';
+import { bilingualParts } from '../bilingual/bilingual-logic.js';
 import { normalizeTag } from './course-tags-logic.js';
 
 // The strings-table prefix every topic label lives under.
@@ -56,8 +57,6 @@ export function courseTagLabelParts(tag, lang = 'en') {
     const raw = typeof tag === 'string' ? tag.trim() : '';
     if (!raw) return { english: '', localized: '' };
     const entry = courseTagTranslation(raw);
-    if (!entry) return { english: raw, localized: '' };
-    const normalizedLang = (lang && typeof lang === 'string') ? lang.split('-')[0].toLowerCase() : 'en';
-    const localized = normalizedLang !== 'en' && entry[normalizedLang] ? entry[normalizedLang] : '';
-    return { english: entry.en || raw, localized };
+    // A topic with no entry falls back to the config's own spelling.
+    return bilingualParts(entry || raw, lang);
 }

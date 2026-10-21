@@ -456,3 +456,62 @@ describe('CourseListings topic filter', () => {
         expect(container.querySelector('[data-testid="course-topic-filter"]')).toBeNull();
     });
 });
+
+// The course name is curriculum content, so it is localized: the card shows
+// the English name first and the learner's language after it.
+describe('the course card title', () => {
+    let container;
+    let root;
+
+    const LOCALIZED_COURSE = {
+        courseId: 'model',
+        courseName: 'Grocery Shopping',
+        courseNames: {
+            en: 'Grocery Shopping',
+            es: 'Ir de compras',
+            pt: 'Ir às compras',
+        },
+        lessonCount: 2,
+        firstLessonId: 'm-t',
+        mission: null,
+        heroImage: null,
+        tags: ['food'],
+    };
+
+    beforeEach(() => {
+        container = document.createElement('div');
+        document.body.appendChild(container);
+    });
+
+    afterEach(() => {
+        if (root) act(() => root.unmount());
+        container.remove();
+        root = null;
+        container = null;
+    });
+
+    it('shows the English name and the learner\'s language beside it', () => {
+        root = render(container, { courses: [LOCALIZED_COURSE], lang: 'es' });
+
+        const card = container.querySelector('[data-testid="friend-course-card"]');
+        expect(card.textContent).toContain('Grocery Shopping');
+        expect(card.textContent).toContain('Ir de compras');
+        // The English word comes first.
+        const title = card.querySelector('h2');
+        expect(title.textContent.indexOf('Grocery Shopping')).toBeLessThan(title.textContent.indexOf('Ir de compras'));
+    });
+
+    it('shows only the English name for an English learner', () => {
+        root = render(container, { courses: [LOCALIZED_COURSE], lang: 'en' });
+
+        const title = container.querySelector('[data-testid="friend-course-card"] h2');
+        expect(title.textContent).toBe('Grocery Shopping');
+    });
+
+    it('shows a plain string name as-is (a config without localized names)', () => {
+        root = render(container, { courses: [{ courseId: 'a', courseName: 'Plain Course', lessonCount: 1, firstLessonId: 'a', mission: null, heroImage: null, tags: [] }], lang: 'es' });
+
+        const title = container.querySelector('[data-testid="friend-course-card"] h2');
+        expect(title.textContent).toBe('Plain Course');
+    });
+});

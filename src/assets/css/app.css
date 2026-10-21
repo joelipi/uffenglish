@@ -3009,10 +3009,11 @@ ul.incorrectWords li::before {
 }
 
 /* A course topic on the topic chooser (/welcome) and a topic page
-   (/tags/<topic>): the English word first, the learner's language after it.
-   The translation is the quieter half of the pair — the English word is what
-   the learner is learning, so it keeps the weight. */
-.course-tag-label [lang] {
+   (/tags/<topic>), and a course name on the course cards: the English word
+   first, the learner's language after it. The translation is the quieter half
+   of the pair — the English word is what the learner is learning, so it keeps
+   the weight. */
+.bilingual-label [lang] {
     margin-left: 6px;
     font-weight: 600;
     opacity: 0.8;

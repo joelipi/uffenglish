@@ -46,3 +46,22 @@ export function shouldShowLocalized(english, localized, lang) {
         && localized !== english
     );
 }
+
+/**
+ * The English text of a translation field and the learner's-language text
+ * beside it — the pair every bilingual surface renders (the mission block, a
+ * course title, a topic name).
+ *
+ * A plain string is its own English and has no localized half; an empty field
+ * has neither.
+ *
+ * @param {string|object} translationData - `{ en: "…" }` or a plain string
+ * @param {string} lang - the learner's language
+ * @returns {{ english: string, localized: string }}
+ */
+export function bilingualParts(translationData, lang = 'en') {
+    return {
+        english: getEnglish(translationData),
+        localized: getLocalizedString(translationData, lang),
+    };
+}

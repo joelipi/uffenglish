@@ -1,6 +1,13 @@
 {
   "courseId": "wouldyourather",
-  "courseName": "Get $1 million or $5 million?",
+  "courseName": {
+    "en": "Get $1 million or $5 million?",
+    "es": "¿Un millón de dólares o cinco millones?",
+    "pt": "Um milhão de dólares ou cinco milhões?",
+    "fr": "Un million de dollars ou cinq millions ?",
+    "hi": "दस लाख डॉलर या पचास लाख डॉलर?",
+    "bn": "১০ লাখ ডলার নাকি ৫০ লাখ ডলার?"
+  },
   "tags": [
     "preferences",
     "money",

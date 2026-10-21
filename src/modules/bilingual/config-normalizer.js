@@ -148,6 +148,14 @@ export function normalizeConfig(configData, lang = 'en') {
 
     const userLang = lang || 'en';
 
+    // The course name is a curriculum label (like the lesson titles below), so
+    // it is flattened to English for the surfaces that show it as a plain
+    // string (the lesson top bar, the recap metadata, the analytics event).
+    // The course CARDS show it bilingually, straight off the config.
+    if (configData.courseName) {
+        configData.courseName = getLocalizedTranslation(configData.courseName, 'en');
+    }
+
     // A friend's clip is addressed by the friend's own code (the recorder), so
     // the viewer's own code is only needed for a self reference. For anonymous
     // viewers (no own share code) there is no second code at all: the friend's

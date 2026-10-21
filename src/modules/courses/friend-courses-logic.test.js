@@ -9,6 +9,9 @@ import {
     courseMissionFor,
     courseHeroImageFor,
     buildCourseStartHref,
+    courseNameFor,
+    courseNameParts,
+    courseNameTranslations,
     listFriendCourses,
     buildCourseListView,
 } from './friend-courses-logic.js';
@@ -110,7 +113,17 @@ describe('listFriendCourses', () => {
         const wyr = listFriendCourses(REAL_ENTRIES).find((c) => c.courseId === 'wouldyourather');
         expect(wyr).toEqual({
             courseId: 'wouldyourather',
+            // The English name (the string consumers use) and the locale map
+            // (the card shows both).
             courseName: 'Get $1 million or $5 million?',
+            courseNames: {
+                en: 'Get $1 million or $5 million?',
+                es: '¿Un millón de dólares o cinco millones?',
+                pt: 'Um milhão de dólares ou cinco milhões?',
+                fr: 'Un million de dollars ou cinq millions ?',
+                hi: 'दस लाख डॉलर या पचास लाख डॉलर?',
+                bn: '১০ লাখ ডলার নাকি ৫০ লাখ ডলার?',
+            },
             lessonCount: 6,
             firstLessonId: 'a',
             mission: {
@@ -288,5 +301,53 @@ describe('buildCourseListView', () => {
 
     it('reports ready with the courses when present', () => {
         expect(buildCourseListView({ courses })).toEqual({ state: 'ready', courses });
+    });
+});
+
+// The course name is curriculum content, so it is localized: a locale map in
+// the config, shown bilingually on the course cards.
+describe('courseNameFor / courseNameParts / courseNameTranslations', () => {
+    const CONFIG = {
+        courseName: {
+            en: 'Grocery Shopping',
+            es: 'Ir de compras',
+            pt: 'Ir às compras',
+        },
+    };
+
+    it('resolves the name in a language, falling back to English', () => {
+        expect(courseNameFor(CONFIG, 'es')).toBe('Ir de compras');
+        expect(courseNameFor(CONFIG, 'pt')).toBe('Ir às compras');
+        expect(courseNameFor(CONFIG, 'en')).toBe('Grocery Shopping');
+        // An unsupported or missing language falls back to English.
+        expect(courseNameFor(CONFIG, 'de')).toBe('Grocery Shopping');
+        expect(courseNameFor(CONFIG, '')).toBe('Grocery Shopping');
+        // A regional code resolves to its base language.
+        expect(courseNameFor(CONFIG, 'es-MX')).toBe('Ir de compras');
+    });
+
+    it('falls back to the caller\'s fallback when there is no name at all', () => {
+        expect(courseNameFor({}, 'en', 'the-course-id')).toBe('the-course-id');
+        expect(courseNameFor({ courseName: {} }, 'en', 'the-course-id')).toBe('the-course-id');
+    });
+
+    it('still reads a plain string name (the shape before the names were localized)', () => {
+        expect(courseNameFor({ courseName: 'Grocery Shopping' }, 'es')).toBe('Grocery Shopping');
+        expect(courseNameTranslations({ courseName: 'Grocery Shopping' })).toBeNull();
+    });
+
+    it('returns the locale map', () => {
+        expect(courseNameTranslations(CONFIG)).toEqual(CONFIG.courseName);
+        expect(courseNameTranslations({})).toBeNull();
+        expect(courseNameTranslations({ courseName: 'plain' })).toBeNull();
+    });
+
+    it('splits the name into its English half and the learner\'s half', () => {
+        expect(courseNameParts(CONFIG, 'es')).toEqual({ english: 'Grocery Shopping', localized: 'Ir de compras' });
+        // An English learner sees only the English half.
+        expect(courseNameParts(CONFIG, 'en')).toEqual({ english: 'Grocery Shopping', localized: '' });
+        // A plain string name has no localized half.
+        expect(courseNameParts({ courseName: 'Grocery Shopping' }, 'es'))
+            .toEqual({ english: 'Grocery Shopping', localized: '' });
     });
 });

@@ -4,8 +4,7 @@ import Strings from '../../data/strings.js';
 import { buildCourseStartHref, buildCourseListView } from '../../modules/courses/friend-courses-logic.js';
 import { WELCOME_PATH } from '../../modules/courses/course-tags-logic.js';
 import { courseTagTranslation } from '../../modules/courses/course-tag-labels.js';
-import { BilingualText } from '../BilingualText.jsx';
-import CourseMissionDropdown from './CourseMissionDropdown.jsx';
+import { BilingualText } from '../BilingualText.jsx';import CourseMissionDropdown from './CourseMissionDropdown.jsx';
 
 const cardStyle = {
     backgroundColor: '#1a3a5a',
@@ -66,7 +65,7 @@ export default function TagPage({ lang = 'en', tag = '', courses, isLoading = fa
                 </Link>
                 <h1 data-testid="tag-heading" style={{ fontSize: '20px', fontWeight: 700, margin: 0 }}>
                     {/* The English word first, the learner's language after it. */}
-                    <span className="course-tag-label">
+                    <span className="bilingual-label">
                         <BilingualText
                             translationData={courseTagTranslation(tag) || tag}
                             userLang={lang}
@@ -108,7 +107,14 @@ export default function TagPage({ lang = 'en', tag = '', courses, isLoading = fa
                                     style={{ ...cardStyle, display: 'block', textDecoration: 'none', color: 'white' }}
                                 >
                                     <h2 style={{ fontSize: '20px', fontWeight: 700, margin: 0, marginBottom: '8px' }}>
-                                        {course.courseName}
+                                        {/* The course name is curriculum content, so
+                                            it is localized: the English name
+                                            first, the learner's language after it. */}
+                                        <span className="bilingual-label">
+                                            {course.courseNames
+                                                ? <BilingualText translationData={course.courseNames} userLang={lang} spanPrefix=" " />
+                                                : course.courseName}
+                                        </span>
                                     </h2>
                                     {course.heroImage && (
                                         <img

@@ -114,7 +114,7 @@ export default function WelcomePage({ lang = 'en', tags = [], isLoading = false,
                                 {/* The English word first, the learner's language
                                     after it: a learner still learning English may
                                     not know what the topic means in English. */}
-                                <span className="course-tag-label">
+                                <span className="bilingual-label">
                                     <BilingualText
                                         translationData={courseTagTranslation(tag.tag) || tag.tag}
                                         userLang={lang}

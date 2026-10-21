@@ -97,6 +97,25 @@ describe('course-level tags', () => {
     });
 });
 
+// The course name is curriculum content, so it is localized like the lesson
+// titles: a locale map in the config. The assertion reads the RAW config, so a
+// dropped locale actually fails (AGENTS.md).
+describe('every course name is localized', () => {
+    const LOCALES = ['en', 'es', 'pt', 'fr', 'hi', 'bn'];
+
+    it('carries every locale for every course name', () => {
+        for (const name of CONFIG_FILES) {
+            const courseName = loadConfig(name).courseName;
+            if (courseName === undefined) continue; // a config may carry no name
+            expect(typeof courseName, `${name} courseName must be a locale map`).toBe('object');
+            expect(Array.isArray(courseName), `${name} courseName must be a locale map`).toBe(false);
+            for (const lang of LOCALES) {
+                expect(courseName[lang], `${name} courseName/${lang}`).toBeTruthy();
+            }
+        }
+    });
+});
+
 // A topic is data (the config's `tags`), but its NAME is copy: a learner who
 // is still learning English may not know what "travel" means, so every topic
 // needs a translated label in the strings table. The topics are DISCOVERED from

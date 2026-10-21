@@ -272,6 +272,24 @@ function firstLocalized(groupRows, field, lang) {
     return '';
 }
 
+/**
+ * The course name as a locale map: the English `course_name` column plus the
+ * `course_name_<lang>` columns when the sheet carries them (blanks omitted).
+ *
+ * The course name is curriculum content, so it is localized the way the lesson
+ * titles are. The language columns are optional — a sheet without them yields
+ * `{ en }` — and the generator carries the translations of the config it
+ * overwrites, so they survive a regeneration.
+ */
+function courseNameObject(rows, enValue) {
+    const obj = { en: enValue };
+    for (const lang of SHEET_LANGUAGES) {
+        const v = firstLocalized(rows, 'course_name', lang);
+        if (v) obj[lang] = v;
+    }
+    return obj;
+}
+
 /** English value plus each present language, e.g. `{ en, es, pt }` (blanks omitted). */
 function localizedObject(rows, field, enValue, { validateField = true } = {}) {
     // Level-pattern columns (`a1`..`c1`) skip validation: they are pattern
@@ -720,7 +738,7 @@ export function buildCourseConfig(rows) {
     // Course-level scalars must agree across every non-skipped row ("first
     // non-empty wins, disagreement errors").
     const courseId = singleValue(videoRows, 'course_id', 'course');
-    const courseName = singleValue(videoRows, 'course_name', 'course');
+    const courseName = courseNameObject(videoRows, singleValue(videoRows, 'course_name', 'course'));
     // Course banner (source `hero` via the bridge `hero` column): same
     // first-wins/conflict rule as the other course scalars; blank omits it.
     const hero = singleValue(videoRows, 'hero', 'course');
@@ -1058,7 +1076,7 @@ function abababLesson({ id, respond, record, course, index }) {
  */
 function buildAbababCourseConfig(videoRows) {
     const courseId = firstNonBlank(videoRows, 'course_id');
-    const courseName = firstNonBlank(videoRows, 'course_name');
+    const courseName = courseNameObject(videoRows, firstNonBlank(videoRows, 'course_name'));
     const hero = firstNonBlank(videoRows, 'hero');
     if (!courseId) throw new Error('missing course_id column value');
     if (!courseName) throw new Error('missing course_name column value');
@@ -1142,15 +1160,15 @@ function buildAbababCourseConfig(videoRows) {
 /**
  * Carry hand-authored course metadata across a regeneration.
  *
- * The generator emits only `courseId` / `courseName` / `courseHeroImage` /
- * `courseMission`, but it OVERWRITES the config file it owns. A `tags` array
- * is hand-authored course metadata (the master CSV has no column for it), so
- * it is read back from the file being overwritten and carried into the new
- * config — otherwise the next config-bot run would silently drop the tags of
- * every generated course.
+ * The generator emits the course name's English entry (plus the language
+ * columns the sheet happens to carry) and knows nothing about `tags`, so the
+ * metadata that lives in the file being overwritten is read back and carried
+ * into the new config — otherwise the next config-bot run would silently drop
+ * the course's topics and the translations of its name.
  *
- * The sheet stays authoritative for everything it does emit: a `tags` array
- * already present in the generated config wins over the carried-over one.
+ * The sheet stays authoritative for the English course name: it always wins
+ * over the carried-over one; only the translations come from the previous file.
+ * A `tags` array already present in the generated config wins as well.
  *
  * @param {object} config - the freshly generated course config
  * @param {object|null} previous - the config being overwritten (parsed), or null
@@ -1158,18 +1176,45 @@ function buildAbababCourseConfig(videoRows) {
  */
 export function withCarriedTags(config, previous) {
     if (!config || typeof config !== 'object') return config;
-    if (Array.isArray(config.tags) && config.tags.length > 0) return config;
+
+    // The topics: hand-authored, so the previous file's list is carried over.
     const previousTags = previous && typeof previous === 'object' ? previous.tags : null;
-    if (!Array.isArray(previousTags) || previousTags.length === 0) return config;
+    const carryTags = Array.isArray(previousTags) && previousTags.length > 0 && !hasTags(config);
+
+    // The course name's translations: the English entry stays the sheet's, the
+    // other languages come from the previous file.
+    const previousName = previous && typeof previous === 'object' ? previous.courseName : null;
+    const generatedName = config.courseName;
+    const name = isLocaleMap(previousName) && isLocaleMap(generatedName)
+        ? { ...generatedName, ...carriedTranslations(previousName, generatedName) }
+        : generatedName;
+
     const out = {};
     for (const [key, value] of Object.entries(config)) {
-        out[key] = value;
+        out[key] = key === 'courseName' ? name : value;
         // Course level, next to `courseName` — where the hand-edited configs
         // keep it.
-        if (key === 'courseName') out.tags = [...previousTags];
+        if (key === 'courseName' && carryTags) out.tags = [...previousTags];
     }
-    if (!('tags' in out)) out.tags = [...previousTags];
+    if (carryTags && !('tags' in out)) out.tags = [...previousTags];
     return out;
+}
+
+// The previous file's translations that the generated name does not have.
+function carriedTranslations(previousName, generatedName) {
+    const carried = {};
+    for (const [lang, value] of Object.entries(previousName)) {
+        if (lang !== 'en' && !generatedName[lang] && value) carried[lang] = value;
+    }
+    return carried;
+}
+
+function hasTags(config) {
+    return Array.isArray(config.tags) && config.tags.length > 0;
+}
+
+function isLocaleMap(value) {
+    return !!value && typeof value === 'object' && !Array.isArray(value);
 }
 
 function buildMasterCourseConfig(videoRows) {
@@ -1180,7 +1225,7 @@ function buildMasterCourseConfig(videoRows) {
         return buildAbababCourseConfig(videoRows);
     }
     const courseId = firstNonBlank(videoRows, 'course_id');
-    const courseName = firstNonBlank(videoRows, 'course_name');
+    const courseName = courseNameObject(videoRows, firstNonBlank(videoRows, 'course_name'));
     // Course banner: first non-blank wins, like every master-path scalar.
     const hero = firstNonBlank(videoRows, 'hero');
     if (!courseId) throw new Error('missing course_id column value');

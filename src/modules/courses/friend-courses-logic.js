@@ -12,6 +12,12 @@
 //   mission dropdown. When absent, the dropdown falls back to the first
 //   shareCta lesson's `mission`/`setting`/`roleUser`/`roleOther`.
 // - `courseHeroImage`: a top-level image URL string for the card banner.
+// - `courseName`: the course's name. A locale map (`{ en, es, pt, fr, hi, bn }`)
+//   so the card can show the English name and the learner's language beside
+//   it; a plain string (the shape before the names were localized) still
+//   works and is shown as-is.
+
+import { bilingualParts } from '../bilingual/bilingual-logic.js';
 
 // Config ids whose shareCta lessons must never surface to users. `test.json`
 // and `wouldyourather-test.json` are the designated never-user-visible fixtures.
@@ -80,6 +86,35 @@ export function configTags(config) {
         .map((tag) => tag.trim());
 }
 
+// The course name's locale map, or null when the config carries a plain
+// string name (the shape before the names were localized). A course name is
+// curriculum content, so it lives in the config like the lesson titles do.
+export function courseNameTranslations(config) {
+    const name = config && typeof config === 'object' ? config.courseName : null;
+    if (!name || typeof name !== 'object' || Array.isArray(name)) return null;
+    return name;
+}
+
+// The course name in one language. Falls back to the English entry, then to
+// the caller's fallback (the course id).
+export function courseNameFor(config, lang = 'en', fallback = '') {
+    const map = courseNameTranslations(config);
+    if (!map) {
+        // A config with a plain string name (the shape before the names were
+        // localized) still works.
+        return typeof config?.courseName === 'string' ? config.courseName : fallback;
+    }
+    const normalized = (lang && typeof lang === 'string') ? lang.split('-')[0].toLowerCase() : 'en';
+    return map[normalized] || map.en || fallback;
+}
+
+// The course name's English half and the learner's-language half — the pair
+// the course cards render (the same pair as the mission block and a topic).
+export function courseNameParts(config, lang = 'en') {
+    const map = courseNameTranslations(config);
+    return bilingualParts(map || config?.courseName, lang);
+}
+
 // The in-app URL that starts a course at its first friend lesson. `courseId` is
 // the config FILE basename (AppLayout fetches `/src/config/<courseId>.json`),
 // never `config.courseId` (friend.json/test.json carry a non-file id).
@@ -101,9 +136,10 @@ export function listFriendCourses(entries) {
         .filter((e) => isFriendCourse(e.config))
         .map((e) => ({
             courseId: e.courseId,
-            courseName: (typeof e.config.courseName === 'string' && e.config.courseName)
-                ? e.config.courseName
-                : e.courseId,
+            // The English name (the string every non-display consumer uses) and
+            // the locale map, so a card can show the learner's language too.
+            courseName: courseNameFor(e.config, 'en', e.courseId),
+            courseNames: courseNameTranslations(e.config),
             lessonCount: e.config.lessons.length,
             firstLessonId: firstFriendLessonId(e.config),
             mission: courseMissionFor(e.config),

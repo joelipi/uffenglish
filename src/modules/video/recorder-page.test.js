@@ -1439,6 +1439,15 @@ describe('recorder auto-render — zero server changes', () => {
             'src/modules/courses/course-tags-logic.test.js',
             'src/modules/courses/friend-courses-logic.js',
             'src/modules/courses/friend-courses-logic.test.js',
+            // The localized course names: the config shape, the helpers, the
+            // display, the normalizer and the generator that writes them.
+            'src/modules/bilingual/bilingual-logic.js',
+            'src/modules/user/friend-lesson-link-logic.js',
+            'src/components/courses/TagPage.jsx',
+            'src/assets/css/app.css',
+            'src/config/model.json',
+            'src/config/wouldyourather.json',
+            'src/config/wouldyourather-test.json',
             // The chain's addressing: a chain clip is addressed by its
             // recorder, so every hop of the friend chain resolves.
             'src/modules/bilingual/config-normalizer.js',

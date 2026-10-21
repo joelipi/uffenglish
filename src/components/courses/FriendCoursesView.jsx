@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import Strings from '../../data/strings.js';
 import { buildCourseStartHref, buildCourseListView } from '../../modules/courses/friend-courses-logic.js';
 import { courseTopicOptions, filterCoursesByTag } from '../../modules/courses/course-tags-logic.js';
+import { BilingualText } from '../BilingualText.jsx';
 import BilingualString from '../BilingualString.jsx';
 import CourseMissionDropdown from './CourseMissionDropdown.jsx';
 import CourseTopicFilter from './CourseTopicFilter.jsx';
@@ -79,7 +80,14 @@ export default function FriendCoursesView({ lang = 'en', courses, isLoading = fa
                             style={{ ...cardStyle, display: 'block', textDecoration: 'none', color: 'white' }}
                         >
                             <h2 style={{ fontSize: '20px', fontWeight: 700, margin: 0, marginBottom: '8px' }}>
-                                {course.courseName}
+                                {/* The course name is curriculum content, so it is
+                                    localized: the English name first, the
+                                    learner's language after it. */}
+                                <span className="bilingual-label">
+                                    {course.courseNames
+                                        ? <BilingualText translationData={course.courseNames} userLang={lang} spanPrefix=" " />
+                                        : course.courseName}
+                                </span>
                             </h2>
                             {course.heroImage && (
                                 <img

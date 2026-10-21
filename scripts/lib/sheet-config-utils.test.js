@@ -406,7 +406,7 @@ describe('buildCourseConfig', () => {
         const config = buildCourseConfig(rows);
         expect(config).toEqual({
             courseId: 'demo',
-            courseName: 'Demo Course',
+            courseName: { en: 'Demo Course' },
             lessons: [
                 {
                     lessonId: 'a', recapSources: 'none', recapOverlay: 'shareCta',
@@ -1515,6 +1515,43 @@ describe('withCarriedTags', () => {
         const out = withCarriedTags(GENERATED, previous);
         out.tags.push('mutated');
         expect(previous.tags).toEqual(['preferences']);
+    });
+
+    // The course name's translations are hand-authored too: the sheet carries
+    // only the English entry (unless it has language columns), so the
+    // translations come from the file being overwritten.
+    describe('the course name translations', () => {
+        const NAMED = { courseId: 'wvr', courseName: { en: 'WVR' }, lessons: [] };
+
+        it('carries the previous config\'s translations into the regenerated name', () => {
+            const out = withCarriedTags(NAMED, {
+                courseName: { en: 'Old', es: 'Viejo', pt: 'Velho' },
+            });
+            expect(out.courseName).toEqual({ en: 'WVR', es: 'Viejo', pt: 'Velho' });
+        });
+
+        it('keeps the sheet\'s English name and its own translations', () => {
+            const out = withCarriedTags(
+                { courseId: 'wvr', courseName: { en: 'WVR', es: 'Propio' }, lessons: [] },
+                { courseName: { en: 'Old', es: 'Viejo' } },
+            );
+            expect(out.courseName).toEqual({ en: 'WVR', es: 'Propio' });
+        });
+
+        it('leaves a plain string name alone (the shape before the names were localized)', () => {
+            const out = withCarriedTags({ courseId: 'wvr', courseName: 'WVR', lessons: [] }, {
+                courseName: { en: 'Old', es: 'Viejo' },
+            });
+            expect(out.courseName).toBe('WVR');
+        });
+
+        it('can fail: without the carry-over the translations are gone', () => {
+            // What the generator produces on its own: the sheet's English
+            // entry only. The carry-over is what brings the translations back.
+            expect(NAMED.courseName).toEqual({ en: 'WVR' });
+            expect(withCarriedTags(NAMED, { courseName: { en: 'Old', es: 'Viejo' } }).courseName)
+                .toEqual({ en: 'WVR', es: 'Viejo' });
+        });
     });
 
     it('can fail: without the carry-over the tags are gone', () => {

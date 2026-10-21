@@ -19,6 +19,8 @@ import {
     configTags,
     courseHeroImageFor,
     courseMissionFor,
+    courseNameFor,
+    courseNameTranslations,
     firstFriendLessonId,
 } from './friend-courses-logic.js';
 
@@ -93,9 +95,10 @@ export function listTaggedCourses(entries) {
         .filter((e) => e.config && Array.isArray(e.config.lessons) && e.config.lessons.length > 0)
         .map((e) => ({
             courseId: e.courseId,
-            courseName: (typeof e.config.courseName === 'string' && e.config.courseName)
-                ? e.config.courseName
-                : e.courseId,
+            // The English name (the string every non-display consumer uses) and
+            // the locale map, so a card can show the learner's language too.
+            courseName: courseNameFor(e.config, 'en', e.courseId),
+            courseNames: courseNameTranslations(e.config),
             lessonCount: e.config.lessons.length,
             firstLessonId: startLessonIdFor(e.config),
             mission: courseMissionFor(e.config),
