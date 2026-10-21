@@ -2,13 +2,14 @@
 import { test, expect } from '@playwright/test';
 import { get } from '../src/data/strings.js';
 
-// Public-profile visitor awareness (story 064). Logged-out visitors see only
-// chain-head (`a`) links plus the login/guest banner; a logged-in visitor with
-// overlapping history sees featuring lessons first with a completed-together
-// badge. Same fixture pattern as friend-lesson-link.spec.js: settle the
-// owner's initial query, inject fixtures through the app's queryClient
-// singleton, fix the clock so the 48h countdown is deterministic. Viewer
-// profile, auth status and inbox are injected the same way.
+// Public-profile visitor awareness (story 064). Logged-out visitors see every
+// recorded link plus the login/guest banner; a logged-in visitor with
+// overlapping history sees featuring lessons first, with a completed-together
+// badge on a lesson they already did with the owner. Same fixture pattern as
+// friend-lesson-link.spec.js: settle the owner's initial query, inject
+// fixtures through the app's queryClient singleton, fix the clock so the 48h
+// countdown is deterministic. Viewer profile, auth status and inbox are
+// injected the same way.
 //
 // The page is localized to the VISITOR's language, never to the language of
 // the profile being read (the owner's `native_language`).
@@ -139,12 +140,16 @@ test.describe('public-profile visitor awareness', () => {
 
     test('logged-in visitor sees featuring lessons first, badged when done together', async ({ page }) => {
         await seedOwner(page, LINKS);
+        // The visitor completed lesson `d`, the follow-on the owner's `c`
+        // entry links to (this is what an answer through that link records).
+        // The inbox row for `c` is the owner's response, which features the
+        // entry too.
         await seedViewer(page, {
-            countedLessons: [`${COURSE_ID}_c`],
+            countedLessons: [`${COURSE_ID}_d`],
             inbox: [inboxRow('c')],
         });
 
-        // Featuring entry (c: inbox + counted) ahead of the chain head (a).
+        // Featuring entry (c: inbox + counted) ahead of the other one (a).
         const links = page.getByTestId('friend-lesson-link');
         await expect(links).toHaveCount(2);
         await expect(links.nth(0)).toHaveText('Follow Up');
@@ -152,9 +157,37 @@ test.describe('public-profile visitor awareness', () => {
 
         const badges = page.getByTestId('friend-lesson-link-completed');
         await expect(badges).toHaveCount(1);
-        await expect(badges.nth(0)).toHaveText('You did this together');
+        await expect(badges.nth(0)).toHaveText('Completed it together ✅');
+        // The lesson name is struck through: the visitor need not do it again.
+        await expect(links.nth(0)).toHaveCSS('text-decoration-line', /line-through/);
+        await expect(links.nth(1)).not.toHaveCSS('text-decoration-line', /line-through/);
 
         await expect(page.getByTestId('visitor-login-banner')).toHaveCount(0);
+    });
+
+    test('a done lesson is badged on ANOTHER user\'s profile (the owner\'s recorded lesson alone is not enough)', async ({ page }) => {
+        await seedOwner(page, LINKS);
+        // The visitor completed `b` — the lesson the owner's `a` entry opens —
+        // so the `a` entry is badged. Nothing names the owner's recorded `a`
+        // in the visitor's history: keying the badge on that lesson was the
+        // bug that made it appear only on the visitor's own profile.
+        await seedViewer(page, { countedLessons: [`${COURSE_ID}_b`] });
+
+        const links = page.getByTestId('friend-lesson-link');
+        await expect(links.nth(0)).toHaveText('Ask');
+        await expect(links.nth(0)).toHaveCSS('text-decoration-line', /line-through/);
+        await expect(page.getByTestId('friend-lesson-link-completed')).toHaveCount(1);
+        await expect(page.getByTestId('friend-lesson-link-completed')).toHaveText('Completed it together ✅');
+    });
+
+    test('an owner response alone does not badge the entry (the visitor still has a turn)', async ({ page }) => {
+        await seedOwner(page, LINKS);
+        await seedViewer(page, { inbox: [inboxRow('c')] });
+
+        await expect(page.getByTestId('friend-lesson-link-completed')).toHaveCount(0);
+        const links = page.getByTestId('friend-lesson-link');
+        await expect(links.nth(0)).toHaveText('Follow Up');
+        await expect(links.nth(0)).not.toHaveCSS('text-decoration-line', /line-through/);
     });
 
     test('logged-in visitor with no overlap sees the recorded links and no banner', async ({ page }) => {

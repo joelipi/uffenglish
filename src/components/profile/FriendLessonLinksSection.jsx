@@ -23,6 +23,7 @@ const cardStyle = {
 // remember.
 function FriendLessonLink({ entry, lang, now }) {
     const remainingMs = getFriendLinkRemainingMs(new Date(entry.addedAt).getTime(), now);
+    const completedTogether = entry.completedTogether === true;
 
     const url = buildFriendLessonLink({
         courseId: entry.courseId,
@@ -42,14 +43,23 @@ function FriendLessonLink({ entry, lang, now }) {
             <a
                 data-testid="friend-lesson-link"
                 href={toFriendLessonHref(url)}
-                style={{ fontSize: '24px', fontWeight: 700, color: '#ffffff', textDecoration: 'underline', lineHeight: 1.3, display: 'inline-block' }}
+                style={{
+                    fontSize: '24px',
+                    fontWeight: 700,
+                    color: '#ffffff',
+                    // A lesson the visitor already did with this person is
+                    // struck through: they don't need to do it again.
+                    textDecoration: completedTogether ? 'underline line-through' : 'underline',
+                    lineHeight: 1.3,
+                    display: 'inline-block',
+                }}
             >
                 {label}
             </a>
             <p data-testid="friend-lesson-link-countdown" style={{ color: '#ffffff', fontSize: '14px', margin: '4px 0 0' }}>
                 {Strings.get('profile_friend_link_available', lang, { time: formatFriendLinkRemaining(remainingMs) })}
             </p>
-            {entry.completedTogether === true && (
+            {completedTogether && (
                 <p data-testid="friend-lesson-link-completed" style={{ color: '#8ce99a', fontSize: '14px', fontWeight: 600, margin: '4px 0 0' }}>
                     {Strings.get('profile_completed_together', lang)}
                 </p>
@@ -88,10 +98,10 @@ function VisitorLoginBanner({ shareCode, lang }) {
 // recorded, or every entry aged past 48h) the course area is replaced by an
 // explanation and a link into the public course listings.
 //
-// Visitor awareness (all read-time): a logged-out visitor sees only the
-// chain-head lessons plus the login/guest banner; a logged-in visitor sees the
-// lessons they feature in first, then the chain-head lessons, with joint
-// completions badged. `viewer` is null for logged-out visitors.
+// Visitor awareness (all read-time): a logged-out visitor sees every recorded
+// link plus the login/guest banner; a logged-in visitor sees the links they
+// took part in first, with joint completions badged and struck through.
+// `viewer` is null for logged-out visitors.
 export default function FriendLessonLinksSection({ friendLinks, lang = 'en', shareCode, viewer = null, userName = '', name, ownerName, displayName, profileName }) {
     const resolvedName = userName || name || ownerName || displayName || profileName || '';
     const [now, setNow] = useState(() => Date.now());

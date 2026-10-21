@@ -325,28 +325,37 @@ describe('buildVisitorPracticeView', () => {
         expect(featuring.completedTogether).toBe(false);
     });
 
-    it('logged-in: a counted key features the entry and badges it as completed together', () => {
-        const viewer = { ...emptyViewer, counted_lessons: ['friendchain_c'] };
+    it('logged-in: a counted key for the link\'s target features the entry and badges it as completed together', () => {
+        // The visitor opened the owner's `c` entry, so they completed `d`.
+        const viewer = { ...emptyViewer, counted_lessons: ['friendchain_d'] };
         const view = buildVisitorPracticeView({ friendLinks: mixedLinks, nowMs: NOW, viewer });
         expect(recordedLessons(view)).toEqual(['c', 'a']);
         const featuring = view.groups.flatMap((g) => g.entries).find((e) => e.recordedLessonId === 'c');
         expect(featuring.completedTogether).toBe(true);
     });
 
-    it('logged-in: joins on recordedLessonId, never the follow-on lessonId', () => {
-        // The viewer's mentions point at 'd' (entry.lessonId); they must not
-        // feature entry 'c' (recordedLessonId 'c').
-        const viewer = {
-            ...emptyViewer,
-            counted_lessons: ['friendchain_d'],
-            notifications: [{ type: 'friend_response', course_id: 'friendchain', lesson_id: 'd', payload: { actorShareCode: 'owner1' } }],
-        };
+    it('regression: badges the owner\'s entry on ANOTHER profile when the visitor did its lesson', () => {
+        // The reported bug: the badge keyed on the owner's recorded lesson, so
+        // it only ever matched when the viewer looked at their OWN profile.
+        // Here the owner recorded `a`; the visitor answered it by doing `b`.
+        const viewer = { ...emptyViewer, counted_lessons: ['friendchain_b'] };
+        const view = buildVisitorPracticeView({ friendLinks: { 'friendchain:a': entryA }, nowMs: NOW, viewer });
+        expect(recordedLessons(view)).toEqual(['a']);
+        expect(view.groups[0].entries[0].completedTogether).toBe(true);
+    });
+
+    it('logged-in: joins on the link\'s target lesson, never the owner\'s recorded lesson', () => {
+        // The viewer's history names 'c' — the lesson the OWNER recorded. That
+        // alone must not feature or badge the entry; only completing the
+        // link's target ('d') proves the visitor did the exchange.
+        const viewer = { ...emptyViewer, counted_lessons: ['friendchain_c'] };
         const view = buildVisitorPracticeView({ friendLinks: mixedLinks, nowMs: NOW, viewer });
         expect(recordedLessons(view)).toEqual(['a', 'c']);
+        expect(view.groups.flatMap((g) => g.entries).every((e) => e.completedTogether === false)).toBe(true);
     });
 
     it('logged-in: an entry both featuring and already listed appears once, in the featuring group', () => {
-        const viewer = { ...emptyViewer, counted_lessons: ['friendchain_a'] };
+        const viewer = { ...emptyViewer, counted_lessons: ['friendchain_b'] };
         const view = buildVisitorPracticeView({
             friendLinks: { 'friendchain:a': entryA }, nowMs: NOW, viewer,
         });

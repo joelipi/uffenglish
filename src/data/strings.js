@@ -1472,12 +1472,12 @@ const strings = {
         bn: "এখনও অ্যাকাউন্ট নেই? বিনামূল্যে অনুশীলন শুরু করুন। শুরু করতে নিচে দেওয়া লিঙ্কগুলোর যেকোনো একটিতে ক্লিক করুন।"
     },
     'profile_completed_together': {
-        en: "You did this together",
-        es: "Lo hicieron juntos",
-        pt: "Vocês fizeram juntos",
-        fr: "Vous l'avez fait ensemble",
-        hi: "आपने यह साथ में पूरा किया",
-        bn: "আপনারা এটি একসাথে সম্পন্ন করেছেন"
+        en: "Completed it together ✅",
+        es: "Lo completaron juntos ✅",
+        pt: "Vocês completaram juntos ✅",
+        fr: "Vous l'avez terminé ensemble ✅",
+        hi: "आपने इसे साथ में पूरा किया ✅",
+        bn: "আপনারা এটি একসাথে সম্পন্ন করেছেন ✅"
     },
     // Friends directory page (`/friends`): everyone the viewer has completed
     // at least one lesson with, keyed off the friend-credit arrays.

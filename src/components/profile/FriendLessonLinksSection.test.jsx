@@ -277,27 +277,45 @@ describe('FriendLessonLinksSection visitor awareness', () => {
         // Baseline (no badge) capture of the countdown's own markup.
         root = renderSection(container, { friendLinks: activeLinks(), lang: 'en', shareCode: 'owner1' });
         const baseline = container.querySelector('[data-testid="friend-lesson-link-countdown"]').outerHTML;
+        const anchorBaseline = container.querySelector('[data-testid="friend-lesson-link"]').style.textDecoration;
+        expect(anchorBaseline).toBe('underline');
         act(() => root.unmount());
         container.remove();
         container = document.createElement('div');
         document.body.appendChild(container);
 
-        const viewer = { shareCode: 'viewer1', counted_lessons: ['friendchain_a'], notifications: [], ownerShareCode: 'owner1' };
+        // The visitor completed the lesson the link opens (`b`), not the
+        // owner's recorded lesson (`a`) — the reported bug keyed on `a`.
+        const viewer = { shareCode: 'viewer1', counted_lessons: ['friendchain_b'], notifications: [], ownerShareCode: 'owner1' };
         root = renderSection(container, { friendLinks: activeLinks(), lang: 'en', shareCode: 'owner1', viewer });
 
         const badge = container.querySelector('[data-testid="friend-lesson-link-completed"]');
         expect(badge).not.toBeNull();
-        expect(badge.textContent).toBe('You did this together');
+        expect(badge.textContent).toBe('Completed it together ✅');
         const countdown = container.querySelector('[data-testid="friend-lesson-link-countdown"]');
         expect(countdown.outerHTML).toBe(baseline);
         // The badge is a sibling AFTER the countdown, not inside it.
         expect(countdown.nextElementSibling).toBe(badge);
     });
 
+    it('strikes through the lesson name when completed together', () => {
+        root = renderSection(container, {
+            friendLinks: activeLinks(), lang: 'en', shareCode: 'owner1',
+            viewer: { shareCode: 'viewer1', counted_lessons: ['friendchain_b'], notifications: [], ownerShareCode: 'owner1' },
+        });
+
+        const anchor = container.querySelector('[data-testid="friend-lesson-link"]');
+        expect(anchor.textContent).toBe('Ask');
+        expect(anchor.style.textDecoration).toContain('underline');
+        expect(anchor.style.textDecoration).toContain('line-through');
+    });
+
     it('renders no badge when completedTogether is false or absent', () => {
         root = renderSection(container, { friendLinks: activeLinks(), lang: 'en', shareCode: 'owner1' });
         expect(container.querySelector('[data-testid="friend-lesson-link-completed"]')).toBeNull();
         expect(container.querySelector('[data-testid="friend-lesson-link-countdown"]').nextElementSibling).toBeNull();
+        expect(container.querySelector('[data-testid="friend-lesson-link"]').style.textDecoration)
+            .not.toContain('line-through');
 
         act(() => root.unmount());
         container.remove();
@@ -307,5 +325,7 @@ describe('FriendLessonLinksSection visitor awareness', () => {
         const viewer = { shareCode: 'viewer1', counted_lessons: [], notifications: [], ownerShareCode: 'owner1' };
         root = renderSection(container, { friendLinks: activeLinks(), lang: 'en', shareCode: 'owner1', viewer });
         expect(container.querySelector('[data-testid="friend-lesson-link-completed"]')).toBeNull();
+        expect(container.querySelector('[data-testid="friend-lesson-link"]').style.textDecoration)
+            .not.toContain('line-through');
     });
 });
