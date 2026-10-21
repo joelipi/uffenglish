@@ -1,5 +1,13 @@
 # Learnings
 
+## Making a lesson terminal leaves one copy surface behind: the answer notification
+**Date**: 2026-10-21
+**Area**: product | notifications
+**What happened**: The last `shareCta` lesson of a friend chain now records a closing sign-off and deliberately records **no friend link** (nothing could answer it), so three copy surfaces were made terminal-aware: the burnt share-card line, the success-screen CTA and the share text. A fourth surface was missed: `resolveFriendResponseNotification` still fires for that lesson — its only gate is `hasEarlierShareCtaLesson`, which the terminal lesson passes — and `NotificationList.web.jsx` renders `notifications_respond_deadline` ("You only have 48 hours to respond") on **every** `friend_response`. The person whose questions were answered by the chain's end is therefore told to respond to a lesson that does not exist.
+**Takeaway**: When a lesson becomes terminal, enumerate the *events it emits*, not only the screens it renders — the notification a finished lesson sends to the other learner is copy too. A per-case fix is not a string swap: the notification row carries only `course_id`/`lesson_id`, and the bell (mounted in the app shell on every page) has no course config, so the terminal flag has to travel from the responder — the only party holding `configData` — through `record_friend_response`, i.e. a migration plus live-DB verification. Until then the honest options are a neutral reword of the deadline line for all friend responses or leaving it; rewording intra-product copy for every friend lesson is a product decision, not an implementation detail.
+
+---
+
 ## A query the shell mounts once must ask to be re-read — the app's query defaults never re-read anything
 **Date**: 2026-10-20
 **Area**: architecture | testing | notifications
