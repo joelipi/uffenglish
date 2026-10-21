@@ -383,7 +383,10 @@ describe('buildVisitorPracticeView', () => {
         lessonId: 'd', shareCode: 'owner1', addedAt: iso(NOW - 2 * HOUR), lessonTitle: 'Follow Up',
     };
     const mixedLinks = { 'friendchain:a': entryA, 'friendchain:c': entryC };
-    const emptyViewer = { shareCode: 'viewer1', counted_lessons: [], notifications: [], ownerShareCode: 'owner1' };
+    // `friendCompletions` is what the API returns for THIS owner (RLS is
+    // actor-only, and the query filters by owner_id), so the logic never has
+    // to guess WHICH friend a lesson was done with.
+    const emptyViewer = { shareCode: 'viewer1', friendCompletions: [], notifications: [], ownerShareCode: 'owner1' };
     const recordedLessons = (view) => view.groups.flatMap((g) => g.entries.map((e) => e.recordedLessonId));
 
     it('logged-out: lists EVERY recorded lesson, newest first, flagged not-together', () => {
@@ -416,28 +419,50 @@ describe('buildVisitorPracticeView', () => {
         expect(featuring.completedTogether).toBe(false);
     });
 
-    it('logged-in: a counted key features the entry and badges it as completed together', () => {
-        const viewer = { ...emptyViewer, counted_lessons: ['friendchain_c'] };
+    it('logged-in: a completion of the link\'s target features the entry and badges it as completed together', () => {
+        // The visitor opened the owner's `c` entry, so they completed `d`.
+        const viewer = { ...emptyViewer, friendCompletions: [{ courseId: 'friendchain', lessonId: 'd' }] };
         const view = buildVisitorPracticeView({ friendLinks: mixedLinks, nowMs: NOW, viewer });
         expect(recordedLessons(view)).toEqual(['c', 'a']);
         const featuring = view.groups.flatMap((g) => g.entries).find((e) => e.recordedLessonId === 'c');
         expect(featuring.completedTogether).toBe(true);
     });
 
-    it('logged-in: joins on recordedLessonId, never the follow-on lessonId', () => {
-        // The viewer's mentions point at 'd' (entry.lessonId); they must not
-        // feature entry 'c' (recordedLessonId 'c').
-        const viewer = {
-            ...emptyViewer,
-            counted_lessons: ['friendchain_d'],
-            notifications: [{ type: 'friend_response', course_id: 'friendchain', lesson_id: 'd', payload: { actorShareCode: 'owner1' } }],
-        };
+    it('regression: badges the owner\'s entry on ANOTHER profile when the visitor did its lesson', () => {
+        // The reported bug: the badge keyed on the owner's recorded lesson, so
+        // it only ever matched when the viewer looked at their OWN profile.
+        // Here the owner recorded `a`; the visitor answered it by doing `b`.
+        const viewer = { ...emptyViewer, friendCompletions: [{ courseId: 'friendchain', lessonId: 'b' }] };
+        const view = buildVisitorPracticeView({ friendLinks: { 'friendchain:a': entryA }, nowMs: NOW, viewer });
+        expect(recordedLessons(view)).toEqual(['a']);
+        expect(view.groups[0].entries[0].completedTogether).toBe(true);
+    });
+
+    it('logged-in: joins on the link\'s target lesson, never the owner\'s recorded lesson', () => {
+        // A completion of 'c' — the lesson the OWNER recorded — must not
+        // feature or badge the entry; only completing the link's target ('d')
+        // proves the visitor did the exchange.
+        const viewer = { ...emptyViewer, friendCompletions: [{ courseId: 'friendchain', lessonId: 'c' }] };
         const view = buildVisitorPracticeView({ friendLinks: mixedLinks, nowMs: NOW, viewer });
         expect(recordedLessons(view)).toEqual(['a', 'c']);
+        expect(view.groups.flatMap((g) => g.entries).every((e) => e.completedTogether === false)).toBe(true);
+    });
+
+    it('logged-in: an unrelated completion is never read as this owner\'s exchange', () => {
+        // The pair-scoping itself happens in the API read: `friend_completions`
+        // is filtered by BOTH actor_id and owner_id, so a lesson done with a
+        // different friend never reaches this list. What must hold here is that
+        // a completion that is not this entry's (course, lesson) pair is
+        // ignored rather than fuzzy-matched — a lesson IS expected to be
+        // repeated with different friends.
+        const viewer = { ...emptyViewer, friendCompletions: [{ courseId: 'other-course', lessonId: 'b' }] };
+        const view = buildVisitorPracticeView({ friendLinks: { 'friendchain:a': entryA }, nowMs: NOW, viewer });
+        expect(recordedLessons(view)).toEqual(['a']);
+        expect(view.groups[0].entries[0].completedTogether).toBe(false);
     });
 
     it('logged-in: an entry both featuring and already listed appears once, in the featuring group', () => {
-        const viewer = { ...emptyViewer, counted_lessons: ['friendchain_a'] };
+        const viewer = { ...emptyViewer, friendCompletions: [{ courseId: 'friendchain', lessonId: 'b' }] };
         const view = buildVisitorPracticeView({
             friendLinks: { 'friendchain:a': entryA }, nowMs: NOW, viewer,
         });

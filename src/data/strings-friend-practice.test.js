@@ -5,8 +5,11 @@ import Strings, { get, getBilingual } from './strings.js';
 // `getBilingual` reports `.localized === null` when a language entry is missing,
 // so it is the reliable way to assert every language variant exists.
 const KEYS = {
-    profile_friend_practice_heading: 'Practice English with Me Free',
-    profile_friend_practice_subheading: 'click on a lesson link to start.',
+    // The invitation names the profile owner, so the copy is a template. It
+    // used to be hardcoded English in the component.
+    profile_friend_links_heading: 'Click on a lesson to start practicing with {name} right now free!',
+    profile_friend_links_subheading: '{name} does not have to be online now, they can respond to you later.',
+    profile_friend_start_here: 'Start here',
     profile_friend_lessons_expired: "All this user's lessons have expired after 48 hours, start a new lesson and send them the link to get them back into practicing English.",
     profile_friend_practice_free: 'Practice English Free',
     friend_courses_heading: 'Choose a conversation to have with your friends and practice English with them free.',
@@ -50,9 +53,10 @@ describe('friend-practice / friend-courses strings', () => {
     });
 
     it('returns the localized subheading for es, not the English fallback', () => {
-        expect(get('profile_friend_practice_subheading', 'es')).toBe('haz clic en un enlace de lección para empezar.');
-        expect(get('profile_friend_practice_subheading', 'es'))
-            .not.toBe('click on a lesson link to start.');
+        expect(get('profile_friend_links_subheading', 'es', { name: 'Sam' }))
+            .toBe('Sam no tiene que estar en línea ahora, puede responderte más tarde.');
+        expect(get('profile_friend_links_subheading', 'es', { name: 'Sam' }))
+            .not.toBe(get('profile_friend_links_subheading', 'en', { name: 'Sam' }));
     });
 
     it('is reachable through the default export', () => {

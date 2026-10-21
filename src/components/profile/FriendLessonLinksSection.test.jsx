@@ -8,6 +8,7 @@ import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 
 import FriendLessonLinksSection from './FriendLessonLinksSection.jsx';
+import Strings from '../../data/strings.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -214,6 +215,25 @@ describe('FriendLessonLinksSection', () => {
         expect(countdown.textContent).toMatch(/^Available for 4[67]h \d+m$/);
     });
 
+    it('renders the heading and subheading in the visitor language', () => {
+        // The copy used to be hardcoded English template strings in the
+        // component, so a Hindi visitor read the section in English.
+        const links = {
+            'friendchain:a': {
+                courseId: 'friendchain', courseName: 'Friend Chain',
+                recordedLessonId: 'a', lessonId: 'b', shareCode: 'code1',
+                addedAt: iso(NOW - HOUR), lessonTitle: 'Ask',
+            },
+        };
+        root = renderSection(container, { friendLinks: links, lang: 'hi', userName: 'Owner' });
+
+        expect(container.querySelector('[data-testid="friend-lesson-links-heading"]').textContent)
+            .toBe(Strings.get('profile_friend_links_heading', 'hi', { name: 'Owner' }));
+        expect(container.querySelector('[data-testid="friend-lesson-links-subheading"]').textContent)
+            .toBe(Strings.get('profile_friend_links_subheading', 'hi', { name: 'Owner' }));
+        expect(container.textContent).not.toContain('Click on a lesson to start practicing');
+    });
+
     it('shows the expired message and the course-listings link when every entry is expired', () => {
         const links = {
             'friendchain:a': {
@@ -237,6 +257,20 @@ describe('FriendLessonLinksSection', () => {
         expect(container.querySelector('[data-testid="friend-lesson-links"]')).toBeNull();
         expect(container.querySelectorAll('[data-testid="friend-lesson-link-group"]')).toHaveLength(0);
         expect(container.querySelectorAll('[data-testid="friend-lesson-link"]')).toHaveLength(0);
+    });
+
+    it('localizes the expired-state call to action', () => {
+        const links = {
+            'friendchain:a': {
+                courseId: 'friendchain', courseName: 'Friend Chain',
+                recordedLessonId: 'a', lessonId: 'b', shareCode: 'code1',
+                addedAt: iso(NOW - 49 * HOUR), lessonTitle: 'Ask',
+            },
+        };
+        root = renderSection(container, { friendLinks: links, lang: 'hi' });
+
+        expect(container.querySelector('[data-testid="friend-lessons-practice-free"]').textContent)
+            .toBe(Strings.get('profile_friend_start_here', 'hi'));
     });
 
     it('shows the expired state for an empty or missing friendLinks map', () => {
@@ -304,7 +338,7 @@ describe('FriendLessonLinksSection visitor awareness', () => {
     });
 
     it('renders no banner for a logged-in visitor', () => {
-        const viewer = { shareCode: 'viewer1', counted_lessons: [], notifications: [], ownerShareCode: 'owner1' };
+        const viewer = { shareCode: 'viewer1', friendCompletions: [], notifications: [], ownerShareCode: 'owner1' };
         root = renderSection(container, { friendLinks: activeLinks(), lang: 'en', shareCode: 'owner1', viewer });
         expect(container.querySelector('[data-testid="visitor-login-banner"]')).toBeNull();
         expect(container.querySelector('[data-testid="friend-lesson-links-heading"]')).not.toBeNull();
@@ -324,35 +358,55 @@ describe('FriendLessonLinksSection visitor awareness', () => {
         // Baseline (no badge) capture of the countdown's own markup.
         root = renderSection(container, { friendLinks: activeLinks(), lang: 'en', shareCode: 'owner1' });
         const baseline = container.querySelector('[data-testid="friend-lesson-link-countdown"]').outerHTML;
+        const anchorBaseline = container.querySelector('[data-testid="friend-lesson-link"]').style.textDecoration;
+        expect(anchorBaseline).toBe('underline');
         act(() => root.unmount());
         container.remove();
         container = document.createElement('div');
         document.body.appendChild(container);
 
-        const viewer = { shareCode: 'viewer1', counted_lessons: ['friendchain_a'], notifications: [], ownerShareCode: 'owner1' };
+        // The visitor completed the lesson the link opens (`b`), not the
+        // owner's recorded lesson (`a`) — the reported bug keyed on `a`.
+        const viewer = { shareCode: 'viewer1', friendCompletions: [{ courseId: 'friendchain', lessonId: 'b' }], notifications: [], ownerShareCode: 'owner1' };
         root = renderSection(container, { friendLinks: activeLinks(), lang: 'en', shareCode: 'owner1', viewer });
 
         const badge = container.querySelector('[data-testid="friend-lesson-link-completed"]');
         expect(badge).not.toBeNull();
-        expect(badge.textContent).toBe('You did this together');
+        expect(badge.textContent).toBe('Completed it together ✅');
         const countdown = container.querySelector('[data-testid="friend-lesson-link-countdown"]');
         expect(countdown.outerHTML).toBe(baseline);
         // The badge is a sibling AFTER the countdown, not inside it.
         expect(countdown.nextElementSibling).toBe(badge);
     });
 
+    it('strikes through the lesson name when completed together', () => {
+        root = renderSection(container, {
+            friendLinks: activeLinks(), lang: 'en', shareCode: 'owner1',
+            viewer: { shareCode: 'viewer1', friendCompletions: [{ courseId: 'friendchain', lessonId: 'b' }], notifications: [], ownerShareCode: 'owner1' },
+        });
+
+        const anchor = container.querySelector('[data-testid="friend-lesson-link"]');
+        expect(anchor.textContent).toBe('Ask');
+        expect(anchor.style.textDecoration).toContain('underline');
+        expect(anchor.style.textDecoration).toContain('line-through');
+    });
+
     it('renders no badge when completedTogether is false or absent', () => {
         root = renderSection(container, { friendLinks: activeLinks(), lang: 'en', shareCode: 'owner1' });
         expect(container.querySelector('[data-testid="friend-lesson-link-completed"]')).toBeNull();
         expect(container.querySelector('[data-testid="friend-lesson-link-countdown"]').nextElementSibling).toBeNull();
+        expect(container.querySelector('[data-testid="friend-lesson-link"]').style.textDecoration)
+            .not.toContain('line-through');
 
         act(() => root.unmount());
         container.remove();
         container = document.createElement('div');
         document.body.appendChild(container);
 
-        const viewer = { shareCode: 'viewer1', counted_lessons: [], notifications: [], ownerShareCode: 'owner1' };
+        const viewer = { shareCode: 'viewer1', friendCompletions: [], notifications: [], ownerShareCode: 'owner1' };
         root = renderSection(container, { friendLinks: activeLinks(), lang: 'en', shareCode: 'owner1', viewer });
         expect(container.querySelector('[data-testid="friend-lesson-link-completed"]')).toBeNull();
+        expect(container.querySelector('[data-testid="friend-lesson-link"]').style.textDecoration)
+            .not.toContain('line-through');
     });
 });

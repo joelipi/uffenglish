@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { useUserByShareCode, useAuthStatus, useUserProfile, useNotifications } from '../../modules/api/api.js';
+import { useUserByShareCode, useAuthStatus, useUserProfile, useNotifications, useFriendCompletions } from '../../modules/api/api.js';
 import { calculateCurrentStreak } from '../../modules/user/user-profile.js';
 import { formatProfileJoinDate } from '../../modules/user/public-profile-logic.js';
 import { buildRecordedLessonOrdinals } from '../../modules/user/friend-lesson-link-logic.js';
@@ -29,6 +29,11 @@ export default function PublicProfile({ shareCode }) {
         queryFn: () => loadConfigEntries(),
         staleTime: Infinity,
     });
+    // The owner's user id anchors the pair-scoped completion ledger: the badge
+    // may only claim a lesson was done together with THIS profile owner (a
+    // lesson is expected to be repeated with different friends).
+    const ownerId = profile?.id ?? profile?.$id ?? null;
+    const { data: friendCompletions } = useFriendCompletions(viewerId, ownerId);
     // The page is localized to the VISITOR's language — the app's guest-first
     // session language — and never to the language of the profile being read.
     // A Spanish learner opening a Hindi speaker's profile reads the page in
@@ -80,7 +85,9 @@ export default function PublicProfile({ shareCode }) {
         return (
             <div style={containerStyle}>
                 <div style={headerStyle}>
-                    <h1 style={{ fontSize: '25px', fontWeight: 700, fontStyle: 'italic', fontFamily: 'var(--font-heading)', textAlign: 'center', width: '100%', margin: 0 }}>Practice English with</h1>
+                    <h1 style={{ fontSize: '25px', fontWeight: 700, fontStyle: 'italic', fontFamily: 'var(--font-heading)', textAlign: 'center', width: '100%', margin: 0 }}>
+                        {Strings.get('public_profile_heading', lang)}
+                    </h1>
                 </div>
                 <div style={{ padding: '24px 16px', textAlign: 'center', color: '#ff6b6b' }}>
                     <i className="bi bi-exclamation-triangle-fill" style={{ fontSize: '32px', display: 'block', marginBottom: '12px' }}></i>
@@ -105,12 +112,12 @@ export default function PublicProfile({ shareCode }) {
     const lessonOrdinals = buildRecordedLessonOrdinals(friendLinks, configEntries);
 
     // Logged-in viewer only when a real (non-guest) session is present. The
-    // inbox is already guest-disabled; `notifications` may be undefined while
-    // it loads, so the logic module defaults it to [].
+    // inbox is already guest-disabled; `notifications` and `friendCompletions`
+    // may be undefined while they load, so the logic module defaults both.
     const viewer = (isLoggedIn === true && viewerId)
         ? {
             shareCode: viewerProfile.shareCode,
-            counted_lessons: viewerProfile.counted_lessons ?? [],
+            friendCompletions: Array.isArray(friendCompletions) ? friendCompletions : [],
             notifications: Array.isArray(notifications) ? notifications : [],
             ownerShareCode: profile.shareCode ?? profile.share_code ?? shareCode,
         }
@@ -120,7 +127,10 @@ export default function PublicProfile({ shareCode }) {
         <div style={containerStyle}>
             <div style={headerStyle}>
                 <h1 style={{ fontSize: '25px', fontWeight: 700, fontStyle: 'italic', fontFamily: 'var(--font-heading)', textAlign: 'center', width: '100%', margin: 0 }}>
-                    Practice English with <br />
+                    {/* Localized page heading: the owner's name is a label
+                        under the picture, so the copy must not be hardcoded
+                        English (it reads in the VISITOR's language). */}
+                    {Strings.get('public_profile_heading', lang)} <br />
                     <img src={profilePic} alt={displayName} crossOrigin="anonymous" style={{ width: '192px', height: '192px', borderRadius: '50%', objectFit: 'cover', margin: '8px auto', display: 'block' }} />
                     <br />
                     {displayName}
