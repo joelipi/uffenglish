@@ -852,11 +852,12 @@ export function withHero(head, hero, courseMission, lessons) {
 const ABABAB_PAD = (n) => String(n).padStart(2, '0');
 
 /**
- * The terminal lesson's closing block.
+ * The closing lesson's closing block.
  *
- * The chain's LAST answer lesson has no next question set to record: the
- * friend who receives its video has nothing to answer, so instead of the
- * record phase the learner picks a rung and signs off. This is lesson
+ * The chain's LAST lesson is the pair's CLOSING lesson: it answers the
+ * friend's final questions and has no next question set to record — the
+ * friend who receives its video has nothing left to answer — so instead of
+ * the record phase the learner picks a rung and signs off. This is lesson
  * FRAMING (like the success step, which is code-owned too), not course
  * content — the sheet authors questions and answers, and every ABABAB course
  * ends the same way. The four lines follow the course's rung ladder; the
