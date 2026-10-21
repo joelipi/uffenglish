@@ -13,6 +13,8 @@ const read = (rel) => readFileSync(path.join(__dirname, rel), 'utf8');
 const webProcessor = read('../video/video-processor.web.js');
 const nativeProcessor = read('../video/video-processor.native.jsx');
 const successButtons = read('../../components/widgets/SuccessButtons.jsx');
+const successScreen = read('../../components/widgets/SuccessScreen.jsx');
+const videoShare = read('../video/video-share.web.js');
 const api = read('../api/api.js');
 const friendLessonLinksSection = read('../../components/profile/FriendLessonLinksSection.jsx');
 const notificationList = read('../../components/homescreen/NotificationList.web.jsx');
@@ -158,5 +160,74 @@ describe('in-app links stay inside the app', () => {
         // miss the code and the lesson would play the wrong take.
         expect(rootLayout).toContain('useShareCodeFromLocation()');
         expect(app).not.toContain('Captured sharecode param');
+    });
+});
+
+// The last chain lesson has nothing to answer, so its three copy surfaces must
+// switch to the terminal copy. Terminality is derived (config order) and the
+// share link is unchanged: it is the learner's PROFILE, where their other live
+// lessons live. A config flag would change chain membership, which
+// `recapOverlay` already defines.
+describe('terminal chain lesson copy wiring', () => {
+    it('picks the share message from the lesson, keeping the profile link', () => {
+        const start = videoShare.indexOf('export function buildShareMessage');
+        const end = videoShare.indexOf('\n}', start);
+        expect(start).toBeGreaterThan(-1);
+        expect(end).toBeGreaterThan(start);
+        const block = videoShare.slice(start, end);
+        expect(block).toContain('isTerminalFriendLesson(configData, successLessonId)');
+        expect(block).toContain("'share_message_terminal'");
+        expect(block).toContain("'share_message'");
+        expect(block).toContain('buildShareUrl(userData?.shareCode)');
+    });
+
+    it('picks the success CTA from the lesson', () => {
+        expect(successScreen).toContain('isTerminalFriendLesson(configData, lessonId)');
+        expect(successScreen).toContain("'share_cta_success_terminal'");
+        expect(successScreen).toContain("'share_cta_success'");
+    });
+
+    it('picks the burnt-card first line from the lesson', () => {
+        const start = webProcessor.indexOf('const shareCta = isShareCtaEnabled');
+        const end = webProcessor.indexOf(': null;', start);
+        expect(start).toBeGreaterThan(-1);
+        expect(end).toBeGreaterThan(start);
+        const block = webProcessor.slice(start, end);
+        expect(block).toContain('isTerminalFriendLesson(configData, lessonId)');
+        expect(block).toContain("'share_cta_respond_now_terminal'");
+        expect(block).toContain("'share_cta_respond_now'");
+    });
+
+    it('never keys terminal copy off the recapOverlay variant', () => {
+        expect(webProcessor).not.toContain("isShareCtaEnabled('terminal')");
+        expect(successScreen).not.toContain("=== 'terminal'");
+    });
+});
+
+// The profile used to label a link with the lesson title stored on the entry,
+// which is frozen at export time — a renamed lesson kept showing its old
+// wording for the whole 48h window. The label is now the lesson's POSITION in
+// the course chain, derived from the config at render time.
+describe('profile lesson-position labels', () => {
+    const publicProfile = read('../../components/profile/PublicProfile.jsx');
+    const section = read('../../components/profile/FriendLessonLinksSection.jsx');
+
+    it('reads the live course configs and derives the ordinals from them', () => {
+        expect(publicProfile).toContain("queryKey: ['config-entries']");
+        expect(publicProfile).toContain('buildRecordedLessonOrdinals(friendLinks, configEntries)');
+        expect(publicProfile).toContain('lessonOrdinals={lessonOrdinals}');
+    });
+
+    it('falls back to the stored title when the config has not loaded', () => {
+        expect(section).toContain('lessonOrdinals = {}');
+        expect(section).toContain('ordinal={lessonOrdinals[`${entry.courseId}:${entry.recordedLessonId}`]}');
+        // The fallback chain, in order: positional label, stored title, generic copy.
+        const start = section.indexOf('const ordinalLabel = ordinal');
+        const end = section.indexOf('Strings.get(\'profile_friend_lesson_link\', lang)', start);
+        expect(start).toBeGreaterThan(-1);
+        expect(end).toBeGreaterThan(start);
+        const block = section.slice(start, end);
+        expect(block).toContain("'profile_friend_lesson_number'");
+        expect(block).toContain('entry.lessonTitle');
     });
 });

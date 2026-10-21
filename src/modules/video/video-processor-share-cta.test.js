@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import Strings from '../../data/strings.js';
+import Strings, { getBilingual } from '../../data/strings.js';
 import {
     SHARE_URL_BASE,
     buildShareUrl,
@@ -26,6 +26,14 @@ const CTA_LINES = {
         fr: "Répondez maintenant avant que la vidéo n'expire !",
         hi: 'वीडियो समाप्त होने से पहले अभी जवाब दें!',
         bn: 'ভিডিওটি শেষ হওয়ার আগে এখনই উত্তর দিন!',
+    },
+    share_cta_respond_now_terminal: {
+        en: 'Start a new conversation with me!',
+        es: '¡Empieza una nueva conversación conmigo!',
+        pt: 'Comece uma nova conversa comigo!',
+        fr: 'Commence une nouvelle conversation avec moi !',
+        hi: 'मेरे साथ एक नई बातचीत शुरू करें!',
+        bn: 'আমার সাথে নতুন একটি কথোপকথন শুরু করুন!',
     },
     share_cta_quick: {
         en: 'It takes less than 5 minutes!',
@@ -173,6 +181,49 @@ describe('share_message (recap share text)', () => {
         const url = buildShareUrl(null);
         const out = Strings.get('share_message', 'en', { url });
         expect(out).toContain('ultrafastfluency.com');
+        expect(out).not.toContain('{url}');
+    });
+});
+
+describe('terminal chain lesson copy', () => {
+    // The last chain lesson has no follow-up: the copy must not promise a
+    // response. Everything else (the share button, the profile link) stays.
+    it.each(LANGS)('has a %s terminal success CTA with no 48-hour promise', (lang) => {
+        const copy = Strings.get('share_cta_success_terminal', lang);
+        expect(copy).toBeTruthy();
+        expect(copy).not.toMatch(/48|48-hour|48-hour/i);
+        expect(copy.toLowerCase()).not.toContain('recap');
+    });
+
+    it.each(LANGS)('has a %s terminal share text with the {url} placeholder', (lang) => {
+        const copy = Strings.get('share_message_terminal', lang);
+        expect(copy).toContain('{url}');
+        expect(copy).not.toContain('48');
+    });
+
+    // `Strings.get` falls back to English when a locale is missing, so a
+    // get()-based check can never fail on a dropped translation. Assert the
+    // RAW entry through getBilingual (localized === null when absent).
+    it.each(['es', 'pt', 'fr', 'hi', 'bn'])(
+        'has a real (non-fallback) %s translation for both terminal strings',
+        (lang) => {
+            for (const key of ['share_cta_success_terminal', 'share_message_terminal']) {
+                const { localized } = getBilingual(key, lang);
+                expect(localized, `${key} ${lang} is missing`).toBeTruthy();
+                expect(localized, `${key} ${lang} is still the English copy`)
+                    .not.toBe(Strings.get(key, 'en'));
+            }
+        }
+    );
+
+    it('pins the approved English terminal success copy', () => {
+        expect(Strings.get('share_cta_success_terminal', 'en'))
+            .toBe('Share this video with friends, family, and colleagues. Then start a new conversation with them.');
+    });
+
+    it('keeps the terminal share text pointing at the learner profile', () => {
+        const out = Strings.get('share_message_terminal', 'en', { url: buildShareUrl('abc123') });
+        expect(out).toContain('ultrafastfluency.com/abc123');
         expect(out).not.toContain('{url}');
     });
 });

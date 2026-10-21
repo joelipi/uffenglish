@@ -7,6 +7,7 @@ import { getBilingual } from '../../data/strings.js';
 import Strings from '../../data/strings.js';
 import { resolveRecapOverlay } from '../../modules/video/video-processor-logic.js';
 import { findLessonById } from '../../modules/lesson/success-continue-logic.js';
+import { isTerminalFriendLesson } from '../../modules/user/friend-lesson-link-logic.js';
 import { useNativeLanguage } from '../../hooks/use-native-language.js';
 
 export default function SuccessScreen({ onLoadNextLesson, onRepeat, canvasRef }) {
@@ -41,7 +42,11 @@ export default function SuccessScreen({ onLoadNextLesson, onRepeat, canvasRef })
   // use — so the row gate can never disagree with the reveal decision.
   const currentLesson = findLessonById(configData, lessonId);
   const isFriendLesson = resolveRecapOverlay(currentLesson) === 'shareCta';
-  const cta = getBilingual('share_cta_success', lang);
+  // The last chain lesson has nothing for the friend to answer, so the CTA
+  // drops the 48-hour promise (Share stays exactly as it is — it is the only
+  // way the friend receives the video).
+  const terminal = isTerminalFriendLesson(configData, lessonId);
+  const cta = getBilingual(terminal ? 'share_cta_success_terminal' : 'share_cta_success', lang);
   const uploadingWarning = Strings.get('clips_uploading_warning', lang);
 
   return (

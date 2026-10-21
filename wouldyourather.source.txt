@@ -24,7 +24,10 @@
 //                       publishLessonId = the ask lesson id
 //   lesson framing:     every lesson opens straight on content (no intro step);
 //                       recap settings + success step are code-owned per the
-//                       friend-lesson rules (recap = UGC only; overlay shareCta)
+//                       friend-lesson rules (recap = UGC only; overlay shareCta);
+//                       the chain's LAST answer lesson closes with a code-owned
+//                       goodbye block instead of the record phase (there is no
+//                       next question set to record)
 //   response type:      every content step is friendClosedResponse; the branch step
 //                       is the one with choices
 // Within a pair, a topic is written in order: question variants, friend clip +
@@ -66,11 +69,11 @@
     {
       "ask": {
         "id": "a",
-        "title": "Money, food, vacations"
+        "title": "Preferences A"
       },
       "answer": {
         "id": "b",
-        "title": "Answer: money vs. time, food vs. talk, vacation vs. weather"
+        "title": "Preferences B"
       },
       "topics": [
         {
@@ -156,11 +159,11 @@
     {
       "ask": {
         "id": "c",
-        "title": "Ask: languages vs. instruments, city vs. country, honest vs. fun friends"
+        "title": "Preferences C"
       },
       "answer": {
         "id": "d",
-        "title": "Answer: languages vs. instruments, city vs. country, honest vs. fun friends"
+        "title": "Preferences D"
       },
       "topics": [
         {
@@ -246,11 +249,11 @@
     {
       "ask": {
         "id": "e",
-        "title": "Ask: job vs. pay, privacy, phone vs. music"
+        "title": "Preferences E"
       },
       "answer": {
         "id": "f",
-        "title": "Answer: job vs. pay, privacy, phone vs. music"
+        "title": "Preferences F"
       },
       "topics": [
         {

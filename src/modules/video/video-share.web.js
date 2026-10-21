@@ -4,7 +4,7 @@
 import Strings from '../../data/strings.js';
 import { appStore } from '../store/store.js';
 import { buildShareUrl } from './video-processor-logic.js';
-import { toFriendLessonHref } from '../user/friend-lesson-link-logic.js';
+import { toFriendLessonHref, isTerminalFriendLesson } from '../user/friend-lesson-link-logic.js';
 import { transcodeToMp4, verifyMp4, uploadWebmToCloudinary } from './transcode.js';
 export const CLOUDINARY_CLOUD_NAME = 'dnolem9if';
 export const CLOUDINARY_UPLOAD_PRESET = 'default';
@@ -19,10 +19,16 @@ export const CLOUDINARY_UPLOAD_PRESET = 'default';
  * displays it for manual typing.
  */
 export function buildShareMessage() {
-    const { userData, guestNativeLanguage } = appStore.getState();
+    const { userData, guestNativeLanguage, configData, successLessonId } = appStore.getState();
     const lang = guestNativeLanguage || userData?.native_language || 'en';
     const url = toFriendLessonHref(buildShareUrl(userData?.shareCode));
-    return Strings.get('share_message', lang, { url });
+    // The last chain lesson has no follow-up to answer, so its text drops the
+    // 48-hour promise. The link is the learner's PROFILE either way — their
+    // other live lessons stay reachable from it.
+    const key = isTerminalFriendLesson(configData, successLessonId)
+        ? 'share_message_terminal'
+        : 'share_message';
+    return Strings.get(key, lang, { url });
 }
 
 export async function shareVideo(blob, filename, fileExtension) {

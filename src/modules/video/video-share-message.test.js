@@ -7,7 +7,12 @@ import { appStore } from '../store/store.js';
 // scheme-qualified so it is clickable in the shared message.
 describe('buildShareMessage', () => {
     beforeEach(() => {
-        appStore.setState({ userData: null, guestNativeLanguage: null });
+        appStore.setState({
+            userData: null,
+            guestNativeLanguage: null,
+            configData: null,
+            successLessonId: null,
+        });
     });
 
     it('uses the share code and the profile language', () => {
@@ -33,5 +38,42 @@ describe('buildShareMessage', () => {
     it('produces a clickable https URL', () => {
         appStore.setState({ userData: { native_language: 'EN', shareCode: 'abc123' } });
         expect(buildShareMessage()).toMatch(/https:\/\/ultrafastfluency\.com\/abc123/);
+    });
+
+    it('uses the terminal copy on the last chain lesson (no 48-hour promise)', () => {
+        appStore.setState({
+            userData: { native_language: 'EN', shareCode: 'abc123' },
+            configData: {
+                lessons: [
+                    { lessonId: 'a', recapOverlay: 'shareCta' },
+                    { lessonId: 'b', recapOverlay: 'shareCta' },
+                ],
+            },
+            successLessonId: 'b',
+        });
+        const message = buildShareMessage();
+        expect(message).toContain('conversation video');
+        expect(message).not.toContain('48');
+        // The link is still the learner's profile — their other lessons live there.
+        expect(message).toContain('https://ultrafastfluency.com/abc123');
+    });
+
+    it('keeps the 48-hour copy on a mid-chain lesson', () => {
+        appStore.setState({
+            userData: { native_language: 'EN', shareCode: 'abc123' },
+            configData: {
+                lessons: [
+                    { lessonId: 'a', recapOverlay: 'shareCta' },
+                    { lessonId: 'b', recapOverlay: 'shareCta' },
+                ],
+            },
+            successLessonId: 'a',
+        });
+        expect(buildShareMessage()).toContain('48 hours');
+    });
+
+    it('keeps the 48-hour copy when no lesson is known', () => {
+        appStore.setState({ userData: { native_language: 'EN', shareCode: 'abc123' } });
+        expect(buildShareMessage()).toContain('48 hours');
     });
 });

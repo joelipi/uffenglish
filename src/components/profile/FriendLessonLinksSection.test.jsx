@@ -191,6 +191,53 @@ describe('FriendLessonLinksSection', () => {
         expect(href).not.toContain(window.location.origin);
     });
 
+    it('labels a link by its position in the course chain when an ordinal is known', () => {
+        // The stored title is frozen at export time, so the label is derived
+        // from the course config at render time: "Lesson N of M".
+        const links = {
+            'friendchain:a': {
+                courseId: 'friendchain', courseName: 'Friend Chain',
+                recordedLessonId: 'a', lessonId: 'b', shareCode: 'code1',
+                addedAt: iso(NOW - HOUR), lessonTitle: 'Money, food, vacations',
+            },
+            'friendchain:c': {
+                courseId: 'friendchain', courseName: 'Friend Chain',
+                recordedLessonId: 'c', lessonId: 'd', shareCode: 'code1',
+                addedAt: iso(NOW - 2 * HOUR), lessonTitle: 'Ask: languages',
+            },
+        };
+        root = renderSection(container, {
+            friendLinks: links,
+            lang: 'en',
+            lessonOrdinals: { 'friendchain:a': { n: 1, total: 6 } },
+        });
+
+        const anchors = Array.from(container.querySelectorAll('[data-testid="friend-lesson-link"]'));
+        const labelFor = (lessonId) => anchors
+            .find((a) => a.getAttribute('href').includes(`/lesson/${lessonId}?`))
+            .textContent;
+        expect(labelFor('b')).toBe('Lesson 1 of 6');
+        // No ordinal for this entry (config not loaded / legacy): stored title.
+        expect(labelFor('d')).toBe('Ask: languages');
+    });
+
+    it('translates the positional label for the visitor', () => {
+        const links = {
+            'friendchain:a': {
+                courseId: 'friendchain', courseName: 'Friend Chain',
+                recordedLessonId: 'a', lessonId: 'b', shareCode: 'code1',
+                addedAt: iso(NOW - HOUR), lessonTitle: 'Money, food, vacations',
+            },
+        };
+        root = renderSection(container, {
+            friendLinks: links,
+            lang: 'es',
+            lessonOrdinals: { 'friendchain:a': { n: 3, total: 6 } },
+        });
+        expect(container.querySelector('[data-testid="friend-lesson-link"]').textContent)
+            .toBe('Lección 3 de 6');
+    });
+
     it('renders its own countdown per link', () => {
         const links = {
             'friendchain:a': {

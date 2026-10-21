@@ -59,15 +59,18 @@ describe('the generated config matches the hand-written ABABAB model', () => {
 
 describe('the generated config is course-agnostic in shape', () => {
     it.each(generated.lessons.map((l) => l.lessonId))(
-        'lesson %s is a respond-then-record lesson',
+        'lesson %s is a respond-then-record lesson (the terminal one closes)',
         (lessonId) => {
             const lesson = generated.lessons.find((l) => l.lessonId === lessonId);
             const branches = lesson.steps.filter((s) => s.responseType === 'branching');
             const responses = lesson.steps.filter((s) => s.responseType === 'friendClosedResponse');
-            // The seed lesson asks; every later lesson answers AND records.
+            // The seed lesson asks; every later lesson answers AND records —
+            // except the chain's terminal lesson, which closes instead.
             const expected = lessonId === 'a'
                 ? { steps: 16, branches: 3, responses: 12 }
-                : { steps: 43, branches: 6, responses: 36 };
+                : lessonId === 'f'
+                    ? { steps: 33, branches: 4, responses: 28 }
+                    : { steps: 43, branches: 6, responses: 36 };
             expect(lesson.steps).toHaveLength(expected.steps);
             expect(branches).toHaveLength(expected.branches);
             expect(responses).toHaveLength(expected.responses);
@@ -75,24 +78,38 @@ describe('the generated config is course-agnostic in shape', () => {
     );
 
     it.each(generated.lessons.map((l) => l.lessonId))(
-        'every response step in lesson %s plays a take and carries a plain-phrase subtitle in all 6 locales',
+        'every response step in lesson %s plays a take or is a text-only closing take, with a plain-phrase subtitle in all 6 locales',
         (lessonId) => {
             const lesson = generated.lessons.find((l) => l.lessonId === lessonId);
             for (const step of lesson.steps) {
                 if (step.responseType !== 'friendClosedResponse') continue;
-                expect(TAKE_RE.test(step.simpleVideoUrl), `${lessonId}: ${step.simpleVideoUrl}`).toBe(true);
-                expect(step.cue, `${lessonId}: ${step.simpleVideoUrl} cue count`).toHaveLength(1);
-                expect(Object.keys(step.subtitles || {}), `${lessonId}: ${step.simpleVideoUrl} locales`)
+                // Only the terminal lesson's goodbye takes have no video: the
+                // learner records their own voice, and nothing is published.
+                if (!step.simpleVideoUrl) {
+                    expect(lessonId, `${lessonId}: text-only response outside the closing block`).toBe('f');
+                    expect(step.publishLessonId, `${lessonId}: a closing take publishes nothing`).toBeUndefined();
+                } else {
+                    expect(TAKE_RE.test(step.simpleVideoUrl), `${lessonId}: ${step.simpleVideoUrl}`).toBe(true);
+                }
+                expect(step.cue, `${lessonId}: ${step.simpleVideoUrl || 'closing'} cue count`).toHaveLength(1);
+                expect(Object.keys(step.subtitles || {}), `${lessonId}: ${step.simpleVideoUrl || 'closing'} locales`)
                     .toHaveLength(LOCALES.length);
                 for (const locale of LOCALES) {
                     const text = step.subtitles[locale];
-                    expect(text, `${lessonId}: ${step.simpleVideoUrl} ${locale}`).toBeTypeOf('string');
-                    expect(text, `${lessonId}: ${step.simpleVideoUrl} ${locale} carries timings`).not.toContain('-->');
-                    expect(text, `${lessonId}: ${step.simpleVideoUrl} ${locale} != its cue`).toBe(step.cue[0][locale]);
+                    expect(text, `${lessonId}: ${step.simpleVideoUrl || 'closing'} ${locale}`).toBeTypeOf('string');
+                    expect(text, `${lessonId}: ${step.simpleVideoUrl || 'closing'} ${locale} carries timings`).not.toContain('-->');
+                    expect(text, `${lessonId}: ${step.simpleVideoUrl || 'closing'} ${locale} != its cue`).toBe(step.cue[0][locale]);
                 }
             }
         }
     );
+
+    it('the terminal lesson has exactly four text-only closing takes', () => {
+        const closing = generated.lessons
+            .find((l) => l.lessonId === 'f').steps
+            .filter((s) => s.responseType === 'friendClosedResponse' && !s.simpleVideoUrl);
+        expect(closing).toHaveLength(4);
+    });
 
     it('no step references a take-group video (the combined video)', () => {
         for (const lesson of generated.lessons) {

@@ -1409,6 +1409,17 @@ const strings = {
         hi: "मेरे साथ अंग्रेज़ी का अभ्यास करें",
         bn: "আমার সাথে ইংরেজি চর্চা করুন"
     },
+    // Positional label for a profile link, derived from the course config at
+    // render time (the stored lesson title would keep the old wording after a
+    // rename). Digits, not number words: six locales, one format.
+    'profile_friend_lesson_number': {
+        en: "Lesson {n} of {total}",
+        es: "Lección {n} de {total}",
+        pt: "Lição {n} de {total}",
+        fr: "Leçon {n} sur {total}",
+        hi: "पाठ {n} / {total}",
+        bn: "পাঠ {n} / {total}"
+    },
     'profile_friend_link_available': {
         en: "Available for {time}",
         es: "Disponible por {time}",
@@ -2584,6 +2595,17 @@ const strings = {
         hi: "वीडियो समाप्त होने से पहले अभी जवाब दें!",
         bn: "ভিডিওটি শেষ হওয়ার আগে এখনই উত্তর দিন!"
     },
+    // Terminal (last) chain lesson. Nothing follows it, so the card must not
+    // promise a reply — the invite is to start a new conversation, which lands
+    // on the learner's profile exactly like every other share link.
+    'share_cta_respond_now_terminal': {
+        en: "Start a new conversation with me!",
+        es: "¡Empieza una nueva conversación conmigo!",
+        pt: "Comece uma nova conversa comigo!",
+        fr: "Commence une nouvelle conversation avec moi !",
+        hi: "मेरे साथ एक नई बातचीत शुरू करें!",
+        bn: "আমার সাথে নতুন একটি কথোপকথন শুরু করুন!"
+    },
     'share_cta_quick': {
         en: "It takes less than 5 minutes!",
         es: "¡Toma menos de 5 minutos!",
@@ -2618,6 +2640,17 @@ const strings = {
         hi: "इस वीडियो को दोस्तों, परिवार और सहकर्मियों के साथ साझा करें ताकि वे आपके साथ अभ्यास कर सकें। उनके पास जवाब देने के लिए 48 घंटे हैं।",
         bn: "এই ভিডিওটি বন্ধু, পরিবার ও সহকর্মীদের সাথে শেয়ার করুন যাতে তারা আপনার সাথে অনুশীলন করতে পারে। তাদের উত্তর দেওয়ার জন্য 48 ঘন্টা রয়েছে।"
     },
+    // Terminal (last) chain lesson: the video still has to be shared (it is the
+    // only way the friend gets it), but there is no follow-up lesson to answer,
+    // so the copy drops the 48-hour promise.
+    'share_cta_success_terminal': {
+        en: "Share this video with friends, family, and colleagues. Then start a new conversation with them.",
+        es: "Comparte este video con amigos, familiares y colegas. Después empieza una nueva conversación con ellos.",
+        pt: "Compartilhe este vídeo com amigos, familiares e colegas. Depois comece uma nova conversa com eles.",
+        fr: "Partagez cette vidéo avec des amis, votre famille et vos collègues. Commencez ensuite une nouvelle conversation avec eux.",
+        hi: "इस वीडियो को दोस्तों, परिवार और सहकर्मियों के साथ साझा करें। फिर उनके साथ नई बातचीत शुरू करें।",
+        bn: "এই ভিডিওটি বন্ধু, পরিবার ও সহকর্মীদের সাথে শেয়ার করুন। তারপর তাদের সাথে নতুন কথোপকথন শুরু করুন।"
+    },
     // Message text attached when the learner shares their recap video. {url} is
     // replaced with the learner's personal share link (host + share code).
     'share_message': {
@@ -2627,6 +2660,17 @@ const strings = {
         fr: "Pratique l'anglais avec moi gratuitement via ce lien. C'est une nouvelle technologie vraiment géniale. Tous les niveaux d'anglais sont acceptés (débutant à avancé, ça t'apprend quoi dire). Pas besoin d'être en ligne en même temps. Fais-le maintenant, les vidéos de la leçon expirent dans 48 heures ! {url}",
         hi: "इस लिंक पर मेरे साथ मुफ़्त में अंग्रेज़ी का अभ्यास करें। यह एक बहुत ही शानदार नई तकनीक है। अंग्रेज़ी का कोई भी स्तर ठीक है (शुरुआती से उन्नत तक, यह आपको बताती है कि क्या कहना है)। हमें एक ही समय पर ऑनलाइन होने की ज़रूरत नहीं है। कृपया इसे अभी करें, पाठ के वीडियो 48 घंटे में समाप्त हो जाते हैं! {url}",
         bn: "এই লিঙ্কে আমার সাথে বিনামূল্যে ইংরেজি চর্চা করুন। এটি সত্যিই একটি দারুণ নতুন প্রযুক্তি। ইংরেজির যেকোনো স্তর ঠিক আছে (শিক্ষানবিশ থেকে উন্নত, এটি আপনাকে বলে দেয় কী বলতে হবে)। আমাদের একই সময়ে অনলাইনে থাকার দরকার নেই। অনুগ্রহ করে এটি এখনই করুন, পাঠের ভিডিওগুলো 48 ঘন্টায় শেষ হয়ে যাবে! {url}"
+    },
+    // Terminal (last) chain lesson's share text. Same personal profile link
+    // (the learner's other live lessons are still there), minus the 48-hour
+    // "do it now" promise there is nothing left to answer.
+    'share_message_terminal': {
+        en: "Practice English with me free at this link. It's a really cool new technology. Any English level is OK (beginner to advanced, it teaches you what to say). We don't need to be online at the same time. Here's our conversation video — watch it and start a new conversation with me any time. {url}",
+        es: "Practica inglés conmigo gratis en este enlace. Es una tecnología nueva genial. Cualquier nivel de inglés sirve (de principiante a avanzado, te enseña qué decir). No necesitamos estar en línea al mismo tiempo. Aquí está el video de nuestra conversación: míralo y empieza una nueva conversación conmigo cuando quieras. {url}",
+        pt: "Pratique inglês comigo de graça neste link. É uma tecnologia nova muito legal. Qualquer nível de inglês serve (de iniciante a avançado, ele ensina o que dizer). Não precisamos estar online ao mesmo tempo. Aqui está o vídeo da nossa conversa — assista e comece uma nova conversa comigo quando quiser. {url}",
+        fr: "Pratique l'anglais avec moi gratuitement via ce lien. C'est une nouvelle technologie vraiment géniale. Tous les niveaux d'anglais sont acceptés (débutant à avancé, ça t'apprend quoi dire). Pas besoin d'être en ligne en même temps. Voici la vidéo de notre conversation — regarde-la et commence une nouvelle conversation avec moi quand tu veux. {url}",
+        hi: "इस लिंक पर मेरे साथ मुफ़्त में अंग्रेज़ी का अभ्यास करें। यह एक बहुत ही शानदार नई तकनीक है। अंग्रेज़ी का कोई भी स्तर ठीक है (शुरुआती से उन्नत तक, यह आपको बताती है कि क्या कहना है)। हमें एक ही समय पर ऑनलाइन होने की ज़रूरत नहीं है। यह हमारी बातचीत का वीडियो है — इसे देखें और जब चाहें मेरे साथ नई बातचीत शुरू करें। {url}",
+        bn: "এই লিঙ্কে আমার সাথে বিনামূল্যে ইংরেজি চর্চা করুন। এটি সত্যিই একটি দারুণ নতুন প্রযুক্তি। ইংরেজির যেকোনো স্তর ঠিক আছে (শিক্ষানবিশ থেকে উন্নত, এটি আপনাকে বলে দেয় কী বলতে হবে)। আমাদের একই সময়ে অনলাইনে থাকার দরকার নেই। এটি আমাদের কথোপকথনের ভিডিও — এটি দেখুন এবং যখন চান আমার সাথে নতুন কথোপকথন শুরু করুন। {url}"
     },
     'rotate_device_portrait': {
         en: "Recording in landscape will mess up your video. Rotate your device to portrait before you record.",

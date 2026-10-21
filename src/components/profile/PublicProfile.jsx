@@ -1,7 +1,10 @@
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useUserByShareCode, useAuthStatus, useUserProfile, useNotifications, useFriendCompletions } from '../../modules/api/api.js';
 import { calculateCurrentStreak } from '../../modules/user/user-profile.js';
 import { formatProfileJoinDate } from '../../modules/user/public-profile-logic.js';
+import { buildRecordedLessonOrdinals } from '../../modules/user/friend-lesson-link-logic.js';
+import { loadConfigEntries } from '../../modules/courses/friend-course-configs.js';
 import Strings from '../../data/strings.js';
 import defaultProfilePic from '../../assets/img/userprofile.png';
 import FriendLessonLinksSection from './FriendLessonLinksSection.jsx';
@@ -17,6 +20,15 @@ export default function PublicProfile({ shareCode }) {
     const { data: viewerProfile } = useUserProfile();
     const viewerId = viewerProfile && viewerProfile.$id !== 'guest' ? viewerProfile.$id : null;
     const { data: notifications } = useNotifications(viewerId);
+    // The course configs (lazy Vite chunks, session-cached, shared with the
+    // dashboard) supply each link's position in its chain. A failure fails
+    // open: the ordinal map stays empty and the link falls back to its stored
+    // title, so a config fetch never hides a lesson.
+    const { data: configEntries } = useQuery({
+        queryKey: ['config-entries'],
+        queryFn: () => loadConfigEntries(),
+        staleTime: Infinity,
+    });
     // The owner's user id anchors the pair-scoped completion ledger: the badge
     // may only claim a lesson was done together with THIS profile owner (a
     // lesson is expected to be repeated with different friends).
@@ -96,6 +108,8 @@ export default function PublicProfile({ shareCode }) {
     const friendCount = Array.isArray(profile.friends) ? profile.friends.length : 0;
     const referrals = Number(profile.referrals || 0);
     const friendLinks = profile.friendLinks;
+    // "Lesson 3 of 6" per link, derived from the course config at read time.
+    const lessonOrdinals = buildRecordedLessonOrdinals(friendLinks, configEntries);
 
     // Logged-in viewer only when a real (non-guest) session is present. The
     // inbox is already guest-disabled; `notifications` and `friendCompletions`
@@ -135,6 +149,7 @@ export default function PublicProfile({ shareCode }) {
                     shareCode={shareCode}
                     viewer={viewer}
                     userName={displayName}
+                    lessonOrdinals={lessonOrdinals}
                 />
 
                 <div style={cardStyle}>

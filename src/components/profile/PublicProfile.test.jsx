@@ -22,6 +22,13 @@ vi.mock('react-router-dom', () => ({
     // navigation), so the mock has to provide it too.
     Link: ({ to, children, ...rest }) => React.createElement('a', { href: to, ...rest }, children),
 }));
+// The page now also reads the course configs (for the "Lesson N of M" labels)
+// through TanStack Query. This suite is about localization, so the query is
+// stubbed empty — the label falls back to the stored title, which the other
+// suite covers.
+vi.mock('@tanstack/react-query', () => ({
+    useQuery: () => ({ data: undefined }),
+}));
 vi.mock('../../modules/api/api.js', () => ({
     useUserByShareCode: () => profileState,
     useAuthStatus: () => authState,

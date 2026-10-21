@@ -36,6 +36,17 @@ export function nextFriendLessonId(configData, lessonId) {
     return null;
 }
 
+// True when `lessonId` is a shareCta chain lesson with no shareCta lesson after
+// it — the end of the chain. A terminal lesson still shares its video (that is
+// the only way the friend gets it) but nothing can answer it, so the share copy
+// must not promise a reply. Derived from config order, never a config flag:
+// `recapOverlay` already defines chain membership, so it cannot also mean
+// "last one".
+export function isTerminalFriendLesson(configData, lessonId) {
+    return chainIndex(configData, lessonId) !== -1
+        && nextFriendLessonId(configData, lessonId) === null;
+}
+
 // True when `lessonId` is itself a shareCta chain lesson and a shareCta lesson
 // appears before it in config order. The answer ("response") side of a chain is
 // any chain lesson except the first; a non-chain lesson is never the answer side.
@@ -142,6 +153,46 @@ function groupEntries(entries) {
 // order (newest first) within a group. Empty → [].
 export function groupActiveFriendLinks(friendLinks, nowMs) {
     return groupEntries(listActiveFriendLinks(friendLinks, nowMs));
+}
+
+/**
+ * Where a recorded lesson sits in its course's chain: `{ n, total }` over the
+ * shareCta lessons ("lesson 3 of 6"), or null when the config or lesson is not
+ * a chain lesson.
+ *
+ * Read at RENDER time, never stored: a link entry's `lessonTitle` is frozen at
+ * export time, so a renamed lesson would keep showing its old wording on the
+ * profile for the whole 48h window. The config is the only live source.
+ */
+export function recordedLessonOrdinal(configData, lessonId) {
+    const lessons = configData?.lessons;
+    if (!Array.isArray(lessons)) return null;
+    const chain = lessons.filter((lesson) => lesson?.recapOverlay === 'shareCta');
+    const index = chain.findIndex((lesson) => lesson.lessonId === lessonId);
+    if (index === -1) return null;
+    return { n: index + 1, total: chain.length };
+}
+
+/**
+ * `courseId:recordedLessonId` -> `{ n, total }` for every profile link.
+ * `configEntries` is `loadConfigEntries()`'s `[{ courseId, config }]`. Entries
+ * whose course has not loaded yet (or that name no chain lesson) are omitted,
+ * so the caller falls back to the stored title instead of hiding the link.
+ */
+export function buildRecordedLessonOrdinals(friendLinks, configEntries) {
+    const configs = new Map(
+        (Array.isArray(configEntries) ? configEntries : [])
+            .map((entry) => [entry?.courseId, entry?.config])
+    );
+    // `friend_links` is a jsonb MAP keyed `courseId:recordedLessonId`; accept a
+    // plain list too, so a caller can pass either shape.
+    const links = Array.isArray(friendLinks) ? friendLinks : Object.values(friendLinks || {});
+    const ordinals = {};
+    for (const link of links) {
+        const ordinal = recordedLessonOrdinal(configs.get(link?.courseId), link?.recordedLessonId);
+        if (ordinal) ordinals[`${link.courseId}:${link.recordedLessonId}`] = ordinal;
+    }
+    return ordinals;
 }
 
 // Did the visitor already complete the lesson this entry OPENS, TOGETHER WITH

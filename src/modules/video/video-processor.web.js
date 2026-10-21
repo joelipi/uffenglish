@@ -17,6 +17,7 @@ import { transcodeToMp4, verifyMp4, uploadWebmToCloudinary, transcodeRangeToMp4,
 import { uploadSegmentToR2 } from './r2-upload.js';
 import { MAX_R2_UPLOAD_BYTES } from './r2-upload-limits.js';
 import { trackEvent } from '../utils/posthog.js';
+import { isTerminalFriendLesson } from '../user/friend-lesson-link-logic.js';
 import Strings from '../../data/strings.js';
 import { resolveConfigLanguage } from '../bilingual/config-normalizer.js';
 import { normalizeLanguageCode } from '../utils/utils.js';
@@ -237,7 +238,15 @@ function createVideoProcessor() {
                     ? {
                         code: shareCode || SHARE_URL_BASE,
                         tailingLines: [
-                            Strings.get('share_cta_respond_now', userLang),
+                            // The last chain lesson has no follow-up, so the
+                            // card invites a new conversation instead of
+                            // promising a reply that cannot happen.
+                            Strings.get(
+                                isTerminalFriendLesson(configData, lessonId)
+                                    ? 'share_cta_respond_now_terminal'
+                                    : 'share_cta_respond_now',
+                                userLang
+                            ),
                             Strings.get('share_cta_quick', userLang),
                             `${Strings.get('share_cta_go_to', userLang)} ${SHARE_URL_BASE}`,
                             `${Strings.get('share_cta_enter_code', userLang)} ${shareCode || SHARE_URL_BASE}`,

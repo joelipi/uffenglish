@@ -71,7 +71,10 @@ test.describe('public-profile friend-challenge links', () => {
 
         const link = page.getByTestId('friend-lesson-link');
         await expect(link).toBeVisible();
-        await expect(link).toHaveText('Make 3 questions');
+        // The label is the lesson's POSITION in the course chain, read from
+        // the config at render time (the stored title is only the fallback
+        // for a config that has not loaded).
+        await expect(link).toHaveText('Lesson 1 of 6');
         // The link is an IN-APP link: a react-router <Link> to a PATH, so the
         // click is a client-side navigation. A document load (a plain <a href>)
         // is the only thing in the app that can end in a browser-level "This
@@ -113,12 +116,12 @@ test.describe('public-profile friend-challenge links', () => {
             'href',
             `/course/${COURSE_ID}/lesson/b?shareCode=k9gy`
         );
-        await expect(links.nth(0)).toHaveText('Ask');
+        await expect(links.nth(0)).toHaveText('Lesson 1 of 6');
         await expect(links.nth(1)).toHaveAttribute(
             'href',
             `/course/${COURSE_ID}/lesson/d?shareCode=k9gy`
         );
-        await expect(links.nth(1)).toHaveText('Follow Up');
+        await expect(links.nth(1)).toHaveText('Lesson 3 of 6');
     });
 
     test('every lesson link stays on the site origin', async ({ page }) => {

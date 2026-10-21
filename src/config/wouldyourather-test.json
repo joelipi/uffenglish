@@ -45,12 +45,12 @@
       "recapSources": "none",
       "recapOverlay": "shareCta",
       "title": {
-        "en": "Money, food, vacations",
-        "es": "Dinero, comida, vacaciones",
-        "pt": "Dinheiro, comida, férias",
-        "bn": "টাকা, খাবার, ছুটি",
-        "fr": "Argent, nourriture, vacances",
-        "hi": "पैसा, खाना, छुट्टियाँ"
+        "en": "Preferences A",
+        "es": "Preferencias A",
+        "pt": "Preferências A",
+        "bn": "পছন্দ A",
+        "fr": "Préférences A",
+        "hi": "पसंद A"
       },
       "mission": {
         "en": "talk about preferences",
@@ -510,12 +510,12 @@
       "recapSources": "friend",
       "recapOverlay": "shareCta",
       "title": {
-        "en": "Answer: money vs. time, food vs. talk, vacation vs. weather",
-        "es": "Respuesta: dinero vs. tiempo, comida vs. conversación, vacaciones vs. clima",
-        "pt": "Resposta: dinheiro vs. tempo, comida vs. conversa, férias vs. clima",
-        "bn": "উত্তর: টাকা বনাম সময়, খাবার বনাম কথোপকথন, ছুটি বনাম আবহাওয়া",
-        "fr": "Réponse : argent vs temps, nourriture vs conversation, vacances vs météo",
-        "hi": "उत्तर: पैसा बनाम समय, खाना बनाम बातचीत, छुट्टियाँ बनाम मौसम"
+        "en": "Preferences B",
+        "es": "Preferencias B",
+        "pt": "Preferências B",
+        "bn": "পছন্দ B",
+        "fr": "Préférences B",
+        "hi": "पसंद B"
       },
       "mission": {
         "en": "talk about preferences",
@@ -1893,12 +1893,12 @@
       "recapSources": "friend",
       "recapOverlay": "shareCta",
       "title": {
-        "en": "Ask: languages vs. instruments, city vs. country, honest vs. fun friends",
-        "es": "Pregunta: idiomas vs. instrumentos, ciudad vs. campo, amigos sinceros vs. amigos divertido",
-        "pt": "Pergunta: idiomas vs. instrumentos, cidade vs. campo, amigos honestos vs. amigos divertido",
-        "bn": "জিজ্ঞাসা করুন: ভাষা বনাম যন্ত্র, শহর বনাম গ্রাম, সৎ বনাম মজার বন্ধু",
-        "fr": "Question : langues vs instruments, ville vs campagne, amis honnêtes vs amis amusants",
-        "hi": "पूछें: भाषाएँ बनाम वाद्ययंत्र, शहर बनाम गाँव, ईमानदार बनाम मज़ेदार दोस्त"
+        "en": "Preferences C",
+        "es": "Preferencias C",
+        "pt": "Preferências C",
+        "bn": "পছন্দ C",
+        "fr": "Préférences C",
+        "hi": "पसंद C"
       },
       "mission": {
         "en": "talk about preferences",
@@ -3288,12 +3288,12 @@
       "recapSources": "friend",
       "recapOverlay": "shareCta",
       "title": {
-        "en": "Answer: languages vs. instruments, city vs. country, honest vs. fun friends",
-        "es": "Respuesta: idiomas vs. instrumentos, ciudad vs. campo, amigos sinceros vs. amigos divertido",
-        "pt": "Resposta: idiomas vs. instrumentos, cidade vs. campo, amigos honestos vs. amigos divertido",
-        "bn": "উত্তর: ভাষা বনাম যন্ত্র, শহর বনাম গ্রাম, সৎ বনাম মজার বন্ধু",
-        "fr": "Réponse : langues vs instruments, ville vs campagne, amis honnêtes vs amis amusants",
-        "hi": "उत्तर: भाषाएँ बनाम वाद्ययंत्र, शहर बनाम गाँव, ईमानदार बनाम मज़ेदार दोस्त"
+        "en": "Preferences D",
+        "es": "Preferencias D",
+        "pt": "Preferências D",
+        "bn": "পছন্দ D",
+        "fr": "Préférences D",
+        "hi": "पसंद D"
       },
       "mission": {
         "en": "talk about preferences",
@@ -4671,12 +4671,12 @@
       "recapSources": "friend",
       "recapOverlay": "shareCta",
       "title": {
-        "en": "Ask: job vs. pay, privacy, phone vs. music",
-        "es": "Pregunta: trabajo vs. sueldo, privacidad, teléfono vs. música",
-        "pt": "Pergunta: emprego vs. salário, privacidade, telefone vs. música",
-        "bn": "জিজ্ঞাসা করুন: চাকরি বনাম বেতন, গোপনীয়তা, ফোন বনাম গান",
-        "fr": "Question : travail vs salaire, vie privée, téléphone vs musique",
-        "hi": "पूछें: नौकरी बनाम वेतन, निजता, फ़ोन बनाम संगीत"
+        "en": "Preferences E",
+        "es": "Preferencias E",
+        "pt": "Preferências E",
+        "bn": "পছন্দ E",
+        "fr": "Préférences E",
+        "hi": "पसंद E"
       },
       "mission": {
         "en": "talk about preferences",
@@ -6066,12 +6066,12 @@
       "recapSources": "friend",
       "recapOverlay": "shareCta",
       "title": {
-        "en": "Answer: job vs. pay, privacy, phone vs. music",
-        "es": "Respuesta: trabajo vs. sueldo, privacidad, teléfono vs. música",
-        "pt": "Resposta: emprego vs. salário, privacidade, telefone vs. música",
-        "bn": "উত্তর: চাকরি বনাম বেতন, গোপনীয়তা, ফোন বনাম গান",
-        "fr": "Réponse : travail vs salaire, vie privée, téléphone vs musique",
-        "hi": "उत्तर: नौकरी बनाम वेतन, निजता, फ़ोन बनाम संगीत"
+        "en": "Preferences F",
+        "es": "Preferencias F",
+        "pt": "Preferências F",
+        "bn": "পছন্দ F",
+        "fr": "Préférences F",
+        "hi": "पसंद F"
       },
       "mission": {
         "en": "talk about preferences",
@@ -7013,434 +7013,136 @@
             {
               "nextStep": 1,
               "text": {
-                "en": "A great job with low pay or a bad job with high pay?",
-                "es": "¿Un gran trabajo con baja remuneración o un mal trabajo con alta remuneración?",
-                "pt": "Um ótimo emprego com salário baixo ou um péssimo emprego com salário alto?",
-                "bn": "কম বেতনের একটি দারুণ চাকরি নাকি বেশি বেতনের একটি খারাপ চাকরি?",
-                "fr": "Un super travail mal payé ou un mauvais travail bien payé ?",
-                "hi": "कम वेतन वाली बढ़िया नौकरी या ज़्यादा वेतन वाली खराब नौकरी?"
+                "en": "Thank you. Bye!",
+                "es": "¡Gracias! ¡Adiós!",
+                "pt": "Obrigado. Tchau!",
+                "fr": "Merci. Au revoir !",
+                "hi": "धन्यवाद। अलविदा!",
+                "bn": "ধন্যবাদ। বিদায়!"
               }
             },
             {
               "nextStep": 2,
               "text": {
-                "en": "Which is better: a wonderful job with low pay or a horrible job with high pay?",
-                "es": "¿Qué es mejor: un trabajo maravilloso con baja remuneración o un trabajo horrible con alta remuneración?",
-                "pt": "O que é melhor: um emprego maravilhoso com salário baixo ou um emprego horrível com salário alto?",
-                "bn": "কোনটি ভালো: কম বেতনের একটি চমৎকার চাকরি নাকি বেশি বেতনের একটি ভীতিজনক চাকরি?",
-                "fr": "Qu'est-ce qui est mieux : un super travail mal payé ou un horrible travail bien payé ?",
-                "hi": "कौन सा बेहतर है: कम वेतन वाली शानदार नौकरी या ज्यादा वेतन वाली भयानक नौकरी?"
+                "en": "Thank you for talking. This was nice.",
+                "es": "Gracias por hablar. Esto fue agradable.",
+                "pt": "Obrigado por conversar. Foi legal.",
+                "fr": "Merci d'avoir discuté. C'était sympa.",
+                "hi": "बात करने के लिए धन्यवाद। यह अच्छा था।",
+                "bn": "কথা বলার জন্য ধন্যবাদ। এটা ভালো ছিল।"
               }
             },
             {
               "nextStep": 3,
               "text": {
-                "en": "Would you rather have a job you love that pays a low salary or have a job you hate that pays a high salary?",
-                "es": "¿Preferirías tener un trabajo que amas que paga un salario bajo o tener un trabajo que odias que paga un salario alto?",
-                "pt": "Você prefere ter um emprego que ama que paga um salário baixo ou ter um emprego que odeia que paga um salário alto?",
-                "bn": "আপনি কি এমন একটি চাকরি করতে পছন্দ করবেন যা আপনি ভালোবাসেন যার কম বেতন দেয় নাকি এমন একটি চাকরি করতে পছন্দ করবেন যা আপনি ঘৃণা করেন যার বেশি বেতন দেয়?",
-                "fr": "Préférerais-tu avoir un travail que tu aimes avec un petit salaire ou avoir un travail que tu détestes avec un gros salaire ?",
-                "hi": "आप ऐसी नौकरी पसंद करेंगे जो आपको पसंद हो लेकिन वेतन कम हो या ऐसी नौकरी जो आपको पसंद न हो लेकिन वेतन ज्यादा हो?"
+                "en": "Thanks for practising with me. This was really nice.",
+                "es": "Gracias por practicar conmigo. Fue muy agradable.",
+                "pt": "Obrigado por praticar comigo. Foi muito legal.",
+                "fr": "Merci d'avoir pratiqué avec moi. C'était vraiment sympa.",
+                "hi": "मेरे साथ अभ्यास करने के लिए धन्यवाद। यह वाकई अच्छा था।",
+                "bn": "আমার সাথে অনুশীলন করার জন্য ধন্যবাদ। এটা সত্যিই ভালো ছিল।"
               }
             },
             {
               "nextStep": 4,
               "text": {
-                "en": "Given the choice between having a job you love that pays a low salary and having a job you hate that pays a high salary, which would you choose?",
-                "es": "Dada la opción entre tener un trabajo que amas que paga un salario bajo y tener un trabajo que odias que paga un salario alto, ¿cuál elegirías?",
-                "pt": "Dada a escolha entre ter um emprego que você ama que paga um salário baixo e ter um emprego que você odeia que paga um salário alto, qual você escolheria?",
-                "bn": "কম বেতন দেয় এমন একটি চাকরি যা আপনি ভালোবাসেন এবং বেশি বেতন দেয় এমন একটি চাকরি যা আপনি ঘৃণা করেন তার মধ্যে পছন্দ দেওয়া হলে, আপনি কোনটি বেছে নেবেন?",
-                "fr": "Si tu avais le choix entre avoir un travail que tu aimes avec un petit salaire et avoir un travail que tu détestes avec un gros salaire, que choisirais-tu ?",
-                "hi": "अगर आपको चुनाव करना पड़े कि आप एक ऐसी नौकरी करें जो आपको पसंद है लेकिन कम वेतन देती है, और एक ऐसी नौकरी करें जो आपको पसंद नहीं है लेकिन ज़्यादा वेतन देती है, तो आप कौन सी चुनेंगे?"
+                "en": "Thank you for talking with me. This has been nice. Let's start a new conversation later.",
+                "es": "Gracias por hablar conmigo. Ha sido agradable. Empecemos una nueva conversación más tarde.",
+                "pt": "Obrigado por conversar comigo. Foi bom. Vamos começar uma nova conversa depois.",
+                "fr": "Merci d'avoir discuté avec moi. C'était sympa. Commençons une nouvelle conversation plus tard.",
+                "hi": "मेरे साथ बात करने के लिए धन्यवाद। यह अच्छा रहा। चलिए बाद में नई बातचीत शुरू करें।",
+                "bn": "আমার সাথে কথা বলার জন্য ধন্যবাদ। এটা ভালো ছিল। চলুন পরে নতুন কথোপকথন শুরু করি।"
               }
             }
           ]
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-e-01-01",
           "cue": [
             {
-              "en": "A great job with low pay or a bad job with high pay?",
-              "es": "¿Un gran trabajo con baja remuneración o un mal trabajo con alta remuneración?",
-              "pt": "Um ótimo emprego com salário baixo ou um péssimo emprego com salário alto?",
-              "bn": "কম বেতনের একটি দারুণ চাকরি নাকি বেশি বেতনের একটি খারাপ চাকরি?",
-              "fr": "Un super travail mal payé ou un mauvais travail bien payé ?",
-              "hi": "कम वेतन वाली बढ़िया नौकरी या ज़्यादा वेतन वाली खराब नौकरी?"
+              "en": "Thank you. Bye!",
+              "es": "¡Gracias! ¡Adiós!",
+              "pt": "Obrigado. Tchau!",
+              "fr": "Merci. Au revoir !",
+              "hi": "धन्यवाद। अलविदा!",
+              "bn": "ধন্যবাদ। বিদায়!"
             }
           ],
-          "nextStep": 4,
           "subtitles": {
-            "en": "A great job with low pay or a bad job with high pay?",
-            "es": "¿Un gran trabajo con baja remuneración o un mal trabajo con alta remuneración?",
-            "pt": "Um ótimo emprego com salário baixo ou um péssimo emprego com salário alto?",
-            "bn": "কম বেতনের একটি দারুণ চাকরি নাকি বেশি বেতনের একটি খারাপ চাকরি?",
-            "fr": "Un super travail mal payé ou un mauvais travail bien payé ?",
-            "hi": "कम वेतन वाली बढ़िया नौकरी या ज़्यादा वेतन वाली खराब नौकरी?"
+            "en": "Thank you. Bye!",
+            "es": "¡Gracias! ¡Adiós!",
+            "pt": "Obrigado. Tchau!",
+            "fr": "Merci. Au revoir !",
+            "hi": "धन्यवाद। अलविदा!",
+            "bn": "ধন্যবাদ। বিদায়!"
           },
-          "publishLessonId": "e"
+          "nextStep": 4
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-e-01-02",
           "cue": [
             {
-              "en": "Which is better: a wonderful job with low pay or a horrible job with high pay?",
-              "es": "¿Qué es mejor: un trabajo maravilloso con baja remuneración o un trabajo horrible con alta remuneración?",
-              "pt": "O que é melhor: um emprego maravilhoso com salário baixo ou um emprego horrível com salário alto?",
-              "bn": "কোনটি ভালো: কম বেতনের একটি চমৎকার চাকরি নাকি বেশি বেতনের একটি ভীতিজনক চাকরি?",
-              "fr": "Qu'est-ce qui est mieux : un super travail mal payé ou un horrible travail bien payé ?",
-              "hi": "कौन सा बेहतर है: कम वेतन वाली शानदार नौकरी या ज्यादा वेतन वाली भयानक नौकरी?"
+              "en": "Thank you for talking. This was nice.",
+              "es": "Gracias por hablar. Esto fue agradable.",
+              "pt": "Obrigado por conversar. Foi legal.",
+              "fr": "Merci d'avoir discuté. C'était sympa.",
+              "hi": "बात करने के लिए धन्यवाद। यह अच्छा था।",
+              "bn": "কথা বলার জন্য ধন্যবাদ। এটা ভালো ছিল।"
             }
           ],
-          "nextStep": 3,
           "subtitles": {
-            "en": "Which is better: a wonderful job with low pay or a horrible job with high pay?",
-            "es": "¿Qué es mejor: un trabajo maravilloso con baja remuneración o un trabajo horrible con alta remuneración?",
-            "pt": "O que é melhor: um emprego maravilhoso com salário baixo ou um emprego horrível com salário alto?",
-            "bn": "কোনটি ভালো: কম বেতনের একটি চমৎকার চাকরি নাকি বেশি বেতনের একটি ভীতিজনক চাকরি?",
-            "fr": "Qu'est-ce qui est mieux : un super travail mal payé ou un horrible travail bien payé ?",
-            "hi": "कौन सा बेहतर है: कम वेतन वाली शानदार नौकरी या ज्यादा वेतन वाली भयानक नौकरी?"
+            "en": "Thank you for talking. This was nice.",
+            "es": "Gracias por hablar. Esto fue agradable.",
+            "pt": "Obrigado por conversar. Foi legal.",
+            "fr": "Merci d'avoir discuté. C'était sympa.",
+            "hi": "बात करने के लिए धन्यवाद। यह अच्छा था।",
+            "bn": "কথা বলার জন্য ধন্যবাদ। এটা ভালো ছিল।"
           },
-          "publishLessonId": "e"
+          "nextStep": 3
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-e-01-03",
           "cue": [
             {
-              "en": "Would you rather have a job you love that pays a low salary or have a job you hate that pays a high salary?",
-              "es": "¿Preferirías tener un trabajo que amas que paga un salario bajo o tener un trabajo que odias que paga un salario alto?",
-              "pt": "Você prefere ter um emprego que ama que paga um salário baixo ou ter um emprego que odeia que paga um salário alto?",
-              "bn": "আপনি কি এমন একটি চাকরি করতে পছন্দ করবেন যা আপনি ভালোবাসেন যার কম বেতন দেয় নাকি এমন একটি চাকরি করতে পছন্দ করবেন যা আপনি ঘৃণা করেন যার বেশি বেতন দেয়?",
-              "fr": "Préférerais-tu avoir un travail que tu aimes avec un petit salaire ou avoir un travail que tu détestes avec un gros salaire ?",
-              "hi": "आप ऐसी नौकरी पसंद करेंगे जो आपको पसंद हो लेकिन वेतन कम हो या ऐसी नौकरी जो आपको पसंद न हो लेकिन वेतन ज्यादा हो?"
+              "en": "Thanks for practising with me. This was really nice.",
+              "es": "Gracias por practicar conmigo. Fue muy agradable.",
+              "pt": "Obrigado por praticar comigo. Foi muito legal.",
+              "fr": "Merci d'avoir pratiqué avec moi. C'était vraiment sympa.",
+              "hi": "मेरे साथ अभ्यास करने के लिए धन्यवाद। यह वाकई अच्छा था।",
+              "bn": "আমার সাথে অনুশীলন করার জন্য ধন্যবাদ। এটা সত্যিই ভালো ছিল।"
             }
           ],
-          "nextStep": 2,
           "subtitles": {
-            "en": "Would you rather have a job you love that pays a low salary or have a job you hate that pays a high salary?",
-            "es": "¿Preferirías tener un trabajo que amas que paga un salario bajo o tener un trabajo que odias que paga un salario alto?",
-            "pt": "Você prefere ter um emprego que ama que paga um salário baixo ou ter um emprego que odeia que paga um salário alto?",
-            "bn": "আপনি কি এমন একটি চাকরি করতে পছন্দ করবেন যা আপনি ভালোবাসেন যার কম বেতন দেয় নাকি এমন একটি চাকরি করতে পছন্দ করবেন যা আপনি ঘৃণা করেন যার বেশি বেতন দেয়?",
-            "fr": "Préférerais-tu avoir un travail que tu aimes avec un petit salaire ou avoir un travail que tu détestes avec un gros salaire ?",
-            "hi": "आप ऐसी नौकरी पसंद करेंगे जो आपको पसंद हो लेकिन वेतन कम हो या ऐसी नौकरी जो आपको पसंद न हो लेकिन वेतन ज्यादा हो?"
+            "en": "Thanks for practising with me. This was really nice.",
+            "es": "Gracias por practicar conmigo. Fue muy agradable.",
+            "pt": "Obrigado por praticar comigo. Foi muito legal.",
+            "fr": "Merci d'avoir pratiqué avec moi. C'était vraiment sympa.",
+            "hi": "मेरे साथ अभ्यास करने के लिए धन्यवाद। यह वाकई अच्छा था।",
+            "bn": "আমার সাথে অনুশীলন করার জন্য ধন্যবাদ। এটা সত্যিই ভালো ছিল।"
           },
-          "publishLessonId": "e"
+          "nextStep": 2
         },
         {
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-e-01-04",
           "cue": [
             {
-              "en": "Given the choice between having a job you love that pays a low salary and having a job you hate that pays a high salary, which would you choose?",
-              "es": "Dada la opción entre tener un trabajo que amas que paga un salario bajo y tener un trabajo que odias que paga un salario alto, ¿cuál elegirías?",
-              "pt": "Dada a escolha entre ter um emprego que você ama que paga um salário baixo e ter um emprego que você odeia que paga um salário alto, qual você escolheria?",
-              "bn": "কম বেতন দেয় এমন একটি চাকরি যা আপনি ভালোবাসেন এবং বেশি বেতন দেয় এমন একটি চাকরি যা আপনি ঘৃণা করেন তার মধ্যে পছন্দ দেওয়া হলে, আপনি কোনটি বেছে নেবেন?",
-              "fr": "Si tu avais le choix entre avoir un travail que tu aimes avec un petit salaire et avoir un travail que tu détestes avec un gros salaire, que choisirais-tu ?",
-              "hi": "अगर आपको चुनाव करना पड़े कि आप एक ऐसी नौकरी करें जो आपको पसंद है लेकिन कम वेतन देती है, और एक ऐसी नौकरी करें जो आपको पसंद नहीं है लेकिन ज़्यादा वेतन देती है, तो आप कौन सी चुनेंगे?"
+              "en": "Thank you for talking with me. This has been nice. Let's start a new conversation later.",
+              "es": "Gracias por hablar conmigo. Ha sido agradable. Empecemos una nueva conversación más tarde.",
+              "pt": "Obrigado por conversar comigo. Foi bom. Vamos começar uma nova conversa depois.",
+              "fr": "Merci d'avoir discuté avec moi. C'était sympa. Commençons une nouvelle conversation plus tard.",
+              "hi": "मेरे साथ बात करने के लिए धन्यवाद। यह अच्छा रहा। चलिए बाद में नई बातचीत शुरू करें।",
+              "bn": "আমার সাথে কথা বলার জন্য ধন্যবাদ। এটা ভালো ছিল। চলুন পরে নতুন কথোপকথন শুরু করি।"
             }
           ],
-          "nextStep": 1,
           "subtitles": {
-            "en": "Given the choice between having a job you love that pays a low salary and having a job you hate that pays a high salary, which would you choose?",
-            "es": "Dada la opción entre tener un trabajo que amas que paga un salario bajo y tener un trabajo que odias que paga un salario alto, ¿cuál elegirías?",
-            "pt": "Dada a escolha entre ter um emprego que você ama que paga um salário baixo e ter um emprego que você odeia que paga um salário alto, qual você escolheria?",
-            "bn": "কম বেতন দেয় এমন একটি চাকরি যা আপনি ভালোবাসেন এবং বেশি বেতন দেয় এমন একটি চাকরি যা আপনি ঘৃণা করেন তার মধ্যে পছন্দ দেওয়া হলে, আপনি কোনটি বেছে নেবেন?",
-            "fr": "Si tu avais le choix entre avoir un travail que tu aimes avec un petit salaire et avoir un travail que tu détestes avec un gros salaire, que choisirais-tu ?",
-            "hi": "अगर आपको चुनाव करना पड़े कि आप एक ऐसी नौकरी करें जो आपको पसंद है लेकिन कम वेतन देती है, और एक ऐसी नौकरी करें जो आपको पसंद नहीं है लेकिन ज़्यादा वेतन देती है, तो आप कौन सी चुनेंगे?"
+            "en": "Thank you for talking with me. This has been nice. Let's start a new conversation later.",
+            "es": "Gracias por hablar conmigo. Ha sido agradable. Empecemos una nueva conversación más tarde.",
+            "pt": "Obrigado por conversar comigo. Foi bom. Vamos começar uma nova conversa depois.",
+            "fr": "Merci d'avoir discuté avec moi. C'était sympa. Commençons une nouvelle conversation plus tard.",
+            "hi": "मेरे साथ बात करने के लिए धन्यवाद। यह अच्छा रहा। चलिए बाद में नई बातचीत शुरू करें।",
+            "bn": "আমার সাথে কথা বলার জন্য ধন্যবাদ। এটা ভালো ছিল। চলুন পরে নতুন কথোপকথন শুরু করি।"
           },
-          "publishLessonId": "e"
-        },
-        {
-          "responseType": "branching",
-          "chooseStep": [
-            {
-              "nextStep": 1,
-              "text": {
-                "en": "Rich with no privacy or poor with complete privacy?",
-                "es": "¿Rico sin privacidad o pobre con privacidad completa?",
-                "pt": "Rico sem privacidade ou pobre com privacidade total?",
-                "bn": "গোপনীয়তা ছাড়া ধনী নাকি সম্পূর্ণ গোপনীয়তা সহ গরিব?",
-                "fr": "Riche sans vie privée ou pauvre avec une vie privée totale ?",
-                "hi": "बिना निजता के अमीर या पूरी निजता के साथ गरीब?"
-              }
-            },
-            {
-              "nextStep": 2,
-              "text": {
-                "en": "Which is better: rich with no privacy or poor with complete privacy?",
-                "es": "¿Qué es mejor: rico sin privacidad o pobre con privacidad completa?",
-                "pt": "O que é melhor: rico sem privacidade ou pobre com privacidade total?",
-                "bn": "কোনটি ভালো: গোপনীয়তা ছাড়া ধনী নাকি সম্পূর্ণ গোপনীয়তা সহ গরিব?",
-                "fr": "Qu'est-ce qui est mieux : être riche sans vie privée ou être pauvre avec une vie privée totale ?",
-                "hi": "कौन सा बेहतर है: बिना निजता के अमीर या पूरी निजता के साथ गरीब?"
-              }
-            },
-            {
-              "nextStep": 3,
-              "text": {
-                "en": "Would you rather be rich but have no privacy or be poor but have complete privacy?",
-                "es": "¿Preferirías ser rico pero no tener privacidad o ser pobre pero tener privacidad completa?",
-                "pt": "Você prefere ser rico, mas não ter privacidade, ou ser pobre, mas ter privacidade total?",
-                "bn": "আপনি কি ধনী হতে চান কিন্তু কোনো গোপনীয়তা নেই নাকি গরিব হতে চান কিন্তু সম্পূর্ণ গোপনীয়তা আছে?",
-                "fr": "Préférerais-tu être riche mais sans vie privée ou être pauvre mais avec une vie privée totale ?",
-                "hi": "आप अमीर होना पसंद करेंगे लेकिन कोई निजता न हो या गरीब होना पसंद करेंगे लेकिन पूरी निजता हो?"
-              }
-            },
-            {
-              "nextStep": 4,
-              "text": {
-                "en": "Given the choice between being rich but having no privacy and being poor but having complete privacy, which would you choose?",
-                "es": "Dada la opción entre ser rico pero no tener privacidad y ser pobre pero tener privacidad completa, ¿cuál elegirías?",
-                "pt": "Dada a escolha entre ser rico, mas não ter privacidade, e ser pobre, mas ter privacidade total, qual você escolheria?",
-                "bn": "ধনী হওয়া কিন্তু কোনো গোপনীয়তা না থাকা এবং গরিব হওয়া কিন্তু সম্পূর্ণ গোপনীয়তা থাকার মধ্যে পছন্দ দেওয়া হলে, আপনি কোনটি বেছে নেবেন?",
-                "fr": "Si tu avais le choix entre être riche mais sans vie privée et être pauvre mais avec une vie privée totale, que choisirais-tu ?",
-                "hi": "अमीर होने पर बिना निजता के और गरीब होने पर पूरी निजता के साथ जीने के बीच चुनाव दिया जाए, तो आप क्या चुनेंगे?"
-              }
-            }
-          ]
-        },
-        {
-          "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-e-02-01",
-          "cue": [
-            {
-              "en": "Rich with no privacy or poor with complete privacy?",
-              "es": "¿Rico sin privacidad o pobre con privacidad completa?",
-              "pt": "Rico sem privacidade ou pobre com privacidade total?",
-              "bn": "গোপনীয়তা ছাড়া ধনী নাকি সম্পূর্ণ গোপনীয়তা সহ গরিব?",
-              "fr": "Riche sans vie privée ou pauvre avec une vie privée totale ?",
-              "hi": "बिना निजता के अमीर या पूरी निजता के साथ गरीब?"
-            }
-          ],
-          "nextStep": 4,
-          "subtitles": {
-            "en": "Rich with no privacy or poor with complete privacy?",
-            "es": "¿Rico sin privacidad o pobre con privacidad completa?",
-            "pt": "Rico sem privacidade ou pobre com privacidade total?",
-            "bn": "গোপনীয়তা ছাড়া ধনী নাকি সম্পূর্ণ গোপনীয়তা সহ গরিব?",
-            "fr": "Riche sans vie privée ou pauvre avec une vie privée totale ?",
-            "hi": "बिना निजता के अमीर या पूरी निजता के साथ गरीब?"
-          },
-          "publishLessonId": "e"
-        },
-        {
-          "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-e-02-02",
-          "cue": [
-            {
-              "en": "Which is better: rich with no privacy or poor with complete privacy?",
-              "es": "¿Qué es mejor: rico sin privacidad o pobre con privacidad completa?",
-              "pt": "O que é melhor: rico sem privacidade ou pobre com privacidade total?",
-              "bn": "কোনটি ভালো: গোপনীয়তা ছাড়া ধনী নাকি সম্পূর্ণ গোপনীয়তা সহ গরিব?",
-              "fr": "Qu'est-ce qui est mieux : être riche sans vie privée ou être pauvre avec une vie privée totale ?",
-              "hi": "कौन सा बेहतर है: बिना निजता के अमीर या पूरी निजता के साथ गरीब?"
-            }
-          ],
-          "nextStep": 3,
-          "subtitles": {
-            "en": "Which is better: rich with no privacy or poor with complete privacy?",
-            "es": "¿Qué es mejor: rico sin privacidad o pobre con privacidad completa?",
-            "pt": "O que é melhor: rico sem privacidade ou pobre com privacidade total?",
-            "bn": "কোনটি ভালো: গোপনীয়তা ছাড়া ধনী নাকি সম্পূর্ণ গোপনীয়তা সহ গরিব?",
-            "fr": "Qu'est-ce qui est mieux : être riche sans vie privée ou être pauvre avec une vie privée totale ?",
-            "hi": "कौन सा बेहतर है: बिना निजता के अमीर या पूरी निजता के साथ गरीब?"
-          },
-          "publishLessonId": "e"
-        },
-        {
-          "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-e-02-03",
-          "cue": [
-            {
-              "en": "Would you rather be rich but have no privacy or be poor but have complete privacy?",
-              "es": "¿Preferirías ser rico pero no tener privacidad o ser pobre pero tener privacidad completa?",
-              "pt": "Você prefere ser rico, mas não ter privacidade, ou ser pobre, mas ter privacidade total?",
-              "bn": "আপনি কি ধনী হতে চান কিন্তু কোনো গোপনীয়তা নেই নাকি গরিব হতে চান কিন্তু সম্পূর্ণ গোপনীয়তা আছে?",
-              "fr": "Préférerais-tu être riche mais sans vie privée ou être pauvre mais avec une vie privée totale ?",
-              "hi": "आप अमीर होना पसंद करेंगे लेकिन कोई निजता न हो या गरीब होना पसंद करेंगे लेकिन पूरी निजता हो?"
-            }
-          ],
-          "nextStep": 2,
-          "subtitles": {
-            "en": "Would you rather be rich but have no privacy or be poor but have complete privacy?",
-            "es": "¿Preferirías ser rico pero no tener privacidad o ser pobre pero tener privacidad completa?",
-            "pt": "Você prefere ser rico, mas não ter privacidade, ou ser pobre, mas ter privacidade total?",
-            "bn": "আপনি কি ধনী হতে চান কিন্তু কোনো গোপনীয়তা নেই নাকি গরিব হতে চান কিন্তু সম্পূর্ণ গোপনীয়তা আছে?",
-            "fr": "Préférerais-tu être riche mais sans vie privée ou être pauvre mais avec une vie privée totale ?",
-            "hi": "आप अमीर होना पसंद करेंगे लेकिन कोई निजता न हो या गरीब होना पसंद करेंगे लेकिन पूरी निजता हो?"
-          },
-          "publishLessonId": "e"
-        },
-        {
-          "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-e-02-04",
-          "cue": [
-            {
-              "en": "Given the choice between being rich but having no privacy and being poor but having complete privacy, which would you choose?",
-              "es": "Dada la opción entre ser rico pero no tener privacidad y ser pobre pero tener privacidad completa, ¿cuál elegirías?",
-              "pt": "Dada a escolha entre ser rico, mas não ter privacidade, e ser pobre, mas ter privacidade total, qual você escolheria?",
-              "bn": "ধনী হওয়া কিন্তু কোনো গোপনীয়তা না থাকা এবং গরিব হওয়া কিন্তু সম্পূর্ণ গোপনীয়তা থাকার মধ্যে পছন্দ দেওয়া হলে, আপনি কোনটি বেছে নেবেন?",
-              "fr": "Si tu avais le choix entre être riche mais sans vie privée et être pauvre mais avec une vie privée totale, que choisirais-tu ?",
-              "hi": "अमीर होने पर बिना निजता के और गरीब होने पर पूरी निजता के साथ जीने के बीच चुनाव दिया जाए, तो आप क्या चुनेंगे?"
-            }
-          ],
-          "nextStep": 1,
-          "subtitles": {
-            "en": "Given the choice between being rich but having no privacy and being poor but having complete privacy, which would you choose?",
-            "es": "Dada la opción entre ser rico pero no tener privacidad y ser pobre pero tener privacidad completa, ¿cuál elegirías?",
-            "pt": "Dada a escolha entre ser rico, mas não ter privacidade, e ser pobre, mas ter privacidade total, qual você escolheria?",
-            "bn": "ধনী হওয়া কিন্তু কোনো গোপনীয়তা না থাকা এবং গরিব হওয়া কিন্তু সম্পূর্ণ গোপনীয়তা থাকার মধ্যে পছন্দ দেওয়া হলে, আপনি কোনটি বেছে নেবেন?",
-            "fr": "Si tu avais le choix entre être riche mais sans vie privée et être pauvre mais avec une vie privée totale, que choisirais-tu ?",
-            "hi": "अमीर होने पर बिना निजता के और गरीब होने पर पूरी निजता के साथ जीने के बीच चुनाव दिया जाए, तो आप क्या चुनेंगे?"
-          },
-          "publishLessonId": "e"
-        },
-        {
-          "responseType": "branching",
-          "chooseStep": [
-            {
-              "nextStep": 1,
-              "text": {
-                "en": "A week without your phone or a week without music?",
-                "es": "¿Una semana sin tu teléfono o una semana sin música?",
-                "pt": "Uma semana sem o seu telefone ou uma semana sem música?",
-                "bn": "ফোন ছাড়া এক সপ্তাহ নাকি গান ছাড়া এক সপ্তাহ?",
-                "fr": "Une semaine sans ton téléphone ou une semaine sans musique ?",
-                "hi": "आपके फ़ोन के बिना एक हफ़्ता या संगीत के बिना एक हफ़्ता?"
-              }
-            },
-            {
-              "nextStep": 2,
-              "text": {
-                "en": "Which is better: a week without your phone or a week without music?",
-                "es": "¿Qué es mejor: una semana sin tu teléfono o una semana sin música?",
-                "pt": "O que é melhor: uma semana sem o seu telefone ou uma semana sem música?",
-                "bn": "কোনটি ভালো: ফোন ছাড়া এক সপ্তাহ নাকি গান ছাড়া এক সপ্তাহ?",
-                "fr": "Qu'est-ce qui est mieux : une semaine sans ton téléphone ou une semaine sans musique ?",
-                "hi": "कौन सा बेहतर है: अपने फोन के बिना एक हफ्ता या संगीत के बिना एक हफ्ता?"
-              }
-            },
-            {
-              "nextStep": 3,
-              "text": {
-                "en": "Would you rather go a week without your phone or go a week without listening to any music?",
-                "es": "¿Preferirías pasar una semana sin tu teléfono o pasar una semana sin escuchar nada de música?",
-                "pt": "Você prefere passar uma semana sem o seu telefone ou passar uma semana sem ouvir nenhuma música?",
-                "bn": "আপনি কি ফোন ছাড়া এক সপ্তাহ কাটাতে চান নাকি কোনো গান না শুনে এক সপ্তাহ কাটাতে চান?",
-                "fr": "Préférerais-tu passer une semaine sans ton téléphone ou passer une semaine sans écouter de musique ?",
-                "hi": "आप एक हफ्ता अपने फोन के बिना बिताना पसंद करेंगे या एक हफ्ता कोई संगीत सुने बिना बिताना पसंद करेंगे?"
-              }
-            },
-            {
-              "nextStep": 4,
-              "text": {
-                "en": "Given the choice between going a week without your phone and going a week without listening to any music, which would you choose?",
-                "es": "Dada la opción entre pasar una semana sin tu teléfono y pasar una semana sin escuchar nada de música, ¿cuál elegirías?",
-                "pt": "Dada a escolha entre passar uma semana sem o seu telefone e passar uma semana sem ouvir nenhuma música, qual você escolheria?",
-                "bn": "ফোন ছাড়া এক সপ্তাহ কাটানো এবং কোনো গান না শুনে এক সপ্তাহ কাটানোর মধ্যে পছন্দ দেওয়া হলে, আপনি কোনটি বেছে নেবেন?",
-                "fr": "Si tu avais le choix entre passer une semaine sans ton téléphone et passer une semaine sans écouter de musique, que choisirais-tu ?",
-                "hi": "एक सप्ताह अपने फ़ोन के बिना रहने और एक सप्ताह कोई संगीत सुने बिना रहने के बीच चुनाव दिया जाए, तो आप क्या चुनेंगे?"
-              }
-            }
-          ]
-        },
-        {
-          "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-e-03-01",
-          "cue": [
-            {
-              "en": "A week without your phone or a week without music?",
-              "es": "¿Una semana sin tu teléfono o una semana sin música?",
-              "pt": "Uma semana sem o seu telefone ou uma semana sem música?",
-              "bn": "ফোন ছাড়া এক সপ্তাহ নাকি গান ছাড়া এক সপ্তাহ?",
-              "fr": "Une semaine sans ton téléphone ou une semaine sans musique ?",
-              "hi": "आपके फ़ोन के बिना एक हफ़्ता या संगीत के बिना एक हफ़्ता?"
-            }
-          ],
-          "nextStep": 4,
-          "subtitles": {
-            "en": "A week without your phone or a week without music?",
-            "es": "¿Una semana sin tu teléfono o una semana sin música?",
-            "pt": "Uma semana sem o seu telefone ou uma semana sem música?",
-            "bn": "ফোন ছাড়া এক সপ্তাহ নাকি গান ছাড়া এক সপ্তাহ?",
-            "fr": "Une semaine sans ton téléphone ou une semaine sans musique ?",
-            "hi": "आपके फ़ोन के बिना एक हफ़्ता या संगीत के बिना एक हफ़्ता?"
-          },
-          "publishLessonId": "e"
-        },
-        {
-          "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-e-03-02",
-          "cue": [
-            {
-              "en": "Which is better: a week without your phone or a week without music?",
-              "es": "¿Qué es mejor: una semana sin tu teléfono o una semana sin música?",
-              "pt": "O que é melhor: uma semana sem o seu telefone ou uma semana sem música?",
-              "bn": "কোনটি ভালো: ফোন ছাড়া এক সপ্তাহ নাকি গান ছাড়া এক সপ্তাহ?",
-              "fr": "Qu'est-ce qui est mieux : une semaine sans ton téléphone ou une semaine sans musique ?",
-              "hi": "कौन सा बेहतर है: अपने फोन के बिना एक हफ्ता या संगीत के बिना एक हफ्ता?"
-            }
-          ],
-          "nextStep": 3,
-          "subtitles": {
-            "en": "Which is better: a week without your phone or a week without music?",
-            "es": "¿Qué es mejor: una semana sin tu teléfono o una semana sin música?",
-            "pt": "O que é melhor: uma semana sem o seu telefone ou uma semana sem música?",
-            "bn": "কোনটি ভালো: ফোন ছাড়া এক সপ্তাহ নাকি গান ছাড়া এক সপ্তাহ?",
-            "fr": "Qu'est-ce qui est mieux : une semaine sans ton téléphone ou une semaine sans musique ?",
-            "hi": "कौन सा बेहतर है: अपने फोन के बिना एक हफ्ता या संगीत के बिना एक हफ्ता?"
-          },
-          "publishLessonId": "e"
-        },
-        {
-          "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-e-03-03",
-          "cue": [
-            {
-              "en": "Would you rather go a week without your phone or go a week without listening to any music?",
-              "es": "¿Preferirías pasar una semana sin tu teléfono o pasar una semana sin escuchar nada de música?",
-              "pt": "Você prefere passar uma semana sem o seu telefone ou passar uma semana sem ouvir nenhuma música?",
-              "bn": "আপনি কি ফোন ছাড়া এক সপ্তাহ কাটাতে চান নাকি কোনো গান না শুনে এক সপ্তাহ কাটাতে চান?",
-              "fr": "Préférerais-tu passer une semaine sans ton téléphone ou passer une semaine sans écouter de musique ?",
-              "hi": "आप एक हफ्ता अपने फोन के बिना बिताना पसंद करेंगे या एक हफ्ता कोई संगीत सुने बिना बिताना पसंद करेंगे?"
-            }
-          ],
-          "nextStep": 2,
-          "subtitles": {
-            "en": "Would you rather go a week without your phone or go a week without listening to any music?",
-            "es": "¿Preferirías pasar una semana sin tu teléfono o pasar una semana sin escuchar nada de música?",
-            "pt": "Você prefere passar uma semana sem o seu telefone ou passar uma semana sem ouvir nenhuma música?",
-            "bn": "আপনি কি ফোন ছাড়া এক সপ্তাহ কাটাতে চান নাকি কোনো গান না শুনে এক সপ্তাহ কাটাতে চান?",
-            "fr": "Préférerais-tu passer une semaine sans ton téléphone ou passer une semaine sans écouter de musique ?",
-            "hi": "आप एक हफ्ता अपने फोन के बिना बिताना पसंद करेंगे या एक हफ्ता कोई संगीत सुने बिना बिताना पसंद करेंगे?"
-          },
-          "publishLessonId": "e"
-        },
-        {
-          "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "wouldyourather-e-03-04",
-          "cue": [
-            {
-              "en": "Given the choice between going a week without your phone and going a week without listening to any music, which would you choose?",
-              "es": "Dada la opción entre pasar una semana sin tu teléfono y pasar una semana sin escuchar nada de música, ¿cuál elegirías?",
-              "pt": "Dada a escolha entre passar uma semana sem o seu telefone e passar uma semana sem ouvir nenhuma música, qual você escolheria?",
-              "bn": "ফোন ছাড়া এক সপ্তাহ কাটানো এবং কোনো গান না শুনে এক সপ্তাহ কাটানোর মধ্যে পছন্দ দেওয়া হলে, আপনি কোনটি বেছে নেবেন?",
-              "fr": "Si tu avais le choix entre passer une semaine sans ton téléphone et passer une semaine sans écouter de musique, que choisirais-tu ?",
-              "hi": "एक सप्ताह अपने फ़ोन के बिना रहने और एक सप्ताह कोई संगीत सुने बिना रहने के बीच चुनाव दिया जाए, तो आप क्या चुनेंगे?"
-            }
-          ],
-          "nextStep": 1,
-          "subtitles": {
-            "en": "Given the choice between going a week without your phone and going a week without listening to any music, which would you choose?",
-            "es": "Dada la opción entre pasar una semana sin tu teléfono y pasar una semana sin escuchar nada de música, ¿cuál elegirías?",
-            "pt": "Dada a escolha entre passar uma semana sem o seu telefone e passar uma semana sem ouvir nenhuma música, qual você escolheria?",
-            "bn": "ফোন ছাড়া এক সপ্তাহ কাটানো এবং কোনো গান না শুনে এক সপ্তাহ কাটানোর মধ্যে পছন্দ দেওয়া হলে, আপনি কোনটি বেছে নেবেন?",
-            "fr": "Si tu avais le choix entre passer une semaine sans ton téléphone et passer une semaine sans écouter de musique, que choisirais-tu ?",
-            "hi": "एक सप्ताह अपने फ़ोन के बिना रहने और एक सप्ताह कोई संगीत सुने बिना रहने के बीच चुनाव दिया जाए, तो आप क्या चुनेंगे?"
-          },
-          "publishLessonId": "e"
+          "nextStep": 1
         }
       ]
     }
