@@ -441,6 +441,39 @@ export function useAddFriendLinkMutation() {
   });
 }
 
+// ── Friend completions ─────────────────────────────────────────────
+// Lesson-level joint completions the viewer recorded through `ownerId`'s share
+// links. `counted_lessons` cannot answer this: it is per learner and per
+// lesson, so it cannot say WHICH friend a lesson was done with — and a lesson
+// is expected to be repeated with different friends. The ledger is written by
+// record_friend_completion (one row per actor, owner, course and lesson), and
+// RLS exposes only the caller's own rows; the explicit `.eq('actor_id', …)`
+// keeps the query honest even if the policy ever widens. Disabled for a guest
+// and for your own profile (a self-completion is never a joint one).
+export async function fetchFriendCompletions({ viewerId, ownerId } = {}) {
+  if (!viewerId || !ownerId || viewerId === ownerId) return [];
+  const { data, error } = await supabase
+    .from('friend_completions')
+    .select('course_id,lesson_id')
+    .eq('actor_id', viewerId)
+    .eq('owner_id', ownerId);
+  if (error) throw error;
+  console.log('[friendCompletions] fetched', data?.length ?? 0);
+  return (data || []).map((row) => ({ courseId: row.course_id, lessonId: row.lesson_id }));
+}
+
+export function useFriendCompletions(viewerId, ownerId) {
+  return useQuery({
+    queryKey: ['friend', 'completions', viewerId, ownerId],
+    enabled: !!viewerId && !!ownerId && viewerId !== ownerId,
+    // The public profile is a fresh mount right after finishing a lesson, and
+    // the global default is staleTime: Infinity — a cached empty list would
+    // hide the badge the learner just earned.
+    staleTime: 0,
+    queryFn: () => fetchFriendCompletions({ viewerId, ownerId }),
+  });
+}
+
 // ── Notifications ──────────────────────────────────────────────────
 // Friend-response inbox. Rows are created server-side by the
 // record_friend_response RPC; the recipient reads and marks-read their own rows

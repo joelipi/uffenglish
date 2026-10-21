@@ -129,19 +129,22 @@ export function groupActiveFriendLinks(friendLinks, nowMs) {
     return groupEntries(listActiveFriendLinks(friendLinks, nowMs));
 }
 
-// Did the visitor already complete the lesson this entry OPENS? `lessonId` is
-// the follow-on lesson the link's href points at — the one the visitor would
-// record in response to the owner — so the visitor's counted_lessons carrying
-// `<courseId>_<lessonId>` (existing first-underscore convention) means the
-// exchange is done from their side.
+// Did the visitor already complete the lesson this entry OPENS, TOGETHER WITH
+// this profile owner? `lessonId` is the follow-on lesson the link points at —
+// the one the visitor records in response to the owner.
 //
-// It must NOT join on `recordedLessonId`: that lesson belongs to the profile
-// OWNER, so only the owner's own history contains it. Keying on it made the
-// badge appear only when the viewer looked at their own profile, and never on
-// a partner's profile — the bug this fixes.
-function viewerCompletedLinkedLesson(entry, countedLessons) {
-    if (!Array.isArray(countedLessons)) return false;
-    return countedLessons.includes(`${entry.courseId}_${entry.lessonId}`);
+// The caller supplies the viewer's completions ALREADY SCOPED to this owner
+// (`friend_completions` is read with `actor_id = viewer` AND `owner_id =
+// profile.id`). `counted_lessons` cannot answer this: it is per learner and
+// per lesson, so it cannot tell "did lesson b with P" from "did lesson b with
+// Q" — and a lesson is expected to be repeated with different friends. It also
+// must not join on `recordedLessonId`: that lesson belongs to the profile
+// owner, so only the owner's own history contains it (the bug that made the
+// badge appear only on the viewer's own profile).
+function viewerCompletedLinkedLesson(entry, completions) {
+    if (!Array.isArray(completions)) return false;
+    return completions.some((c) =>
+        c && c.courseId === entry.courseId && c.lessonId === entry.lessonId);
 }
 
 // Inbox direction: the visitor's inbox has a friend_response row whose actor is
@@ -165,8 +168,8 @@ function viewerNotifiedEntry(entry, notifications, ownerShareCode) {
  *   visitor completed the link's target lesson, or the owner responded to the
  *   visitor's own lesson;
  * - every listed entry carries `completedTogether` (the visitor completed the
- *   link's target lesson), so the section can badge the joint completion and
- *   strike the lesson name.
+ *   link's target lesson THROUGH this owner), so the section can badge the
+ *   joint completion and strike the lesson name.
  *
  * With no `viewer` this delegates to `buildFriendPracticeView`, preserving the
  * logged-out output exactly.
@@ -175,12 +178,12 @@ export function buildVisitorPracticeView({ friendLinks, nowMs, viewer = null } =
     const active = listActiveFriendLinks(friendLinks, nowMs);
 
     const ownerShareCode = viewer ? normalizeShareCode(viewer.ownerShareCode) : null;
-    const countedLessons = viewer?.counted_lessons ?? [];
+    const completions = viewer?.friendCompletions ?? [];
     const notifications = viewer?.notifications ?? [];
 
     const isFeaturing = (entry) => !!viewer
         && (viewerNotifiedEntry(entry, notifications, ownerShareCode)
-            || viewerCompletedLinkedLesson(entry, countedLessons));
+            || viewerCompletedLinkedLesson(entry, completions));
 
     // EVERY link the owner recorded is listed, not just the course's first
     // lesson: the profile holds one link per recorded lesson (the ping-pong
@@ -194,7 +197,7 @@ export function buildVisitorPracticeView({ friendLinks, nowMs, viewer = null } =
         ...active.filter((entry) => !featuringSet.has(entry)),
     ].map((entry) => ({
         ...entry,
-        completedTogether: viewerCompletedLinkedLesson(entry, countedLessons),
+        completedTogether: viewerCompletedLinkedLesson(entry, completions),
     }));
 
     const groups = groupEntries(listed);

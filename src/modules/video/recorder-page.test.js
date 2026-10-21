@@ -1496,6 +1496,11 @@ describe('recorder auto-render — zero server changes', () => {
             'src/components/widgets/SuccessButtons.test.jsx',
             'src/components/widgets/clips-uploading-warning-wiring.test.js',
             'tests/success-concat-button.spec.js',
+            // Pair-scoped "completed it together" ledger: a lesson done with
+            // one friend must not badge on another friend's profile.
+            'supabase/migrations/013_add_friend_completions.sql',
+            'src/modules/api/friend-completions-migration.test.js',
+            'src/modules/api/friend-completions-read.test.js',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);

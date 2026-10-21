@@ -130,7 +130,7 @@ export default function FriendLessonLinksSection({ friendLinks, lang = 'en', sha
                     href={COURSE_LISTINGS_PATH}
                     style={{ fontSize: '28px', fontWeight: 800, color: '#ffffff', textDecoration: 'underline', lineHeight: 1.2 }}
                 >
-                    Start here
+                    {Strings.get('profile_friend_start_here', lang)}
                 </a>
             </div>
         );
@@ -146,10 +146,10 @@ export default function FriendLessonLinksSection({ friendLinks, lang = 'en', sha
 
             <div>
                 <h2 data-testid="friend-lesson-links-heading" style={{ color: '#ffffff', fontSize: '28px', fontWeight: 700, margin: 0 }}>
-                    {`Click on a lesson to start practicing with ${resolvedName} right now free!`}
+                    {Strings.get('profile_friend_links_heading', lang, { name: resolvedName })}
                 </h2>
                 <p data-testid="friend-lesson-links-subheading" style={{ color: '#ffffff', fontSize: '15px', margin: '4px 0 0' }}>
-                    {`${resolvedName} does not have to be online now, they can respond to you later.`}
+                    {Strings.get('profile_friend_links_subheading', lang, { name: resolvedName })}
                 </p>
             </div>
 

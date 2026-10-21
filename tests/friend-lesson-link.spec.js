@@ -21,6 +21,10 @@ const PROFILE = {
     id: 'u1',
     first_name: 'Test',
     last_name: 'User',
+    // The cache holds the CONVERTED row (fromDbRow): the page reads
+    // firstName/lastName for the heading's owner name.
+    firstName: 'Test',
+    lastName: 'User',
     native_language: 'EN',
     english_level: 'B1',
     join_date: '2026-01-01T00:00:00Z',
@@ -59,8 +63,10 @@ test.describe('public-profile friend-challenge links', () => {
             [`${COURSE_ID}:a`]: entry(COURSE_ID, COURSE_NAME, 'a', 'b', 'Make 3 questions', '2026-09-24T11:00:00.000Z'),
         });
 
-        await expect(page.getByTestId('friend-lesson-links-heading')).toHaveText('Practice English with Me Free');
-        await expect(page.getByTestId('friend-lesson-links-subheading')).toHaveText('click on a lesson link to start.');
+        await expect(page.getByTestId('friend-lesson-links-heading'))
+            .toHaveText('Click on a lesson to start practicing with Test User right now free!');
+        await expect(page.getByTestId('friend-lesson-links-subheading'))
+            .toHaveText('Test User does not have to be online now, they can respond to you later.');
 
         const link = page.getByTestId('friend-lesson-link');
         await expect(link).toBeVisible();
