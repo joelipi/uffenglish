@@ -109,6 +109,22 @@ const signInLinkStyle = {
     boxShadow: 'var(--uff-btn-shadow)',
 };
 
+const topbarSignInStyle = {
+    backgroundColor: 'var(--uff-btn-bg)',
+    backgroundImage: 'none',
+    border: 'var(--uff-btn-border)',
+    color: '#0b1a2a',
+    fontWeight: 700,
+    fontSize: '0.8rem',
+    padding: '0.3rem 0.65rem',
+    lineHeight: 1.4,
+    borderRadius: '8px',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
+    whiteSpace: 'nowrap',
+    textDecoration: 'none',
+    display: 'inline-block',
+};
+
 export default function AppHeader() {
     const navigate = useNavigate();
     const [menuOpen, setMenuOpen] = useState(false);
@@ -164,10 +180,18 @@ export default function AppHeader() {
                     // frame's right edge, where #root.video-frame clips it away.
                     style={{ width: 'auto', height: 'auto', maxWidth: '50%', maxHeight: '40px', minWidth: 0, display: 'block', filter: 'drop-shadow(0 1px 1.5px rgba(0,0,0,0.35))' }}
                 />
-                <div style={{ flexShrink: 0 }}>
+                <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
                     {isLoggedIn && registered
                         ? <NotificationsBell userId={viewerId} lang={lang} />
                         : <div style={{ width: '44px' }} />}
+                    <Link
+                        to={isLoggedIn ? '/home' : '/login'}
+                        data-testid="landing-account-link"
+                        className="btn btn-sm btn-uff-topbar"
+                        style={topbarSignInStyle}
+                    >
+                        {isLoggedIn ? Strings.get('home_home', lang) : Strings.get('sign_in', lang)}
+                    </Link>
                 </div>
             </div>
 

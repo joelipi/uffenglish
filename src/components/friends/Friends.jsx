@@ -21,6 +21,7 @@ const containerStyle = {
 const headerStyle = {
     display: 'flex',
     alignItems: 'center',
+    justifyContent: 'center',
     padding: '16px',
     borderBottom: '1px solid #1a3a5a',
     gap: '12px',
@@ -60,7 +61,7 @@ function FriendRow({ friend, lang }) {
                 >
                     {name}
                 </Link>
-                <span data-testid="friend-share-code" style={{ color: '#adb5bd', fontSize: '13px' }}>{friend.shareCode}</span>
+                <span data-testid="friend-share-code" style={{ color: '#ffffff', fontSize: '13px' }}>{friend.shareCode}</span>
                 {friend.hasJointLessons === true && (
                     <span data-testid="friend-joint-badge" style={{ display: 'inline-block', marginLeft: '8px', padding: '2px 10px', borderRadius: '999px', backgroundColor: '#0f5132', color: '#8ce99a', fontSize: '12px', fontWeight: 700 }}>
                         {Strings.get('friends_joint_badge', lang)}
@@ -95,18 +96,15 @@ export default function Friends() {
     return (
         <div style={containerStyle}>
             <div style={headerStyle}>
-                <button onClick={() => navigate('/home')} style={{ background: 'none', border: 'none', color: 'white', fontSize: '20px', cursor: 'pointer' }}>
-                    <i className="bi bi-arrow-left"></i>
-                </button>
-                <span data-testid="friends-heading" style={{ fontSize: '18px', fontWeight: 600 }}>{Strings.get('friends_heading', lang)}</span>
+                <h1 data-testid="friends-heading" style={{ fontSize: '25px', fontWeight: 700, fontStyle: 'italic', fontFamily: 'var(--font-heading)', textAlign: 'center', width: '100%', margin: 0 }}>{Strings.get('friends_heading', lang)}</h1>
             </div>
 
             <div style={{ padding: '24px 16px', maxWidth: '640px', margin: '0 auto' }}>
-                <p data-testid="friends-subheading" style={{ color: '#adb5bd', fontSize: '15px', lineHeight: 1.5, margin: '0 0 16px' }}>
+                <p data-testid="friends-subheading" style={{ color: '#ffffff', fontSize: '15px', lineHeight: 1.5, margin: '0 0 16px' }}>
                     {Strings.get('friends_subheading', lang)}
                 </p>
                 <div data-testid="friends-callout" style={{ ...cardStyle, marginBottom: '24px', borderLeft: '4px solid #00c0d8' }}>
-                    <p style={{ color: '#adb5bd', fontSize: '14px', lineHeight: 1.5, margin: 0 }}>
+                    <p style={{ color: '#ffffff', fontSize: '14px', lineHeight: 1.5, margin: 0 }}>
                         {Strings.get('friends_callout', lang)}
                     </p>
                 </div>
@@ -125,7 +123,7 @@ export default function Friends() {
                     </div>
                 ) : friends.length === 0 ? (
                     <div data-testid="friends-empty" style={{ ...cardStyle, textAlign: 'center' }}>
-                        <p style={{ color: '#adb5bd', fontSize: '15px', lineHeight: 1.5, margin: 0 }}>
+                        <p style={{ color: '#ffffff', fontSize: '15px', lineHeight: 1.5, margin: 0 }}>
                             {Strings.get('friends_empty', lang)}
                         </p>
                     </div>

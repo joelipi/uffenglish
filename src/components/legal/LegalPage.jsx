@@ -34,6 +34,7 @@ export default function LegalPage({ markdown, titleKey }) {
         flexShrink: 0,
         display: 'flex',
         alignItems: 'center',
+        justifyContent: 'center',
         padding: '16px',
         borderBottom: '1px solid #1a3a5a',
         gap: '12px',
@@ -54,15 +55,7 @@ export default function LegalPage({ markdown, titleKey }) {
     return (
         <div style={containerStyle}>
             <div style={titleRowStyle}>
-                <Link
-                    to="/"
-                    data-testid="legal-back"
-                    aria-label={Strings.get('legal_back', lang)}
-                    style={{ color: 'white', fontSize: '20px', padding: '4px 10px', textDecoration: 'none' }}
-                >
-                    <i className="bi bi-arrow-left"></i>
-                </Link>
-                <span style={{ fontSize: '18px', fontWeight: 600 }}>{Strings.get(titleKey, lang)}</span>
+                <h1 style={{ fontSize: '25px', fontWeight: 700, fontStyle: 'italic', fontFamily: 'var(--font-heading)', textAlign: 'center', width: '100%', margin: 0 }}>{Strings.get(titleKey, lang)}</h1>
             </div>
 
             <div data-testid="legal-scroll" style={scrollStyle}>

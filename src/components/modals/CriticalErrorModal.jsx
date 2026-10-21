@@ -20,7 +20,7 @@ export default function CriticalErrorModal() {
         >
             <i className="bi bi-exclamation-triangle-fill text-warning mb-3"></i>
             <h4 className="mb-2">Lesson Load Error</h4>
-            <p id="criticalErrorMessage" className="text-secondary mb-4">
+            <p id="criticalErrorMessage" className="text-white mb-4">
                 {criticalErrorMessage}
             </p>
             <button className="btn btn-primary px-4 rounded-pill" onClick={() => {

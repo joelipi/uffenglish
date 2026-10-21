@@ -14,10 +14,10 @@ export default function LegalFooter({ lang = 'en' }) {
         padding: '16px',
         borderTop: '1px solid #1a3a5a',
         fontSize: '13px',
-        color: '#adb5bd',
+        color: '#ffffff',
     };
 
-    const linkStyle = { color: '#adb5bd', textDecoration: 'underline' };
+    const linkStyle = { color: '#ffffff', textDecoration: 'underline' };
 
     return (
         <footer data-testid="legal-footer" style={footerStyle}>

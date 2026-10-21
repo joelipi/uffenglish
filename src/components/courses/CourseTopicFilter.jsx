@@ -21,7 +21,7 @@ export default function CourseTopicFilter({ lang = 'en', topics = [], selected =
         <div data-testid="course-topic-filter" style={{ marginBottom: '20px' }}>
             <label
                 htmlFor="course-topic-filter-select"
-                style={{ display: 'block', fontSize: '14px', fontWeight: 600, marginBottom: '6px', color: '#adb5bd' }}
+                style={{ display: 'block', fontSize: '14px', fontWeight: 600, marginBottom: '6px', color: '#ffffff' }}
             >
                 {Strings.get('courses_topic_filter', lang)}
             </label>

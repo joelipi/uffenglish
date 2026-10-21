@@ -83,7 +83,7 @@ describe('auth navigation links use the high-contrast auth-link style', () => {
     });
 
     it('gives .auth-link a lighter hover/focus color', () => {
-        expect(hoverBlock).toMatch(/color:\s*#adb5bd/);
+        expect(hoverBlock).toMatch(/color:\s*#ffffff/);
     });
 
     it.each(CASES)('%s: every link carries auth-link', (_name, file, markers) => {

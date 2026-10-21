@@ -274,7 +274,7 @@ body { margin: 0; font-family: var(--font-body); font-size: 1rem; font-weight: 4
    theirs under `.uff-home-bs` (never an ancestor of the auth routes), and a
    class already beats the user-agent link color. */
 .auth-link { color: #ffffff; font-weight: 700; text-decoration: underline; }
-.auth-link:hover, .auth-link:focus-visible { color: #adb5bd; }
+.auth-link:hover, .auth-link:focus-visible { color: #ffffff; }
 
 /* --- Cards --- */
 .card {
@@ -1102,6 +1102,45 @@ body { margin: 0; font-family: var(--font-body); font-size: 1rem; font-weight: 4
 .uff-home-bs .btn-uff-primary:disabled::before, .uff-home-bs .btn-uff-topbar:disabled::before {
     animation: none !important;
     box-shadow: none !important;
+}
+
+/* App header sign-in button: mirror the homepage top-bar button exactly. */
+[data-testid="app-header"] .btn-uff-topbar {
+    position: relative;
+    z-index: 0;
+    background-color: var(--uff-btn-bg);
+    background-image: none;
+    border: var(--uff-btn-border);
+    color: #0b1a2a;
+    font-weight: 700;
+    font-size: 0.8rem;
+    padding: 0.3rem 0.65rem;
+    line-height: 1.4;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    white-space: nowrap;
+    text-decoration: none;
+    display: inline-block;
+    transition: filter 0.15s ease;
+}
+[data-testid="app-header"] .btn-uff-topbar:hover,
+[data-testid="app-header"] .btn-uff-topbar:focus,
+[data-testid="app-header"] .btn-uff-topbar:active {
+    background-color: var(--uff-btn-bg);
+    background-image: none;
+    color: #0b1a2a;
+    filter: brightness(0.96);
+}
+[data-testid="app-header"] .btn-uff-topbar::before {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: -1;
+    background: transparent;
+    box-shadow: 0 0 25px 8px rgba(255, 255, 255, 0.85);
+    animation: none;
 }
 
 /* Immediate hide for bottom overlay (bypass opacity transition) */
@@ -2451,7 +2490,7 @@ body { margin: 0; font-family: var(--font-body); font-size: 1rem; font-weight: 4
 }
 
 .hangman-placeholder {
-    color: #666;
+    color: #ffffff;
     font-weight: bold;
     border-bottom: 2px solid #666;
     margin: 0 2px;
