@@ -432,9 +432,17 @@ describe('bridge round-trip through the real generator', () => {    it('leaves n
         const branch = config.lessons[1].steps.find((s) => s.responseType === 'branching');
         expect(branch.chooseStep.map((g) => g.text.en)).toEqual(['Pick one', 'Pick two', 'Pick three']);
         expect(branch.chooseStep.map((g) => g.chooseStep.length)).toEqual([2, 2, 2]);
-        // Reuse rows expand to a take step republished under the ask lesson.
-        const repub = config.lessons[1].steps.find((s) => s.publishLessonId === 'a');
-        expect(repub.simpleVideoUrl).toBe('demo-a-01-01');
-        expect(repub.cue).toHaveLength(1);
+        // This fixture has ONE pair, so its answer lesson is the chain's
+        // terminal lesson: it closes with the code-owned goodbye block instead
+        // of recording a question set, and publishes nothing back into the ask
+        // lesson. (Reuse-row expansion is covered by the wouldyourather config
+        // guards, where lessons b-e are non-terminal.)
+        expect(config.lessons[1].steps.some((s) => s.publishLessonId === 'a')).toBe(false);
+        const goodbye = config.lessons[1].steps.filter(
+            (s) => s.responseType === 'friendClosedResponse' && !s.simpleVideoUrl);
+        expect(goodbye).toHaveLength(4);
+        const closingBranch = config.lessons[1].steps.findLast((s) => s.responseType === 'branching');
+        expect(closingBranch.chooseStep).toHaveLength(4);
+        expect(closingBranch.chooseStep.map((c) => c.nextStep)).toEqual([1, 2, 3, 4]);
     });
 });

@@ -140,6 +140,46 @@ export function groupActiveFriendLinks(friendLinks, nowMs) {
     return groupEntries(listActiveFriendLinks(friendLinks, nowMs));
 }
 
+/**
+ * Where a recorded lesson sits in its course's chain: `{ n, total }` over the
+ * shareCta lessons ("lesson 3 of 6"), or null when the config or lesson is not
+ * a chain lesson.
+ *
+ * Read at RENDER time, never stored: a link entry's `lessonTitle` is frozen at
+ * export time, so a renamed lesson would keep showing its old wording on the
+ * profile for the whole 48h window. The config is the only live source.
+ */
+export function recordedLessonOrdinal(configData, lessonId) {
+    const lessons = configData?.lessons;
+    if (!Array.isArray(lessons)) return null;
+    const chain = lessons.filter((lesson) => lesson?.recapOverlay === 'shareCta');
+    const index = chain.findIndex((lesson) => lesson.lessonId === lessonId);
+    if (index === -1) return null;
+    return { n: index + 1, total: chain.length };
+}
+
+/**
+ * `courseId:recordedLessonId` -> `{ n, total }` for every profile link.
+ * `configEntries` is `loadConfigEntries()`'s `[{ courseId, config }]`. Entries
+ * whose course has not loaded yet (or that name no chain lesson) are omitted,
+ * so the caller falls back to the stored title instead of hiding the link.
+ */
+export function buildRecordedLessonOrdinals(friendLinks, configEntries) {
+    const configs = new Map(
+        (Array.isArray(configEntries) ? configEntries : [])
+            .map((entry) => [entry?.courseId, entry?.config])
+    );
+    // `friend_links` is a jsonb MAP keyed `courseId:recordedLessonId`; accept a
+    // plain list too, so a caller can pass either shape.
+    const links = Array.isArray(friendLinks) ? friendLinks : Object.values(friendLinks || {});
+    const ordinals = {};
+    for (const link of links) {
+        const ordinal = recordedLessonOrdinal(configs.get(link?.courseId), link?.recordedLessonId);
+        if (ordinal) ordinals[`${link.courseId}:${link.recordedLessonId}`] = ordinal;
+    }
+    return ordinals;
+}
+
 // Recorder direction of the "featured for the visitor" match: the visitor's own
 // counted_lessons carries the `<courseId>_<recordedLessonId>` key (existing
 // first-underscore convention). Joined on recordedLessonId, never lessonId.

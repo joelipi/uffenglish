@@ -1409,6 +1409,17 @@ const strings = {
         hi: "मेरे साथ अंग्रेज़ी का अभ्यास करें",
         bn: "আমার সাথে ইংরেজি চর্চা করুন"
     },
+    // Positional label for a profile link, derived from the course config at
+    // render time (the stored lesson title would keep the old wording after a
+    // rename). Digits, not number words: six locales, one format.
+    'profile_friend_lesson_number': {
+        en: "Lesson {n} of {total}",
+        es: "Lección {n} de {total}",
+        pt: "Lição {n} de {total}",
+        fr: "Leçon {n} sur {total}",
+        hi: "पाठ {n} / {total}",
+        bn: "পাঠ {n} / {total}"
+    },
     'profile_friend_link_available': {
         en: "Available for {time}",
         es: "Disponible por {time}",

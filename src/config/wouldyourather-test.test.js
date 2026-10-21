@@ -11,12 +11,15 @@
 //   C (43)  answers the friend's set-1 clip         -> records the set-2 questions
 //   D (43)  answers the friend's set-2 clip         -> records the set-2 questions
 //   E (43)  answers the friend's set-2 clip         -> records the set-3 questions
-//   F (43)  answers the friend's set-3 clip         -> records the set-3 questions
+//   F (33)  answers the friend's set-3 clip         -> closes (no next set)
 //
 // Every lesson after A is respond-then-record: the friend's clip opens the
 // lesson, the learner answers it, then the learner records the next set's
 // question videos. C reuses B's answer videos and E reuses D's — there is
 // only one answer video set per topic set, so each is drilled twice.
+// F is the chain's terminal lesson: nothing follows it, so its second half is
+// a code-owned goodbye block (one branch + four text-only takes) instead of
+// recording a question set nobody could answer.
 //
 // These guards use the app's OWN resolvers (resolveNextStepIndex /
 // resolveBranchChoices) so they check behaviour, not text.
@@ -29,13 +32,14 @@ const TAKE_RE = /^wouldyourather-[a-f]-\d{2}-\d{2}$/;
 const FRIEND_RE = /^\{friendCode\}\{selfCode\}-wouldyourather-test-([a-f])-(\d{2})$/;
 
 // lesson id -> { friendSet, answerSet, recordSet, steps, branchings, responses }
+// `recordSet: null` means the lesson closes instead of recording a next set.
 const PLAN = {
     a: { friendSet: null, answerSet: null, recordSet: 'a', steps: 16, branchings: 3, responses: 12 },
     b: { friendSet: 'a', answerSet: 'b', recordSet: 'a', steps: 43, branchings: 6, responses: 36 },
     c: { friendSet: 'a', answerSet: 'b', recordSet: 'c', steps: 43, branchings: 6, responses: 36 },
     d: { friendSet: 'c', answerSet: 'd', recordSet: 'c', steps: 43, branchings: 6, responses: 36 },
     e: { friendSet: 'c', answerSet: 'd', recordSet: 'e', steps: 43, branchings: 6, responses: 36 },
-    f: { friendSet: 'e', answerSet: 'f', recordSet: 'e', steps: 43, branchings: 6, responses: 36 },
+    f: { friendSet: 'e', answerSet: 'f', recordSet: null, steps: 33, branchings: 4, responses: 28 },
 };
 
 const lessonById = (id) => wouldyouratherTest.lessons.find((l) => l.lessonId === id);
@@ -74,6 +78,12 @@ describe('wouldyourather-test.json — every response step', () => {
     it.each(Object.keys(PLAN))('lesson %s uses only single-take videos', (id) => {
         for (const step of lessonById(id).steps) {
             if (step.responseType !== 'friendClosedResponse') continue;
+            // The terminal lesson's goodbye takes are the only text-only
+            // response steps: the learner records their own voice.
+            if (!step.simpleVideoUrl) {
+                expect(id, `${id}: a text-only response step is only allowed in the closing lesson`).toBe('f');
+                continue;
+            }
             expect(
                 TAKE_RE.test(step.simpleVideoUrl),
                 `${id}: ${step.simpleVideoUrl} is not a single-take slug`,
@@ -113,6 +123,10 @@ describe('wouldyourather-test.json — every response step', () => {
     it.each(Object.keys(PLAN))('lesson %s publishes every clip into its video set namespace', (id) => {
         for (const step of lessonById(id).steps) {
             if (step.responseType !== 'friendClosedResponse') continue;
+            if (!step.simpleVideoUrl) {
+                expect(step.publishLessonId, `${id}: a text-only step publishes nothing`).toBeUndefined();
+                continue;
+            }
             const set = step.simpleVideoUrl.match(/^wouldyourather-([a-f])-/)[1];
             const want = set === id ? undefined : set;
             expect(
@@ -126,7 +140,7 @@ describe('wouldyourather-test.json — every response step', () => {
         const plan = PLAN[id];
         if (!plan.answerSet) return;
         const answerSteps = lessonById(id).steps.filter(
-            (s) => s.responseType === 'friendClosedResponse' && s.simpleVideoUrl.startsWith(`wouldyourather-${plan.answerSet}-`),
+            (s) => s.responseType === 'friendClosedResponse' && s.simpleVideoUrl?.startsWith(`wouldyourather-${plan.answerSet}-`),
         );
         expect(answerSteps, `${id} answer steps`).toHaveLength(24);
         // 6 groups x 4 phrasings
@@ -136,12 +150,56 @@ describe('wouldyourather-test.json — every response step', () => {
 
     it.each(Object.keys(PLAN))('lesson %s records the question set it is meant to record', (id) => {
         const plan = PLAN[id];
+        if (!plan.recordSet) return;
         const recordSteps = lessonById(id).steps.filter(
-            (s) => s.responseType === 'friendClosedResponse' && s.simpleVideoUrl.startsWith(`wouldyourather-${plan.recordSet}-`),
+            (s) => s.responseType === 'friendClosedResponse' && s.simpleVideoUrl?.startsWith(`wouldyourather-${plan.recordSet}-`),
         );
         expect(recordSteps, `${id} record steps`).toHaveLength(12);
         const groups = new Set(recordSteps.map((s) => s.simpleVideoUrl.split('-').slice(0, 3).join('-')));
         expect(groups.size, `${id} record groups`).toBe(3);
+    });
+});
+
+describe('wouldyourather-test.json — the terminal lesson closes', () => {
+    // F is the last lesson in the chain: the friend who receives its video has
+    // nothing left to answer, so the second half is a goodbye, not a question
+    // set. The block is code-owned by the generator (FRIEND_CLOSING_LINES).
+    it('lesson f ends with one goodbye branch and four text-only takes', () => {
+        const steps = lessonById('f').steps;
+        const start = steps.findLastIndex((s) => s.responseType === 'branching');
+        const closing = steps.slice(start);
+        expect(closing, 'closing block size').toHaveLength(5);
+
+        const [branch, ...takes] = closing;
+        expect(branch.responseType).toBe('branching');
+        expect(branch.simpleVideoUrl, 'the closing prompt is text, not a clip').toBeUndefined();
+        expect(branch.chooseStep, 'one goodbye per rung').toHaveLength(4);
+        expect(branch.chooseStep.map((c) => c.nextStep)).toEqual([1, 2, 3, 4]);
+
+        for (const take of takes) {
+            expect(take.responseType).toBe('friendClosedResponse');
+            expect(take.simpleVideoUrl, 'a closing take records the learner, no prompt video').toBeUndefined();
+            expect(take.publishLessonId, 'a closing take publishes nothing').toBeUndefined();
+            expect(take.cue).toHaveLength(1);
+            for (const locale of LOCALES) {
+                expect(take.subtitles?.[locale], `closing ${locale}`).toBe(take.cue[0][locale]);
+            }
+        }
+    });
+
+    it('the last closing take ends the lesson', () => {
+        const steps = lessonById('f').steps;
+        expect(resolveNextStepIndex(steps[steps.length - 1], steps.length - 1)).toBe(steps.length);
+    });
+
+    it('no other lesson has a text-only response step', () => {
+        for (const lesson of wouldyouratherTest.lessons) {
+            if (lesson.lessonId === 'f') continue;
+            for (const step of lesson.steps) {
+                if (step.responseType !== 'friendClosedResponse') continue;
+                expect(step.simpleVideoUrl, `${lesson.lessonId} response step without a take`).toBeTypeOf('string');
+            }
+        }
     });
 });
 

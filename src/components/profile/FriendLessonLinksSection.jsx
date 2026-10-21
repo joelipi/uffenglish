@@ -18,10 +18,10 @@ const cardStyle = {
 
 // One link. Purely presentational; `now` is supplied by the section's ticking
 // clock so the link disappears the moment the 48h window passes. The label is
-// the English title of the lesson the profile owner recorded (already
-// normalized to English at export time), so a visitor can pick the set they
-// remember.
-function FriendLessonLink({ entry, lang, now }) {
+// the lesson's POSITION in the course chain ("Lesson 3 of 6"), read from the
+// config at render time; the stored title is only the fallback for a config
+// that has not loaded (or a legacy entry with no title at all).
+function FriendLessonLink({ entry, lang, now, ordinal }) {
     const remainingMs = getFriendLinkRemainingMs(new Date(entry.addedAt).getTime(), now);
 
     const url = buildFriendLessonLink({
@@ -30,12 +30,13 @@ function FriendLessonLink({ entry, lang, now }) {
         shareCode: entry.shareCode,
     });
 
-    // The label is the English title of the recorded lesson. If an entry has no
-    // title (malformed/legacy data), fall back to the generic link copy so the
-    // anchor keeps a visible, clickable label.
-    const label = (typeof entry.lessonTitle === 'string' && entry.lessonTitle !== '')
-        ? entry.lessonTitle
-        : Strings.get('profile_friend_lesson_link', lang);
+    const ordinalLabel = ordinal
+        ? Strings.get('profile_friend_lesson_number', lang, { n: ordinal.n, total: ordinal.total })
+        : null;
+    const label = ordinalLabel
+        || ((typeof entry.lessonTitle === 'string' && entry.lessonTitle !== '')
+            ? entry.lessonTitle
+            : Strings.get('profile_friend_lesson_link', lang));
 
     return (
         <li style={{ color: '#ffffff', marginBottom: '12px' }}>
@@ -92,7 +93,7 @@ function VisitorLoginBanner({ shareCode, lang }) {
 // chain-head lessons plus the login/guest banner; a logged-in visitor sees the
 // lessons they feature in first, then the chain-head lessons, with joint
 // completions badged. `viewer` is null for logged-out visitors.
-export default function FriendLessonLinksSection({ friendLinks, lang = 'en', shareCode, viewer = null, userName = '', name, ownerName, displayName, profileName }) {
+export default function FriendLessonLinksSection({ friendLinks, lang = 'en', shareCode, viewer = null, userName = '', name, ownerName, displayName, profileName, lessonOrdinals = {} }) {
     const resolvedName = userName || name || ownerName || displayName || profileName || '';
     const [now, setNow] = useState(() => Date.now());
     const { mode, groups, isTicking } = buildVisitorPracticeView({ friendLinks, nowMs: now, viewer });
@@ -165,6 +166,7 @@ export default function FriendLessonLinksSection({ friendLinks, lang = 'en', sha
                                 entry={entry}
                                 lang={lang}
                                 now={now}
+                                ordinal={lessonOrdinals[`${entry.courseId}:${entry.recordedLessonId}`]}
                             />
                         ))}
                     </ul>

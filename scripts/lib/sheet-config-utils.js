@@ -851,6 +851,75 @@ export function withHero(head, hero, courseMission, lessons) {
 
 const ABABAB_PAD = (n) => String(n).padStart(2, '0');
 
+/**
+ * The terminal lesson's closing block.
+ *
+ * The chain's LAST answer lesson has no next question set to record: the
+ * friend who receives its video has nothing to answer, so instead of the
+ * record phase the learner picks a rung and signs off. This is lesson
+ * FRAMING (like the success step, which is code-owned too), not course
+ * content — the sheet authors questions and answers, and every ABABAB course
+ * ends the same way. The four lines follow the course's rung ladder; the
+ * strings are app copy, so they carry every app locale.
+ *
+ * Steps: one `branching` (the labels are the prompts) + one text-only
+ * `friendClosedResponse` per line — no video, no publish namespace.
+ */
+export const FRIEND_CLOSING_LINES = [
+    {
+        en: 'Thank you. Bye!',
+        es: '¡Gracias! ¡Adiós!',
+        pt: 'Obrigado. Tchau!',
+        fr: 'Merci. Au revoir !',
+        hi: 'धन्यवाद। अलविदा!',
+        bn: 'ধন্যবাদ। বিদায়!',
+    },
+    {
+        en: 'Thank you for talking. This was nice.',
+        es: 'Gracias por hablar. Esto fue agradable.',
+        pt: 'Obrigado por conversar. Foi legal.',
+        fr: "Merci d'avoir discuté. C'était sympa.",
+        hi: 'बात करने के लिए धन्यवाद। यह अच्छा था।',
+        bn: 'কথা বলার জন্য ধন্যবাদ। এটা ভালো ছিল।',
+    },
+    {
+        en: 'Thanks for practising with me. This was really nice.',
+        es: 'Gracias por practicar conmigo. Fue muy agradable.',
+        pt: 'Obrigado por praticar comigo. Foi muito legal.',
+        fr: "Merci d'avoir pratiqué avec moi. C'était vraiment sympa.",
+        hi: 'मेरे साथ अभ्यास करने के लिए धन्यवाद। यह वाकई अच्छा था।',
+        bn: 'আমার সাথে অনুশীলন করার জন্য ধন্যবাদ। এটা সত্যিই ভালো ছিল।',
+    },
+    {
+        en: "Thank you for talking with me. This has been nice. Let's start a new conversation later.",
+        es: 'Gracias por hablar conmigo. Ha sido agradable. Empecemos una nueva conversación más tarde.',
+        pt: 'Obrigado por conversar comigo. Foi bom. Vamos começar uma nova conversa depois.',
+        fr: "Merci d'avoir discuté avec moi. C'était sympa. Commençons une nouvelle conversation plus tard.",
+        hi: 'मेरे साथ बात करने के लिए धन्यवाद। यह अच्छा रहा। चलिए बाद में नई बातचीत शुरू करें।',
+        bn: 'আমার সাথে কথা বলার জন্য ধন্যবাদ। এটা ভালো ছিল। চলুন পরে নতুন কথোপকথন শুরু করি।',
+    },
+];
+
+/** The closing block's steps: choose a rung, then record that line. */
+function abababClosingSteps(lines) {
+    const steps = [
+        {
+            responseType: 'branching',
+            chooseStep: lines.map((text, i) => ({ nextStep: i + 1, text })),
+        },
+    ];
+    const end = steps.length + lines.length;
+    for (const text of lines) {
+        steps.push({
+            responseType: 'friendClosedResponse',
+            cue: [text],
+            subtitles: { ...text },
+            nextStep: end - steps.length,
+        });
+    }
+    return steps;
+}
+
 function abababNum(row, name) {
     const n = Number(cell(row, name));
     return Number.isFinite(n) ? n : 0;
@@ -975,10 +1044,13 @@ function abababResponseStep(row, nextStep, publishLessonId) {
  * `respond` — the answer set the lesson answers (null for the first ask
  * lesson, which has no previous set): { pair, friendNamespace }.
  * `record` — the question set the lesson records: { pair }.
+ * `closing` — for the chain's terminal lesson only: `FRIEND_CLOSING_LINES`
+ * replaces the record phase (there is no next set to record). The two are
+ * mutually exclusive.
  */
-function abababLesson({ id, respond, record, course, index }) {
+function abababLesson({ id, respond, record, closing, course, index }) {
     const steps = [];
-    const recordTopics = [...index.pairs.get(record.pair).topics].sort((a, b) => a - b);
+    const recordTopics = record ? [...index.pairs.get(record.pair).topics].sort((a, b) => a - b) : [];
 
     // -- opener ---------------------------------------------------------
     if (respond) {
@@ -1042,6 +1114,11 @@ function abababLesson({ id, respond, record, course, index }) {
     }
 
     // -- record phase: choose a phrasing, then record that take ---------
+    // The terminal lesson closes instead: nothing follows it, so recording a
+    // question set would send the friend to a lesson that does not exist.
+    if (closing && closing.length) {
+        steps.push(...abababClosingSteps(closing));
+    }
     for (const topic of recordTopics) {
         const takes = abababQuestionTakes(index, record.pair, topic);
         if (!takes.length) throw new Error(`pair ${record.pair} topic ${topic} has no question takes`);
@@ -1096,6 +1173,10 @@ function buildAbababCourseConfig(videoRows) {
     }
 
     const lessons = [];
+    // The chain's terminal lesson is the last pair's ANSWER lesson: it still
+    // answers the friend's final clip (and is the only thing shared back), but
+    // it has no next question set to record, so it closes instead.
+    const lastPair = pairIndexes[pairIndexes.length - 1];
     pairIndexes.forEach((pair, i) => {
         const meta = index.pairs.get(pair);
         const previous = i > 0 ? pairIndexes[i - 1] : null;
@@ -1110,7 +1191,8 @@ function buildAbababCourseConfig(videoRows) {
             {
                 id: meta.answerId,
                 respond: { pair, friendNamespace: meta.askId },
-                record: { pair },
+                record: pair === lastPair ? null : { pair },
+                closing: pair === lastPair ? FRIEND_CLOSING_LINES : null,
             },
         ]) {
             const rowsForLesson = lessonRows.get(spec.id) || [];

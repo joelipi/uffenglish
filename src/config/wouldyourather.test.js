@@ -139,62 +139,40 @@ describe('wouldyourather.json — localized text', () => {
     });
 });
 
-describe('wouldyourather.json — lesson titles match their own questions', () => {
-    // The Oct-14 rewrite retitled only lesson a; the other five kept
-    // advertising a retired topic list — lesson b still said "beach vs.
-    // mountains" while its questions were dollars/food/vacation. The invariant:
-    // every topic word a title names must appear in that lesson's own cues.
-    const STOPWORDS = new Set([
-        'ask', 'answer', 'vs', 'or', 'and', 'the', 'a', 'an', 'of', 'with',
-        'in', 'to', 'it', 'is',
-    ]);
-
-    // A title may name a topic the questions phrase differently. A word absent
-    // here must appear in the lesson's cues (modulo plural), which is what makes
-    // a stale title ("mountains") fail.
-    const SYNONYMS = {
-        money: ['money', 'dollars'],
-        time: ['time', 'years'],
-        talk: ['talk', 'conversation'],
-        salary: ['salary', 'pay'],
-        pay: ['pay', 'salary'],
-        mountains: ['mountains', 'mountain'],
-        countryside: ['countryside', 'country', 'town'],
+describe('wouldyourather.json — lesson titles are generic', () => {
+    // The profile labels a friend's lesson by POSITION ("Lesson N of 6"), so
+    // the titles no longer advertise topics — a topic list in a title is
+    // exactly what went stale before (the Oct-14 rewrite left five lessons
+    // naming retired topics). The title is the course topic plus the lesson's
+    // own letter, and nothing else.
+    const TOPIC = {
+        en: 'Preferences',
+        es: 'Preferencias',
+        pt: 'Preferências',
+        bn: 'পছন্দ',
+        fr: 'Préférences',
+        hi: 'पसंद',
     };
 
-    const singular = (w) => (w.endsWith('s') && !w.endsWith('ss') ? w.slice(0, -1) : w);
-
-    function formsFor(word) {
-        const base = SYNONYMS[word] || [word];
-        // A title saying "languages" must match questions saying "language".
-        return [...new Set(base.flatMap((f) => [f, singular(f)]))];
-    }
-
-    function topicWords(title) {
-        return title
-            .toLowerCase()
-            .replace(/[^a-z0-9\s]/g, ' ')
-            .split(/\s+/)
-            .filter((w) => w && !STOPWORDS.has(w));
-    }
-
     it.each(wouldyourather.lessons.map((l) => l.lessonId))(
-        'lesson %s title only names topics its own questions contain',
+        'lesson %s is titled "<topic> <letter>" in every locale',
         (lessonId) => {
             const lesson = wouldyourather.lessons.find((l) => l.lessonId === lessonId);
-            expect(lesson, `no lesson ${lessonId}`).toBeDefined();
-            const cues = (lesson.steps || [])
-                .flatMap((s) => (s.cue || []).map((c) => String(c.en).toLowerCase()))
-                .join(' ');
-            for (const word of topicWords(lesson.title.en)) {
-                const forms = formsFor(word);
+            for (const locale of LOCALES) {
                 expect(
-                    forms.some((f) => cues.includes(f)),
-                    `lesson ${lessonId} title says "${word}" but its questions never mention ${forms.join('/')}`,
-                ).toBe(true);
+                    lesson.title[locale],
+                    `lesson ${lessonId} ${locale} title`,
+                ).toBe(`${TOPIC[locale]} ${lessonId.toUpperCase()}`);
             }
         }
     );
+
+    it('no title names a topic any more', () => {
+        for (const lesson of wouldyourather.lessons) {
+            const words = lesson.title.en.split(/\s+/).slice(1);
+            expect(words, `lesson ${lesson.lessonId} title carries a topic list`).toEqual([lesson.lessonId.toUpperCase()]);
+        }
+    });
 });
 
 describe('wouldyourather.json — French and Hindi lesson coverage', () => {

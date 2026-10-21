@@ -3,6 +3,8 @@ import {
     FRIEND_LINK_WINDOW_MS,
     nextFriendLessonId,
     isTerminalFriendLesson,
+    recordedLessonOrdinal,
+    buildRecordedLessonOrdinals,
     hasEarlierShareCtaLesson,
     buildFriendLessonLink,
     toFriendLessonHref,
@@ -102,6 +104,59 @@ describe('isTerminalFriendLesson', () => {
         expect(isTerminalFriendLesson(chain, null)).toBe(false);
         const noOverlay = { lessons: [{ lessonId: 'a' }] };
         expect(isTerminalFriendLesson(noOverlay, 'a')).toBe(false);
+    });
+});
+
+describe('recordedLessonOrdinal', () => {
+    const course = {
+        lessons: [
+            { lessonId: 'a', recapOverlay: 'shareCta' },
+            { lessonId: 'b', recapOverlay: 'shareCta' },
+            { lessonId: 'x', recapOverlay: 'fluency' },
+            { lessonId: 'c', recapOverlay: 'shareCta' },
+        ],
+    };
+
+    it('counts only the shareCta lessons, 1-based', () => {
+        expect(recordedLessonOrdinal(course, 'a')).toEqual({ n: 1, total: 3 });
+        expect(recordedLessonOrdinal(course, 'b')).toEqual({ n: 2, total: 3 });
+        expect(recordedLessonOrdinal(course, 'c')).toEqual({ n: 3, total: 3 });
+    });
+
+    it('returns null for a non-chain lesson, an unknown id and malformed input', () => {
+        expect(recordedLessonOrdinal(course, 'x')).toBeNull();
+        expect(recordedLessonOrdinal(course, 'zz')).toBeNull();
+        expect(recordedLessonOrdinal(null, 'a')).toBeNull();
+        expect(recordedLessonOrdinal({}, 'a')).toBeNull();
+        expect(recordedLessonOrdinal(course, null)).toBeNull();
+    });
+});
+
+describe('buildRecordedLessonOrdinals', () => {
+    it('keys the ordinal by course and RECORDED lesson', () => {
+        const links = {
+            'wouldyourather:a': {
+                courseId: 'wouldyourather', recordedLessonId: 'a', lessonId: 'b', shareCode: 'c',
+            },
+        };
+        const entries = [{
+            courseId: 'wouldyourather',
+            config: {
+                lessons: [
+                    { lessonId: 'a', recapOverlay: 'shareCta' },
+                    { lessonId: 'b', recapOverlay: 'shareCta' },
+                ],
+            },
+        }];
+        expect(buildRecordedLessonOrdinals(links, entries)).toEqual({
+            'wouldyourather:a': { n: 1, total: 2 },
+        });
+    });
+
+    it('omits a link whose course has not loaded, so the stored title is used', () => {
+        const links = { 'missing:a': { courseId: 'missing', recordedLessonId: 'a' } };
+        expect(buildRecordedLessonOrdinals(links, [])).toEqual({});
+        expect(buildRecordedLessonOrdinals(null, null)).toEqual({});
     });
 });
 

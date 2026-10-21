@@ -156,3 +156,31 @@ describe('terminal chain lesson copy wiring', () => {
         expect(successScreen).not.toContain("=== 'terminal'");
     });
 });
+
+// The profile used to label a link with the lesson title stored on the entry,
+// which is frozen at export time — a renamed lesson kept showing its old
+// wording for the whole 48h window. The label is now the lesson's POSITION in
+// the course chain, derived from the config at render time.
+describe('profile lesson-position labels', () => {
+    const publicProfile = read('../../components/profile/PublicProfile.jsx');
+    const section = read('../../components/profile/FriendLessonLinksSection.jsx');
+
+    it('reads the live course configs and derives the ordinals from them', () => {
+        expect(publicProfile).toContain("queryKey: ['config-entries']");
+        expect(publicProfile).toContain('buildRecordedLessonOrdinals(friendLinks, configEntries)');
+        expect(publicProfile).toContain('lessonOrdinals={lessonOrdinals}');
+    });
+
+    it('falls back to the stored title when the config has not loaded', () => {
+        expect(section).toContain('lessonOrdinals = {}');
+        expect(section).toContain('ordinal={lessonOrdinals[`${entry.courseId}:${entry.recordedLessonId}`]}');
+        // The fallback chain, in order: positional label, stored title, generic copy.
+        const start = section.indexOf('const ordinalLabel = ordinal');
+        const end = section.indexOf('Strings.get(\'profile_friend_lesson_link\', lang)', start);
+        expect(start).toBeGreaterThan(-1);
+        expect(end).toBeGreaterThan(start);
+        const block = section.slice(start, end);
+        expect(block).toContain("'profile_friend_lesson_number'");
+        expect(block).toContain('entry.lessonTitle');
+    });
+});
