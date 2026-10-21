@@ -14,15 +14,20 @@ const profileState = { data: undefined, isLoading: false };
 const authState = { data: false };
 const viewerState = { data: { $id: 'guest', native_language: 'EN' } };
 const notificationsState = { data: [] };
+const friendCompletionsState = { data: [] };
 
 vi.mock('react-router-dom', () => ({
     useNavigate: () => navigate,
+    // The friend-practice link is a react-router <Link> (a client-side
+    // navigation), so the mock has to provide it too.
+    Link: ({ to, children, ...rest }) => React.createElement('a', { href: to, ...rest }, children),
 }));
 vi.mock('../../modules/api/api.js', () => ({
     useUserByShareCode: () => profileState,
     useAuthStatus: () => authState,
     useUserProfile: () => viewerState,
     useNotifications: () => notificationsState,
+    useFriendCompletions: () => friendCompletionsState,
     // user-profile.js (the streak helper's module) imports these at load time.
     getCurrentUser: vi.fn(),
     fetchProfileIdentityRow: vi.fn(),
@@ -59,6 +64,7 @@ describe('PublicProfile localization', () => {
         authState.data = false;
         viewerState.data = { $id: 'guest', native_language: 'EN' };
         notificationsState.data = [];
+        friendCompletionsState.data = [];
         previous = appStore.getState();
         container = document.createElement('div');
         document.body.appendChild(container);
@@ -123,6 +129,16 @@ describe('PublicProfile localization', () => {
         expect(container.textContent).not.toContain(Strings.get('public_profile_not_found', 'en'));
     });
 
+    it('localizes the page heading to the visitor language', () => {
+        // The heading used to be hardcoded English ("Practice English with")
+        // in the JSX, so a Hindi visitor read it in English.
+        appStore.setState({ guestNativeLanguage: 'HI', userData: null });
+        render();
+
+        expect(container.textContent).toContain(Strings.get('public_profile_heading', 'hi'));
+        expect(container.textContent).not.toContain('Practice English with');
+    });
+
     it('localizes the share-code label to the visitor language', () => {
         appStore.setState({ guestNativeLanguage: 'HI', userData: null });
         render();
@@ -130,6 +146,71 @@ describe('PublicProfile localization', () => {
         expect(container.textContent).toContain(Strings.get('public_profile_share_code', 'hi'));
         expect(container.textContent).toContain('owner1');
         expect(container.textContent).not.toContain('Share Code:');
+    });
+});
+
+// The badge must be PAIR-scoped: a lesson completed with a different friend
+// must never badge on this owner's profile, even though the viewer's own
+// completion history contains that lesson. The component passes the
+// owner-scoped `friend_completions` list straight through to the logic module.
+describe('PublicProfile completed-together badge wiring', () => {
+    let container;
+    let root;
+    let previous;
+
+    const ACTIVE_LINK = {
+        courseId: 'friendchain', courseName: 'Friend Chain',
+        recordedLessonId: 'a', lessonId: 'b', shareCode: 'owner1',
+        lessonTitle: 'Ask',
+    };
+
+    beforeEach(() => {
+        profileState.data = {
+            ...OWNER,
+            friendLinks: { 'friendchain:a': { ...ACTIVE_LINK, addedAt: new Date().toISOString() } },
+        };
+        profileState.isLoading = false;
+        authState.data = true;
+        viewerState.data = { $id: 'viewer1', shareCode: 'viewer1', native_language: 'EN' };
+        notificationsState.data = [];
+        friendCompletionsState.data = [];
+        previous = appStore.getState();
+        container = document.createElement('div');
+        document.body.appendChild(container);
+        appStore.setState({ guestNativeLanguage: 'EN', userData: { $id: 'viewer1', native_language: 'EN' } });
+    });
+
+    afterEach(() => {
+        if (root) act(() => root.unmount());
+        container.remove();
+        root = null;
+        appStore.setState({
+            guestNativeLanguage: previous.guestNativeLanguage,
+            userData: previous.userData,
+        });
+    });
+
+    const render = () => {
+        root = createRoot(container);
+        act(() => {
+            root.render(React.createElement(PublicProfile, { shareCode: 'owner1' }));
+        });
+    };
+
+    it('badges the entry when the viewer completed its target lesson WITH this owner', () => {
+        friendCompletionsState.data = [{ courseId: 'friendchain', lessonId: 'b' }];
+        render();
+
+        expect(container.textContent).toContain(Strings.get('profile_completed_together', 'en'));
+    });
+
+    it('does not badge it when the completion list for this owner is empty', () => {
+        // The owner-scoped read returns nothing when the viewer did that lesson
+        // with a different friend, so no badge is rendered here.
+        friendCompletionsState.data = [];
+        render();
+
+        expect(container.textContent).not.toContain(Strings.get('profile_completed_together', 'en'));
     });
 });
 

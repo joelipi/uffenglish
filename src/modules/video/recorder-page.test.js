@@ -1522,6 +1522,22 @@ describe('recorder auto-render — zero server changes', () => {
             'src/hooks/use-share-code.js',
             'src/hooks/use-share-code.test.jsx',
             'tests/notifications.spec.js',
+            // Main's badge test mocks react-router-dom; the friend-practice
+            // link is a <Link>, so the mock has to provide it.
+            'src/components/profile/PublicProfile.test.jsx',
+            // Story 086 (Continue gated on the clip upload).
+            'stories/086-gate-continue-button-on-upload/story.md',
+            'src/modules/lesson/success-continue-logic.js',
+            'src/modules/lesson/success-continue-logic.test.js',
+            'src/components/widgets/SuccessButtons.jsx',
+            'src/components/widgets/SuccessButtons.test.jsx',
+            'src/components/widgets/clips-uploading-warning-wiring.test.js',
+            'tests/success-concat-button.spec.js',
+            // Pair-scoped "completed it together" ledger: a lesson done with
+            // one friend must not badge on another friend's profile.
+            'supabase/migrations/013_add_friend_completions.sql',
+            'src/modules/api/friend-completions-migration.test.js',
+            'src/modules/api/friend-completions-read.test.js',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);

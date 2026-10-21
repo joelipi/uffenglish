@@ -15,6 +15,16 @@ const screen = read('./SuccessScreen.jsx');
 const strings = read('../../data/strings.js');
 const store = read('../../modules/store/store.js');
 
+// Slices a region between two real markers. A slice that runs to EOF would
+// swallow whatever is appended later, so every region is bounded explicitly.
+function sliceBetween(source, startMarker, endMarker) {
+    const start = source.indexOf(startMarker);
+    expect(start, `missing start marker: ${startMarker}`).toBeGreaterThan(-1);
+    const end = source.indexOf(endMarker, start + startMarker.length);
+    expect(end, `missing end marker: ${endMarker}`).toBeGreaterThan(start);
+    return source.slice(start, end);
+}
+
 describe('clips-uploading warning wiring', () => {
     it('flags clipsPublishing around the export', () => {
         const setTrue = buttons.indexOf('setClipsPublishing(true)');
@@ -49,5 +59,46 @@ describe('clips-uploading warning wiring', () => {
     it('exposes the store flag + setter', () => {
         expect(store).toMatch(/clipsPublishing:\s*false/);
         expect(store).toMatch(/setClipsPublishing:\s*\(publishing\)\s*=>/);
+    });
+});
+
+// The Continue button must not appear while this warning is on screen: the
+// learner would leave the lesson and abort the upload the warning is about.
+describe('Continue is gated on the clip upload', () => {
+    it('the warning and the Continue button read the same flag', () => {
+        // The warning (SuccessScreen) and the button (SuccessButtons) must
+        // both follow `clipsPublishing` — two different flags would let the
+        // button appear while the warning is up.
+        expect(screen).toMatch(/useStore\(appStore,\s*state\s*=>\s*state\.clipsPublishing\)/);
+        expect(buttons).toMatch(/useStore\(appStore,\s*state\s*=>\s*state\.clipsPublishing\)/);
+    });
+
+    it('the Continue button renders only through the shared gate', () => {
+        const continueButton = sliceBetween(
+            buttons,
+            'export function ContinueButton(',
+            'export function VideoButton('
+        );
+        // The decision is the pure predicate, not an inline check in JSX.
+        expect(continueButton).toMatch(/shouldShowSuccessContinue\(\{\s*visible:\s*button\.visible,\s*clipsPublishing\s*\}\)/);
+        // A raw visibility check would bypass the upload gate.
+        expect(continueButton).not.toMatch(/if\s*\(\s*!button\.visible\s*\)\s*return null/);
+    });
+
+    it('the publish gate is raised before the Continue reveal', () => {
+        const runProcessing = sliceBetween(
+            buttons,
+            'const runProcessing = useCallback(',
+            'if (!button.visible) return null;'
+        );
+        const gateUp = runProcessing.indexOf('setClipsPublishing(true)');
+        const reveal = runProcessing.indexOf('setContinueVisible(true)');
+        expect(gateUp).toBeGreaterThan(-1);
+        expect(reveal).toBeGreaterThan(-1);
+        // The upload gate goes up first, so the reveal can never land while
+        // the clips are still uploading.
+        expect(gateUp).toBeLessThan(reveal);
+        // ...and it comes down again before the reveal (the finally).
+        expect(runProcessing.indexOf('setClipsPublishing(false)')).toBeLessThan(reveal);
     });
 });

@@ -168,6 +168,68 @@ describe('VideoButton delayed Continue', () => {
     });
 });
 
+describe('success Continue waits for the clip upload', () => {
+    let container;
+    let root;
+    let client;
+
+    beforeEach(() => {
+        container = document.createElement('div');
+        document.body.appendChild(container);
+        client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+        appStore.setState({
+            successVideoButton: { visible: true, loading: false, state: 'ready' },
+            successLessonId: 'm-g',
+            successFluencyData: { total: 80 },
+            successContinueButton: { visible: true, loading: false },
+            successRepeatButton: { visible: false },
+            successCanvasVisible: false,
+            afterVideoActive: null,
+            clipsPublishing: false,
+            configData: PLAIN_CONFIG,
+            currentLessonIndex: 0,
+            userData: { native_language: 'en' },
+        });
+    });
+
+    afterEach(() => {
+        if (root) act(() => root.unmount());
+        container.remove();
+        root = null;
+        appStore.getState().hideSuccessScreen();
+        appStore.setState({ configData: null, userData: null });
+    });
+
+    async function renderContinue() {
+        root = createRoot(container);
+        await act(async () => {
+            root.render(
+                React.createElement(QueryClientProvider, { client },
+                    React.createElement(ContinueButton, { onLoadNextLesson: () => {} })
+                )
+            );
+        });
+        return container.querySelector('#continueButtonSuccess');
+    }
+
+    it('is not rendered while the clips are uploading (the warning is on screen)', async () => {
+        await act(async () => { appStore.getState().setClipsPublishing(true); });
+        expect(await renderContinue()).toBeNull();
+    });
+
+    it('appears as soon as the upload finished and the warning is gone', async () => {
+        await act(async () => { appStore.getState().setClipsPublishing(true); });
+        expect(await renderContinue()).toBeNull();
+
+        await act(async () => { appStore.getState().setClipsPublishing(false); });
+        expect(container.querySelector('#continueButtonSuccess')).not.toBeNull();
+    });
+
+    it('is rendered straight away when no upload runs (guest rows publish nothing)', async () => {
+        expect(await renderContinue()).not.toBeNull();
+    });
+});
+
 describe('success Continue matches Share styling', () => {
     let container;
     let root;

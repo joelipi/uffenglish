@@ -7,7 +7,7 @@ import { resolveFriendLessonLink } from '../../modules/user/friend-lesson-link-l
 import { resolveFriendResponseNotification } from '../../modules/notifications/notification-logic.js';
 import { AFTER_SUCCESS_BASE, AFTER_SHARE_BASE } from '../../modules/video/after-video-logic.js';
 import { getDeviceShareTarget, SHARE_TARGET_DOWNLOAD } from '../../modules/video/share-target-logic.js';
-import { isSuccessContinueDelayed, scheduleSuccessContinueReveal, findLessonById } from '../../modules/lesson/success-continue-logic.js';
+import { isSuccessContinueDelayed, scheduleSuccessContinueReveal, findLessonById, shouldShowSuccessContinue } from '../../modules/lesson/success-continue-logic.js';
 import { getBilingual } from '../../data/strings.js';
 import { useNativeLanguage } from '../../hooks/use-native-language.js';
 import { isStaleChunkReloadPending } from '../../modules/utils/stale-chunk-reload.js';
@@ -27,10 +27,14 @@ function ChoiceLabel({ text }) {
 
 export function ContinueButton({ onLoadNextLesson }) {
   const button = useStore(appStore, state => state.successContinueButton);
+  // The same flag that raises the "do not close this tab yet" warning while
+  // the clips upload: Continue must not appear until that warning is gone,
+  // or the learner leaves the lesson and aborts the upload.
+  const clipsPublishing = useStore(appStore, state => state.clipsPublishing);
   const lang = useNativeLanguage();
   const setLoading = useStore(appStore, state => state.setSuccessContinueLoading);
 
-  if (!button.visible) return null;
+  if (!shouldShowSuccessContinue({ visible: button.visible, clipsPublishing })) return null;
 
   const handleClick = () => {
     setLoading(true);
@@ -152,12 +156,6 @@ export function VideoButton({ canvasRef }) {
         setSuccessVideoBlob(result.blob);
         setVideoState('ready');
         setRepeatVisible(true);
-        // Friend rows withhold Continue until after the Share tap + delay
-        // (the scheduler reveals it); every other lesson reveals
-        // immediately, exactly as before. The delay decision lives in the
-        // logic module — this only applies it.
-        const readyLesson = findLessonById(appStore.getState().configData, lessonId);
-        if (!isSuccessContinueDelayed(readyLesson)) setContinueVisible(true);
 
         shareHandlerRef.current = async () => {
           const { buildShareFilename } = await import('../../modules/lesson/success-lesson-logic.js');
@@ -242,6 +240,19 @@ export function VideoButton({ canvasRef }) {
             appStore.getState().setClipsPublishing(false);
           }
         }
+
+        // Friend rows withhold Continue until after the Share tap + delay
+        // (the scheduler reveals it); every other lesson reveals as soon as
+        // the row is ready. The delay decision lives in the logic module —
+        // this only applies it.
+        //
+        // The reveal lands AFTER the publish block on purpose: the Continue
+        // button must not appear while the clips are still uploading (the
+        // "do not close this tab yet" warning is on screen, and leaving the
+        // lesson aborts the upload). Here the publish gate is already down,
+        // so the button and the warning can never contradict each other.
+        const readyLesson = findLessonById(appStore.getState().configData, lessonId);
+        if (!isSuccessContinueDelayed(readyLesson)) setContinueVisible(true);
       }
     } catch (err) {
       // A stale deploy has already triggered a bounded reload; suppress the

@@ -21,7 +21,8 @@ const PROFILE = {
     id: 'u1',
     first_name: 'Test',
     last_name: 'User',
-    // The app reads the camelCase aliases `fromDbRow` adds; the fixture is
+    // The cache holds the CONVERTED row (fromDbRow): the page reads
+    // firstName/lastName for the heading's owner name. The fixture is
     // injected into the query cache directly, so it carries both shapes.
     firstName: 'Test',
     lastName: 'User',

@@ -9,6 +9,12 @@
 // download started elsewhere) plus a fixed delay — whatever the delivery
 // outcome (fail-open: an aborted share must never strand the learner with
 // no onward path). Non-friend rows keep today's immediate reveal.
+//
+// Second rule: the Continue button is additionally gated on the clip upload.
+// While the per-segment clips are still uploading, the success screen shows
+// the "do not close this tab yet" warning (`clipsPublishing`); Continue must
+// stay hidden until that warning is gone, or the learner can navigate away
+// and abort the very upload the warning is about.
 
 import { resolveRecapOverlay } from '../video/video-processor-logic.js';
 
@@ -32,6 +38,25 @@ export function findLessonById(configData, lessonId) {
 // `'fluency'`).
 export function isSuccessContinueDelayed(lesson) {
     return resolveRecapOverlay(lesson) === 'shareCta';
+}
+
+// True while the "do not close this tab yet" warning is on screen, i.e.
+// while the per-segment clips are still uploading. The Continue button is
+// withheld for as long as this is true: the upload is aborted when the
+// learner leaves the lesson, so offering the onward path during the upload
+// contradicts the warning right above it.
+export function isSuccessContinueBlockedByUpload(clipsPublishing) {
+    return !!clipsPublishing;
+}
+
+// Single source for the Continue button's appearance on the success screen.
+// `visible` is the row's own intent (immediate on a plain row, revealed by
+// the Share tap + delay on a friend row); `clipsPublishing` is the upload
+// gate that also drives the "do not close this tab yet" warning. The button
+// shows only when the row wants it AND the upload has finished.
+export function shouldShowSuccessContinue(input = {}) {
+    const { visible = false, clipsPublishing = false } = input || {};
+    return !!visible && !isSuccessContinueBlockedByUpload(clipsPublishing);
 }
 
 // Schedules `reveal()` after `delayMs`. Stale-guarded: the reveal runs

@@ -10,7 +10,9 @@ import {
     SUCCESS_CONTINUE_REVEAL_DELAY_MS,
     findLessonById,
     isSuccessContinueDelayed,
+    isSuccessContinueBlockedByUpload,
     scheduleSuccessContinueReveal,
+    shouldShowSuccessContinue,
 } from './success-continue-logic.js';
 
 describe('SUCCESS_CONTINUE_REVEAL_DELAY_MS', () => {
@@ -41,6 +43,41 @@ describe('isSuccessContinueDelayed', () => {
         [undefined, false],
     ])('lesson %j → %s', (lesson, expected) => {
         expect(isSuccessContinueDelayed(lesson)).toBe(expected);
+    });
+});
+
+describe('isSuccessContinueBlockedByUpload', () => {
+    it.each([
+        [true, true],
+        [false, false],
+        [undefined, false],
+        [null, false],
+        [0, false],
+        [1, true],
+        ['', false],
+    ])('clipsPublishing %j → blocked %s', (clipsPublishing, expected) => {
+        expect(isSuccessContinueBlockedByUpload(clipsPublishing)).toBe(expected);
+    });
+});
+
+describe('shouldShowSuccessContinue', () => {
+    it.each([
+        // visible × publishing
+        [{ visible: true, clipsPublishing: false }, true],
+        [{ visible: true, clipsPublishing: true }, false],
+        [{ visible: false, clipsPublishing: false }, false],
+        [{ visible: false, clipsPublishing: true }, false],
+    ])('%j → %s', (input, expected) => {
+        expect(shouldShowSuccessContinue(input)).toBe(expected);
+    });
+
+    it('never throws on a missing or malformed input', () => {
+        expect(shouldShowSuccessContinue()).toBe(false);
+        expect(shouldShowSuccessContinue({})).toBe(false);
+        expect(shouldShowSuccessContinue(null)).toBe(false);
+        // A malformed (truthy) publishing flag fails closed: the button stays
+        // hidden rather than risking an aborted upload.
+        expect(shouldShowSuccessContinue({ visible: true, clipsPublishing: 'no' })).toBe(false);
     });
 });
 

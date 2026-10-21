@@ -1418,23 +1418,33 @@ const strings = {
         bn: "{time} পর্যন্ত উপলব্ধ"
     },
     // Public-profile friend-practice area: the invocation shown above the
-    // recorded-lesson links, and the empty/expired state that replaces it when
-    // nothing is inside the 48h window.
-    'profile_friend_practice_heading': {
-        en: "Practice English with Me Free",
-        es: "Practica inglés conmigo gratis",
-        pt: "Pratique inglês comigo grátis",
-        fr: "Pratiquez l'anglais avec moi gratuitement",
-        hi: "मेरे साथ मुफ़्त अंग्रेज़ी का अभ्यास करें",
-        bn: "আমার সাথে বিনামূল্যে ইংরেজি চর্চা করুন"
+    // recorded-lesson links (with the profile owner's name), the empty/expired
+    // state that replaces it when nothing is inside the 48h window, and the
+    // link into the course listings. All localized — they used to be hardcoded
+    // English template strings in the component.
+    'profile_friend_links_heading': {
+        en: "Click on a lesson to start practicing with {name} right now free!",
+        es: "¡Haz clic en una lección para empezar a practicar con {name} ahora mismo gratis!",
+        pt: "Clique em uma lição para começar a praticar com {name} agora mesmo grátis!",
+        fr: "Cliquez sur une leçon pour commencer à pratiquer avec {name} dès maintenant gratuitement !",
+        hi: "{name} के साथ अभी मुफ़्त में अभ्यास शुरू करने के लिए किसी पाठ पर क्लिक करें!",
+        bn: "এখনই বিনামূল্যে {name}-এর সাথে অনুশীলন শুরু করতে একটি পাঠে ক্লিক করুন!"
     },
-    'profile_friend_practice_subheading': {
-        en: "click on a lesson link to start.",
-        es: "haz clic en un enlace de lección para empezar.",
-        pt: "clique em um link de lição para começar.",
-        fr: "cliquez sur un lien de leçon pour commencer.",
-        hi: "शुरू करने के लिए किसी पाठ लिंक पर क्लिक करें।",
-        bn: "শুরু করতে একটি পাঠের লিঙ্কে ক্লিক করুন।"
+    'profile_friend_links_subheading': {
+        en: "{name} does not have to be online now, they can respond to you later.",
+        es: "{name} no tiene que estar en línea ahora, puede responderte más tarde.",
+        pt: "{name} não precisa estar online agora, pode responder a você mais tarde.",
+        fr: "{name} n'a pas besoin d'être en ligne maintenant, il peut vous répondre plus tard.",
+        hi: "{name} को अभी ऑनलाइन होने की ज़रूरत नहीं है, वे बाद में आपको जवाब दे सकते हैं।",
+        bn: "{name}-কে এখন অনলাইনে থাকতে হবে না, তিনি পরে আপনার উত্তর দিতে পারেন।"
+    },
+    'profile_friend_start_here': {
+        en: "Start here",
+        es: "Empieza aquí",
+        pt: "Comece aqui",
+        fr: "Commencez ici",
+        hi: "यहाँ से शुरू करें",
+        bn: "এখান থেকে শুরু করুন"
     },
     'profile_friend_lessons_expired': {
         en: "All this user's lessons have expired after 48 hours, start a new lesson and send them the link to get them back into practicing English.",
@@ -1472,12 +1482,12 @@ const strings = {
         bn: "এখনও অ্যাকাউন্ট নেই? বিনামূল্যে অনুশীলন শুরু করুন। শুরু করতে নিচে দেওয়া লিঙ্কগুলোর যেকোনো একটিতে ক্লিক করুন।"
     },
     'profile_completed_together': {
-        en: "You did this together",
-        es: "Lo hicieron juntos",
-        pt: "Vocês fizeram juntos",
-        fr: "Vous l'avez fait ensemble",
-        hi: "आपने यह साथ में पूरा किया",
-        bn: "আপনারা এটি একসাথে সম্পন্ন করেছেন"
+        en: "Completed it together ✅",
+        es: "Lo completaron juntos ✅",
+        pt: "Vocês completaram juntos ✅",
+        fr: "Vous l'avez terminé ensemble ✅",
+        hi: "आपने इसे साथ में पूरा किया ✅",
+        bn: "আপনারা এটি একসাথে সম্পন্ন করেছেন ✅"
     },
     // Friends directory page (`/friends`): everyone the viewer has completed
     // at least one lesson with, keyed off the friend-credit arrays.
