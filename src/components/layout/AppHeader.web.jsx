@@ -27,7 +27,6 @@ import NotificationsBell from '../homescreen/NotificationsBell.web.jsx';
 import PWAInstallButton from '../pwa/PWAInstallButton.web.jsx';
 import PushNotificationsOptIn from '../notifications/PushNotificationsOptIn.web.jsx';
 import headerLogo from '../../assets/img/uff-logo.png';
-import '../homescreen/home-landing.css';
 
 const BRAND_GRADIENT = 'linear-gradient(135deg, #3a8fd5 0%, #00c0d8 100%)';
 
@@ -185,16 +184,14 @@ export default function AppHeader() {
                     {isLoggedIn && registered
                         ? <NotificationsBell userId={viewerId} lang={lang} />
                         : <div style={{ width: '44px' }} />}
-                    <span className="uff-home-bs" style={{ display: 'inline-block', minHeight: 0, height: 'auto', overflow: 'visible', background: 'transparent', color: 'inherit' }}>
-                        <Link
-                            to={isLoggedIn ? '/home' : '/login'}
-                            data-testid="landing-account-link"
-                            className="btn btn-sm btn-uff-topbar"
-                            style={topbarSignInStyle}
-                        >
-                            {isLoggedIn ? Strings.get('home_home', lang) : Strings.get('sign_in', lang)}
-                        </Link>
-                    </span>
+                    <Link
+                        to={isLoggedIn ? '/home' : '/login'}
+                        data-testid="landing-account-link"
+                        className="btn btn-sm btn-uff-topbar"
+                        style={topbarSignInStyle}
+                    >
+                        {isLoggedIn ? Strings.get('home_home', lang) : Strings.get('sign_in', lang)}
+                    </Link>
                 </div>
             </div>
 
