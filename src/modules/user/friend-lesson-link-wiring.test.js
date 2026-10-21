@@ -14,9 +14,10 @@ const webProcessor = read('../video/video-processor.web.js');
 const nativeProcessor = read('../video/video-processor.native.jsx');
 const successButtons = read('../../components/widgets/SuccessButtons.jsx');
 const api = read('../api/api.js');
+const friendLessonLinksSection = read('../../components/profile/FriendLessonLinksSection.jsx');
+const notificationList = read('../../components/homescreen/NotificationList.web.jsx');
 
-describe('exportSegmentsToR2 return contract', () => {
-    it('returns { count, succeeded, askPublished } from every early return and the final return', () => {
+describe('exportSegmentsToR2 return contract', () => {    it('returns { count, succeeded, askPublished } from every early return and the final return', () => {
         const early = webProcessor.match(/return \{ count: 0, succeeded: 0, askPublished: false \};/g) || [];
         expect(early.length).toBeGreaterThanOrEqual(3);
         expect(webProcessor).toContain('return { count: publishable.length, succeeded, askPublished };');
@@ -111,5 +112,24 @@ describe('api.js public read + write plumbing', () => {
     it('retries the link write so one flaky round trip cannot lose it', () => {
         expect(api).toMatch(/retry:\s*2/);
         expect(api).toMatch(/retryDelay:/);
+    });
+});
+
+describe('in-app links stay on the site origin', () => {
+    // The profile's lesson link used to be hard-coded to the apex, so every
+    // click navigated the visitor OFF the host they were on. A webview wrapper
+    // refuses a cross-origin navigation outright (ERR_FAILED, "This site can't
+    // be reached"), and a staging/preview visitor was silently sent to
+    // production.
+    it('builds the profile lesson link from the current origin', () => {
+        expect(friendLessonLinksSection).toContain("import { currentSiteOrigin } from '../../modules/user/current-site-origin.webonly.js'");
+        expect(friendLessonLinksSection).toContain('base: currentSiteOrigin()');
+        // The hard-coded apex must not creep back into the link builder.
+        expect(friendLessonLinksSection).not.toContain('base: SHARE_URL_BASE');
+    });
+
+    it('builds the notification profile link from the current origin', () => {
+        expect(notificationList).toContain("import { currentSiteOrigin } from '../../modules/user/current-site-origin.webonly.js'");
+        expect(notificationList).toContain('buildProfileHref(shareCode, { origin: currentSiteOrigin() })');
     });
 });

@@ -7,6 +7,7 @@ import {
     formatFriendLinkRemaining,
     buildVisitorPracticeView,
 } from '../../modules/user/friend-lesson-link-logic.js';
+import { currentSiteOrigin } from '../../modules/user/current-site-origin.webonly.js';
 import { COURSE_LISTINGS_PATH } from '../../modules/courses/friend-courses-logic.js';
 
 const cardStyle = {
@@ -24,10 +25,15 @@ const cardStyle = {
 function FriendLessonLink({ entry, lang, now }) {
     const remainingMs = getFriendLinkRemainingMs(new Date(entry.addedAt).getTime(), now);
 
+    // The link is an IN-APP link: it points at the host the profile is being
+    // served from, not at a hard-coded apex, so clicking it never navigates the
+    // visitor off the site they are on (a cross-origin navigation is refused
+    // outright by a webview wrapper).
     const url = buildFriendLessonLink({
         courseId: entry.courseId,
         lessonId: entry.lessonId,
         shareCode: entry.shareCode,
+        base: currentSiteOrigin(),
     });
 
     // The label is the English title of the recorded lesson. If an entry has no

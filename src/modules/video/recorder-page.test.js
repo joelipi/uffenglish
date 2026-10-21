@@ -1499,6 +1499,20 @@ describe('recorder auto-render — zero server changes', () => {
             'src/modules/lesson/lesson-not-found-wiring.test.js',
             'src/routes/AppLayout.jsx',
             'tests/dead-lesson-link.spec.js',
+            // An in-app link must stay on the host the page is served from: the
+            // profile's lesson link was hard-coded to the apex, so every click
+            // navigated the visitor off-site (a webview wrapper refuses a
+            // cross-origin navigation outright).
+            'src/modules/user/current-site-origin.webonly.js',
+            'src/modules/user/current-site-origin.webonly.test.js',
+            'src/components/profile/FriendLessonLinksSection.jsx',
+            'src/components/profile/FriendLessonLinksSection.test.jsx',
+            'src/components/homescreen/NotificationList.web.jsx',
+            'src/components/homescreen/NotificationList.web.test.js',
+            'src/modules/notifications/notification-logic.js',
+            'src/modules/notifications/notification-logic.test.js',
+            'src/modules/user/friend-lesson-link-wiring.test.js',
+            'tests/friend-lesson-link.spec.js',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);

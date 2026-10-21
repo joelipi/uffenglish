@@ -69,9 +69,9 @@ describe('FriendLessonLinksSection', () => {
         const byLabel = Object.fromEntries(anchors.map((a) => [a.textContent, a.getAttribute('href')]));
         // Each label is paired with its OWN target lesson (b for the 'a' entry, d for the 'c' entry).
         expect(byLabel['Make 3 questions'])
-            .toBe('https://ultrafastfluency.com/course/friendchain/lesson/b?shareCode=code1');
+            .toBe(`${window.location.origin}/course/friendchain/lesson/b?shareCode=code1`);
         expect(byLabel['Follow Up'])
-            .toBe('https://ultrafastfluency.com/course/friendchain/lesson/d?shareCode=code1');
+            .toBe(`${window.location.origin}/course/friendchain/lesson/d?shareCode=code1`);
 
         // Each link carries its own countdown element.
         expect(container.querySelectorAll('[data-testid="friend-lesson-link-countdown"]')).toHaveLength(2);
@@ -149,7 +149,7 @@ describe('FriendLessonLinksSection', () => {
         const anchor = container.querySelector('[data-testid="friend-lesson-link"]');
         expect(anchor.textContent).toBe('Practice English with Me');
         expect(anchor.getAttribute('href'))
-            .toBe('https://ultrafastfluency.com/course/friendchain/lesson/b?shareCode=code1');
+            .toBe(`${window.location.origin}/course/friendchain/lesson/b?shareCode=code1`);
     });
 
     it('renders its own countdown per link', () => {
