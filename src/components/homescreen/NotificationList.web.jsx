@@ -1,7 +1,6 @@
 import React from 'react';
 import Strings from '../../data/strings.js';
 import {
-    NOTIFICATION_TYPE_FRIEND_RESPONSE,
     listNotifications,
     buildProfileHref,
     formatNotificationDate,
@@ -47,12 +46,6 @@ const messageStyle = {
     fontWeight: 600,
 };
 
-const deadlineStyle = {
-    color: '#ffd479',
-    fontSize: '13px',
-    margin: '6px 0 0',
-};
-
 const timestampStyle = {
     display: 'block',
     color: '#ffffff',
@@ -75,7 +68,6 @@ function NotificationItem({ notification, lang, onSelect }) {
     // origin), so a click never navigates the visitor off the site they are on.
     const href = shareCode ? buildProfileHref(shareCode, { origin: currentSiteOrigin() }) : null;
     const timestamp = formatNotificationDate(notification.created_at, lang);
-    const showDeadline = notification.type === NOTIFICATION_TYPE_FRIEND_RESPONSE;
 
     const handleClick = () => {
         if (onSelect) onSelect(notification);
@@ -89,11 +81,6 @@ function NotificationItem({ notification, lang, onSelect }) {
                 </a>
             ) : (
                 <span style={messageStyle}>{message}</span>
-            )}
-            {showDeadline && (
-                <p data-testid="notification-deadline" style={deadlineStyle}>
-                    {Strings.get('notifications_respond_deadline', lang)}
-                </p>
             )}
             {timestamp && (
                 <time data-testid="notification-timestamp" dateTime={notification.created_at} style={timestampStyle}>

@@ -336,10 +336,9 @@ The whole block stays inside the existing `try/catch`, so a notification failure
 | `notifications_title` | `Notifications` | `Notificaciones` | `Notificações` | `Notifications` | `सूचनाएँ` | `বিজ্ঞপ্তি` |
 | `notifications_empty` | `No notifications yet` | `Aún no hay notificaciones` | `Ainda não há notificações` | `Aucune notification pour l'instant` | `अभी कोई सूचना नहीं` | `এখনও কোনো বিজ্ঞপ্তি নেই` |
 | `notifications_friend_response` | `{name} continued your conversation lesson! 🥳See if you need to respond.` | `{name} ¡continuó tu lección de conversación! 🥳Mira si necesitas responder.` | `{name} continuou sua aula de conversa! 🥳Veja se você precisa responder.` | `{name} a poursuivi votre leçon de conversation ! 🥳Voyez si vous devez répondre.` | `{name} ने आपकी बातचीत का पाठ जारी रखा! 🥳देखें कि आपको जवाब देना है या नहीं।` | `{name} আপনার কথোপকথনের পাঠ চালিয়ে গেছেন! 🥳দেখুন আপনাকে উত্তর দিতে হবে কি না।` |
-| `notifications_respond_deadline` | `You only have 48 hours to respond` | `Solo tienes 48 horas para responder` | `Você só tem 48 horas para responder` | `Vous n'avez que 48 heures pour répondre` | `आपके पास जवाब देने के लिए केवल 48 घंटे हैं` | `আপনার কাছে উত্তর দেওয়ার জন্য মাত্র 48 ঘণ্টা আছে` |
 | `notifications_someone` | `A friend` | `Un amigo` | `Um amigo` | `Un ami` | `एक मित्र` | `একজন বন্ধু` |
 
-`notifications_friend_response` carries `{name}`; `src/data/strings.test.js`'s placeholder map (line 64) must add `name: 'Sam'` so the auto-derived hi/bn interpolation test passes. The existing "every key carries hi/bn" test then covers all five new keys automatically. `notifications_respond_deadline` carries no placeholder and is rendered statically (never hidden based on elapsed time).
+`notifications_friend_response` carries `{name}`; `src/data/strings.test.js`'s placeholder map (line 64) must add `name: 'Sam'` so the auto-derived hi/bn interpolation test passes. The existing "every key carries hi/bn" test then covers all five new keys automatically. The `notifications_respond_deadline` line that also shipped with this story was later REMOVED: the chain's closing lesson produces a notification with nothing left to answer, and a line promising a reply the product cannot deliver is worse than no line.
 
 ### 7. Bell UI — `NotificationList.web.jsx` + `NotificationsBell.web.jsx` (both new) + `HomeScreen.jsx`
 
@@ -355,7 +354,6 @@ Platform-tagged presentation, split from the container and from all rules:
 - `NotificationList({ notifications, lang, onSelect })`: `listNotifications(...)`; empty → `<p data-testid="notification-empty">` + no items; otherwise a list of items (no clocks, no window math).
 - Each item (`<div data-testid="notification-item">`), in order:
   1. Message `Strings.get('notifications_friend_response', lang, { name: getNotificationActorName(n) || Strings.get('notifications_someone', lang) })`. When `getNotificationActorShareCode(n)` is truthy, wrap in `<a data-testid="notification-link" href={buildProfileHref(code)}>` and call `onSelect(n)` on click; when it is empty, render the message in a `<span>` with no anchor.
-  2. Static reminder `<p data-testid="notification-deadline">{Strings.get('notifications_respond_deadline', lang)}</p>`, rendered for `n.type === NOTIFICATION_TYPE_FRIEND_RESPONSE` — always, regardless of how old the notification is.
   3. Timestamp `<time data-testid="notification-timestamp">{formatNotificationDate(n.created_at, lang)}</time>`, rendered only when the formatter returns a non-empty string (invalid/missing `created_at` → no timestamp element).
 
 `NotificationsBell.web.jsx`:
@@ -467,7 +465,6 @@ Platform-tagged presentation, split from the container and from all rules:
   - → the localized label with `{name}` replaced and no `{`/`}` remaining
 - `Strings.get('notifications_friend_response', 'hi')` / `('bn')`
   - → matches Devanagari / Bengali script
-- `Strings.get('notifications_respond_deadline', lang)` for `lang` in `en/es/pt/fr/hi/bn`
   - → the exact copy from the §6 table, containing `48`
 - `src/data/strings.test.js` placeholder map includes `name`
   - → the auto-derived placeholder test passes for `notifications_friend_response` in hi and bn
@@ -518,14 +515,13 @@ The test imports only `NotificationList.web.jsx` (presentational, no `api.js`/Su
   - → `[data-testid="notification-item"]` count is `2`
   - → the first item's text contains `Sam continued your conversation lesson! 🥳See if you need to respond.`
   - → the first item's `[data-testid="notification-link"]` `href` is `https://ultrafastfluency.com/sam123`
-  - → the first item shows `[data-testid="notification-deadline"]` with text `You only have 48 hours to respond`
   - → the first item shows a non-empty `[data-testid="notification-timestamp"]`
-- both rows' deadline lines render regardless of age (one row `created_at` minutes ago, one 50h ago)
-  - → `[data-testid="notification-deadline"]` count is `2`
+- no row renders a deadline line (one row `created_at` minutes ago, one 50h ago) — the line was removed, so the row never promises a reply
+  - → `[data-testid="notification-deadline"]` count is `0`
 - `NotificationList` rendered at `lang='es'`
-  - → the rendered text contains the Spanish template for the message and the Spanish deadline line
+  - → the rendered text contains the Spanish template for the message
 - a row whose `created_at` is missing/invalid
-  - → that item renders the message and `[data-testid="notification-deadline"]`, but `[data-testid="notification-timestamp"]` count is `0`
+  - → that item renders the message, but `[data-testid="notification-timestamp"]` count is `0`
 - the first item's `[data-testid="notification-link"]` clicked
   - → the `onSelect` spy is called once with that notification
 - `NotificationList` with `[]` / `null`
@@ -557,7 +553,7 @@ Fixtures: `['notifications','u1'] = [<unread from 'Sam'/'sam123', created_at '20
   - → `[data-testid="notification-panel"]` is visible
   - → `[data-testid="notification-item"]` count is `2`
   - → the Sam item's `[data-testid="notification-link"]` has `href` `https://ultrafastfluency.com/sam123`
-  - → `[data-testid="notification-deadline"]` count is `2` (static, shown for both rows regardless of age)
+  - → `[data-testid="notification-deadline"]` count is `0` (the deadline line was removed)
   - → the Sam item shows a non-empty `[data-testid="notification-timestamp"]`
   - → `[data-testid="notification-badge"]` has count `0` (all rows read after the mark-read mutation + stateful refetch)
   - → `[data-testid="notification-item"]` count is still `2` (the refetch returns the read rows, it does not clear them)
@@ -585,9 +581,8 @@ Fixtures: `['notifications','u1'] = [<unread from 'Sam'/'sam123', created_at '20
 
 ## Notes
 
-- **Confirmed product decisions (user answers):** in-app only; bell in the HomeScreen top bar; persistent with read/unread (no expiry, no delete); notify on the actual export/publish only; skip guest `B`; message links to `/<B.shareCode>`; localized copy in the app's six languages; Supabase only (no new dependency); keep a seam for a future third-party provider; every friend-response notification shows a timestamp and a static "You only have 48 hours to respond" line; strict logic/presentation separation for a future React Native monorepo.
+- **Confirmed product decisions (user answers):** in-app only; bell in the HomeScreen top bar; persistent with read/unread (no expiry, no delete); notify on the actual export/publish only; skip guest `B`; message links to `/<B.shareCode>`; localized copy in the app's six languages; Supabase only (no new dependency); keep a seam for a future third-party provider; every friend-response notification shows a timestamp (the static "You only have 48 hours to respond" line was removed — the chain's closing lesson produces a notification with nothing left to answer, and a line that promises a reply the product cannot deliver is worse than no line); strict logic/presentation separation for a future React Native monorepo.
 - **Lifecycle definition:** notifications never expire and are never deleted by this feature. "Read" (`read_at`) is the only state; opening the bell panel marks the visible unread rows read, which clears the badge. This is intentionally different from the 48h `friend_links` render-time expiry because the notification is an inbox record, not a live clip link.
-- **48h deadline line is static, not computed:** `notifications_respond_deadline` is always rendered for `friend_response` items; there is no countdown and no `isResponseWindowOpen`/window helper. The per-item **timestamp** (`formatNotificationDate(created_at, lang)`) is what lets a user who returns after 48 hours see for themselves that the time elapsed — the app never hides or rewrites the text. This is a deliberate product decision (user answer); do not "improve" it into a countdown or a conditional without confirming.
 - **Dedupe/refresh semantics:** the unique key is `(recipient_id, actor_id, type)` — one notification per friend per type. It deliberately excludes the caller-supplied `course_id`/`lesson_id`; these are stored as context only (the UI does not render them), so an authenticated caller cannot bypass dedupe by inventing course ids to flood a victim's inbox. A repeat answer by the same friend (any course/lesson) refreshes the row (`created_at = now()`, `read_at = null`, context/name snapshot updated) rather than adding another notification.
 - **Self-notification prevention is enforced in two places:** the pure resolver rejects `recipient === actor` (case-insensitive), and the RPC returns early when the resolved recipient is the caller. Both are cheap; neither is trusted alone.
 - **Security posture:** clients can `SELECT` only their own rows and `UPDATE` only the `read_at` column; there is no insert grant/policy, so all creation goes through the `SECURITY DEFINER` RPC, which derives `actor_id`/`actorName` from the JWT/profile. The recipient is resolved from the supplied share code, so a caller cannot target an arbitrary user id. The function sets `search_path = ''` and fully qualifies identifiers.
@@ -596,7 +591,7 @@ Fixtures: `['notifications','u1'] = [<unread from 'Sam'/'sam123', created_at '20
   1. Apply `005_add_user_notifications.sql` to the Supabase project (or local stack).
   2. `npm run dev`, log in as `B`, open `/course/friend/lesson/b?shareCode=<A>` (B's browser must have captured the share code), complete the lesson, and click the generate button (confirm the answer clips upload).
   3. Confirm a `user_notifications` row exists with `recipient_id = A`, `actor_id = B`, `type = 'friend_response'`, and a `payload` carrying B's `shareCode`/name.
-  4. Log in as `A`, open `/`: the bell shows a `1` badge; opening it lists "B… continued your conversation lesson! 🥳See if you need to respond." with a timestamp and the "You only have 48 hours to respond" line, and the link opens B's public profile. A week-old notification still shows both lines (the timestamp reveals the elapsed time).
+  4. Log in as `A`, open `/`: the bell shows a `1` badge; opening it lists "B… continued your conversation lesson! 🥳See if you need to respond." with a timestamp, and the link opens B's public profile. A week-old notification still shows the message and the timestamp (the timestamp reveals the elapsed time).
   5. Re-answer as `B`: the same row is refreshed (unread again), not duplicated.
   6. Export `/course/friend/lesson/a` as `A`: no new notification (only the friend link is recorded).
   7. As a guest, generate a lesson-b video and decline login: no notification row.

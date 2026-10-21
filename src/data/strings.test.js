@@ -255,14 +255,6 @@ describe('friend-challenge profile link strings', () => {
 });
 
 describe('friend-response notification strings', () => {
-    const DEADLINE = {
-        en: 'You only have 48 hours to respond',
-        es: 'Solo tienes 48 horas para responder',
-        pt: 'Você só tem 48 horas para responder',
-        fr: "Vous n'avez que 48 heures pour répondre",
-        hi: 'आपके पास जवाब देने के लिए केवल 48 घंटे हैं',
-        bn: 'আপনার কাছে উত্তর দেওয়ার জন্য মাত্র 48 ঘণ্টা আছে',
-    };
     const MESSAGE = {
         en: 'Sam continued your conversation lesson! 🥳See if you need to respond.',
         es: 'Sam ¡continuó tu lección de conversación! 🥳Mira si necesitas responder.',
@@ -283,7 +275,6 @@ describe('friend-response notification strings', () => {
             pt: 'Ainda não há notificações', fr: "Aucune notification pour l'instant",
             hi: 'अभी कोई सूचना नहीं', bn: 'এখনও কোনো বিজ্ঞপ্তি নেই',
         },
-        notifications_respond_deadline: DEADLINE,
         notifications_someone: {
             en: 'A friend', es: 'Un amigo', pt: 'Um amigo',
             fr: 'Un ami', hi: 'एक मित्र', bn: 'একজন বন্ধু',
@@ -301,12 +292,6 @@ describe('friend-response notification strings', () => {
             const out = get('notifications_friend_response', lang, { name: 'Sam' });
             expect(out).toBe(expected);
             expect(out).not.toContain('{');
-        }
-    });
-
-    it('keeps the 48 in the deadline for every language', () => {
-        for (const lang of ['en', 'es', 'pt', 'fr', 'hi', 'bn']) {
-            expect(get('notifications_respond_deadline', lang)).toContain('48');
         }
     });
 });

@@ -1648,14 +1648,6 @@ const strings = {
         hi: "{name} ने आपकी बातचीत का पाठ जारी रखा! 🥳देखें कि आपको जवाब देना है या नहीं।",
         bn: "{name} আপনার কথোপকথনের পাঠ চালিয়ে গেছেন! 🥳দেখুন আপনাকে উত্তর দিতে হবে কি না।"
     },
-    'notifications_respond_deadline': {
-        en: "You only have 48 hours to respond",
-        es: "Solo tienes 48 horas para responder",
-        pt: "Você só tem 48 horas para responder",
-        fr: "Vous n'avez que 48 heures pour répondre",
-        hi: "आपके पास जवाब देने के लिए केवल 48 घंटे हैं",
-        bn: "আপনার কাছে উত্তর দেওয়ার জন্য মাত্র 48 ঘণ্টা আছে"
-    },
     'notifications_someone': {
         en: "A friend",
         es: "Un amigo",
