@@ -7,6 +7,7 @@ import {
     buildRecordedLessonOrdinals,
     hasEarlierShareCtaLesson,
     buildFriendLessonLink,
+    buildFriendLessonPath,
     toFriendLessonHref,
     getFriendLinkRemainingMs,
     isFriendLinkActive,
@@ -190,6 +191,29 @@ describe('hasEarlierShareCtaLesson', () => {
             ],
         };
         expect(hasEarlierShareCtaLesson(gapped, 'x')).toBe(false);
+    });
+});
+
+describe('buildFriendLessonPath', () => {
+    it('builds the in-app path with the share code as a query parameter', () => {
+        expect(buildFriendLessonPath({ courseId: 'friend', lessonId: 'b', shareCode: 'ab12' }))
+            .toBe('/course/friend/lesson/b?shareCode=ab12');
+    });
+
+    it('carries NO host, so the link stays inside the app router', () => {
+        const path = buildFriendLessonPath({ courseId: 'model', lessonId: 'm-a', shareCode: 'zz9' });
+        expect(path.startsWith('/course/')).toBe(true);
+        expect(path).not.toContain('://');
+    });
+
+    it('escapes a share code that carries url-significant characters', () => {
+        expect(buildFriendLessonPath({ courseId: 'c', lessonId: 'l', shareCode: 'a b&c' }))
+            .toBe('/course/c/lesson/l?shareCode=a%20b%26c');
+    });
+
+    it('is the tail of the shareable link (host + path)', () => {
+        expect(buildFriendLessonLink({ courseId: 'friend', lessonId: 'b', shareCode: 'ab12' }))
+            .toBe(`ultrafastfluency.com${buildFriendLessonPath({ courseId: 'friend', lessonId: 'b', shareCode: 'ab12' })}`);
     });
 });
 

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import Strings from '../../data/strings.js';
 import {
-    buildFriendLessonLink,
-    toFriendLessonHref,
+    buildFriendLessonPath,
     getFriendLinkRemainingMs,
     formatFriendLinkRemaining,
     buildVisitorPracticeView,
@@ -25,7 +25,13 @@ function FriendLessonLink({ entry, lang, now, ordinal }) {
     const remainingMs = getFriendLinkRemainingMs(new Date(entry.addedAt).getTime(), now);
     const completedTogether = entry.completedTogether === true;
 
-    const url = buildFriendLessonLink({
+    // The link is an IN-APP link, rendered with react-router's <Link>: the
+    // click is a CLIENT-SIDE navigation, so the browser never loads a new
+    // document for it. A document load (a plain <a href>) is the only thing in
+    // the app that can end in a browser-level "This site can't be reached /
+    // ERR_FAILED" page, and it also threw away the in-memory guest language,
+    // so the lesson re-opened the language modal on every visit.
+    const path = buildFriendLessonPath({
         courseId: entry.courseId,
         lessonId: entry.lessonId,
         shareCode: entry.shareCode,
@@ -41,9 +47,9 @@ function FriendLessonLink({ entry, lang, now, ordinal }) {
 
     return (
         <li style={{ color: '#ffffff', marginBottom: '12px' }}>
-            <a
+            <Link
                 data-testid="friend-lesson-link"
-                href={toFriendLessonHref(url)}
+                to={path}
                 style={{
                     fontSize: '24px',
                     fontWeight: 700,
@@ -56,7 +62,7 @@ function FriendLessonLink({ entry, lang, now, ordinal }) {
                 }}
             >
                 {label}
-            </a>
+            </Link>
             <p data-testid="friend-lesson-link-countdown" style={{ color: '#ffffff', fontSize: '14px', margin: '4px 0 0' }}>
                 {Strings.get('profile_friend_link_available', lang, { time: formatFriendLinkRemaining(remainingMs) })}
             </p>

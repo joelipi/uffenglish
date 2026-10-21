@@ -48,6 +48,8 @@ import { buildBranchChoiceView, isBranchingStep, resolveBranchLevel, getBranchHe
 import { isVideoHeaderBlurVisible, videoHeaderBlurStyle } from '../modules/video/video-header-logic.js';
 import { loadLessonContent } from '../modules/lesson/lesson-loader.js';
 import { loadStep } from './step-loader.js';
+import { isNotFoundError } from '../modules/lesson/lesson-not-found-logic.js';
+import NotFoundPage from './NotFoundPage.jsx';
 
 export default function LessonContainer() {
     const { courseId, lessonId } = useParams();
@@ -74,6 +76,10 @@ export default function LessonContainer() {
     }, [currentStepIndex, currentLessonIndex]);
 
     const [lesson, setLesson] = useState(null);
+    // A lesson id that is gone from the course is a dead link: the route
+    // answers it with the app's not-found page, not the critical-error
+    // screen that blames the visitor's connection.
+    const [notFound, setNotFound] = useState(false);
 
     const [searchParams] = useSearchParams();
     const forceRestart = searchParams.has('restart');
@@ -90,6 +96,8 @@ export default function LessonContainer() {
                     if (result.success) {
                         setLesson(result.lesson);
                         appStore.getState().setIsLoaded(true);
+                    } else if (isNotFoundError(result?.error)) {
+                        setNotFound(true);
                     }
                 });
         }
@@ -199,6 +207,14 @@ export default function LessonContainer() {
     const branchHeading = isBranchingStep(currentStep)
         ? getBilingual(getBranchHeadingKey(branchPath.length), labelLang)
         : null;
+
+    // A dead link (the lesson is gone from the course) answers with the app's
+    // not-found page: the copy says the link may no longer be active and the
+    // buttons lead to the course list and home. The critical-error screen is
+    // reserved for technical failures.
+    if (notFound) {
+        return <NotFoundPage lang={labelLang} />;
+    }
 
     return (
         <>

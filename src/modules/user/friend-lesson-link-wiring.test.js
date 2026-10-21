@@ -16,9 +16,12 @@ const successButtons = read('../../components/widgets/SuccessButtons.jsx');
 const successScreen = read('../../components/widgets/SuccessScreen.jsx');
 const videoShare = read('../video/video-share.web.js');
 const api = read('../api/api.js');
+const friendLessonLinksSection = read('../../components/profile/FriendLessonLinksSection.jsx');
+const notificationList = read('../../components/homescreen/NotificationList.web.jsx');
+const rootLayout = read('../../routes/RootLayout.jsx');
+const app = read('../../App.jsx');
 
-describe('exportSegmentsToR2 return contract', () => {
-    it('returns { count, succeeded, askPublished } from every early return and the final return', () => {
+describe('exportSegmentsToR2 return contract', () => {    it('returns { count, succeeded, askPublished } from every early return and the final return', () => {
         const early = webProcessor.match(/return \{ count: 0, succeeded: 0, askPublished: false \};/g) || [];
         expect(early.length).toBeGreaterThanOrEqual(3);
         expect(webProcessor).toContain('return { count: publishable.length, succeeded, askPublished };');
@@ -113,6 +116,50 @@ describe('api.js public read + write plumbing', () => {
     it('retries the link write so one flaky round trip cannot lose it', () => {
         expect(api).toMatch(/retry:\s*2/);
         expect(api).toMatch(/retryDelay:/);
+    });
+});
+
+describe('in-app links stay inside the app', () => {
+    // The profile's lesson link used to be a plain <a href> with an absolute
+    // URL, so the click was a DOCUMENT load. A document load is the only thing
+    // in the app that can end in a browser-level "This site can't be reached /
+    // ERR_FAILED" page (a cancelled or failed document navigation), and it
+    // also threw the in-memory guest language away, so the lesson re-opened the
+    // language modal on every visit.
+    it('renders the profile lesson link as a client-side router link', () => {
+        // The <Link> element itself, anchored on the testid so a comment
+        // mentioning <Link> cannot satisfy the guard.
+        expect(friendLessonLinksSection)
+            .toMatch(/<Link\b[^>]*data-testid="friend-lesson-link"[^>]*\bto=\{path\}/);
+        // The lesson link is NOT an anchor: an anchor is a document load.
+        expect(friendLessonLinksSection)
+            .not.toMatch(/<a\b[^>]*data-testid="friend-lesson-link"/);
+        // No absolute URL is built for it any more, so the link cannot leave
+        // the host the visitor is on either.
+        expect(friendLessonLinksSection).not.toContain('buildFriendLessonLink(');
+        expect(friendLessonLinksSection).not.toContain('toFriendLessonHref(');
+        expect(friendLessonLinksSection).not.toContain('currentSiteOrigin');
+    });
+
+    it('builds the in-app path with the pure helper', () => {
+        expect(friendLessonLinksSection).toContain('buildFriendLessonPath(');
+    });
+
+    it('builds the notification profile link from the current origin', () => {
+        // The notification row is still a plain link to a profile URL, so it
+        // must be built from the origin the page is served from — never a
+        // hard-coded apex, which would send a staging/preview visitor to
+        // production.
+        expect(notificationList).toContain("import { currentSiteOrigin } from '../../modules/user/current-site-origin.webonly.js'");
+        expect(notificationList).toContain('buildProfileHref(shareCode, { origin: currentSiteOrigin() })');
+    });
+
+    it('captures the share code on every location change, not once at start-up', () => {
+        // The profile link is a client-side navigation, so the app is already
+        // mounted when the visitor clicks it: a start-up-only capture would
+        // miss the code and the lesson would play the wrong take.
+        expect(rootLayout).toContain('useShareCodeFromLocation()');
+        expect(app).not.toContain('Captured sharecode param');
     });
 });
 

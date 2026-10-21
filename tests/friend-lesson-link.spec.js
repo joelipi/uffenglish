@@ -22,7 +22,8 @@ const PROFILE = {
     first_name: 'Test',
     last_name: 'User',
     // The cache holds the CONVERTED row (fromDbRow): the page reads
-    // firstName/lastName for the heading's owner name.
+    // firstName/lastName for the heading's owner name. The fixture is
+    // injected into the query cache directly, so it carries both shapes.
     firstName: 'Test',
     lastName: 'User',
     native_language: 'EN',
@@ -70,10 +71,18 @@ test.describe('public-profile friend-challenge links', () => {
 
         const link = page.getByTestId('friend-lesson-link');
         await expect(link).toBeVisible();
-        await expect(link).toHaveText('Make 3 questions');
+        // The label is the lesson's POSITION in the course chain, read from
+        // the config at render time (the stored title is only the fallback
+        // for a config that has not loaded).
+        await expect(link).toHaveText('Lesson 1 of 6');
+        // The link is an IN-APP link: a react-router <Link> to a PATH, so the
+        // click is a client-side navigation. A document load (a plain <a href>)
+        // is the only thing in the app that can end in a browser-level "This
+        // site can't be reached / ERR_FAILED" page, and it also threw the
+        // in-memory guest language away.
         await expect(link).toHaveAttribute(
             'href',
-            `https://ultrafastfluency.com/course/${COURSE_ID}/lesson/b?shareCode=k9gy`
+            `/course/${COURSE_ID}/lesson/b?shareCode=k9gy`
         );
 
         const fontSize = await link.evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
@@ -105,14 +114,33 @@ test.describe('public-profile friend-challenge links', () => {
         await expect(links).toHaveCount(2);
         await expect(links.nth(0)).toHaveAttribute(
             'href',
-            `https://ultrafastfluency.com/course/${COURSE_ID}/lesson/b?shareCode=k9gy`
+            `/course/${COURSE_ID}/lesson/b?shareCode=k9gy`
         );
-        await expect(links.nth(0)).toHaveText('Ask');
+        await expect(links.nth(0)).toHaveText('Lesson 1 of 6');
         await expect(links.nth(1)).toHaveAttribute(
             'href',
-            `https://ultrafastfluency.com/course/${COURSE_ID}/lesson/d?shareCode=k9gy`
+            `/course/${COURSE_ID}/lesson/d?shareCode=k9gy`
         );
-        await expect(links.nth(1)).toHaveText('Follow Up');
+        await expect(links.nth(1)).toHaveText('Lesson 3 of 6');
+    });
+
+    test('every lesson link stays on the site origin', async ({ page }) => {
+        // The regression guard: a hard-coded apex here made the click leave the
+        // host the visitor was on, which a webview wrapper refuses outright
+        // (ERR_FAILED) and which silently sends a staging visitor to production.
+        await seedProfile(page, {
+            [`${COURSE_ID}:a`]: entry(COURSE_ID, COURSE_NAME, 'a', 'b', 'Ask', '2026-09-24T11:00:00.000Z'),
+        });
+
+        const origin = new URL(page.url()).origin;
+        const hrefs = await page.getByTestId('friend-lesson-link')
+            .evaluateAll((els) => els.map((el) => el.getAttribute('href')));
+        expect(hrefs.length).toBeGreaterThan(0);
+        for (const href of hrefs) {
+            // Resolved against the page's own URL: a relative in-app path can
+            // only ever resolve to the origin the visitor is already on.
+            expect(new URL(href, page.url()).origin).toBe(origin);
+        }
     });
 
     test('shows the expired state once the 48h window has passed', async ({ page }) => {
@@ -139,5 +167,31 @@ test.describe('public-profile friend-challenge links', () => {
         await page.goto(`/${SHARE_CODE}`);
 
         await expect(page.getByTestId('friend-lesson-link')).toHaveCount(0);
+    });
+
+    test('the click stays inside the app and carries the friend code', async ({ page }) => {
+        // The regression guard for the reported "black error screen": the link
+        // used to be a plain <a href> with an absolute URL, so the click was a
+        // DOCUMENT load — the only thing in the app that can end in a
+        // browser-level "This site can't be reached / ERR_FAILED" page. A
+        // marker on the window survives a client-side navigation and is wiped
+        // by a document load, so it tells the two apart.
+        await seedProfile(page, {
+            [`${COURSE_ID}:a`]: entry(COURSE_ID, COURSE_NAME, 'a', 'b', 'Ask', '2026-09-24T11:00:00.000Z'),
+        });
+
+        await page.evaluate(() => { window.__uffSameDocument = true; });
+        await page.getByTestId('friend-lesson-link').click();
+
+        await page.waitForURL(new RegExp(`/course/${COURSE_ID}/lesson/b\\?shareCode=${SHARE_CODE}$`));
+        expect(await page.evaluate(() => window.__uffSameDocument)).toBe(true);
+
+        // The friend's code reached the store, so the lesson plays the friend's
+        // take instead of the learner's own.
+        const friendCode = await page.evaluate(async () => {
+            const { appStore } = await import('/src/modules/store/store.js');
+            return appStore.getState().friendCode;
+        });
+        expect(friendCode).toBe(SHARE_CODE);
     });
 });

@@ -42,6 +42,17 @@ describe('buildProfileHref', () => {
     it('does not double the scheme', () => {
         expect(buildProfileHref('https://x/y')).toBe('https://x/y');
     });
+
+    it('stays on the given origin, so an in-app link never leaves the site', () => {
+        expect(buildProfileHref('sam123', { origin: 'https://s.ultrafastfluency.com' }))
+            .toBe('https://s.ultrafastfluency.com/sam123');
+        expect(buildProfileHref('sam123', { origin: 'http://localhost:5173/' }))
+            .toBe('http://localhost:5173/sam123');
+    });
+
+    it('falls back to the canonical apex without an origin', () => {
+        expect(buildProfileHref('sam123', {})).toBe('https://ultrafastfluency.com/sam123');
+    });
 });
 
 describe('getUnreadCount', () => {

@@ -63,7 +63,7 @@ describe('NotificationList.web', () => {
         const first = items[0];
         expect(first.textContent).toContain('Sam created a video with your questions');
         const link = first.querySelector('[data-testid="notification-link"]');
-        expect(link.getAttribute('href')).toBe('https://ultrafastfluency.com/sam123');
+        expect(link.getAttribute('href')).toBe(`${window.location.origin}/sam123`);
         expect(first.querySelector('[data-testid="notification-deadline"]').textContent)
             .toBe('You only have 48 hours to respond');
         expect(first.querySelector('[data-testid="notification-timestamp"]').textContent).not.toBe('');

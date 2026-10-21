@@ -8,6 +8,7 @@ import {
     getNotificationActorName,
     getNotificationActorShareCode,
 } from '../../modules/notifications/notification-logic.js';
+import { currentSiteOrigin } from '../../modules/user/current-site-origin.webonly.js';
 
 // Web presentation for the inbox list. All rules (ordering, filtering, URL
 // building, date formatting, name fallback) live in notification-logic.js; this
@@ -70,7 +71,9 @@ function NotificationItem({ notification, lang, onSelect }) {
     const name = getNotificationActorName(notification) || Strings.get('notifications_someone', lang);
     const message = Strings.get('notifications_friend_response', lang, { name });
     const shareCode = getNotificationActorShareCode(notification);
-    const href = shareCode ? buildProfileHref(shareCode) : null;
+    // An in-app link stays on the host the page is served from (the app's own
+    // origin), so a click never navigates the visitor off the site they are on.
+    const href = shareCode ? buildProfileHref(shareCode, { origin: currentSiteOrigin() }) : null;
     const timestamp = formatNotificationDate(notification.created_at, lang);
     const showDeadline = notification.type === NOTIFICATION_TYPE_FRIEND_RESPONSE;
 

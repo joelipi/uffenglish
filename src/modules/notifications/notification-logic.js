@@ -41,10 +41,15 @@ export function normalizeShareCode(code) {
 // Public profile URL for a share code: https://<host>/<code>.
 // buildShareUrl is the canonical '<host>/<code>' builder; add the scheme for a
 // clickable anchor (SHARE_URL_BASE is deliberately scheme-less).
-export function buildProfileHref(shareCode) {
+// An `origin` (the host the page is served from) keeps an IN-APP link on that
+// host instead of navigating the visitor to the hard-coded apex; without one the
+// canonical apex is used.
+export function buildProfileHref(shareCode, { origin } = {}) {
     const raw = typeof shareCode === 'string' ? shareCode.trim() : '';
     if (/^https?:\/\//i.test(raw)) return raw;
-    const url = buildShareUrl(normalizeShareCode(shareCode));
+    const code = normalizeShareCode(shareCode);
+    if (origin && code) return `${String(origin).replace(/\/+$/, '')}/${code}`;
+    const url = buildShareUrl(code);
     return /^https?:\/\//i.test(url) ? url : `https://${url}`;
 }
 

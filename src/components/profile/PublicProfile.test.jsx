@@ -18,6 +18,9 @@ const friendCompletionsState = { data: [] };
 
 vi.mock('react-router-dom', () => ({
     useNavigate: () => navigate,
+    // The friend-practice link is a react-router <Link> (a client-side
+    // navigation), so the mock has to provide it too.
+    Link: ({ to, children, ...rest }) => React.createElement('a', { href: to, ...rest }, children),
 }));
 // The page now also reads the course configs (for the "Lesson N of M" labels)
 // through TanStack Query. This suite is about localization, so the query is

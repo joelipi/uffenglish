@@ -5,7 +5,6 @@ import { initLocalVoiceAI } from './modules/speech/speech.js';
 import { idiomChecker } from './modules/utils/idiom-checker.js';
 import { getIsPWAMode } from './modules/user/demo-mode-webonly.js';
 import { identifyUser } from './modules/utils/posthog.js';
-import { appStore } from './modules/store/store.js';
 
 export default function App() {
     const isWorkerInitialized = useRef(false);
@@ -14,26 +13,6 @@ export default function App() {
     useEffect(() => {
         // PostHog SDK loads after first paint — not on the critical path.
         import('./modules/utils/posthog-client.js').then(m => m.initPostHog());
-    }, []);
-
-    useEffect(() => {
-        try {
-            const params = new URLSearchParams(window.location.search);
-            let shareCodeValue = null;
-            for (const [key, value] of params) {
-                if (key.toLowerCase() === 'sharecode') {
-                    shareCodeValue = value;
-                    break;
-                }
-            }
-            if (shareCodeValue && shareCodeValue.trim()) {
-                const friendCode = shareCodeValue.trim().toLowerCase();
-                appStore.getState().setFriendCode(friendCode);
-                console.log('[React] Captured sharecode param:', friendCode);
-            }
-        } catch (err) {
-            console.error('[React] Failed to capture sharecode param:', err);
-        }
     }, []);
 
     useEffect(() => {

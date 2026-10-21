@@ -1497,6 +1497,43 @@ describe('recorder auto-render — zero server changes', () => {
             'src/components/profile/UserProfile.jsx',
             'src/routes/NotFoundRoute.jsx',
             'src/routes/home-navigation-wiring.test.js',
+            // A dead course/lesson link (a retired course, a lesson id the
+            // regenerated config no longer has) is a 404, not a technical
+            // error: the shared not-found card, the pure rules that tell the
+            // two apart, and the wiring that renders it.
+            'src/components/NotFoundPage.jsx',
+            'src/hooks/use-initialize-lesson-webonly.js',
+            'src/modules/lesson/lesson-not-found-logic.js',
+            'src/modules/lesson/lesson-not-found-logic.test.js',
+            'src/modules/lesson/lesson-not-found-wiring.test.js',
+            'src/routes/AppLayout.jsx',
+            'tests/dead-lesson-link.spec.js',
+            // An in-app link must stay on the host the page is served from: the
+            // profile's lesson link was hard-coded to the apex, so every click
+            // navigated the visitor off-site (a webview wrapper refuses a
+            // cross-origin navigation outright).
+            'src/modules/user/current-site-origin.webonly.js',
+            'src/modules/user/current-site-origin.webonly.test.js',
+            'src/components/profile/FriendLessonLinksSection.jsx',
+            'src/components/profile/FriendLessonLinksSection.test.jsx',
+            'src/components/homescreen/NotificationList.web.jsx',
+            'src/components/homescreen/NotificationList.web.test.js',
+            'src/modules/notifications/notification-logic.js',
+            'src/modules/notifications/notification-logic.test.js',
+            'src/modules/user/friend-lesson-link-wiring.test.js',
+            'tests/friend-lesson-link.spec.js',
+            // The profile's lesson link is a client-side navigation now (a
+            // document load was the only thing in the app that could end in a
+            // browser-level "This site can't be reached" page), so the share
+            // code has to be captured on every location change.
+            'src/App.jsx',
+            'src/routes/RootLayout.jsx',
+            'src/hooks/use-share-code.js',
+            'src/hooks/use-share-code.test.jsx',
+            'tests/notifications.spec.js',
+            // Main's badge test mocks react-router-dom; the friend-practice
+            // link is a <Link>, so the mock has to provide it.
+            'src/components/profile/PublicProfile.test.jsx',
             // Story 086 (Continue gated on the clip upload).
             'stories/086-gate-continue-button-on-upload/story.md',
             'src/modules/lesson/success-continue-logic.js',

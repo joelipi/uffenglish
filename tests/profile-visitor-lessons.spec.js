@@ -138,8 +138,8 @@ test.describe('public-profile visitor awareness', () => {
         // first lesson.
         const links = page.getByTestId('friend-lesson-link');
         await expect(links).toHaveCount(2);
-        await expect(links.nth(0)).toHaveText('Ask');
-        await expect(links.nth(1)).toHaveText('Follow Up');
+        await expect(links.nth(0)).toHaveText('Lesson 1 of 6');
+        await expect(links.nth(1)).toHaveText('Lesson 3 of 6');
 
         await expect(page.getByTestId('visitor-login-banner')).toBeVisible();
         await expect(page.getByTestId('visitor-login-link')).toHaveText(
@@ -170,8 +170,8 @@ test.describe('public-profile visitor awareness', () => {
         // Featuring entry (c: inbox + pair completion) ahead of the other one (a).
         const links = page.getByTestId('friend-lesson-link');
         await expect(links).toHaveCount(2);
-        await expect(links.nth(0)).toHaveText('Follow Up');
-        await expect(links.nth(1)).toHaveText('Ask');
+        await expect(links.nth(0)).toHaveText('Lesson 3 of 6');
+        await expect(links.nth(1)).toHaveText('Lesson 1 of 6');
 
         const badges = page.getByTestId('friend-lesson-link-completed');
         await expect(badges).toHaveCount(1);
@@ -192,7 +192,7 @@ test.describe('public-profile visitor awareness', () => {
         await seedViewer(page, { completions: [completionRow('b')] });
 
         const links = page.getByTestId('friend-lesson-link');
-        await expect(links.nth(0)).toHaveText('Ask');
+        await expect(links.nth(0)).toHaveText('Lesson 1 of 6');
         await expect(links.nth(0)).toHaveCSS('text-decoration-line', /line-through/);
         await expect(page.getByTestId('friend-lesson-link-completed')).toHaveCount(1);
         await expect(page.getByTestId('friend-lesson-link-completed')).toHaveText('Completed it together ✅');
@@ -228,7 +228,7 @@ test.describe('public-profile visitor awareness', () => {
 
         await expect(page.getByTestId('friend-lesson-link-completed')).toHaveCount(0);
         const links = page.getByTestId('friend-lesson-link');
-        await expect(links.nth(0)).toHaveText('Follow Up');
+        await expect(links.nth(0)).toHaveText('Lesson 3 of 6');
         await expect(links.nth(0)).not.toHaveCSS('text-decoration-line', /line-through/);
     });
 
@@ -238,8 +238,8 @@ test.describe('public-profile visitor awareness', () => {
 
         const links = page.getByTestId('friend-lesson-link');
         await expect(links).toHaveCount(2);
-        await expect(links.nth(0)).toHaveText('Ask');
-        await expect(links.nth(1)).toHaveText('Follow Up');
+        await expect(links.nth(0)).toHaveText('Lesson 1 of 6');
+        await expect(links.nth(1)).toHaveText('Lesson 3 of 6');
         await expect(page.getByTestId('visitor-login-banner')).toHaveCount(0);
         await expect(page.getByTestId('friend-lesson-link-completed')).toHaveCount(0);
     });
