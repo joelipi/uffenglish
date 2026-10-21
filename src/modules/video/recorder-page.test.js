@@ -1126,8 +1126,8 @@ describe('recorder auto-render — zero server changes', () => {
             'src/modules/video/video-processor-share-cta.test.js',
             'src/modules/courses/guest-viewer-logic.js',
             'src/modules/courses/guest-viewer-logic.test.js',
-            // Course end: profile "Lesson N of 6" labels, the terminal lesson's
-            // code-owned goodbye block, and generic lesson titles.
+            // Course end: profile "Lesson N of 7" labels, the closing
+            // lesson's code-owned goodbye block, and generic lesson titles.
             'src/data/strings.test.js',
             'src/routes/LoginRoute.jsx',
             'src/routes/SignupRoute.jsx',

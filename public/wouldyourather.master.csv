@@ -2127,6 +2127,14 @@ Emprego que você odeia, salário alto","যে কাজ আপনি ভাল
 যে কাজ আপনি ঘৃণা করেন, বেশি বেতন","Travail adoré, petit salaire
 Travail détesté, gros salaire","नौकरी जो आपको पसंद है, कम तनख्वाह
 नौकरी जिससे आप नफरत करते हैं, ऊँची तनख्वाह",,,,,,,,,,,,,,,,X or Y,"which is better, noun X or noun Y",would rather + [verb stem X] or [verb stem Y],given the choice between [gerund verb X] and [gerund verb Y],"if I had to choose between [gerund verb X] and [gerund verb Y], my preference would be to [infinitive verb]"
+Preferences in English,1,,,,,,,,,,,,,,,,{friendCode}{selfCode}-wouldyourather-e-01,,,,,,,,wouldyourather,Get $1 million or $5 million?,src/assets/img/wouldyouratherhero.jpg,preferences|money|getting to know you,g,Preferences G,branching,,talk about preferences,friend,shareCta,{friendCode}{selfCode}-wouldyourather-e-01,,,,,,,,,,"1
+2","Job you love, low salary
+Job you hate, high salary",,3,answer,1,0,0,Preferencias G,Preferências G,পছন্দ G,Préférences G,पसंद G,hablar sobre preferencias,falar sobre preferências,পছন্দ সম্পর্কে কথা বলুন,parler de préférences,पसंद के बारे में बात करें,,,,,,,,,,,"Trabajo que amas, salario bajo
+Trabajo que odias, salario alto","Emprego que você ama, salário baixo
+Emprego que você odeia, salário alto","যে কাজ আপনি ভালোবাসেন, কম বেতন
+যে কাজ আপনি ঘৃণা করেন, বেশি বেতন","Travail adoré, petit salaire
+Travail détesté, gros salaire","नौकरी जो आपको पसंद है, कम तनख्वाह
+नौकरी जिससे आप नफरत करते हैं, ऊँची तनख्वाह",,,,,,,,,,,,,,,,X or Y,"which is better, noun X or noun Y",would rather + [verb stem X] or [verb stem Y],given the choice between [gerund verb X] and [gerund verb Y],"if I had to choose between [gerund verb X] and [gerund verb Y], my preference would be to [infinitive verb]"
 Preferences in English,1,,,,,CasualTeacher,A job you love with a low salary.,,,,,,,,wouldyourather-f-01-01,,wouldyourather-f-01,,,<aside><strong><b>A1</b> A job you love with a low salary.</strong><br><b>A2</b> ___________<br><b>B1</b> ___________<br><b>B2</b> ___________</aside>,,,,,wouldyourather,Get $1 million or $5 million?,src/assets/img/wouldyouratherhero.jpg,preferences|money|getting to know you,f,Preferences F,friendClosedResponse,,talk about preferences,friend,shareCta,{friendCode}{selfCode}-wouldyourather-e-01,,,,,,,,"1\n00:00:00,000 --> 00:00:02,950\nA job you love with a low salary.\n\n2\n00:00:02,950 --> 00:00:08,700\nA job I love with a low salary is better than a job I hate with a high salary.\n\n3\n00:00:08,700 --> 00:00:16,650\nI would rather have a job I love that pays a low salary than have a job I hate that pays a high salary.\n\n4\n00:00:16,650 --> 00:00:26,500\nGiven the choice between having a job you love that pays a low salary and having a job you hate that pays a high salary, I would choose to have a job I love that pays a low salary.",2,,,,3,answer,1,1,1,Preferencias F,Preferências F,পছন্দ F,Préférences F,पसंद F,,,,,,,,,,,,,,,,,,,,,,,,,,Un trabajo que amas con un salario bajo.,Um emprego que você ama com um salário baixo.,কম বেতনের একটি চাকরি যা আপনি ভালোবাসেন।,Un travail que tu aimes avec un petit salaire.,"ऐसी नौकरी जो आपको पसंद है, कम वेतन के साथ।","1
 00:00:00,000 --> 00:00:02,950
 A job you love with a low salary.
@@ -2357,6 +2365,14 @@ Pobre com privacidade total","গোপনীয়তা ছাড়া ধনী
 সম্পূর্ণ গোপনীয়তা সহ গরিব","Riche, sans vie privée
 Pauvre, avec vie privée","अमीर, बिना निजता के
 गरीब, पूरी निजता के साथ",,,,,,,,,,,,,,,,X or Y,"which is better, noun X or noun Y",would rather + [verb stem X] or [verb stem Y],given the choice between [gerund verb X] and [gerund verb Y],"if I had to choose between [gerund verb X] and [gerund verb Y], my preference would be to [infinitive verb]"
+Preferences in English,1,,,,,,,,,,,,,,,,{friendCode}{selfCode}-wouldyourather-e-02,,,,,,,,wouldyourather,Get $1 million or $5 million?,src/assets/img/wouldyouratherhero.jpg,preferences|money|getting to know you,g,Preferences G,branching,,talk about preferences,friend,shareCta,{friendCode}{selfCode}-wouldyourather-e-01,,,,,,,,,,"1
+2","Rich with no privacy
+Poor with complete privacy",,3,answer,2,0,0,Preferencias G,Preferências G,পছন্দ G,Préférences G,पसंद G,hablar sobre preferencias,falar sobre preferências,পছন্দ সম্পর্কে কথা বলুন,parler de préférences,पसंद के बारे में बात करें,,,,,,,,,,,"Rico sin privacidad
+Pobre con privacidad total","Rico sem privacidade
+Pobre com privacidade total","গোপনীয়তা ছাড়া ধনী
+সম্পূর্ণ গোপনীয়তা সহ গরিব","Riche, sans vie privée
+Pauvre, avec vie privée","अमीर, बिना निजता के
+गरीब, पूरी निजता के साथ",,,,,,,,,,,,,,,,X or Y,"which is better, noun X or noun Y",would rather + [verb stem X] or [verb stem Y],given the choice between [gerund verb X] and [gerund verb Y],"if I had to choose between [gerund verb X] and [gerund verb Y], my preference would be to [infinitive verb]"
 Preferences in English,1,,,,,CasualTeacher,Rich with no privacy.,,,,,,,,wouldyourather-f-03-01,,wouldyourather-f-03,,,<aside><strong><b>A1</b> Rich with no privacy.</strong><br><b>A2</b> ___________<br><b>B1</b> ___________<br><b>B2</b> ___________</aside>,,,,,wouldyourather,Get $1 million or $5 million?,src/assets/img/wouldyouratherhero.jpg,preferences|money|getting to know you,f,Preferences F,friendClosedResponse,,talk about preferences,friend,shareCta,{friendCode}{selfCode}-wouldyourather-e-01,,,,,,,,"1\n00:00:00,000 --> 00:00:02,750\nRich with no privacy.\n\n2\n00:00:02,750 --> 00:00:07,800\nBeing rich with no privacy is better than being poor with complete privacy.\n\n3\n00:00:07,800 --> 00:00:14,050\nI would rather be rich but have no privacy than be poor but have complete privacy.\n\n4\n00:00:14,050 --> 00:00:22,100\nGiven the choice between being rich but having no privacy and being poor but having complete privacy, I would choose to be rich.",2,,,,3,answer,2,1,1,Preferencias F,Preferências F,পছন্দ F,Préférences F,पसंद F,,,,,,,,,,,,,,,,,,,,,,,,,,Rico sin privacidad.,Rico sem privacidade.,গোপনীয়তা ছাড়া ধনী।,Riche sans vie privée.,बिना निजता के अमीर।,"1
 00:00:00,000 --> 00:00:02,750
 Rich with no privacy.
@@ -2582,6 +2598,14 @@ Preferences in English,4,,,,,,"Given the choice between going a week without you
 Preferences in English,1,,,,,,,,,,,,,,,,{friendCode}{selfCode}-wouldyourather-e-03,,,,,,,,wouldyourather,Get $1 million or $5 million?,src/assets/img/wouldyouratherhero.jpg,preferences|money|getting to know you,f,Preferences F,branching,,talk about preferences,friend,shareCta,{friendCode}{selfCode}-wouldyourather-e-01,,,,,,,,,,"1
 2","A week without your phone
 A week without music",,3,answer,3,0,0,Preferencias F,Preferências F,পছন্দ F,Préférences F,पसंद F,,,,,,,,,,,,,,,,"Una semana sin tu teléfono
+Una semana sin música","Uma semana sem o seu telefone
+Uma semana sem música","ফোন ছাড়া এক সপ্তাহ
+গান ছাড়া এক সপ্তাহ","Une semaine sans téléphone
+Une semaine sans musique","आपके फोन के बिना एक हफ्ता
+संगीत के बिना एक हफ्ता",,,,,,,,,,,,,,,,X or Y,"which is better, noun X or noun Y",would rather + [verb stem X] or [verb stem Y],given the choice between [gerund verb X] and [gerund verb Y],"if I had to choose between [gerund verb X] and [gerund verb Y], my preference would be to [infinitive verb]"
+Preferences in English,1,,,,,,,,,,,,,,,,{friendCode}{selfCode}-wouldyourather-e-03,,,,,,,,wouldyourather,Get $1 million or $5 million?,src/assets/img/wouldyouratherhero.jpg,preferences|money|getting to know you,g,Preferences G,branching,,talk about preferences,friend,shareCta,{friendCode}{selfCode}-wouldyourather-e-01,,,,,,,,,,"1
+2","A week without your phone
+A week without music",,3,answer,3,0,0,Preferencias G,Preferências G,পছন্দ G,Préférences G,पसंद G,hablar sobre preferencias,falar sobre preferências,পছন্দ সম্পর্কে কথা বলুন,parler de préférences,पसंद के बारे में बात करें,,,,,,,,,,,"Una semana sin tu teléfono
 Una semana sin música","Uma semana sem o seu telefone
 Uma semana sem música","ফোন ছাড়া এক সপ্তাহ
 গান ছাড়া এক সপ্তাহ","Une semaine sans téléphone

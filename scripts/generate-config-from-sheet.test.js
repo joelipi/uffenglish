@@ -307,7 +307,7 @@ describe('generate-config-from-sheet disk input', () => {
             expect(code).toBe(0);
             const config = JSON.parse(readFileSync(path.join(dir, 'wouldyourather.json'), 'utf8'));
             expect(config.courseId).toBe('wouldyourather');
-            expect(config.lessons.length).toBe(6);
+            expect(config.lessons.length).toBe(7);
             expect(stdout).toContain('wouldyourather.json');
         } finally { rmSync(dir, { recursive: true, force: true }); }
     });

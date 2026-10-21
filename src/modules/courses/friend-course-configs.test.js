@@ -27,11 +27,11 @@ describe('loadConfigEntries', () => {
         expect(entries.map((e) => e.courseId).sort()).toEqual(REAL_COURSE_IDS);
     });
 
-    it('parses the JSON (the friend course has all 6 lessons)', async () => {
+    it('parses the JSON (the friend course has all 7 lessons)', async () => {
         const entries = await loadConfigEntries();
         const wyr = entries.find((e) => e.courseId === 'wouldyourather');
         expect(Array.isArray(wyr.config.lessons)).toBe(true);
-        expect(wyr.config.lessons).toHaveLength(6);
+        expect(wyr.config.lessons).toHaveLength(7);
     });
 
     it('skips a module whose loader rejects instead of rejecting the whole call', async () => {

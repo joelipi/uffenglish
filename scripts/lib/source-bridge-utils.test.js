@@ -26,6 +26,7 @@ const SOURCE = {
         {
             ask: { id: 'a', title: 'Ask things' },
             answer: { id: 'b', title: 'Answer things' },
+            closing: { id: 'c', title: 'Closing things' },
             topics: [
                 {
                     question: ['Q1?', 'Which is better, Q1?'],
@@ -403,14 +404,14 @@ describe('bridge round-trip through the real generator', () => {    it('leaves n
         expect(findMissingColumns(rows)).toEqual([]);
     });
 
-    it('parseCsv + buildCourseConfig accepts the output and builds both lessons', () => {
+    it('parseCsv + buildCourseConfig accepts the output and builds all three lessons', () => {
         const csv = rowsToCsv(sourceToRows(SOURCE));
         // The CSV quotes and newlines survive a real parse.
         const { rows } = parseCsv(csv);
         expect(rows.length).toBeGreaterThan(0);
         const config = buildCourseConfig(rows);
         expect(config.courseId).toBe('demo');
-        expect(config.lessons.map((l) => l.lessonId)).toEqual(['a', 'b']);
+        expect(config.lessons.map((l) => l.lessonId)).toEqual(['a', 'b', 'c']);
         // Every lesson opens on its intro.
         for (const lesson of config.lessons) {
             expect(lesson.steps[0].responseType).toBe('lessonIntro');
@@ -432,17 +433,42 @@ describe('bridge round-trip through the real generator', () => {    it('leaves n
         const branch = config.lessons[1].steps.find((s) => s.responseType === 'branching');
         expect(branch.chooseStep.map((g) => g.text.en)).toEqual(['Pick one', 'Pick two', 'Pick three']);
         expect(branch.chooseStep.map((g) => g.chooseStep.length)).toEqual([2, 2, 2]);
-        // This fixture has ONE pair, so its answer lesson is the chain's
-        // terminal lesson: it closes with the code-owned goodbye block instead
-        // of recording a question set, and publishes nothing back into the ask
-        // lesson. (Reuse-row expansion is covered by the wouldyourather config
-        // guards, where lessons b-e are non-terminal.)
-        expect(config.lessons[1].steps.some((s) => s.publishLessonId === 'a')).toBe(false);
-        const goodbye = config.lessons[1].steps.filter(
+        // This fixture has ONE pair, so its answer lesson still records the
+        // question set back into the ask lesson's namespace, and the pair's
+        // CLOSING lesson ends the chain: it answers the same questions and
+        // closes with the code-owned goodbye block instead of recording a
+        // question set nobody could answer. (Reuse-row expansion is covered by
+        // the wouldyourather config guards, where lessons b-f are non-terminal.)
+        expect(config.lessons[1].steps.some((s) => s.publishLessonId === 'a')).toBe(true);
+        const goodbye = config.lessons[2].steps.filter(
             (s) => s.responseType === 'friendClosedResponse' && !s.simpleVideoUrl);
         expect(goodbye).toHaveLength(4);
-        const closingBranch = config.lessons[1].steps.findLast((s) => s.responseType === 'branching');
+        const closingBranch = config.lessons[2].steps.findLast((s) => s.responseType === 'branching');
         expect(closingBranch.chooseStep).toHaveLength(4);
         expect(closingBranch.chooseStep.map((c) => c.nextStep)).toEqual([1, 2, 3, 4]);
+        // The closing lesson plays the pair's branch (the friend clip) and
+        // answers the pair's questions — it is a second answer lesson.
+        const closingBranchWithClip = config.lessons[2].steps.find(
+            (s) => s.responseType === 'branching' && s.simpleVideoUrl);
+        expect(closingBranchWithClip.simpleVideoUrl).toBe('{friendCode}{selfCode}-demo-a-01');
+    });
+
+    it('refuses a chain whose last pair has no closing lesson', () => {
+        // Without it the chain would end on a question set nobody could
+        // answer, and the goodbye would have no home.
+        const noClosing = { ...SOURCE, pairs: [{ ...SOURCE.pairs[0], closing: undefined }] };
+        const { rows } = parseCsv(rowsToCsv(sourceToRows(noClosing)));
+        expect(() => buildCourseConfig(rows)).toThrow(/closing lesson/);
+    });
+
+    it('refuses a closing lesson on a pair that is not the last one', () => {
+        const twoPairs = {
+            ...SOURCE,
+            pairs: [
+                SOURCE.pairs[0],
+                { ...SOURCE.pairs[0], ask: { id: 'd', title: 'D' }, answer: { id: 'e', title: 'E' } },
+            ],
+        };
+        expect(() => sourceToRows(twoPairs)).toThrow(/only the LAST pair/);
     });
 });

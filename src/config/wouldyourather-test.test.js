@@ -11,15 +11,17 @@
 //   C (43)  answers the friend's set-1 clip         -> records the set-2 questions
 //   D (43)  answers the friend's set-2 clip         -> records the set-2 questions
 //   E (43)  answers the friend's set-2 clip         -> records the set-3 questions
-//   F (33)  answers the friend's set-3 clip         -> closes (no next set)
+//   F (43)  answers the friend's set-3 clip         -> records the set-3 questions
+//   G (33)  answers the friend's set-3 clip         -> closes (no next set)
 //
 // Every lesson after A is respond-then-record: the friend's clip opens the
 // lesson, the learner answers it, then the learner records the next set's
 // question videos. C reuses B's answer videos and E reuses D's — there is
 // only one answer video set per topic set, so each is drilled twice.
-// F is the chain's terminal lesson: nothing follows it, so its second half is
+// G is the chain's CLOSING lesson: nothing follows it, so its second half is
 // a code-owned goodbye block (one branch + four text-only takes) instead of
-// recording a question set nobody could answer.
+// recording a question set nobody could answer. F still records the set-3
+// questions, and G is the lesson that answers them.
 //
 // These guards use the app's OWN resolvers (resolveNextStepIndex /
 // resolveBranchChoices) so they check behaviour, not text.
@@ -28,8 +30,8 @@ import wouldyouratherTest from './wouldyourather-test.json';
 import { resolveNextStepIndex, resolveBranchChoices } from '../modules/lesson/branch-choice-logic.js';
 
 const LOCALES = ['en', 'es', 'pt', 'bn', 'fr', 'hi'];
-const TAKE_RE = /^wouldyourather-[a-f]-\d{2}-\d{2}$/;
-const FRIEND_RE = /^\{friendCode\}\{selfCode\}-wouldyourather-test-([a-f])-(\d{2})$/;
+const TAKE_RE = /^wouldyourather-[a-g]-\d{2}-\d{2}$/;
+const FRIEND_RE = /^\{friendCode\}\{selfCode\}-wouldyourather-test-([a-g])-(\d{2})$/;
 
 // lesson id -> { friendSet, answerSet, recordSet, steps, branchings, responses }
 // `recordSet: null` means the lesson closes instead of recording a next set.
@@ -39,7 +41,8 @@ const PLAN = {
     c: { friendSet: 'a', answerSet: 'b', recordSet: 'c', steps: 43, branchings: 6, responses: 36 },
     d: { friendSet: 'c', answerSet: 'd', recordSet: 'c', steps: 43, branchings: 6, responses: 36 },
     e: { friendSet: 'c', answerSet: 'd', recordSet: 'e', steps: 43, branchings: 6, responses: 36 },
-    f: { friendSet: 'e', answerSet: 'f', recordSet: null, steps: 33, branchings: 4, responses: 28 },
+    f: { friendSet: 'e', answerSet: 'f', recordSet: 'e', steps: 43, branchings: 6, responses: 36 },
+    g: { friendSet: 'e', answerSet: 'f', recordSet: null, steps: 33, branchings: 4, responses: 28 },
 };
 
 const lessonById = (id) => wouldyouratherTest.lessons.find((l) => l.lessonId === id);
@@ -78,10 +81,10 @@ describe('wouldyourather-test.json — every response step', () => {
     it.each(Object.keys(PLAN))('lesson %s uses only single-take videos', (id) => {
         for (const step of lessonById(id).steps) {
             if (step.responseType !== 'friendClosedResponse') continue;
-            // The terminal lesson's goodbye takes are the only text-only
+            // The closing lesson's goodbye takes are the only text-only
             // response steps: the learner records their own voice.
             if (!step.simpleVideoUrl) {
-                expect(id, `${id}: a text-only response step is only allowed in the closing lesson`).toBe('f');
+                expect(id, `${id}: a text-only response step is only allowed in the closing lesson`).toBe('g');
                 continue;
             }
             expect(
@@ -160,12 +163,12 @@ describe('wouldyourather-test.json — every response step', () => {
     });
 });
 
-describe('wouldyourather-test.json — the terminal lesson closes', () => {
-    // F is the last lesson in the chain: the friend who receives its video has
+describe('wouldyourather-test.json — the closing lesson closes', () => {
+    // G is the last lesson in the chain: the friend who receives its video has
     // nothing left to answer, so the second half is a goodbye, not a question
     // set. The block is code-owned by the generator (FRIEND_CLOSING_LINES).
-    it('lesson f ends with one goodbye branch and four text-only takes', () => {
-        const steps = lessonById('f').steps;
+    it('lesson g ends with one goodbye branch and four text-only takes', () => {
+        const steps = lessonById('g').steps;
         const start = steps.findLastIndex((s) => s.responseType === 'branching');
         const closing = steps.slice(start);
         expect(closing, 'closing block size').toHaveLength(5);
@@ -188,13 +191,13 @@ describe('wouldyourather-test.json — the terminal lesson closes', () => {
     });
 
     it('the last closing take ends the lesson', () => {
-        const steps = lessonById('f').steps;
+        const steps = lessonById('g').steps;
         expect(resolveNextStepIndex(steps[steps.length - 1], steps.length - 1)).toBe(steps.length);
     });
 
     it('no other lesson has a text-only response step', () => {
         for (const lesson of wouldyouratherTest.lessons) {
-            if (lesson.lessonId === 'f') continue;
+            if (lesson.lessonId === 'g') continue;
             for (const step of lesson.steps) {
                 if (step.responseType !== 'friendClosedResponse') continue;
                 expect(step.simpleVideoUrl, `${lesson.lessonId} response step without a take`).toBeTypeOf('string');
@@ -273,7 +276,7 @@ describe('wouldyourather-test.json — the friend clip chain', () => {
     it('each lesson answers the clip the previous lesson recorded', () => {
         // The clip a lesson answers is the one the previous lesson republished
         // into that set's namespace: B and C answer the a-questions, D and E
-        // the c-questions, F the e-questions.
+        // the c-questions, F and G the e-questions.
         const answered = {};
         for (const lesson of wouldyouratherTest.lessons) {
             const intro = lesson.steps.find((s) => s.responseType === 'lessonIntro');
@@ -281,7 +284,7 @@ describe('wouldyourather-test.json — the friend clip chain', () => {
             answered[lesson.lessonId] = m ? m[1] : null;
         }
         expect(answered).toEqual({
-            a: null, b: 'a', c: 'a', d: 'c', e: 'c', f: 'e',
+            a: null, b: 'a', c: 'a', d: 'c', e: 'c', f: 'e', g: 'e',
         });
     });
 

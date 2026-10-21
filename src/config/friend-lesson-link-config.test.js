@@ -16,12 +16,13 @@ function lessonIds(config) {
 }
 
 describe('shareCta-order chain premise', () => {
-    it('the friend course chains a -> b -> ... -> f -> (null)', () => {
-        expect(lessonIds(friend)).toEqual(['a', 'b', 'c', 'd', 'e', 'f']);
+    it('the friend course chains a -> b -> ... -> g -> (null)', () => {
+        expect(lessonIds(friend)).toEqual(['a', 'b', 'c', 'd', 'e', 'f', 'g']);
         expect(nextFriendLessonId(friend, 'a')).toBe('b');
         expect(nextFriendLessonId(friend, 'b')).toBe('c');
         expect(nextFriendLessonId(friend, 'e')).toBe('f');
-        expect(nextFriendLessonId(friend, 'f')).toBeNull();
+        expect(nextFriendLessonId(friend, 'f')).toBe('g');
+        expect(nextFriendLessonId(friend, 'g')).toBeNull();
     });
 
     it('model.json has no single-letter friend lesson ids', () => {
