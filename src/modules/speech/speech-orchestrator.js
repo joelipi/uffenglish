@@ -36,6 +36,23 @@ export function createSpeechOrchestrator({
 }) {
     const listeningState = { active: false, hesitationTimer: null, readyPoll: null, transitioning: false };
 
+    // ── TAKE-PATH DIAGNOSTICS (temporary) ──────────────────────────────
+    // The field report is a take that produces no audio at all, so every
+    // hand-off of the capture stream along the take path is logged.
+    const describeStream = (stream) => {
+        try {
+            if (!stream) return 'null';
+            const audio = (stream.getAudioTracks?.() || []).map((t) => `${t.label || 'unlabelled'}:${t.readyState}:${t.muted ? 'muted' : 'live'}`);
+            const video = (stream.getVideoTracks?.() || []).map((t) => t.readyState);
+            return `audio=[${audio.join(', ')}] video=[${video.join(', ')}]`;
+        } catch (e) {
+            return `unreadable (${e?.message || e})`;
+        }
+    };
+    const takeLog = (...args) => {
+        try { console.log('[TAKE]', ...args); } catch { /* console unavailable */ }
+    };
+
     function clearReadyPoll() {
         if (listeningState.readyPoll) {
             clearInterval(listeningState.readyPoll);
@@ -243,6 +260,8 @@ export function createSpeechOrchestrator({
                     return;
                 }
 
+                takeLog('start — ua:', navigator.userAgent, '| secure:', window.isSecureContext, '| stream:', describeStream(getSpeechCamStream()));
+
                 if (uiHooks?.onMicDisable) uiHooks.onMicDisable(button);
 
                 if (!appStore.getState().isWhisperReady) {
@@ -361,10 +380,19 @@ export function createSpeechOrchestrator({
 
                     // Wait for the composite to paint at least one frame before
                     // recording, so a cold camera cannot freeze the take on frame 0.
-                    await startDeferredSpeechCamRecording();
+                    let deferredOk = true;
+                    try {
+                        await startDeferredSpeechCamRecording();
+                    } catch (e) {
+                        deferredOk = false;
+                        takeLog('startDeferredSpeechCamRecording FAILED:', e?.name, e?.message);
+                    }
+
+                    takeLog('take start — deferredOk:', deferredOk, '| stream:', describeStream(getSpeechCamStream()));
 
                     const stream = getSpeechCamStream();
                     if (stream) {
+                        takeLog('starting the audio tap');
                         await startLocalAudioTap(stream, () => {
                             lastSpeechTime = Date.now();
                             if (!speechDetected) {
@@ -381,6 +409,29 @@ export function createSpeechOrchestrator({
                                 pauseTick = 0;
                             }
                         });
+                        takeLog('audio tap started');
+                    } else {
+                        // No capture stream means this take can only ever be
+                        // silent. Do not present it: surface the media error and
+                        // leave the learner on the chooser so the mic can be
+                        // retried instead of recording nothing.
+                        takeLog('TAP SKIPPED — no capture stream; aborting the take');
+                        appStore.getState().setMicActive(false);
+                        listeningState.active = false;
+                        if (listeningState.hesitationTimer) {
+                            clearInterval(listeningState.hesitationTimer);
+                            listeningState.hesitationTimer = null;
+                        }
+                        const err = new Error('The microphone capture is not available.');
+                        if (uiHooks?.onMediaError) {
+                            uiHooks.onMediaError(err);
+                        } else {
+                            appStore.getState().setSystemMessage({
+                                type: 'media-error',
+                                text: Strings.get('error_media_generic', getAppLanguage()) || err.message,
+                            });
+                        }
+                        return;
                     }
                 }
             } else {
@@ -402,6 +453,8 @@ export function createSpeechOrchestrator({
                     return;
                 }
 
+                takeLog('stop — samples:', rawAudioData?.length ?? 'null', '| stream:', describeStream(getSpeechCamStream()));
+
                 // A connected input can hand us a live stream that produces no
                 // frames (the field case: a Bluetooth microphone). Classify the
                 // capture before it reaches Whisper, so silence is answered with
@@ -422,8 +475,11 @@ export function createSpeechOrchestrator({
                 try {
                     videoBlob = await stopSpeechCamRecording({
                         download: false, persist: true, keepStreamAlive: true,
-                        // A silent take is not replayed back to the learner.
-                        playback: capture.usable, autoplay: capture.usable,
+                        // DIAGNOSTIC (remove for the real fix): always replay the
+                        // take, so the recorded clip's own audio track tells us
+                        // whether the microphone captured the learner's voice —
+                        // independent of the Web Audio tap that reports silence.
+                        playback: true, autoplay: true,
                         meta: {
                             lessonId: configData?.lessons?.[currentLessonIndex]?.lessonId || null,
                             stepIndex: currentStepIndex ?? null,
@@ -448,6 +504,17 @@ export function createSpeechOrchestrator({
                 if (!capture.usable) {
                     appStore.getState().clearRecordedAudioPeaks();
                     appStore.getState().clearPlaybackBlob();
+                    // A silent capture usually means the live track is dead (the
+                    // iOS audio-session case). Close it so the retry re-acquires
+                    // a fresh stream instead of reusing the same dead track.
+                    if (typeof safelyStopStream === 'function') {
+                        try {
+                            safelyStopStream();
+                            console.log('[Speech] Released the silent capture so the retry re-acquires the mic');
+                        } catch (e) {
+                            console.warn('[Speech] Could not release the silent capture:', e);
+                        }
+                    }
                     if (uiHooks?.onNoAudioCaptured) {
                         uiHooks.onNoAudioCaptured(userData);
                     } else {

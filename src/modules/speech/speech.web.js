@@ -20,6 +20,7 @@ import {
     shouldReleaseCaptureBeforePlayback,
     waitForAudioRouteSettle,
 } from './capture-release-logic.js';
+import { resampleTo16k, peakAmplitude, WHISPER_SAMPLE_RATE } from './audio-resample-logic.js';
 import Strings from '../../data/strings.js';
 import { getAppLanguage } from '../bilingual/config-normalizer.js';
 import { trackEvent } from '../utils/posthog.js';
@@ -50,6 +51,13 @@ export function shouldUsePortraitCapture() {
 let localRawAudioChunks = [];
 let localAudioContext = null;
 let localAudioWorkletNode = null;
+let localAudioProbeTimer = null;
+let localFallbackTimer = null;
+let audioOnlyFallbackStream = null;
+// Temporary capture instrumentation: logs what the source node emits and the
+// rate the device actually provides. Flip to false once the field failure is
+// identified.
+const TAP_PROBE = true;
 
 export let speechCamStream = null;
 let speechCamRecorder = null;
@@ -79,6 +87,11 @@ function getMediaConstraints() {
             // framing, so the camera is asked for a plain 16:9 source to crop.
             // Windows webcams report landscape regardless, so Windows still asks
             // for 9:16 directly (the composite crops either way).
+            //
+            // NOTE: on iOS the raw stream is used (no composite) while this still
+            // asks for 16:9. Changing it to 9/16 on iOS was tried during the
+            // silence investigation and made the framing worse — do not re-attempt
+            // without measuring the captured track's real dimensions.
             aspectRatio: { ideal: 16 / 9 },
             facingMode: "user",
             ...(isWindows && { aspectRatio: { ideal: 9 / 16 } })
@@ -88,7 +101,11 @@ function getMediaConstraints() {
             echoCancellation: true,
             noiseSuppression: true,
             autoGainControl: true,
-            sampleRate: { ideal: 16000 }
+            // No sampleRate constraint: WebKit must hand back the microphone
+            // at the hardware clock. Asking for 16 kHz made WebKit resample
+            // the capture itself, which is the step observed to return a
+            // silent signal from a live track (see audio-resample-logic.js);
+            // the conversion to Whisper's 16 kHz now happens in JS.
         }
     };
 }
@@ -269,7 +286,7 @@ function teardownPortraitCapture() {
 
 async function createPlaceholderStream() {
     const audioStream = await navigator.mediaDevices.getUserMedia({
-        audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true, sampleRate: { ideal: 16000 } }
+        audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true }
     });
 
     const canvas = document.createElement('canvas');
@@ -472,6 +489,19 @@ export function stopSpeechCamRecording({ download = true, persist = false, meta 
     // always closes it (the composite must not stay alive into Whisper);
     // everywhere else the caller decides via `keepStreamAlive`.
     const releaseAfterRecording = shouldForceReleaseComposite({ isAndroid, keepStreamAlive, recordingStarted: true });
+
+    // ── iOS: close the capture before the clip plays (stories/087 follow-up) ──
+    // iOS hands the audio session to playback when media starts while a
+    // microphone capture is open. The capture is kept alive across takes
+    // (`keepStreamAlive`), so playing the recorded clip left the mic track
+    // alive but silent: the NEXT take then reported a live, unmuted track while
+    // every sample was 0, and the poisoned session survived page reloads (field
+    // case: iPadOS 27 + Chrome iOS — take 1 transcribed, take 2 and every take
+    // after it were digital silence). Android already closes the capture here
+    // for the mirror-image reason (its clip played silent); iOS needs the same
+    // release so the next take re-acquires a healthy stream instead of reusing
+    // a dead track.
+    const releaseBeforePlayback = releaseAfterRecording || isIOS();
     try {
         if (speechCamRecorder && speechCamRecorder.state !== 'inactive') {
             const recorder = speechCamRecorder;
@@ -503,8 +533,11 @@ export function stopSpeechCamRecording({ download = true, persist = false, meta 
                             // AFTER the hand-over and after the thumbnail generation
                             // and the database write — so the capture was still open
                             // for the whole first second of the clip.
-                            if (shouldReleaseCaptureBeforePlayback({ releaseAfterRecording, playback: true })) {
+                            if (shouldReleaseCaptureBeforePlayback({ releaseAfterRecording: releaseBeforePlayback, playback: true })) {
                                 releaseCapture();
+                                if (isIOS()) {
+                                    console.log('[Speech] iOS: released the capture before the clip plays — the next take re-acquires the mic');
+                                }
                                 // The audio route needs a moment to hand back from the
                                 // communication mode to the media mode. The wait only
                                 // happens when a capture was actually released, so the
@@ -609,11 +642,17 @@ export async function startLocalAudioTap(stream, onSpeechDetected = null) {
         }
     }
 
-    // Create a new AudioContext at 16 kHz.  Note: on iOS Safari the
-    // hardware runs at 48 kHz and WebKit may silently resample; we
-    // log the actual sample rate so we can spot a mismatch in diags.
-    localAudioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
-    console.log('[Speech] AudioContext created, actual sampleRate:', localAudioContext.sampleRate);
+    // Create the AudioContext at the device's own rate.
+    //
+    // It used to be created with `{ sampleRate: 16000 }`. On iOS the hardware
+    // clock is 48 kHz, so that request forced WebKit to resample the
+    // microphone inside the audio graph — and the observed field failure is a
+    // live, unmuted "iPad Microphone" track whose AudioWorklet delivers
+    // nothing but zeros at exactly 16 kHz. Capturing at the native rate keeps
+    // WebKit out of the conversion path; `stopLocalAudioTap` downsamples to
+    // 16 kHz in JS for Whisper.
+    localAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+    console.log('[Speech] AudioContext created at native sampleRate:', localAudioContext.sampleRate);
 
     // ── AudioWorklet module ────────────────────────────────────────────
     // Even if the same URL was loaded on a previous AudioContext, we
@@ -627,9 +666,21 @@ export async function startLocalAudioTap(stream, onSpeechDetected = null) {
         console.warn('[Speech] AudioWorklet module load note:', e.message);
     }
 
-    const source = localAudioContext.createMediaStreamSource(stream);
+    let source = localAudioContext.createMediaStreamSource(stream);
     localAudioWorkletNode = new AudioWorkletNode(localAudioContext, 'audio-processor');
 
+    // Diagnostic: the capture track and the rate the graph actually runs at.
+    // A live track that still delivers silence is the whole bug, so record the
+    // device's own answer next to every take.
+    try {
+        const track = stream.getAudioTracks?.()[0];
+        const settings = track?.getSettings?.() || {};
+        console.log('[TAP] track:', track?.label, '| readyState:', track?.readyState, '| muted:', track?.muted,
+            '| settings:', JSON.stringify({ sampleRate: settings.sampleRate, channelCount: settings.channelCount, latency: settings.latency }),
+            '| contextRate:', localAudioContext.sampleRate);
+    } catch (e) {
+        console.warn('[TAP] could not read track settings:', e?.message);
+    }
     let consecutiveSpeechChunks = 0;
     const tapStartTime = Date.now();
     const MIC_SETTLE_MS = 300; // ignore first 300ms to suppress mic pop/click
@@ -664,14 +715,96 @@ export async function startLocalAudioTap(stream, onSpeechDetected = null) {
     };
 
     source.connect(localAudioWorkletNode);
-    
+
+    // Keep the graph connected to the destination so the engine pulls it, but
+    // at a gain low enough to be inaudible (~-60 dB). It used to be 0; a
+    // completely silent branch is a shape engines are free to prune, and the
+    // field symptom is a worklet that keeps ticking while receiving zeros.
     const silentGain = localAudioContext.createGain();
-    silentGain.gain.value = 0;
+    silentGain.gain.value = 0.001;
     localAudioWorkletNode.connect(silentGain);
     silentGain.connect(localAudioContext.destination);
+
+    // Diagnostic: measure what the SOURCE node itself emits, independently of
+    // the worklet. If this probe sees signal while the worklet reports zeros,
+    // the graph (not the microphone) is at fault, and vice versa.
+    if (TAP_PROBE) {
+        try {
+            const probe = localAudioContext.createAnalyser();
+            probe.fftSize = 2048;
+            source.connect(probe);
+            probe.connect(silentGain);
+            const probeBuf = new Float32Array(probe.fftSize);
+            let ticks = 0;
+            localAudioProbeTimer = setInterval(() => {
+                ticks++;
+                try {
+                    probe.getFloatTimeDomainData(probeBuf);
+                    console.log(`[TAP-PROBE] tick ${ticks} peak ${peakAmplitude(probeBuf).toFixed(5)} ctx=${localAudioContext?.state} chunks=${localRawAudioChunks.length}`);
+                } catch (e) {
+                    console.warn('[TAP-PROBE] read failed:', e?.message);
+                }
+                if (ticks >= 8) {
+                    clearInterval(localAudioProbeTimer);
+                    localAudioProbeTimer = null;
+                }
+            }, 500);
+        } catch (e) {
+            console.warn('[TAP-PROBE] could not attach:', e?.message);
+        }
+    }
+
+    // ── Silent camera-stream tap → retry on an audio-only capture ───────
+    // Field finding: on iOS the AudioWorklet receives nothing but zeros from
+    // the camera+microphone stream while the track reports live and unmuted —
+    // yet a plain `getUserMedia({ audio })` capture in the same browser
+    // records the learner's voice. If the first second of the tap is silent,
+    // rebuild the source on a dedicated audio-only capture and keep it for the
+    // rest of the take.
+    localFallbackTimer = setTimeout(async () => {
+        localFallbackTimer = null;
+        const silent = localRawAudioChunks.every((chunk) => peakAmplitude(chunk) === 0);
+        if (!silent) {
+            console.log('[TAP] camera-stream tap is delivering audio; no fallback needed');
+            return;
+        }
+        try {
+            const audioOnly = await navigator.mediaDevices.getUserMedia({
+                audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+            });
+            const track = audioOnly.getAudioTracks?.()[0];
+            console.log('[TAP] camera-stream tap was silent → retrying on a dedicated audio-only capture:',
+                track?.label, '| readyState:', track?.readyState, '| settings:', JSON.stringify(track?.getSettings?.() || {}));
+            try { source.disconnect(); } catch (e) { /* already detached */ }
+            const audioOnlySource = localAudioContext.createMediaStreamSource(audioOnly);
+            audioOnlySource.connect(localAudioWorkletNode);
+            audioOnlyFallbackStream = audioOnly;
+            localRawAudioChunks = [];
+            console.log('[TAP] audio-only tap attached; dropped the silent lead-in');
+        } catch (e) {
+            console.warn('[TAP] audio-only fallback failed:', e?.name, e?.message);
+        }
+    }, 900);
 }
 
 export async function stopLocalAudioTap() {
+    if (localAudioProbeTimer) {
+        clearInterval(localAudioProbeTimer);
+        localAudioProbeTimer = null;
+    }
+    if (localFallbackTimer) {
+        clearTimeout(localFallbackTimer);
+        localFallbackTimer = null;
+    }
+    if (audioOnlyFallbackStream) {
+        try {
+            audioOnlyFallbackStream.getTracks().forEach((t) => { try { t.stop(); } catch (e) { /* ignore */ } });
+            console.log('[TAP] released the audio-only fallback capture');
+        } catch (e) {
+            console.warn('[TAP] could not release the audio-only fallback capture:', e?.message);
+        }
+        audioOnlyFallbackStream = null;
+    }
     // ── Tear down the worklet node ─────────────────────────────────────
     // Disconnect before closing the AudioContext so the worklet's
     // process() method is no longer called while we finalise audio.
@@ -726,8 +859,16 @@ export async function stopLocalAudioTap() {
     }
     console.log(`[Speech] Captured ${flattenedAudio.length} samples, max amplitude: ${maxAmp.toFixed(4)}, sampleRate: ${closedSampleRate ?? 'N/A'}`);
 
+    // Whisper consumes 16 kHz mono. The graph runs at the device's rate, so the
+    // conversion happens here (once, in JS) instead of inside WebKit's capture
+    // path — the step that was observed to return silence on iOS.
+    const audioForWhisper = resampleTo16k(flattenedAudio, closedSampleRate);
+    if (audioForWhisper.length !== flattenedAudio.length) {
+        console.log(`[Speech] Resampled ${flattenedAudio.length} frames @ ${closedSampleRate} Hz → ${audioForWhisper.length} frames @ ${WHISPER_SAMPLE_RATE} Hz, max amplitude: ${peakAmplitude(audioForWhisper).toFixed(4)}`);
+    }
+
     localRawAudioChunks = [];
-    return flattenedAudio;
+    return audioForWhisper;
 }
 
 /* 
@@ -743,10 +884,4 @@ export function isWebSpeechActive() {
 
 export function stopWebSpeech() {
     if (recognition) recognition.stop();
-    clearTimeout(recognitionTimeout);
-}
-
-export function startWebSpeechRecognition({ lang = 'en-US', audioTrack = null, nativeLanguage = null } = {}) {
-    // ... logic removed for brevity but functionally disabled
-}
-*/
+   

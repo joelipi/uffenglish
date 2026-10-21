@@ -19,8 +19,13 @@ export const NO_AUDIO_MESSAGE_TYPE = 'no-audio';
  * (and a false alarm in the phase-transition guards).
  */
 export function returnToRecordingPhase(store) {
-    if (store.getState().appPhase === 'recording/answering') return false;
+    const from = store.getState().appPhase;
+    if (from === 'recording/answering') {
+        console.log('[Recovery] already in recording/answering — nothing to transition');
+        return false;
+    }
     store.getState().transitionTo('recording/answering');
+    console.log(`[Recovery] ${from} → recording/answering (now: ${store.getState().appPhase})`);
     return true;
 }
 
