@@ -104,9 +104,14 @@ test.describe('home-screen notification bell', () => {
         // answer, linking to the friend's profile.
         await expect(page.getByTestId('notification-panel')).toBeVisible({ timeout: 15000 });
         await expect(page.getByTestId('notification-item')).toHaveCount(1);
+        // The link is an IN-APP link, so it points at the host the page is
+        // served from, never at a hard-coded apex: a cross-origin navigation
+        // is what a webview wrapper refuses, and it silently teleports a
+        // staging/preview visitor to production.
+        const origin = new URL(page.url()).origin;
         await expect(page.getByTestId('notification-link').first()).toHaveAttribute(
             'href',
-            'https://ultrafastfluency.com/sam123'
+            `${origin}/sam123`
         );
         await expect(page.getByTestId('notification-deadline')).toHaveCount(1);
         await expect(page.getByTestId('notification-timestamp').first()).not.toBeEmpty();
@@ -125,9 +130,14 @@ test.describe('home-screen notification bell', () => {
 
         await expect(page.getByTestId('notification-panel')).toBeVisible({ timeout: 15000 });
         await expect(page.getByTestId('notification-item')).toHaveCount(2);
+        // The link is an IN-APP link, so it points at the host the page is
+        // served from, never at a hard-coded apex: a cross-origin navigation
+        // is what a webview wrapper refuses, and it silently teleports a
+        // staging/preview visitor to production.
+        const origin = new URL(page.url()).origin;
         await expect(page.getByTestId('notification-link').first()).toHaveAttribute(
             'href',
-            'https://ultrafastfluency.com/sam123'
+            `${origin}/sam123`
         );
     });
 

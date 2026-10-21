@@ -1521,6 +1521,7 @@ describe('recorder auto-render — zero server changes', () => {
             'src/routes/RootLayout.jsx',
             'src/hooks/use-share-code.js',
             'src/hooks/use-share-code.test.jsx',
+            'tests/notifications.spec.js',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);
