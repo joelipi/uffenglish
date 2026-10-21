@@ -402,7 +402,17 @@ export function createSpeechOrchestrator({
                     return;
                 }
 
-                if (rawAudioData && rawAudioData.length > 0) {
+                // A connected input can hand us a live stream that produces no
+                // frames (the field case: a Bluetooth microphone). Classify the
+                // capture before it reaches Whisper, so silence is answered with
+                // guidance and a retry instead of a flat waveform and an endless
+                // "transcribing" screen (stories/087-no-audio-capture).
+                const capture = Core.analyzeCapturedAudio(rawAudioData);
+                if (!capture.usable) {
+                    console.warn(`[Speech] No usable audio captured (${capture.reason}), max amplitude ${capture.maxAmplitude.toFixed(4)} — not sending it to Whisper`);
+                }
+
+                if (capture.usable) {
                     const peaks = computeWaveformPeaks(rawAudioData, 120);
                     const durationMs = Math.round((rawAudioData.length / 16000) * 1000);
                     appStore.getState().setRecordedAudioPeaks({ peaks, durationMs });
@@ -411,7 +421,9 @@ export function createSpeechOrchestrator({
                 let videoBlob;
                 try {
                     videoBlob = await stopSpeechCamRecording({
-                        download: false, persist: true, keepStreamAlive: true, playback: true, autoplay: true,
+                        download: false, persist: true, keepStreamAlive: true,
+                        // A silent take is not replayed back to the learner.
+                        playback: capture.usable, autoplay: capture.usable,
                         meta: {
                             lessonId: configData?.lessons?.[currentLessonIndex]?.lessonId || null,
                             stepIndex: currentStepIndex ?? null,
@@ -430,6 +442,17 @@ export function createSpeechOrchestrator({
                 if (!videoBlob) {
                     stopListeningEarly(userData, player, uiHooks);
                     appStore.getState().setMicActive(false);
+                    return;
+                }
+
+                if (!capture.usable) {
+                    appStore.getState().clearRecordedAudioPeaks();
+                    appStore.getState().clearPlaybackBlob();
+                    if (uiHooks?.onNoAudioCaptured) {
+                        uiHooks.onNoAudioCaptured(userData);
+                    } else {
+                        stopListeningEarly(userData, player, uiHooks);
+                    }
                     return;
                 }
 

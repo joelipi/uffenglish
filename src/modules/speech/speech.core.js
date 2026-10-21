@@ -16,6 +16,35 @@ export function cleanTranscript(text) {
     return text.replace(/\s+(a|an|the|and|or)$/i, '');
 }
 
+// A capture is only worth transcribing if it carries a real signal. The floor is
+// deliberately far below speech level (about -46 dBFS): it exists to catch an
+// EMPTY buffer or a dead AudioWorklet (all zeros), not quiet room noise. A
+// connected Bluetooth input that produces no frames is exactly the latter, and
+// handing that silence to Whisper left the learner on "transcribing" with a flat
+// waveform (stories/087-no-audio-capture).
+export const MIN_USABLE_CAPTURE_AMPLITUDE = 0.005;
+
+export function analyzeCapturedAudio(data) {
+    const length = data?.length ?? 0;
+    if (length === 0) {
+        return { usable: false, reason: 'empty', maxAmplitude: 0, length: 0 };
+    }
+
+    let maxAmplitude = 0;
+    for (let i = 0; i < length; i++) {
+        const abs = Math.abs(data[i]);
+        if (abs > maxAmplitude) maxAmplitude = abs;
+    }
+
+    const usable = Number.isFinite(maxAmplitude) && maxAmplitude >= MIN_USABLE_CAPTURE_AMPLITUDE;
+    return {
+        usable,
+        reason: usable ? 'ok' : 'silent',
+        maxAmplitude,
+        length,
+    };
+}
+
 export function trimSilenceWithPadding(data, {
     threshold = 0.02,
     preRoll = 0.2,

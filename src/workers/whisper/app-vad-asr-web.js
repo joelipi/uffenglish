@@ -4,15 +4,37 @@ import { appStore } from '../../modules/store/store.js';
 
 export let isEngineReady = false;
 
+// A transcription must never be able to sit unanswered forever: a dead or hung
+// worker used to leave the learner on "transcribing" for the life of the page
+// (stories/087-no-audio-capture). 45 s is far above a real tiny.en run even on
+// an old tablet, so it only fires when the worker is genuinely gone.
+export const TRANSCRIPTION_TIMEOUT_MS = 45000;
+
 export function createWhisperAdapter({ worker }) {
     const state = {
         isReady: false,
         worker,
         readyResolve: null,
         transcriptionResolve: null,
+        transcriptionTimer: null,
         vadResolvers: new Map(),
         vadIdCounter: 0,
         preloadTimer: null,
+    };
+
+    // The one place a pending transcription is settled. Clearing the timer here
+    // means a late timeout can never resolve a promise that a `result` already
+    // answered, and a `terminate` cannot leave the timer to fire on a dead
+    // worker.
+    const settleTranscription = (payload) => {
+        const resolve = state.transcriptionResolve;
+        if (state.transcriptionTimer) {
+            clearTimeout(state.transcriptionTimer);
+            state.transcriptionTimer = null;
+        }
+        if (!resolve) return;
+        state.transcriptionResolve = null;
+        resolve(payload);
     };
 
     const messageHandler = function (e) {
@@ -48,10 +70,7 @@ export function createWhisperAdapter({ worker }) {
             }
         }
         else if (e.data.type === 'result') {
-            if (state.transcriptionResolve) {
-                state.transcriptionResolve(e.data);
-                state.transcriptionResolve = null;
-            }
+            settleTranscription(e.data);
         }
         else if (e.data.type === 'vad_result') {
             const resolver = state.vadResolvers.get(e.data.id);
@@ -73,6 +92,10 @@ export function createWhisperAdapter({ worker }) {
             state.readyResolve();
             state.readyResolve = null;
         }
+        // The worker is gone. Without this the pending transcription promise is
+        // never settled, so the UI waits on "transcribing" forever.
+        appStore.getState().setWhisperEngineFailed(true);
+        settleTranscription({ text: null, error: 'worker-error' });
     };
 
     state.worker.onmessage = messageHandler;
@@ -107,11 +130,37 @@ export function createWhisperAdapter({ worker }) {
                 resolve(null);
                 return;
             }
+            // Defensive: never hand the worker a zero-length buffer (Whisper has
+            // nothing to decode and some builds never reply). The orchestrator
+            // already gates on analyzeCapturedAudio, so this is the unit-level
+            // backstop.
+            if (!float32Array || float32Array.length === 0) {
+                console.warn('[whisper] refusing to transcribe an empty buffer');
+                resolve({ text: null, error: 'empty-audio' });
+                return;
+            }
+
+            // A second request must not orphan the first resolver.
+            if (state.transcriptionResolve) {
+                settleTranscription({ text: null, error: 'superseded' });
+            }
+
             state.transcriptionResolve = resolve;
-            state.worker.postMessage({
-                type: 'transcribe',
-                audio: float32Array
-            }, [float32Array.buffer]);
+            state.transcriptionTimer = setTimeout(() => {
+                console.warn(`[whisper] transcription timed out after ${TRANSCRIPTION_TIMEOUT_MS} ms`);
+                try { import('../../modules/utils/posthog.js').then(m => m.captureException?.(new Error('whisper transcription timeout'), { source: 'whisper-transcribe' })); } catch {}
+                settleTranscription({ text: null, error: 'timeout' });
+            }, TRANSCRIPTION_TIMEOUT_MS);
+
+            try {
+                state.worker.postMessage({
+                    type: 'transcribe',
+                    audio: float32Array
+                }, [float32Array.buffer]);
+            } catch (e) {
+                console.error('[whisper] postMessage failed:', e);
+                settleTranscription({ text: null, error: 'post-message-failed' });
+            }
         });
     }
 
@@ -154,10 +203,7 @@ export function createWhisperAdapter({ worker }) {
             state.readyResolve();
             state.readyResolve = null;
         }
-        if (state.transcriptionResolve) {
-            state.transcriptionResolve({ text: null });
-            state.transcriptionResolve = null;
-        }
+        settleTranscription({ text: null, error: 'terminated' });
         if (state.vadResolvers && state.vadResolvers.size > 0) {
             state.vadResolvers.forEach((r) => r({ trimmedAudio: null, stats: null }));
             state.vadResolvers.clear();

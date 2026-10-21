@@ -318,3 +318,29 @@ describe('404 page copy', () => {
         }
     });
 });
+
+// Story 087: an input that produces no frames (a connected Bluetooth microphone
+// was the field case) must not look like a failed answer. The learner gets told
+// what happened and how to recover, in their own language.
+describe('no-audio capture copy', () => {
+    it('carries every locale', () => {
+        for (const lang of ['en', 'es', 'pt', 'fr', 'hi', 'bn']) {
+            expect(strings.error_no_audio_captured[lang], `error_no_audio_captured/${lang}`).toBeTruthy();
+        }
+    });
+
+    it('says what happened and names the Bluetooth troubleshooting step', () => {
+        const copy = strings.error_no_audio_captured.en;
+        expect(copy).toContain('No audio was captured');
+        expect(copy.toLowerCase()).toContain('microphone settings');
+        expect(copy.toLowerCase()).toContain('bluetooth');
+        expect(copy.toLowerCase()).toContain('reload');
+    });
+
+    it('does not blame Bluetooth as the confirmed cause', () => {
+        // The app cannot know which device failed, so the copy must present
+        // Bluetooth as a thing to try, never as the diagnosis.
+        const copy = strings.error_no_audio_captured.en;
+        expect(copy).toContain('If the problem continues');
+    });
+});

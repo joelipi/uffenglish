@@ -20,6 +20,7 @@ import { isFriendLesson } from '../user/friend-lesson-detection.js';
 import { resolveStepPhase } from './step-phase-logic.js';
 import { resolveNextStepIndex } from './branch-choice-logic.js';
 import { shouldTrackHesitation } from '../speech/hesitation-logic.js';
+import { applyNoAudioRecovery, returnToRecordingPhase } from './no-audio-recovery-logic.js';
 
 // Module-level ref for viewAndContinue handler (decision overlay Continue button)
 let _viewAndContinueHandler = null;
@@ -332,7 +333,25 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
                             appStore.getState().triggerPreflightRejected();
                             appStore.getState().setMediaVisible(true);
                             appStore.getState().setSystemMessage({ type: 'stop-early', text: Strings.get('try_again_speech', getAppLanguageFor(userData)) });
+                            // 'processing/transcribing' hides the bottom band, so
+                            // without this the "TRY AGAIN" message is a dead end:
+                            // no mic button is mounted. Return to the recording UI
+                            // so the learner can actually try again.
+                            returnToRecordingPhase(appStore);
                             clearWarningLater(3000);
+                        },
+                        // The capture produced no usable audio at all (an empty
+                        // buffer or an all-zero one — e.g. a connected Bluetooth
+                        // input that delivers no frames). This is a device/settings
+                        // problem, not a bad answer: say what happened, do NOT
+                        // deduct points, and put the mic back so the learner can
+                        // retry (stories/087-no-audio-capture).
+                        onNoAudioCaptured: (userData) => {
+                            trackEvent('recording_no_audio_captured', {});
+                            applyNoAudioRecovery(appStore, {
+                                text: Strings.get('error_no_audio_captured', getAppLanguageFor(userData)),
+                            });
+                            clearWarningLater(8000);
                         },
                         onGibberishDetected: () => {
                             trackEvent('gibberish_detected', { point_loss: 10 });

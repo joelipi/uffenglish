@@ -753,6 +753,14 @@ const strings = {
         hi: "आपका माइक्रोफ़ोन या कैमरा शुरू नहीं हो सका। अपनी सेटिंग्स जाँचें और फिर से प्रयास करें।",
         bn: "আপনার মাইক্রোফোন বা ক্যামেরা শুরু করা যায়নি। আপনার সেটিংস পরীক্ষা করে আবার চেষ্টা করুন।"
     },
+    'error_no_audio_captured': {
+        en: "No audio was captured. Check your microphone settings. If the problem continues, turn off Bluetooth and reload the page, then try again.",
+        es: "No se capturó audio. Revisa la configuración de tu micrófono. Si el problema continúa, desactiva el Bluetooth y recarga la página, luego inténtalo de nuevo.",
+        pt: "Nenhum áudio foi capturado. Verifique as configurações do seu microfone. Se o problema continuar, desative o Bluetooth e recarregue a página, depois tente novamente.",
+        fr: "Aucun audio n'a été capturé. Vérifiez les réglages de votre microphone. Si le problème persiste, désactivez le Bluetooth et rechargez la page, puis réessayez.",
+        hi: "कोई ऑडियो कैप्चर नहीं हुआ। अपनी माइक्रोफ़ोन सेटिंग जाँचें। अगर समस्या बनी रहे, तो ब्लूटूथ बंद करें और पेज को फिर से लोड करें, फिर दोबारा प्रयास करें।",
+        bn: "কোনো অডিও ক্যাপচার হয়নি। আপনার মাইক্রোফোনের সেটিংস পরীক্ষা করুন। সমস্যা চলতে থাকলে ব্লুটুথ বন্ধ করে পেজটি রিলোড করুন, তারপর আবার চেষ্টা করুন।"
+    },
     'demo_vad_limitation_notice': {
         en: "The web version can't detect pauses during speech, only hesitation at the beginning. Add us to homescreen to get the full version with more accurate speech recognition.",
         es: "La versión web no puede detectar pausas al hablar, solo la duda al inicio. Agrega nuestra app a la pantalla de inicio para obtener la versión completa con reconocimiento de voz más preciso.",

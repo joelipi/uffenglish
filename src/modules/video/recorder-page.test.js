@@ -1558,6 +1558,23 @@ describe('recorder auto-render — zero server changes', () => {
             'supabase/migrations/013_add_friend_completions.sql',
             'src/modules/api/friend-completions-migration.test.js',
             'src/modules/api/friend-completions-read.test.js',
+            // Story 087: a capture with no audio (a connected Bluetooth input
+            // delivered no frames) is reported and retried instead of being
+            // sent to Whisper, and a transcription can never hang forever.
+            'stories/087-no-audio-capture/story.md',
+            'src/modules/speech/speech.core.js',
+            'src/modules/speech/speech.core.test.js',
+            'src/modules/speech/speech-orchestrator.js',
+            'src/modules/speech/speech-orchestrator-no-audio.test.js',
+            'src/modules/speech/no-audio-wiring.test.js',
+            'src/workers/whisper/app-vad-asr-web.js',
+            'src/workers/whisper/app-vad-asr-web.test.js',
+            'src/modules/lesson/step-executor-webonly.js',
+            'src/modules/lesson/no-audio-recovery-logic.js',
+            'src/modules/lesson/no-audio-recovery-logic.test.js',
+            'src/components/widgets/MicStatusText.jsx',
+            'src/data/strings.js',
+            'src/data/strings.test.js',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);
