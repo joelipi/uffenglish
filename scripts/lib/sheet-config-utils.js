@@ -971,8 +971,9 @@ function abababIndex(rows) {
         const topic = abababNum(row, 'topic_index');
         const group = abababNum(row, 'group_index');
         const variant = abababNum(row, 'variant_index');
-        const meta = index.pairs.get(pair) || { askId: '', answerId: '', topics: new Set() };
+        const meta = index.pairs.get(pair) || { askId: '', answerId: '', topics: new Set(), lessons: new Set() };
         meta.topics.add(topic);
+        meta.lessons.add(cell(row, 'lesson_id').trim());
         index.pairs.set(pair, meta);
 
         if (role === 'question') {
@@ -986,7 +987,13 @@ function abababIndex(rows) {
             }
         } else if (role === 'answer') {
             if (cell(row, 'response_type').trim() === 'branching') {
-                index.branches.set(`${pair}|${topic}`, row);
+                // The branch is a PER-PAIR asset: every answer lesson of the
+                // pair (the answer lesson and the chain's closing lesson)
+                // plays it, so the FIRST branch row for a (pair, topic) wins
+                // and a later lesson's copy of the same row must not displace
+                // it (nor its translations).
+                const branchKey = `${pair}|${topic}`;
+                if (!index.branches.has(branchKey)) index.branches.set(branchKey, row);
                 if (!meta.answerId) meta.answerId = cell(row, 'lesson_id').trim();
             } else {
                 index.answerTakes.set(`${pair}|${topic}|${group}|${variant}`, row);
@@ -995,6 +1002,16 @@ function abababIndex(rows) {
         } else {
             throw new Error(`row "${label}" has unknown set_role "${role}"`);
         }
+    }
+    // The chain's closing lesson: the pair's THIRD lesson (neither the ask
+    // nor the answer one). It is the chain's terminal lesson — it answers the
+    // pair's questions and says goodbye instead of recording another set.
+    for (const [pair, meta] of index.pairs) {
+        const extra = [...meta.lessons].filter((id) => id && id !== meta.askId && id !== meta.answerId);
+        if (extra.length > 1) {
+            throw new Error(`pair ${pair} declares ${extra.length} closing lessons (${extra.join(', ')})`);
+        }
+        meta.closingId = extra[0] || '';
     }
     return index;
 }
@@ -1044,9 +1061,9 @@ function abababResponseStep(row, nextStep, publishLessonId) {
  * `respond` — the answer set the lesson answers (null for the first ask
  * lesson, which has no previous set): { pair, friendNamespace }.
  * `record` — the question set the lesson records: { pair }.
- * `closing` — for the chain's terminal lesson only: `FRIEND_CLOSING_LINES`
- * replaces the record phase (there is no next set to record). The two are
- * mutually exclusive.
+ * `closing` — for the chain's CLOSING lesson only (its terminal lesson):
+ * `FRIEND_CLOSING_LINES` replaces the record phase (there is no next set to
+ * record). The two are mutually exclusive.
  */
 function abababLesson({ id, respond, record, closing, course, index }) {
     const steps = [];
@@ -1114,7 +1131,7 @@ function abababLesson({ id, respond, record, closing, course, index }) {
     }
 
     // -- record phase: choose a phrasing, then record that take ---------
-    // The terminal lesson closes instead: nothing follows it, so recording a
+    // The closing lesson closes instead: nothing follows it, so recording a
     // question set would send the friend to a lesson that does not exist.
     if (closing && closing.length) {
         steps.push(...abababClosingSteps(closing));
@@ -1173,16 +1190,27 @@ function buildAbababCourseConfig(videoRows) {
     }
 
     const lessons = [];
-    // The chain's terminal lesson is the last pair's ANSWER lesson: it still
-    // answers the friend's final clip (and is the only thing shared back), but
-    // it has no next question set to record, so it closes instead.
+    // The chain's terminal lesson is the LAST pair's CLOSING lesson: it
+    // answers the friend's final clip (and is the only thing shared back),
+    // but it has no next question set to record, so it says goodbye instead.
+    // The last pair's ANSWER lesson keeps its record phase — that re-ask is
+    // what the closing lesson answers.
     const lastPair = pairIndexes[pairIndexes.length - 1];
     pairIndexes.forEach((pair, i) => {
         const meta = index.pairs.get(pair);
         const previous = i > 0 ? pairIndexes[i - 1] : null;
         const previousMeta = previous !== null ? index.pairs.get(previous) : null;
+        const closingId = meta.closingId || '';
+        if (pair === lastPair && !closingId) {
+            throw new Error(
+                `the chain's last pair (${meta.askId}-${meta.answerId}) needs a closing lesson: the chain ends with the goodbye, not with a question nobody answers`
+            );
+        }
+        if (pair !== lastPair && closingId) {
+            throw new Error(`only the last pair can close the chain (pair ${pair} declares "${closingId}")`);
+        }
 
-        for (const spec of [
+        const specs = [
             {
                 id: meta.askId,
                 respond: previousMeta ? { pair: previous, friendNamespace: previousMeta.askId } : null,
@@ -1191,10 +1219,19 @@ function buildAbababCourseConfig(videoRows) {
             {
                 id: meta.answerId,
                 respond: { pair, friendNamespace: meta.askId },
-                record: pair === lastPair ? null : { pair },
-                closing: pair === lastPair ? FRIEND_CLOSING_LINES : null,
+                record: { pair },
             },
-        ]) {
+        ];
+        if (closingId) {
+            specs.push({
+                id: closingId,
+                respond: { pair, friendNamespace: meta.askId },
+                record: null,
+                closing: FRIEND_CLOSING_LINES,
+            });
+        }
+
+        for (const spec of specs) {
             const rowsForLesson = lessonRows.get(spec.id) || [];
             const title = firstNonBlank(rowsForLesson, 'lesson_title');
             if (!title) throw new Error(`lesson "${spec.id}": missing lesson_title`);

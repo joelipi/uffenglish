@@ -93,7 +93,7 @@ describe('listFriendCourses', () => {
         const wyr = courses.find((c) => c.courseId === 'wouldyourather');
         expect(wyr.courseId).toBe('wouldyourather');
         expect(wyr.courseName).toBe('Get $1 million or $5 million?');
-        expect(wyr.lessonCount).toBe(6);
+        expect(wyr.lessonCount).toBe(7);
         expect(wyr.firstLessonId).toBe('a');
         expect(wyr.mission.mission.en).toBe('talk about preferences');
         expect(wyr.heroImage).toBe('src/assets/img/wouldyouratherhero.jpg');
@@ -124,7 +124,7 @@ describe('listFriendCourses', () => {
                 hi: 'दस लाख डॉलर या पचास लाख डॉलर?',
                 bn: '১০ লাখ ডলার নাকি ৫০ লাখ ডলার?',
             },
-            lessonCount: 6,
+            lessonCount: 7,
             firstLessonId: 'a',
             mission: {
                 mission: {

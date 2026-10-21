@@ -415,6 +415,20 @@ export function sourceToRows(source) {
         const askId = pair?.ask?.id;
         const ansId = pair?.answer?.id;
         if (!askId || !ansId) throw new Error('every pair needs ask.id and answer.id');
+        // The chain's closing lesson (the LAST pair only): the lesson that
+        // answers the pair's questions one more time and then says goodbye
+        // instead of recording another question set.
+        const closingId = pair?.closing?.id || '';
+        if (closingId) {
+            if (pairIndex !== pairs.length - 1) {
+                throw new Error(
+                    `pair ${askId}-${ansId} declares a closing lesson; only the LAST pair can close the chain`
+                );
+            }
+            if (!pair?.closing?.title) {
+                throw new Error(`closing lesson "${closingId}" needs a title`);
+            }
+        }
         const topics = pair?.topics;
         if (!Array.isArray(topics) || topics.length === 0) {
             throw new Error(`pair ${askId}-${ansId} needs at least one topic`);
@@ -498,9 +512,9 @@ export function sourceToRows(source) {
             }
             const friendVideo = `{friendCode}{selfCode}-${course}-${askId}-${pad2(topicNo)}`;
             if (k === 0) ansFirstVideo = friendVideo;
-            push(cell({
-                lesson_id: ansId,
-                lesson_title: pair.answer.title || '',
+            const branchRow = (lessonId, lessonTitle) => cell({
+                lesson_id: lessonId,
+                lesson_title: lessonTitle,
                 response_type: 'branching',
                 video_file: friendVideo,
                 order: '1',
@@ -513,7 +527,15 @@ export function sourceToRows(source) {
                 topic_index: String(topicNo),
                 group_index: '0',
                 variant_index: '0',
-            }));
+            });
+            push(branchRow(ansId, pair.answer.title || ''));
+            // The chain's closing lesson is a SECOND answer lesson of this
+            // pair: it plays the same friend clips and the same answer takes
+            // (those are per-pair assets, so it needs no take rows and no new
+            // render) and closes with the code-owned goodbye block instead of
+            // recording another question set. It carries its own branch rows
+            // so the generator can read its title and framing.
+            if (closingId) push(branchRow(closingId, pair.closing.title || ''));
 
             // option takes: each group advances past its own group (offset k-m)
             answers.forEach((group, m) => {

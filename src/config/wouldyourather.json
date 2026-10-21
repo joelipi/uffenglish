@@ -7013,6 +7013,1413 @@
             {
               "nextStep": 1,
               "text": {
+                "en": "A great job with low pay or a bad job with high pay?",
+                "es": "¿Un gran trabajo con baja remuneración o un mal trabajo con alta remuneración?",
+                "pt": "Um ótimo emprego com salário baixo ou um péssimo emprego com salário alto?",
+                "bn": "কম বেতনের একটি দারুণ চাকরি নাকি বেশি বেতনের একটি খারাপ চাকরি?",
+                "fr": "Un super travail mal payé ou un mauvais travail bien payé ?",
+                "hi": "कम वेतन वाली बढ़िया नौकरी या ज़्यादा वेतन वाली खराब नौकरी?"
+              }
+            },
+            {
+              "nextStep": 2,
+              "text": {
+                "en": "Which is better: a wonderful job with low pay or a horrible job with high pay?",
+                "es": "¿Qué es mejor: un trabajo maravilloso con baja remuneración o un trabajo horrible con alta remuneración?",
+                "pt": "O que é melhor: um emprego maravilhoso com salário baixo ou um emprego horrível com salário alto?",
+                "bn": "কোনটি ভালো: কম বেতনের একটি চমৎকার চাকরি নাকি বেশি বেতনের একটি ভীতিজনক চাকরি?",
+                "fr": "Qu'est-ce qui est mieux : un super travail mal payé ou un horrible travail bien payé ?",
+                "hi": "कौन सा बेहतर है: कम वेतन वाली शानदार नौकरी या ज्यादा वेतन वाली भयानक नौकरी?"
+              }
+            },
+            {
+              "nextStep": 3,
+              "text": {
+                "en": "Would you rather have a job you love that pays a low salary or have a job you hate that pays a high salary?",
+                "es": "¿Preferirías tener un trabajo que amas que paga un salario bajo o tener un trabajo que odias que paga un salario alto?",
+                "pt": "Você prefere ter um emprego que ama que paga um salário baixo ou ter um emprego que odeia que paga um salário alto?",
+                "bn": "আপনি কি এমন একটি চাকরি করতে পছন্দ করবেন যা আপনি ভালোবাসেন যার কম বেতন দেয় নাকি এমন একটি চাকরি করতে পছন্দ করবেন যা আপনি ঘৃণা করেন যার বেশি বেতন দেয়?",
+                "fr": "Préférerais-tu avoir un travail que tu aimes avec un petit salaire ou avoir un travail que tu détestes avec un gros salaire ?",
+                "hi": "आप ऐसी नौकरी पसंद करेंगे जो आपको पसंद हो लेकिन वेतन कम हो या ऐसी नौकरी जो आपको पसंद न हो लेकिन वेतन ज्यादा हो?"
+              }
+            },
+            {
+              "nextStep": 4,
+              "text": {
+                "en": "Given the choice between having a job you love that pays a low salary and having a job you hate that pays a high salary, which would you choose?",
+                "es": "Dada la opción entre tener un trabajo que amas que paga un salario bajo y tener un trabajo que odias que paga un salario alto, ¿cuál elegirías?",
+                "pt": "Dada a escolha entre ter um emprego que você ama que paga um salário baixo e ter um emprego que você odeia que paga um salário alto, qual você escolheria?",
+                "bn": "কম বেতন দেয় এমন একটি চাকরি যা আপনি ভালোবাসেন এবং বেশি বেতন দেয় এমন একটি চাকরি যা আপনি ঘৃণা করেন তার মধ্যে পছন্দ দেওয়া হলে, আপনি কোনটি বেছে নেবেন?",
+                "fr": "Si tu avais le choix entre avoir un travail que tu aimes avec un petit salaire et avoir un travail que tu détestes avec un gros salaire, que choisirais-tu ?",
+                "hi": "अगर आपको चुनाव करना पड़े कि आप एक ऐसी नौकरी करें जो आपको पसंद है लेकिन कम वेतन देती है, और एक ऐसी नौकरी करें जो आपको पसंद नहीं है लेकिन ज़्यादा वेतन देती है, तो आप कौन सी चुनेंगे?"
+              }
+            }
+          ]
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-e-01-01",
+          "cue": [
+            {
+              "en": "A great job with low pay or a bad job with high pay?",
+              "es": "¿Un gran trabajo con baja remuneración o un mal trabajo con alta remuneración?",
+              "pt": "Um ótimo emprego com salário baixo ou um péssimo emprego com salário alto?",
+              "bn": "কম বেতনের একটি দারুণ চাকরি নাকি বেশি বেতনের একটি খারাপ চাকরি?",
+              "fr": "Un super travail mal payé ou un mauvais travail bien payé ?",
+              "hi": "कम वेतन वाली बढ़िया नौकरी या ज़्यादा वेतन वाली खराब नौकरी?"
+            }
+          ],
+          "nextStep": 4,
+          "subtitles": {
+            "en": "A great job with low pay or a bad job with high pay?",
+            "es": "¿Un gran trabajo con baja remuneración o un mal trabajo con alta remuneración?",
+            "pt": "Um ótimo emprego com salário baixo ou um péssimo emprego com salário alto?",
+            "bn": "কম বেতনের একটি দারুণ চাকরি নাকি বেশি বেতনের একটি খারাপ চাকরি?",
+            "fr": "Un super travail mal payé ou un mauvais travail bien payé ?",
+            "hi": "कम वेतन वाली बढ़िया नौकरी या ज़्यादा वेतन वाली खराब नौकरी?"
+          },
+          "publishLessonId": "e"
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-e-01-02",
+          "cue": [
+            {
+              "en": "Which is better: a wonderful job with low pay or a horrible job with high pay?",
+              "es": "¿Qué es mejor: un trabajo maravilloso con baja remuneración o un trabajo horrible con alta remuneración?",
+              "pt": "O que é melhor: um emprego maravilhoso com salário baixo ou um emprego horrível com salário alto?",
+              "bn": "কোনটি ভালো: কম বেতনের একটি চমৎকার চাকরি নাকি বেশি বেতনের একটি ভীতিজনক চাকরি?",
+              "fr": "Qu'est-ce qui est mieux : un super travail mal payé ou un horrible travail bien payé ?",
+              "hi": "कौन सा बेहतर है: कम वेतन वाली शानदार नौकरी या ज्यादा वेतन वाली भयानक नौकरी?"
+            }
+          ],
+          "nextStep": 3,
+          "subtitles": {
+            "en": "Which is better: a wonderful job with low pay or a horrible job with high pay?",
+            "es": "¿Qué es mejor: un trabajo maravilloso con baja remuneración o un trabajo horrible con alta remuneración?",
+            "pt": "O que é melhor: um emprego maravilhoso com salário baixo ou um emprego horrível com salário alto?",
+            "bn": "কোনটি ভালো: কম বেতনের একটি চমৎকার চাকরি নাকি বেশি বেতনের একটি ভীতিজনক চাকরি?",
+            "fr": "Qu'est-ce qui est mieux : un super travail mal payé ou un horrible travail bien payé ?",
+            "hi": "कौन सा बेहतर है: कम वेतन वाली शानदार नौकरी या ज्यादा वेतन वाली भयानक नौकरी?"
+          },
+          "publishLessonId": "e"
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-e-01-03",
+          "cue": [
+            {
+              "en": "Would you rather have a job you love that pays a low salary or have a job you hate that pays a high salary?",
+              "es": "¿Preferirías tener un trabajo que amas que paga un salario bajo o tener un trabajo que odias que paga un salario alto?",
+              "pt": "Você prefere ter um emprego que ama que paga um salário baixo ou ter um emprego que odeia que paga um salário alto?",
+              "bn": "আপনি কি এমন একটি চাকরি করতে পছন্দ করবেন যা আপনি ভালোবাসেন যার কম বেতন দেয় নাকি এমন একটি চাকরি করতে পছন্দ করবেন যা আপনি ঘৃণা করেন যার বেশি বেতন দেয়?",
+              "fr": "Préférerais-tu avoir un travail que tu aimes avec un petit salaire ou avoir un travail que tu détestes avec un gros salaire ?",
+              "hi": "आप ऐसी नौकरी पसंद करेंगे जो आपको पसंद हो लेकिन वेतन कम हो या ऐसी नौकरी जो आपको पसंद न हो लेकिन वेतन ज्यादा हो?"
+            }
+          ],
+          "nextStep": 2,
+          "subtitles": {
+            "en": "Would you rather have a job you love that pays a low salary or have a job you hate that pays a high salary?",
+            "es": "¿Preferirías tener un trabajo que amas que paga un salario bajo o tener un trabajo que odias que paga un salario alto?",
+            "pt": "Você prefere ter um emprego que ama que paga um salário baixo ou ter um emprego que odeia que paga um salário alto?",
+            "bn": "আপনি কি এমন একটি চাকরি করতে পছন্দ করবেন যা আপনি ভালোবাসেন যার কম বেতন দেয় নাকি এমন একটি চাকরি করতে পছন্দ করবেন যা আপনি ঘৃণা করেন যার বেশি বেতন দেয়?",
+            "fr": "Préférerais-tu avoir un travail que tu aimes avec un petit salaire ou avoir un travail que tu détestes avec un gros salaire ?",
+            "hi": "आप ऐसी नौकरी पसंद करेंगे जो आपको पसंद हो लेकिन वेतन कम हो या ऐसी नौकरी जो आपको पसंद न हो लेकिन वेतन ज्यादा हो?"
+          },
+          "publishLessonId": "e"
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-e-01-04",
+          "cue": [
+            {
+              "en": "Given the choice between having a job you love that pays a low salary and having a job you hate that pays a high salary, which would you choose?",
+              "es": "Dada la opción entre tener un trabajo que amas que paga un salario bajo y tener un trabajo que odias que paga un salario alto, ¿cuál elegirías?",
+              "pt": "Dada a escolha entre ter um emprego que você ama que paga um salário baixo e ter um emprego que você odeia que paga um salário alto, qual você escolheria?",
+              "bn": "কম বেতন দেয় এমন একটি চাকরি যা আপনি ভালোবাসেন এবং বেশি বেতন দেয় এমন একটি চাকরি যা আপনি ঘৃণা করেন তার মধ্যে পছন্দ দেওয়া হলে, আপনি কোনটি বেছে নেবেন?",
+              "fr": "Si tu avais le choix entre avoir un travail que tu aimes avec un petit salaire et avoir un travail que tu détestes avec un gros salaire, que choisirais-tu ?",
+              "hi": "अगर आपको चुनाव करना पड़े कि आप एक ऐसी नौकरी करें जो आपको पसंद है लेकिन कम वेतन देती है, और एक ऐसी नौकरी करें जो आपको पसंद नहीं है लेकिन ज़्यादा वेतन देती है, तो आप कौन सी चुनेंगे?"
+            }
+          ],
+          "nextStep": 1,
+          "subtitles": {
+            "en": "Given the choice between having a job you love that pays a low salary and having a job you hate that pays a high salary, which would you choose?",
+            "es": "Dada la opción entre tener un trabajo que amas que paga un salario bajo y tener un trabajo que odias que paga un salario alto, ¿cuál elegirías?",
+            "pt": "Dada a escolha entre ter um emprego que você ama que paga um salário baixo e ter um emprego que você odeia que paga um salário alto, qual você escolheria?",
+            "bn": "কম বেতন দেয় এমন একটি চাকরি যা আপনি ভালোবাসেন এবং বেশি বেতন দেয় এমন একটি চাকরি যা আপনি ঘৃণা করেন তার মধ্যে পছন্দ দেওয়া হলে, আপনি কোনটি বেছে নেবেন?",
+            "fr": "Si tu avais le choix entre avoir un travail que tu aimes avec un petit salaire et avoir un travail que tu détestes avec un gros salaire, que choisirais-tu ?",
+            "hi": "अगर आपको चुनाव करना पड़े कि आप एक ऐसी नौकरी करें जो आपको पसंद है लेकिन कम वेतन देती है, और एक ऐसी नौकरी करें जो आपको पसंद नहीं है लेकिन ज़्यादा वेतन देती है, तो आप कौन सी चुनेंगे?"
+          },
+          "publishLessonId": "e"
+        },
+        {
+          "responseType": "branching",
+          "chooseStep": [
+            {
+              "nextStep": 1,
+              "text": {
+                "en": "Rich with no privacy or poor with complete privacy?",
+                "es": "¿Rico sin privacidad o pobre con privacidad completa?",
+                "pt": "Rico sem privacidade ou pobre com privacidade total?",
+                "bn": "গোপনীয়তা ছাড়া ধনী নাকি সম্পূর্ণ গোপনীয়তা সহ গরিব?",
+                "fr": "Riche sans vie privée ou pauvre avec une vie privée totale ?",
+                "hi": "बिना निजता के अमीर या पूरी निजता के साथ गरीब?"
+              }
+            },
+            {
+              "nextStep": 2,
+              "text": {
+                "en": "Which is better: rich with no privacy or poor with complete privacy?",
+                "es": "¿Qué es mejor: rico sin privacidad o pobre con privacidad completa?",
+                "pt": "O que é melhor: rico sem privacidade ou pobre com privacidade total?",
+                "bn": "কোনটি ভালো: গোপনীয়তা ছাড়া ধনী নাকি সম্পূর্ণ গোপনীয়তা সহ গরিব?",
+                "fr": "Qu'est-ce qui est mieux : être riche sans vie privée ou être pauvre avec une vie privée totale ?",
+                "hi": "कौन सा बेहतर है: बिना निजता के अमीर या पूरी निजता के साथ गरीब?"
+              }
+            },
+            {
+              "nextStep": 3,
+              "text": {
+                "en": "Would you rather be rich but have no privacy or be poor but have complete privacy?",
+                "es": "¿Preferirías ser rico pero no tener privacidad o ser pobre pero tener privacidad completa?",
+                "pt": "Você prefere ser rico, mas não ter privacidade, ou ser pobre, mas ter privacidade total?",
+                "bn": "আপনি কি ধনী হতে চান কিন্তু কোনো গোপনীয়তা নেই নাকি গরিব হতে চান কিন্তু সম্পূর্ণ গোপনীয়তা আছে?",
+                "fr": "Préférerais-tu être riche mais sans vie privée ou être pauvre mais avec une vie privée totale ?",
+                "hi": "आप अमीर होना पसंद करेंगे लेकिन कोई निजता न हो या गरीब होना पसंद करेंगे लेकिन पूरी निजता हो?"
+              }
+            },
+            {
+              "nextStep": 4,
+              "text": {
+                "en": "Given the choice between being rich but having no privacy and being poor but having complete privacy, which would you choose?",
+                "es": "Dada la opción entre ser rico pero no tener privacidad y ser pobre pero tener privacidad completa, ¿cuál elegirías?",
+                "pt": "Dada a escolha entre ser rico, mas não ter privacidade, e ser pobre, mas ter privacidade total, qual você escolheria?",
+                "bn": "ধনী হওয়া কিন্তু কোনো গোপনীয়তা না থাকা এবং গরিব হওয়া কিন্তু সম্পূর্ণ গোপনীয়তা থাকার মধ্যে পছন্দ দেওয়া হলে, আপনি কোনটি বেছে নেবেন?",
+                "fr": "Si tu avais le choix entre être riche mais sans vie privée et être pauvre mais avec une vie privée totale, que choisirais-tu ?",
+                "hi": "अमीर होने पर बिना निजता के और गरीब होने पर पूरी निजता के साथ जीने के बीच चुनाव दिया जाए, तो आप क्या चुनेंगे?"
+              }
+            }
+          ]
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-e-02-01",
+          "cue": [
+            {
+              "en": "Rich with no privacy or poor with complete privacy?",
+              "es": "¿Rico sin privacidad o pobre con privacidad completa?",
+              "pt": "Rico sem privacidade ou pobre com privacidade total?",
+              "bn": "গোপনীয়তা ছাড়া ধনী নাকি সম্পূর্ণ গোপনীয়তা সহ গরিব?",
+              "fr": "Riche sans vie privée ou pauvre avec une vie privée totale ?",
+              "hi": "बिना निजता के अमीर या पूरी निजता के साथ गरीब?"
+            }
+          ],
+          "nextStep": 4,
+          "subtitles": {
+            "en": "Rich with no privacy or poor with complete privacy?",
+            "es": "¿Rico sin privacidad o pobre con privacidad completa?",
+            "pt": "Rico sem privacidade ou pobre com privacidade total?",
+            "bn": "গোপনীয়তা ছাড়া ধনী নাকি সম্পূর্ণ গোপনীয়তা সহ গরিব?",
+            "fr": "Riche sans vie privée ou pauvre avec une vie privée totale ?",
+            "hi": "बिना निजता के अमीर या पूरी निजता के साथ गरीब?"
+          },
+          "publishLessonId": "e"
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-e-02-02",
+          "cue": [
+            {
+              "en": "Which is better: rich with no privacy or poor with complete privacy?",
+              "es": "¿Qué es mejor: rico sin privacidad o pobre con privacidad completa?",
+              "pt": "O que é melhor: rico sem privacidade ou pobre com privacidade total?",
+              "bn": "কোনটি ভালো: গোপনীয়তা ছাড়া ধনী নাকি সম্পূর্ণ গোপনীয়তা সহ গরিব?",
+              "fr": "Qu'est-ce qui est mieux : être riche sans vie privée ou être pauvre avec une vie privée totale ?",
+              "hi": "कौन सा बेहतर है: बिना निजता के अमीर या पूरी निजता के साथ गरीब?"
+            }
+          ],
+          "nextStep": 3,
+          "subtitles": {
+            "en": "Which is better: rich with no privacy or poor with complete privacy?",
+            "es": "¿Qué es mejor: rico sin privacidad o pobre con privacidad completa?",
+            "pt": "O que é melhor: rico sem privacidade ou pobre com privacidade total?",
+            "bn": "কোনটি ভালো: গোপনীয়তা ছাড়া ধনী নাকি সম্পূর্ণ গোপনীয়তা সহ গরিব?",
+            "fr": "Qu'est-ce qui est mieux : être riche sans vie privée ou être pauvre avec une vie privée totale ?",
+            "hi": "कौन सा बेहतर है: बिना निजता के अमीर या पूरी निजता के साथ गरीब?"
+          },
+          "publishLessonId": "e"
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-e-02-03",
+          "cue": [
+            {
+              "en": "Would you rather be rich but have no privacy or be poor but have complete privacy?",
+              "es": "¿Preferirías ser rico pero no tener privacidad o ser pobre pero tener privacidad completa?",
+              "pt": "Você prefere ser rico, mas não ter privacidade, ou ser pobre, mas ter privacidade total?",
+              "bn": "আপনি কি ধনী হতে চান কিন্তু কোনো গোপনীয়তা নেই নাকি গরিব হতে চান কিন্তু সম্পূর্ণ গোপনীয়তা আছে?",
+              "fr": "Préférerais-tu être riche mais sans vie privée ou être pauvre mais avec une vie privée totale ?",
+              "hi": "आप अमीर होना पसंद करेंगे लेकिन कोई निजता न हो या गरीब होना पसंद करेंगे लेकिन पूरी निजता हो?"
+            }
+          ],
+          "nextStep": 2,
+          "subtitles": {
+            "en": "Would you rather be rich but have no privacy or be poor but have complete privacy?",
+            "es": "¿Preferirías ser rico pero no tener privacidad o ser pobre pero tener privacidad completa?",
+            "pt": "Você prefere ser rico, mas não ter privacidade, ou ser pobre, mas ter privacidade total?",
+            "bn": "আপনি কি ধনী হতে চান কিন্তু কোনো গোপনীয়তা নেই নাকি গরিব হতে চান কিন্তু সম্পূর্ণ গোপনীয়তা আছে?",
+            "fr": "Préférerais-tu être riche mais sans vie privée ou être pauvre mais avec une vie privée totale ?",
+            "hi": "आप अमीर होना पसंद करेंगे लेकिन कोई निजता न हो या गरीब होना पसंद करेंगे लेकिन पूरी निजता हो?"
+          },
+          "publishLessonId": "e"
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-e-02-04",
+          "cue": [
+            {
+              "en": "Given the choice between being rich but having no privacy and being poor but having complete privacy, which would you choose?",
+              "es": "Dada la opción entre ser rico pero no tener privacidad y ser pobre pero tener privacidad completa, ¿cuál elegirías?",
+              "pt": "Dada a escolha entre ser rico, mas não ter privacidade, e ser pobre, mas ter privacidade total, qual você escolheria?",
+              "bn": "ধনী হওয়া কিন্তু কোনো গোপনীয়তা না থাকা এবং গরিব হওয়া কিন্তু সম্পূর্ণ গোপনীয়তা থাকার মধ্যে পছন্দ দেওয়া হলে, আপনি কোনটি বেছে নেবেন?",
+              "fr": "Si tu avais le choix entre être riche mais sans vie privée et être pauvre mais avec une vie privée totale, que choisirais-tu ?",
+              "hi": "अमीर होने पर बिना निजता के और गरीब होने पर पूरी निजता के साथ जीने के बीच चुनाव दिया जाए, तो आप क्या चुनेंगे?"
+            }
+          ],
+          "nextStep": 1,
+          "subtitles": {
+            "en": "Given the choice between being rich but having no privacy and being poor but having complete privacy, which would you choose?",
+            "es": "Dada la opción entre ser rico pero no tener privacidad y ser pobre pero tener privacidad completa, ¿cuál elegirías?",
+            "pt": "Dada a escolha entre ser rico, mas não ter privacidade, e ser pobre, mas ter privacidade total, qual você escolheria?",
+            "bn": "ধনী হওয়া কিন্তু কোনো গোপনীয়তা না থাকা এবং গরিব হওয়া কিন্তু সম্পূর্ণ গোপনীয়তা থাকার মধ্যে পছন্দ দেওয়া হলে, আপনি কোনটি বেছে নেবেন?",
+            "fr": "Si tu avais le choix entre être riche mais sans vie privée et être pauvre mais avec une vie privée totale, que choisirais-tu ?",
+            "hi": "अमीर होने पर बिना निजता के और गरीब होने पर पूरी निजता के साथ जीने के बीच चुनाव दिया जाए, तो आप क्या चुनेंगे?"
+          },
+          "publishLessonId": "e"
+        },
+        {
+          "responseType": "branching",
+          "chooseStep": [
+            {
+              "nextStep": 1,
+              "text": {
+                "en": "A week without your phone or a week without music?",
+                "es": "¿Una semana sin tu teléfono o una semana sin música?",
+                "pt": "Uma semana sem o seu telefone ou uma semana sem música?",
+                "bn": "ফোন ছাড়া এক সপ্তাহ নাকি গান ছাড়া এক সপ্তাহ?",
+                "fr": "Une semaine sans ton téléphone ou une semaine sans musique ?",
+                "hi": "आपके फ़ोन के बिना एक हफ़्ता या संगीत के बिना एक हफ़्ता?"
+              }
+            },
+            {
+              "nextStep": 2,
+              "text": {
+                "en": "Which is better: a week without your phone or a week without music?",
+                "es": "¿Qué es mejor: una semana sin tu teléfono o una semana sin música?",
+                "pt": "O que é melhor: uma semana sem o seu telefone ou uma semana sem música?",
+                "bn": "কোনটি ভালো: ফোন ছাড়া এক সপ্তাহ নাকি গান ছাড়া এক সপ্তাহ?",
+                "fr": "Qu'est-ce qui est mieux : une semaine sans ton téléphone ou une semaine sans musique ?",
+                "hi": "कौन सा बेहतर है: अपने फोन के बिना एक हफ्ता या संगीत के बिना एक हफ्ता?"
+              }
+            },
+            {
+              "nextStep": 3,
+              "text": {
+                "en": "Would you rather go a week without your phone or go a week without listening to any music?",
+                "es": "¿Preferirías pasar una semana sin tu teléfono o pasar una semana sin escuchar nada de música?",
+                "pt": "Você prefere passar uma semana sem o seu telefone ou passar uma semana sem ouvir nenhuma música?",
+                "bn": "আপনি কি ফোন ছাড়া এক সপ্তাহ কাটাতে চান নাকি কোনো গান না শুনে এক সপ্তাহ কাটাতে চান?",
+                "fr": "Préférerais-tu passer une semaine sans ton téléphone ou passer une semaine sans écouter de musique ?",
+                "hi": "आप एक हफ्ता अपने फोन के बिना बिताना पसंद करेंगे या एक हफ्ता कोई संगीत सुने बिना बिताना पसंद करेंगे?"
+              }
+            },
+            {
+              "nextStep": 4,
+              "text": {
+                "en": "Given the choice between going a week without your phone and going a week without listening to any music, which would you choose?",
+                "es": "Dada la opción entre pasar una semana sin tu teléfono y pasar una semana sin escuchar nada de música, ¿cuál elegirías?",
+                "pt": "Dada a escolha entre passar uma semana sem o seu telefone e passar uma semana sem ouvir nenhuma música, qual você escolheria?",
+                "bn": "ফোন ছাড়া এক সপ্তাহ কাটানো এবং কোনো গান না শুনে এক সপ্তাহ কাটানোর মধ্যে পছন্দ দেওয়া হলে, আপনি কোনটি বেছে নেবেন?",
+                "fr": "Si tu avais le choix entre passer une semaine sans ton téléphone et passer une semaine sans écouter de musique, que choisirais-tu ?",
+                "hi": "एक सप्ताह अपने फ़ोन के बिना रहने और एक सप्ताह कोई संगीत सुने बिना रहने के बीच चुनाव दिया जाए, तो आप क्या चुनेंगे?"
+              }
+            }
+          ]
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-e-03-01",
+          "cue": [
+            {
+              "en": "A week without your phone or a week without music?",
+              "es": "¿Una semana sin tu teléfono o una semana sin música?",
+              "pt": "Uma semana sem o seu telefone ou uma semana sem música?",
+              "bn": "ফোন ছাড়া এক সপ্তাহ নাকি গান ছাড়া এক সপ্তাহ?",
+              "fr": "Une semaine sans ton téléphone ou une semaine sans musique ?",
+              "hi": "आपके फ़ोन के बिना एक हफ़्ता या संगीत के बिना एक हफ़्ता?"
+            }
+          ],
+          "nextStep": 4,
+          "subtitles": {
+            "en": "A week without your phone or a week without music?",
+            "es": "¿Una semana sin tu teléfono o una semana sin música?",
+            "pt": "Uma semana sem o seu telefone ou uma semana sem música?",
+            "bn": "ফোন ছাড়া এক সপ্তাহ নাকি গান ছাড়া এক সপ্তাহ?",
+            "fr": "Une semaine sans ton téléphone ou une semaine sans musique ?",
+            "hi": "आपके फ़ोन के बिना एक हफ़्ता या संगीत के बिना एक हफ़्ता?"
+          },
+          "publishLessonId": "e"
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-e-03-02",
+          "cue": [
+            {
+              "en": "Which is better: a week without your phone or a week without music?",
+              "es": "¿Qué es mejor: una semana sin tu teléfono o una semana sin música?",
+              "pt": "O que é melhor: uma semana sem o seu telefone ou uma semana sem música?",
+              "bn": "কোনটি ভালো: ফোন ছাড়া এক সপ্তাহ নাকি গান ছাড়া এক সপ্তাহ?",
+              "fr": "Qu'est-ce qui est mieux : une semaine sans ton téléphone ou une semaine sans musique ?",
+              "hi": "कौन सा बेहतर है: अपने फोन के बिना एक हफ्ता या संगीत के बिना एक हफ्ता?"
+            }
+          ],
+          "nextStep": 3,
+          "subtitles": {
+            "en": "Which is better: a week without your phone or a week without music?",
+            "es": "¿Qué es mejor: una semana sin tu teléfono o una semana sin música?",
+            "pt": "O que é melhor: uma semana sem o seu telefone ou uma semana sem música?",
+            "bn": "কোনটি ভালো: ফোন ছাড়া এক সপ্তাহ নাকি গান ছাড়া এক সপ্তাহ?",
+            "fr": "Qu'est-ce qui est mieux : une semaine sans ton téléphone ou une semaine sans musique ?",
+            "hi": "कौन सा बेहतर है: अपने फोन के बिना एक हफ्ता या संगीत के बिना एक हफ्ता?"
+          },
+          "publishLessonId": "e"
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-e-03-03",
+          "cue": [
+            {
+              "en": "Would you rather go a week without your phone or go a week without listening to any music?",
+              "es": "¿Preferirías pasar una semana sin tu teléfono o pasar una semana sin escuchar nada de música?",
+              "pt": "Você prefere passar uma semana sem o seu telefone ou passar uma semana sem ouvir nenhuma música?",
+              "bn": "আপনি কি ফোন ছাড়া এক সপ্তাহ কাটাতে চান নাকি কোনো গান না শুনে এক সপ্তাহ কাটাতে চান?",
+              "fr": "Préférerais-tu passer une semaine sans ton téléphone ou passer une semaine sans écouter de musique ?",
+              "hi": "आप एक हफ्ता अपने फोन के बिना बिताना पसंद करेंगे या एक हफ्ता कोई संगीत सुने बिना बिताना पसंद करेंगे?"
+            }
+          ],
+          "nextStep": 2,
+          "subtitles": {
+            "en": "Would you rather go a week without your phone or go a week without listening to any music?",
+            "es": "¿Preferirías pasar una semana sin tu teléfono o pasar una semana sin escuchar nada de música?",
+            "pt": "Você prefere passar uma semana sem o seu telefone ou passar uma semana sem ouvir nenhuma música?",
+            "bn": "আপনি কি ফোন ছাড়া এক সপ্তাহ কাটাতে চান নাকি কোনো গান না শুনে এক সপ্তাহ কাটাতে চান?",
+            "fr": "Préférerais-tu passer une semaine sans ton téléphone ou passer une semaine sans écouter de musique ?",
+            "hi": "आप एक हफ्ता अपने फोन के बिना बिताना पसंद करेंगे या एक हफ्ता कोई संगीत सुने बिना बिताना पसंद करेंगे?"
+          },
+          "publishLessonId": "e"
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-e-03-04",
+          "cue": [
+            {
+              "en": "Given the choice between going a week without your phone and going a week without listening to any music, which would you choose?",
+              "es": "Dada la opción entre pasar una semana sin tu teléfono y pasar una semana sin escuchar nada de música, ¿cuál elegirías?",
+              "pt": "Dada a escolha entre passar uma semana sem o seu telefone e passar uma semana sem ouvir nenhuma música, qual você escolheria?",
+              "bn": "ফোন ছাড়া এক সপ্তাহ কাটানো এবং কোনো গান না শুনে এক সপ্তাহ কাটানোর মধ্যে পছন্দ দেওয়া হলে, আপনি কোনটি বেছে নেবেন?",
+              "fr": "Si tu avais le choix entre passer une semaine sans ton téléphone et passer une semaine sans écouter de musique, que choisirais-tu ?",
+              "hi": "एक सप्ताह अपने फ़ोन के बिना रहने और एक सप्ताह कोई संगीत सुने बिना रहने के बीच चुनाव दिया जाए, तो आप क्या चुनेंगे?"
+            }
+          ],
+          "nextStep": 1,
+          "subtitles": {
+            "en": "Given the choice between going a week without your phone and going a week without listening to any music, which would you choose?",
+            "es": "Dada la opción entre pasar una semana sin tu teléfono y pasar una semana sin escuchar nada de música, ¿cuál elegirías?",
+            "pt": "Dada a escolha entre passar uma semana sem o seu telefone e passar uma semana sem ouvir nenhuma música, qual você escolheria?",
+            "bn": "ফোন ছাড়া এক সপ্তাহ কাটানো এবং কোনো গান না শুনে এক সপ্তাহ কাটানোর মধ্যে পছন্দ দেওয়া হলে, আপনি কোনটি বেছে নেবেন?",
+            "fr": "Si tu avais le choix entre passer une semaine sans ton téléphone et passer une semaine sans écouter de musique, que choisirais-tu ?",
+            "hi": "एक सप्ताह अपने फ़ोन के बिना रहने और एक सप्ताह कोई संगीत सुने बिना रहने के बीच चुनाव दिया जाए, तो आप क्या चुनेंगे?"
+          },
+          "publishLessonId": "e"
+        }
+      ]
+    },
+    {
+      "lessonId": "g",
+      "recapSources": "friend",
+      "recapOverlay": "shareCta",
+      "title": {
+        "en": "Preferences G",
+        "es": "Preferencias G",
+        "pt": "Preferências G",
+        "bn": "পছন্দ G",
+        "fr": "Préférences G",
+        "hi": "पसंद G"
+      },
+      "mission": {
+        "en": "talk about preferences",
+        "es": "hablar sobre preferencias",
+        "pt": "falar sobre preferências",
+        "bn": "পছন্দ সম্পর্কে কথা বলুন",
+        "fr": "parler de préférences",
+        "hi": "पसंद के बारे में बात करें"
+      },
+      "a1": {
+        "en": "X or Y"
+      },
+      "a2": {
+        "en": "which is better, noun X or noun Y"
+      },
+      "b1": {
+        "en": "would rather + [verb stem X] or [verb stem Y]"
+      },
+      "b2": {
+        "en": "given the choice between [gerund verb X] and [gerund verb Y]"
+      },
+      "c1": {
+        "en": "if I had to choose between [gerund verb X] and [gerund verb Y], my preference would be to [infinitive verb]"
+      },
+      "steps": [
+        {
+          "responseType": "lessonIntro",
+          "introBackgroundVideoUrl": "{friendCode}{selfCode}-wouldyourather-e-01"
+        },
+        {
+          "responseType": "branching",
+          "simpleVideoUrl": "{friendCode}{selfCode}-wouldyourather-e-01",
+          "chooseStep": [
+            {
+              "text": {
+                "en": "Job you love, low salary",
+                "es": "Trabajo que amas, salario bajo",
+                "pt": "Emprego que você ama, salário baixo",
+                "bn": "যে কাজ আপনি ভালোবাসেন, কম বেতন",
+                "fr": "Travail adoré, petit salaire",
+                "hi": "नौकरी जो आपको पसंद है, कम तनख्वाह"
+              },
+              "chooseStep": [
+                {
+                  "nextStep": 1,
+                  "text": {
+                    "en": "A job you love with a low salary.",
+                    "es": "Un trabajo que amas con un salario bajo.",
+                    "pt": "Um emprego que você ama com um salário baixo.",
+                    "bn": "কম বেতনের একটি চাকরি যা আপনি ভালোবাসেন।",
+                    "fr": "Un travail que tu aimes avec un petit salaire.",
+                    "hi": "ऐसी नौकरी जो आपको पसंद है, कम वेतन के साथ।"
+                  }
+                },
+                {
+                  "nextStep": 2,
+                  "text": {
+                    "en": "A job I love with a low salary is better than a job I hate with a high salary.",
+                    "es": "Un trabajo que amo con un salario bajo es mejor que un trabajo que odio con un salario alto.",
+                    "pt": "Um emprego que eu amo com um salário baixo é melhor do que um emprego que eu odeio com um salário alto.",
+                    "bn": "বেশি বেতনের একটি চাকরির চেয়ে কম বেতনের একটি চাকরি যা আমি ভালোবাসি তা ভালো।",
+                    "fr": "Un travail que j'aime avec un petit salaire, c'est mieux qu'un travail que je déteste avec un gros salaire.",
+                    "hi": "पसंद वाली नौकरी कम वेतन के साथ, नफ़रत वाली नौकरी ज़्यादा वेतन के साथ से बेहतर है।"
+                  }
+                },
+                {
+                  "nextStep": 3,
+                  "text": {
+                    "en": "I would rather have a job I love that pays a low salary than have a job I hate that pays a high salary.",
+                    "es": "Preferiría tener un trabajo que amo que paga un salario bajo que tener un trabajo que odio que paga un salario alto.",
+                    "pt": "Eu prefiro ter um emprego que amo que paga um salário baixo a ter um emprego que odeio que paga um salário alto.",
+                    "bn": "আমি বেশি বেতনের একটি চাকরি যা আমি ঘৃণা করি তার চেয়ে কম বেতনের একটি চাকরি যা আমি ভালোবাসি তা করতে পছন্দ করব।",
+                    "fr": "Je préférerais avoir un travail que j'aime avec un petit salaire plutôt que d'avoir un travail que je déteste avec un gros salaire.",
+                    "hi": "मैं ऐसी नौकरी करना जो मुझे पसंद है लेकिन कम वेतन देती है, ऐसी नौकरी करने से ज़्यादा पसंद करूंगा जो मुझे पसंद नहीं है लेकिन ज़्यादा वेतन देती है।"
+                  }
+                },
+                {
+                  "nextStep": 4,
+                  "text": {
+                    "en": "Given the choice between having a job you love that pays a low salary and having a job you hate that pays a high salary, I would choose to have a job I love that pays a low salary.",
+                    "es": "Dada la opción entre tener un trabajo que amas que paga un salario bajo y tener un trabajo que odias que paga un salario alto, elegiría tener un trabajo que amo que paga un salario bajo.",
+                    "pt": "Dada a escolha entre ter um emprego que você ama que paga um salário baixo e ter um emprego que você odeia que paga um salário alto, eu escolheria ter um emprego que você ama que paga um salário baixo.",
+                    "bn": "কম বেতন দেয় এমন একটি চাকরি যা আপনি ভালোবাসেন এবং বেশি বেতন দেয় এমন একটি চাকরি যা আপনি ঘৃণা করেন তার মধ্যে পছন্দ দেওয়া হলে, আমি কম বেতন দেয় এমন একটি চাকরি যা আপনি ভালোবাসেন তা বেছে নেব।",
+                    "fr": "Si je devais choisir entre avoir un travail que j'aime avec un petit salaire et avoir un travail que je déteste avec un gros salaire, je choisirais d'avoir un travail que j'aime avec un petit salaire.",
+                    "hi": "अगर आपको चुनाव करना पड़े कि आप एक ऐसी नौकरी करें जो आपको पसंद है लेकिन कम वेतन देती है, और एक ऐसी नौकरी करें जो आपको पसंद नहीं है लेकिन ज़्यादा वेतन देती है, तो मैं ऐसी नौकरी चुनूंगा जो मुझे पसंद है लेकिन कम वेतन देती है।"
+                  }
+                }
+              ]
+            },
+            {
+              "text": {
+                "en": "Job you hate, high salary",
+                "es": "Trabajo que odias, salario alto",
+                "pt": "Emprego que você odeia, salário alto",
+                "bn": "যে কাজ আপনি ঘৃণা করেন, বেশি বেতন",
+                "fr": "Travail détesté, gros salaire",
+                "hi": "नौकरी जिससे आप नफरत करते हैं, ऊँची तनख्वाह"
+              },
+              "chooseStep": [
+                {
+                  "nextStep": 5,
+                  "text": {
+                    "en": "A job you hate with a high salary.",
+                    "es": "Un trabajo que odias con un salario alto.",
+                    "pt": "Um emprego que você odeia com um salário alto.",
+                    "bn": "বেশি বেতনের একটি চাকরি যা আপনি ঘৃণা করেন।",
+                    "fr": "Un travail que tu détestes avec un gros salaire.",
+                    "hi": "ऐसी नौकरी जिससे आप नफ़रत करते हैं, ज़्यादा वेतन के साथ।"
+                  }
+                },
+                {
+                  "nextStep": 6,
+                  "text": {
+                    "en": "A job I hate with a high salary is better than a job I love with a low salary.",
+                    "es": "Un trabajo que odio con un salario alto es mejor que un trabajo que amo con un salario bajo.",
+                    "pt": "Um emprego que eu odeio com um salário alto é melhor do que um emprego que eu amo com um salário baixo.",
+                    "bn": "কম বেতনের একটি চাকরির চেয়ে বেশি বেতনের একটি চাকরি যা আমি ঘৃণা করি তা ভালো।",
+                    "fr": "Un travail que je déteste avec un gros salaire, c'est mieux qu'un travail que j'aime avec un petit salaire.",
+                    "hi": "नफ़रत वाली नौकरी ज़्यादा वेतन के साथ, पसंद वाली नौकरी कम वेतन के साथ से बेहतर है।"
+                  }
+                },
+                {
+                  "nextStep": 7,
+                  "text": {
+                    "en": "I would rather have a job I hate that pays a high salary than have a job I love that pays a low salary.",
+                    "es": "Preferiría tener un trabajo que odio que paga un salario alto que tener un trabajo que amo que paga un salario bajo.",
+                    "pt": "Eu prefiro ter um emprego que odeio que paga um salário alto a ter um emprego que amo que paga um salário baixo.",
+                    "bn": "আমি কম বেতনের একটি চাকরি যা আমি ভালোবাসি তার চেয়ে বেশি বেতনের একটি চাকরি যা আমি ঘৃণা করি তা করতে পছন্দ করব।",
+                    "fr": "Je préférerais avoir un travail que je déteste avec un gros salaire plutôt que d'avoir un travail que j'aime avec un petit salaire.",
+                    "hi": "मैं ऐसी नौकरी करना जो मुझे पसंद नहीं है लेकिन ज़्यादा वेतन देती है, ऐसी नौकरी करने से ज़्यादा पसंद करूंगा जो मुझे पसंद है लेकिन कम वेतन देती है।"
+                  }
+                },
+                {
+                  "nextStep": 8,
+                  "text": {
+                    "en": "Given the choice between having a job you love that pays a low salary and having a job you hate that pays a high salary, I would choose to have a job I hate that pays a high salary.",
+                    "es": "Dada la opción entre tener un trabajo que amas que paga un salario bajo y tener un trabajo que odias que paga un salario alto, elegiría tener un trabajo que odio que paga un salario alto.",
+                    "pt": "Dada a escolha entre ter um emprego que você ama que paga um salário baixo e ter um emprego que você odeia que paga um salário alto, eu escolheria ter um emprego que você odeia que paga um salário alto.",
+                    "bn": "কম বেতন দেয় এমন একটি চাকরি যা আপনি ভালোবাসেন এবং বেশি বেতন দেয় এমন একটি চাকরি যা আপনি ঘৃণা করেন তার মধ্যে পছন্দ দেওয়া হলে, আমি বেশি বেতন দেয় এমন একটি চাকরি যা আপনি ঘৃণা করেন তা বেছে নেব।",
+                    "fr": "Si je devais choisir entre avoir un travail que j'aime avec un petit salaire et avoir un travail que je déteste avec un gros salaire, je choisirais d'avoir un travail que je déteste avec un gros salaire.",
+                    "hi": "अगर आपको चुनाव करना पड़े कि आप एक ऐसी नौकरी करें जो आपको पसंद है लेकिन कम वेतन देती है, और एक ऐसी नौकरी करें जो आपको पसंद नहीं है लेकिन ज़्यादा वेतन देती है, तो मैं ऐसी नौकरी चुनूंगा जो मुझे पसंद नहीं है लेकिन ज़्यादा वेतन देती है।"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-f-01-01",
+          "cue": [
+            {
+              "en": "A job you love with a low salary.",
+              "es": "Un trabajo que amas con un salario bajo.",
+              "pt": "Um emprego que você ama com um salário baixo.",
+              "bn": "কম বেতনের একটি চাকরি যা আপনি ভালোবাসেন।",
+              "fr": "Un travail que tu aimes avec un petit salaire.",
+              "hi": "ऐसी नौकरी जो आपको पसंद है, कम वेतन के साथ।"
+            }
+          ],
+          "nextStep": 8,
+          "subtitles": {
+            "en": "A job you love with a low salary.",
+            "es": "Un trabajo que amas con un salario bajo.",
+            "pt": "Um emprego que você ama com um salário baixo.",
+            "bn": "কম বেতনের একটি চাকরি যা আপনি ভালোবাসেন।",
+            "fr": "Un travail que tu aimes avec un petit salaire.",
+            "hi": "ऐसी नौकरी जो आपको पसंद है, कम वेतन के साथ।"
+          },
+          "publishLessonId": "f"
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-f-01-02",
+          "cue": [
+            {
+              "en": "A job I love with a low salary is better than a job I hate with a high salary.",
+              "es": "Un trabajo que amo con un salario bajo es mejor que un trabajo que odio con un salario alto.",
+              "pt": "Um emprego que eu amo com um salário baixo é melhor do que um emprego que eu odeio com um salário alto.",
+              "bn": "বেশি বেতনের একটি চাকরির চেয়ে কম বেতনের একটি চাকরি যা আমি ভালোবাসি তা ভালো।",
+              "fr": "Un travail que j'aime avec un petit salaire, c'est mieux qu'un travail que je déteste avec un gros salaire.",
+              "hi": "पसंद वाली नौकरी कम वेतन के साथ, नफ़रत वाली नौकरी ज़्यादा वेतन के साथ से बेहतर है।"
+            }
+          ],
+          "nextStep": 7,
+          "subtitles": {
+            "en": "A job I love with a low salary is better than a job I hate with a high salary.",
+            "es": "Un trabajo que amo con un salario bajo es mejor que un trabajo que odio con un salario alto.",
+            "pt": "Um emprego que eu amo com um salário baixo é melhor do que um emprego que eu odeio com um salário alto.",
+            "bn": "বেশি বেতনের একটি চাকরির চেয়ে কম বেতনের একটি চাকরি যা আমি ভালোবাসি তা ভালো।",
+            "fr": "Un travail que j'aime avec un petit salaire, c'est mieux qu'un travail que je déteste avec un gros salaire.",
+            "hi": "पसंद वाली नौकरी कम वेतन के साथ, नफ़रत वाली नौकरी ज़्यादा वेतन के साथ से बेहतर है।"
+          },
+          "publishLessonId": "f"
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-f-01-03",
+          "cue": [
+            {
+              "en": "I would rather have a job I love that pays a low salary than have a job I hate that pays a high salary.",
+              "es": "Preferiría tener un trabajo que amo que paga un salario bajo que tener un trabajo que odio que paga un salario alto.",
+              "pt": "Eu prefiro ter um emprego que amo que paga um salário baixo a ter um emprego que odeio que paga um salário alto.",
+              "bn": "আমি বেশি বেতনের একটি চাকরি যা আমি ঘৃণা করি তার চেয়ে কম বেতনের একটি চাকরি যা আমি ভালোবাসি তা করতে পছন্দ করব।",
+              "fr": "Je préférerais avoir un travail que j'aime avec un petit salaire plutôt que d'avoir un travail que je déteste avec un gros salaire.",
+              "hi": "मैं ऐसी नौकरी करना जो मुझे पसंद है लेकिन कम वेतन देती है, ऐसी नौकरी करने से ज़्यादा पसंद करूंगा जो मुझे पसंद नहीं है लेकिन ज़्यादा वेतन देती है।"
+            }
+          ],
+          "nextStep": 6,
+          "subtitles": {
+            "en": "I would rather have a job I love that pays a low salary than have a job I hate that pays a high salary.",
+            "es": "Preferiría tener un trabajo que amo que paga un salario bajo que tener un trabajo que odio que paga un salario alto.",
+            "pt": "Eu prefiro ter um emprego que amo que paga um salário baixo a ter um emprego que odeio que paga um salário alto.",
+            "bn": "আমি বেশি বেতনের একটি চাকরি যা আমি ঘৃণা করি তার চেয়ে কম বেতনের একটি চাকরি যা আমি ভালোবাসি তা করতে পছন্দ করব।",
+            "fr": "Je préférerais avoir un travail que j'aime avec un petit salaire plutôt que d'avoir un travail que je déteste avec un gros salaire.",
+            "hi": "मैं ऐसी नौकरी करना जो मुझे पसंद है लेकिन कम वेतन देती है, ऐसी नौकरी करने से ज़्यादा पसंद करूंगा जो मुझे पसंद नहीं है लेकिन ज़्यादा वेतन देती है।"
+          },
+          "publishLessonId": "f"
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-f-01-04",
+          "cue": [
+            {
+              "en": "Given the choice between having a job you love that pays a low salary and having a job you hate that pays a high salary, I would choose to have a job I love that pays a low salary.",
+              "es": "Dada la opción entre tener un trabajo que amas que paga un salario bajo y tener un trabajo que odias que paga un salario alto, elegiría tener un trabajo que amo que paga un salario bajo.",
+              "pt": "Dada a escolha entre ter um emprego que você ama que paga um salário baixo e ter um emprego que você odeia que paga um salário alto, eu escolheria ter um emprego que você ama que paga um salário baixo.",
+              "bn": "কম বেতন দেয় এমন একটি চাকরি যা আপনি ভালোবাসেন এবং বেশি বেতন দেয় এমন একটি চাকরি যা আপনি ঘৃণা করেন তার মধ্যে পছন্দ দেওয়া হলে, আমি কম বেতন দেয় এমন একটি চাকরি যা আপনি ভালোবাসেন তা বেছে নেব।",
+              "fr": "Si je devais choisir entre avoir un travail que j'aime avec un petit salaire et avoir un travail que je déteste avec un gros salaire, je choisirais d'avoir un travail que j'aime avec un petit salaire.",
+              "hi": "अगर आपको चुनाव करना पड़े कि आप एक ऐसी नौकरी करें जो आपको पसंद है लेकिन कम वेतन देती है, और एक ऐसी नौकरी करें जो आपको पसंद नहीं है लेकिन ज़्यादा वेतन देती है, तो मैं ऐसी नौकरी चुनूंगा जो मुझे पसंद है लेकिन कम वेतन देती है।"
+            }
+          ],
+          "nextStep": 5,
+          "subtitles": {
+            "en": "Given the choice between having a job you love that pays a low salary and having a job you hate that pays a high salary, I would choose to have a job I love that pays a low salary.",
+            "es": "Dada la opción entre tener un trabajo que amas que paga un salario bajo y tener un trabajo que odias que paga un salario alto, elegiría tener un trabajo que amo que paga un salario bajo.",
+            "pt": "Dada a escolha entre ter um emprego que você ama que paga um salário baixo e ter um emprego que você odeia que paga um salário alto, eu escolheria ter um emprego que você ama que paga um salário baixo.",
+            "bn": "কম বেতন দেয় এমন একটি চাকরি যা আপনি ভালোবাসেন এবং বেশি বেতন দেয় এমন একটি চাকরি যা আপনি ঘৃণা করেন তার মধ্যে পছন্দ দেওয়া হলে, আমি কম বেতন দেয় এমন একটি চাকরি যা আপনি ভালোবাসেন তা বেছে নেব।",
+            "fr": "Si je devais choisir entre avoir un travail que j'aime avec un petit salaire et avoir un travail que je déteste avec un gros salaire, je choisirais d'avoir un travail que j'aime avec un petit salaire.",
+            "hi": "अगर आपको चुनाव करना पड़े कि आप एक ऐसी नौकरी करें जो आपको पसंद है लेकिन कम वेतन देती है, और एक ऐसी नौकरी करें जो आपको पसंद नहीं है लेकिन ज़्यादा वेतन देती है, तो मैं ऐसी नौकरी चुनूंगा जो मुझे पसंद है लेकिन कम वेतन देती है।"
+          },
+          "publishLessonId": "f"
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-f-02-01",
+          "cue": [
+            {
+              "en": "A job you hate with a high salary.",
+              "es": "Un trabajo que odias con un salario alto.",
+              "pt": "Um emprego que você odeia com um salário alto.",
+              "bn": "বেশি বেতনের একটি চাকরি যা আপনি ঘৃণা করেন।",
+              "fr": "Un travail que tu détestes avec un gros salaire.",
+              "hi": "ऐसी नौकरी जिससे आप नफ़रत करते हैं, ज़्यादा वेतन के साथ।"
+            }
+          ],
+          "nextStep": 4,
+          "subtitles": {
+            "en": "A job you hate with a high salary.",
+            "es": "Un trabajo que odias con un salario alto.",
+            "pt": "Um emprego que você odeia com um salário alto.",
+            "bn": "বেশি বেতনের একটি চাকরি যা আপনি ঘৃণা করেন।",
+            "fr": "Un travail que tu détestes avec un gros salaire.",
+            "hi": "ऐसी नौकरी जिससे आप नफ़रत करते हैं, ज़्यादा वेतन के साथ।"
+          },
+          "publishLessonId": "f"
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-f-02-02",
+          "cue": [
+            {
+              "en": "A job I hate with a high salary is better than a job I love with a low salary.",
+              "es": "Un trabajo que odio con un salario alto es mejor que un trabajo que amo con un salario bajo.",
+              "pt": "Um emprego que eu odeio com um salário alto é melhor do que um emprego que eu amo com um salário baixo.",
+              "bn": "কম বেতনের একটি চাকরির চেয়ে বেশি বেতনের একটি চাকরি যা আমি ঘৃণা করি তা ভালো।",
+              "fr": "Un travail que je déteste avec un gros salaire, c'est mieux qu'un travail que j'aime avec un petit salaire.",
+              "hi": "नफ़रत वाली नौकरी ज़्यादा वेतन के साथ, पसंद वाली नौकरी कम वेतन के साथ से बेहतर है।"
+            }
+          ],
+          "nextStep": 3,
+          "subtitles": {
+            "en": "A job I hate with a high salary is better than a job I love with a low salary.",
+            "es": "Un trabajo que odio con un salario alto es mejor que un trabajo que amo con un salario bajo.",
+            "pt": "Um emprego que eu odeio com um salário alto é melhor do que um emprego que eu amo com um salário baixo.",
+            "bn": "কম বেতনের একটি চাকরির চেয়ে বেশি বেতনের একটি চাকরি যা আমি ঘৃণা করি তা ভালো।",
+            "fr": "Un travail que je déteste avec un gros salaire, c'est mieux qu'un travail que j'aime avec un petit salaire.",
+            "hi": "नफ़रत वाली नौकरी ज़्यादा वेतन के साथ, पसंद वाली नौकरी कम वेतन के साथ से बेहतर है।"
+          },
+          "publishLessonId": "f"
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-f-02-03",
+          "cue": [
+            {
+              "en": "I would rather have a job I hate that pays a high salary than have a job I love that pays a low salary.",
+              "es": "Preferiría tener un trabajo que odio que paga un salario alto que tener un trabajo que amo que paga un salario bajo.",
+              "pt": "Eu prefiro ter um emprego que odeio que paga um salário alto a ter um emprego que amo que paga um salário baixo.",
+              "bn": "আমি কম বেতনের একটি চাকরি যা আমি ভালোবাসি তার চেয়ে বেশি বেতনের একটি চাকরি যা আমি ঘৃণা করি তা করতে পছন্দ করব।",
+              "fr": "Je préférerais avoir un travail que je déteste avec un gros salaire plutôt que d'avoir un travail que j'aime avec un petit salaire.",
+              "hi": "मैं ऐसी नौकरी करना जो मुझे पसंद नहीं है लेकिन ज़्यादा वेतन देती है, ऐसी नौकरी करने से ज़्यादा पसंद करूंगा जो मुझे पसंद है लेकिन कम वेतन देती है।"
+            }
+          ],
+          "nextStep": 2,
+          "subtitles": {
+            "en": "I would rather have a job I hate that pays a high salary than have a job I love that pays a low salary.",
+            "es": "Preferiría tener un trabajo que odio que paga un salario alto que tener un trabajo que amo que paga un salario bajo.",
+            "pt": "Eu prefiro ter um emprego que odeio que paga um salário alto a ter um emprego que amo que paga um salário baixo.",
+            "bn": "আমি কম বেতনের একটি চাকরি যা আমি ভালোবাসি তার চেয়ে বেশি বেতনের একটি চাকরি যা আমি ঘৃণা করি তা করতে পছন্দ করব।",
+            "fr": "Je préférerais avoir un travail que je déteste avec un gros salaire plutôt que d'avoir un travail que j'aime avec un petit salaire.",
+            "hi": "मैं ऐसी नौकरी करना जो मुझे पसंद नहीं है लेकिन ज़्यादा वेतन देती है, ऐसी नौकरी करने से ज़्यादा पसंद करूंगा जो मुझे पसंद है लेकिन कम वेतन देती है।"
+          },
+          "publishLessonId": "f"
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-f-02-04",
+          "cue": [
+            {
+              "en": "Given the choice between having a job you love that pays a low salary and having a job you hate that pays a high salary, I would choose to have a job I hate that pays a high salary.",
+              "es": "Dada la opción entre tener un trabajo que amas que paga un salario bajo y tener un trabajo que odias que paga un salario alto, elegiría tener un trabajo que odio que paga un salario alto.",
+              "pt": "Dada a escolha entre ter um emprego que você ama que paga um salário baixo e ter um emprego que você odeia que paga um salário alto, eu escolheria ter um emprego que você odeia que paga um salário alto.",
+              "bn": "কম বেতন দেয় এমন একটি চাকরি যা আপনি ভালোবাসেন এবং বেশি বেতন দেয় এমন একটি চাকরি যা আপনি ঘৃণা করেন তার মধ্যে পছন্দ দেওয়া হলে, আমি বেশি বেতন দেয় এমন একটি চাকরি যা আপনি ঘৃণা করেন তা বেছে নেব।",
+              "fr": "Si je devais choisir entre avoir un travail que j'aime avec un petit salaire et avoir un travail que je déteste avec un gros salaire, je choisirais d'avoir un travail que je déteste avec un gros salaire.",
+              "hi": "अगर आपको चुनाव करना पड़े कि आप एक ऐसी नौकरी करें जो आपको पसंद है लेकिन कम वेतन देती है, और एक ऐसी नौकरी करें जो आपको पसंद नहीं है लेकिन ज़्यादा वेतन देती है, तो मैं ऐसी नौकरी चुनूंगा जो मुझे पसंद नहीं है लेकिन ज़्यादा वेतन देती है।"
+            }
+          ],
+          "nextStep": 1,
+          "subtitles": {
+            "en": "Given the choice between having a job you love that pays a low salary and having a job you hate that pays a high salary, I would choose to have a job I hate that pays a high salary.",
+            "es": "Dada la opción entre tener un trabajo que amas que paga un salario bajo y tener un trabajo que odias que paga un salario alto, elegiría tener un trabajo que odio que paga un salario alto.",
+            "pt": "Dada a escolha entre ter um emprego que você ama que paga um salário baixo e ter um emprego que você odeia que paga um salário alto, eu escolheria ter um emprego que você odeia que paga um salário alto.",
+            "bn": "কম বেতন দেয় এমন একটি চাকরি যা আপনি ভালোবাসেন এবং বেশি বেতন দেয় এমন একটি চাকরি যা আপনি ঘৃণা করেন তার মধ্যে পছন্দ দেওয়া হলে, আমি বেশি বেতন দেয় এমন একটি চাকরি যা আপনি ঘৃণা করেন তা বেছে নেব।",
+            "fr": "Si je devais choisir entre avoir un travail que j'aime avec un petit salaire et avoir un travail que je déteste avec un gros salaire, je choisirais d'avoir un travail que je déteste avec un gros salaire.",
+            "hi": "अगर आपको चुनाव करना पड़े कि आप एक ऐसी नौकरी करें जो आपको पसंद है लेकिन कम वेतन देती है, और एक ऐसी नौकरी करें जो आपको पसंद नहीं है लेकिन ज़्यादा वेतन देती है, तो मैं ऐसी नौकरी चुनूंगा जो मुझे पसंद नहीं है लेकिन ज़्यादा वेतन देती है।"
+          },
+          "publishLessonId": "f"
+        },
+        {
+          "responseType": "branching",
+          "simpleVideoUrl": "{friendCode}{selfCode}-wouldyourather-e-02",
+          "chooseStep": [
+            {
+              "text": {
+                "en": "Rich with no privacy",
+                "es": "Rico sin privacidad",
+                "pt": "Rico sem privacidade",
+                "bn": "গোপনীয়তা ছাড়া ধনী",
+                "fr": "Riche, sans vie privée",
+                "hi": "अमीर, बिना निजता के"
+              },
+              "chooseStep": [
+                {
+                  "nextStep": 1,
+                  "text": {
+                    "en": "Rich with no privacy.",
+                    "es": "Rico sin privacidad.",
+                    "pt": "Rico sem privacidade.",
+                    "bn": "গোপনীয়তা ছাড়া ধনী।",
+                    "fr": "Riche sans vie privée.",
+                    "hi": "बिना निजता के अमीर।"
+                  }
+                },
+                {
+                  "nextStep": 2,
+                  "text": {
+                    "en": "Being rich with no privacy is better than being poor with complete privacy.",
+                    "es": "Ser rico sin privacidad es mejor que ser pobre con privacidad completa.",
+                    "pt": "Ser rico sem privacidade é melhor do que ser pobre com privacidade total.",
+                    "bn": "সম্পূর্ণ গোপনীয়তা সহ গরিব হওয়ার চেয়ে গোপনীয়তা ছাড়া ধনী হওয়া ভালো।",
+                    "fr": "Être riche sans vie privée, c'est mieux qu'être pauvre avec une vie privée totale.",
+                    "hi": "बिना निजता के अमीर होना पूरी निजता के साथ गरीब होने से बेहतर है।"
+                  }
+                },
+                {
+                  "nextStep": 3,
+                  "text": {
+                    "en": "I would rather be rich but have no privacy than be poor but have complete privacy.",
+                    "es": "Preferiría ser rico pero no tener privacidad que ser pobre pero tener privacidad completa.",
+                    "pt": "Eu prefiro ser rico, mas não ter privacidade, a ser pobre, mas ter privacidade total.",
+                    "bn": "আমি সম্পূর্ণ গোপনীয়তা সহ গরিব হওয়ার চেয়ে গোপনীয়তা ছাড়া ধনী হতে পছন্দ করব।",
+                    "fr": "Je préférerais être riche sans vie privée plutôt que d'être pauvre mais avec une vie privée totale.",
+                    "hi": "मैं अमीर होकर बिना निजता के रहना गरीब होकर पूरी निजता रखने से ज़्यादा पसंद करूंगा।"
+                  }
+                },
+                {
+                  "nextStep": 4,
+                  "text": {
+                    "en": "Given the choice between being rich but having no privacy and being poor but having complete privacy, I would choose to be rich.",
+                    "es": "Dada la opción entre ser rico pero no tener privacidad y ser pobre pero tener privacidad completa, elegiría ser rico.",
+                    "pt": "Dada a escolha entre ser rico, mas não ter privacidade, e ser pobre, mas ter privacidade total, eu escolheria ser rico.",
+                    "bn": "ধনী হওয়া কিন্তু কোনো গোপনীয়তা না থাকা এবং গরিব হওয়া কিন্তু সম্পূর্ণ গোপনীয়তা থাকার মধ্যে পছন্দ দেওয়া হলে, আমি ধনী হওয়া বেছে নেব।",
+                    "fr": "Si je devais choisir entre être riche mais sans vie privée et être pauvre mais avec une vie privée totale, je choisirais d'être riche.",
+                    "hi": "अमीर होने पर बिना निजता के और गरीब होने पर पूरी निजता के साथ जीने के बीच चुनाव दिया जाए, तो मैं अमीर होना चुनूँगा।"
+                  }
+                }
+              ]
+            },
+            {
+              "text": {
+                "en": "Poor with complete privacy",
+                "es": "Pobre con privacidad total",
+                "pt": "Pobre com privacidade total",
+                "bn": "সম্পূর্ণ গোপনীয়তা সহ গরিব",
+                "fr": "Pauvre, avec vie privée",
+                "hi": "गरीब, पूरी निजता के साथ"
+              },
+              "chooseStep": [
+                {
+                  "nextStep": 5,
+                  "text": {
+                    "en": "Poor with complete privacy.",
+                    "es": "Pobre con privacidad completa.",
+                    "pt": "Pobre com privacidade total.",
+                    "bn": "সম্পূর্ণ গোপনীয়তা সহ গরিব।",
+                    "fr": "Pauvre avec une vie privée totale.",
+                    "hi": "पूरी निजता के साथ गरीब।"
+                  }
+                },
+                {
+                  "nextStep": 6,
+                  "text": {
+                    "en": "Being poor with complete privacy is better than being rich with no privacy.",
+                    "es": "Ser pobre con privacidad completa es mejor que ser rico sin privacidad.",
+                    "pt": "Ser pobre com privacidade total é melhor do que ser rico sem privacidade.",
+                    "bn": "গোপনীয়তা ছাড়া ধনী হওয়ার চেয়ে সম্পূর্ণ গোপনীয়তা সহ গরিব হওয়া ভালো।",
+                    "fr": "Être pauvre avec une vie privée totale, c'est mieux qu'être riche sans vie privée.",
+                    "hi": "पूरी निजता के साथ गरीब होना बिना निजता के अमीर होने से बेहतर है।"
+                  }
+                },
+                {
+                  "nextStep": 7,
+                  "text": {
+                    "en": "I would rather be poor but have complete privacy than be rich but have no privacy.",
+                    "es": "Preferiría ser pobre pero tener privacidad completa que ser rico pero no tener privacidad.",
+                    "pt": "Eu prefiro ser pobre, mas ter privacidade total, a ser rico, mas não ter privacidade.",
+                    "bn": "আমি গোপনীয়তা ছাড়া ধনী হওয়ার চেয়ে সম্পূর্ণ গোপনীয়তা সহ গরিব হতে পছন্দ করব।",
+                    "fr": "Je préférerais être pauvre mais garder ma vie privée plutôt que d'être riche sans vie privée.",
+                    "hi": "मैं गरीब होकर पूरी निजता रखना अमीर होकर बिना निजता के रहने से ज़्यादा पसंद करूंगा।"
+                  }
+                },
+                {
+                  "nextStep": 8,
+                  "text": {
+                    "en": "Given the choice between being rich but having no privacy and being poor but having complete privacy, I would choose to be poor.",
+                    "es": "Dada la opción entre ser rico pero no tener privacidad y ser pobre pero tener privacidad completa, elegiría ser pobre.",
+                    "pt": "Dada a escolha entre ser rico, mas não ter privacidade, e ser pobre, mas ter privacidade total, eu escolheria ser pobre.",
+                    "bn": "ধনী হওয়া কিন্তু কোনো গোপনীয়তা না থাকা এবং গরিব হওয়া কিন্তু সম্পূর্ণ গোপনীয়তা থাকার মধ্যে পছন্দ দেওয়া হলে, আমি গরিব হওয়া বেছে নেব।",
+                    "fr": "Si je devais choisir entre être riche mais sans vie privée et être pauvre mais avec une vie privée totale, je choisirais d'être pauvre.",
+                    "hi": "अमीर होने पर बिना निजता के और गरीब होने पर पूरी निजता के साथ जीने के बीच चुनाव दिया जाए, तो मैं गरीब होना चुनूँगा।"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-f-03-01",
+          "cue": [
+            {
+              "en": "Rich with no privacy.",
+              "es": "Rico sin privacidad.",
+              "pt": "Rico sem privacidade.",
+              "bn": "গোপনীয়তা ছাড়া ধনী।",
+              "fr": "Riche sans vie privée.",
+              "hi": "बिना निजता के अमीर।"
+            }
+          ],
+          "nextStep": 8,
+          "subtitles": {
+            "en": "Rich with no privacy.",
+            "es": "Rico sin privacidad.",
+            "pt": "Rico sem privacidade.",
+            "bn": "গোপনীয়তা ছাড়া ধনী।",
+            "fr": "Riche sans vie privée.",
+            "hi": "बिना निजता के अमीर।"
+          },
+          "publishLessonId": "f"
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-f-03-02",
+          "cue": [
+            {
+              "en": "Being rich with no privacy is better than being poor with complete privacy.",
+              "es": "Ser rico sin privacidad es mejor que ser pobre con privacidad completa.",
+              "pt": "Ser rico sem privacidade é melhor do que ser pobre com privacidade total.",
+              "bn": "সম্পূর্ণ গোপনীয়তা সহ গরিব হওয়ার চেয়ে গোপনীয়তা ছাড়া ধনী হওয়া ভালো।",
+              "fr": "Être riche sans vie privée, c'est mieux qu'être pauvre avec une vie privée totale.",
+              "hi": "बिना निजता के अमीर होना पूरी निजता के साथ गरीब होने से बेहतर है।"
+            }
+          ],
+          "nextStep": 7,
+          "subtitles": {
+            "en": "Being rich with no privacy is better than being poor with complete privacy.",
+            "es": "Ser rico sin privacidad es mejor que ser pobre con privacidad completa.",
+            "pt": "Ser rico sem privacidade é melhor do que ser pobre com privacidade total.",
+            "bn": "সম্পূর্ণ গোপনীয়তা সহ গরিব হওয়ার চেয়ে গোপনীয়তা ছাড়া ধনী হওয়া ভালো।",
+            "fr": "Être riche sans vie privée, c'est mieux qu'être pauvre avec une vie privée totale.",
+            "hi": "बिना निजता के अमीर होना पूरी निजता के साथ गरीब होने से बेहतर है।"
+          },
+          "publishLessonId": "f"
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-f-03-03",
+          "cue": [
+            {
+              "en": "I would rather be rich but have no privacy than be poor but have complete privacy.",
+              "es": "Preferiría ser rico pero no tener privacidad que ser pobre pero tener privacidad completa.",
+              "pt": "Eu prefiro ser rico, mas não ter privacidade, a ser pobre, mas ter privacidade total.",
+              "bn": "আমি সম্পূর্ণ গোপনীয়তা সহ গরিব হওয়ার চেয়ে গোপনীয়তা ছাড়া ধনী হতে পছন্দ করব।",
+              "fr": "Je préférerais être riche sans vie privée plutôt que d'être pauvre mais avec une vie privée totale.",
+              "hi": "मैं अमीर होकर बिना निजता के रहना गरीब होकर पूरी निजता रखने से ज़्यादा पसंद करूंगा।"
+            }
+          ],
+          "nextStep": 6,
+          "subtitles": {
+            "en": "I would rather be rich but have no privacy than be poor but have complete privacy.",
+            "es": "Preferiría ser rico pero no tener privacidad que ser pobre pero tener privacidad completa.",
+            "pt": "Eu prefiro ser rico, mas não ter privacidade, a ser pobre, mas ter privacidade total.",
+            "bn": "আমি সম্পূর্ণ গোপনীয়তা সহ গরিব হওয়ার চেয়ে গোপনীয়তা ছাড়া ধনী হতে পছন্দ করব।",
+            "fr": "Je préférerais être riche sans vie privée plutôt que d'être pauvre mais avec une vie privée totale.",
+            "hi": "मैं अमीर होकर बिना निजता के रहना गरीब होकर पूरी निजता रखने से ज़्यादा पसंद करूंगा।"
+          },
+          "publishLessonId": "f"
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-f-03-04",
+          "cue": [
+            {
+              "en": "Given the choice between being rich but having no privacy and being poor but having complete privacy, I would choose to be rich.",
+              "es": "Dada la opción entre ser rico pero no tener privacidad y ser pobre pero tener privacidad completa, elegiría ser rico.",
+              "pt": "Dada a escolha entre ser rico, mas não ter privacidade, e ser pobre, mas ter privacidade total, eu escolheria ser rico.",
+              "bn": "ধনী হওয়া কিন্তু কোনো গোপনীয়তা না থাকা এবং গরিব হওয়া কিন্তু সম্পূর্ণ গোপনীয়তা থাকার মধ্যে পছন্দ দেওয়া হলে, আমি ধনী হওয়া বেছে নেব।",
+              "fr": "Si je devais choisir entre être riche mais sans vie privée et être pauvre mais avec une vie privée totale, je choisirais d'être riche.",
+              "hi": "अमीर होने पर बिना निजता के और गरीब होने पर पूरी निजता के साथ जीने के बीच चुनाव दिया जाए, तो मैं अमीर होना चुनूँगा।"
+            }
+          ],
+          "nextStep": 5,
+          "subtitles": {
+            "en": "Given the choice between being rich but having no privacy and being poor but having complete privacy, I would choose to be rich.",
+            "es": "Dada la opción entre ser rico pero no tener privacidad y ser pobre pero tener privacidad completa, elegiría ser rico.",
+            "pt": "Dada a escolha entre ser rico, mas não ter privacidade, e ser pobre, mas ter privacidade total, eu escolheria ser rico.",
+            "bn": "ধনী হওয়া কিন্তু কোনো গোপনীয়তা না থাকা এবং গরিব হওয়া কিন্তু সম্পূর্ণ গোপনীয়তা থাকার মধ্যে পছন্দ দেওয়া হলে, আমি ধনী হওয়া বেছে নেব।",
+            "fr": "Si je devais choisir entre être riche mais sans vie privée et être pauvre mais avec une vie privée totale, je choisirais d'être riche.",
+            "hi": "अमीर होने पर बिना निजता के और गरीब होने पर पूरी निजता के साथ जीने के बीच चुनाव दिया जाए, तो मैं अमीर होना चुनूँगा।"
+          },
+          "publishLessonId": "f"
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-f-04-01",
+          "cue": [
+            {
+              "en": "Poor with complete privacy.",
+              "es": "Pobre con privacidad completa.",
+              "pt": "Pobre com privacidade total.",
+              "bn": "সম্পূর্ণ গোপনীয়তা সহ গরিব।",
+              "fr": "Pauvre avec une vie privée totale.",
+              "hi": "पूरी निजता के साथ गरीब।"
+            }
+          ],
+          "nextStep": 4,
+          "subtitles": {
+            "en": "Poor with complete privacy.",
+            "es": "Pobre con privacidad completa.",
+            "pt": "Pobre com privacidade total.",
+            "bn": "সম্পূর্ণ গোপনীয়তা সহ গরিব।",
+            "fr": "Pauvre avec une vie privée totale.",
+            "hi": "पूरी निजता के साथ गरीब।"
+          },
+          "publishLessonId": "f"
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-f-04-02",
+          "cue": [
+            {
+              "en": "Being poor with complete privacy is better than being rich with no privacy.",
+              "es": "Ser pobre con privacidad completa es mejor que ser rico sin privacidad.",
+              "pt": "Ser pobre com privacidade total é melhor do que ser rico sem privacidade.",
+              "bn": "গোপনীয়তা ছাড়া ধনী হওয়ার চেয়ে সম্পূর্ণ গোপনীয়তা সহ গরিব হওয়া ভালো।",
+              "fr": "Être pauvre avec une vie privée totale, c'est mieux qu'être riche sans vie privée.",
+              "hi": "पूरी निजता के साथ गरीब होना बिना निजता के अमीर होने से बेहतर है।"
+            }
+          ],
+          "nextStep": 3,
+          "subtitles": {
+            "en": "Being poor with complete privacy is better than being rich with no privacy.",
+            "es": "Ser pobre con privacidad completa es mejor que ser rico sin privacidad.",
+            "pt": "Ser pobre com privacidade total é melhor do que ser rico sem privacidade.",
+            "bn": "গোপনীয়তা ছাড়া ধনী হওয়ার চেয়ে সম্পূর্ণ গোপনীয়তা সহ গরিব হওয়া ভালো।",
+            "fr": "Être pauvre avec une vie privée totale, c'est mieux qu'être riche sans vie privée.",
+            "hi": "पूरी निजता के साथ गरीब होना बिना निजता के अमीर होने से बेहतर है।"
+          },
+          "publishLessonId": "f"
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-f-04-03",
+          "cue": [
+            {
+              "en": "I would rather be poor but have complete privacy than be rich but have no privacy.",
+              "es": "Preferiría ser pobre pero tener privacidad completa que ser rico pero no tener privacidad.",
+              "pt": "Eu prefiro ser pobre, mas ter privacidade total, a ser rico, mas não ter privacidade.",
+              "bn": "আমি গোপনীয়তা ছাড়া ধনী হওয়ার চেয়ে সম্পূর্ণ গোপনীয়তা সহ গরিব হতে পছন্দ করব।",
+              "fr": "Je préférerais être pauvre mais garder ma vie privée plutôt que d'être riche sans vie privée.",
+              "hi": "मैं गरीब होकर पूरी निजता रखना अमीर होकर बिना निजता के रहने से ज़्यादा पसंद करूंगा।"
+            }
+          ],
+          "nextStep": 2,
+          "subtitles": {
+            "en": "I would rather be poor but have complete privacy than be rich but have no privacy.",
+            "es": "Preferiría ser pobre pero tener privacidad completa que ser rico pero no tener privacidad.",
+            "pt": "Eu prefiro ser pobre, mas ter privacidade total, a ser rico, mas não ter privacidade.",
+            "bn": "আমি গোপনীয়তা ছাড়া ধনী হওয়ার চেয়ে সম্পূর্ণ গোপনীয়তা সহ গরিব হতে পছন্দ করব।",
+            "fr": "Je préférerais être pauvre mais garder ma vie privée plutôt que d'être riche sans vie privée.",
+            "hi": "मैं गरीब होकर पूरी निजता रखना अमीर होकर बिना निजता के रहने से ज़्यादा पसंद करूंगा।"
+          },
+          "publishLessonId": "f"
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-f-04-04",
+          "cue": [
+            {
+              "en": "Given the choice between being rich but having no privacy and being poor but having complete privacy, I would choose to be poor.",
+              "es": "Dada la opción entre ser rico pero no tener privacidad y ser pobre pero tener privacidad completa, elegiría ser pobre.",
+              "pt": "Dada a escolha entre ser rico, mas não ter privacidade, e ser pobre, mas ter privacidade total, eu escolheria ser pobre.",
+              "bn": "ধনী হওয়া কিন্তু কোনো গোপনীয়তা না থাকা এবং গরিব হওয়া কিন্তু সম্পূর্ণ গোপনীয়তা থাকার মধ্যে পছন্দ দেওয়া হলে, আমি গরিব হওয়া বেছে নেব।",
+              "fr": "Si je devais choisir entre être riche mais sans vie privée et être pauvre mais avec une vie privée totale, je choisirais d'être pauvre.",
+              "hi": "अमीर होने पर बिना निजता के और गरीब होने पर पूरी निजता के साथ जीने के बीच चुनाव दिया जाए, तो मैं गरीब होना चुनूँगा।"
+            }
+          ],
+          "nextStep": 1,
+          "subtitles": {
+            "en": "Given the choice between being rich but having no privacy and being poor but having complete privacy, I would choose to be poor.",
+            "es": "Dada la opción entre ser rico pero no tener privacidad y ser pobre pero tener privacidad completa, elegiría ser pobre.",
+            "pt": "Dada a escolha entre ser rico, mas não ter privacidade, e ser pobre, mas ter privacidade total, eu escolheria ser pobre.",
+            "bn": "ধনী হওয়া কিন্তু কোনো গোপনীয়তা না থাকা এবং গরিব হওয়া কিন্তু সম্পূর্ণ গোপনীয়তা থাকার মধ্যে পছন্দ দেওয়া হলে, আমি গরিব হওয়া বেছে নেব।",
+            "fr": "Si je devais choisir entre être riche mais sans vie privée et être pauvre mais avec une vie privée totale, je choisirais d'être pauvre.",
+            "hi": "अमीर होने पर बिना निजता के और गरीब होने पर पूरी निजता के साथ जीने के बीच चुनाव दिया जाए, तो मैं गरीब होना चुनूँगा।"
+          },
+          "publishLessonId": "f"
+        },
+        {
+          "responseType": "branching",
+          "simpleVideoUrl": "{friendCode}{selfCode}-wouldyourather-e-03",
+          "chooseStep": [
+            {
+              "text": {
+                "en": "A week without your phone",
+                "es": "Una semana sin tu teléfono",
+                "pt": "Uma semana sem o seu telefone",
+                "bn": "ফোন ছাড়া এক সপ্তাহ",
+                "fr": "Une semaine sans téléphone",
+                "hi": "आपके फोन के बिना एक हफ्ता"
+              },
+              "chooseStep": [
+                {
+                  "nextStep": 1,
+                  "text": {
+                    "en": "A week without your phone.",
+                    "es": "Una semana sin tu teléfono.",
+                    "pt": "Uma semana sem o seu telefone.",
+                    "bn": "ফোন ছাড়া এক সপ্তাহ।",
+                    "fr": "Une semaine sans ton téléphone.",
+                    "hi": "आपके फ़ोन के बिना एक हफ़्ता।"
+                  }
+                },
+                {
+                  "nextStep": 2,
+                  "text": {
+                    "en": "Going a week without my phone is better than going a week without music.",
+                    "es": "Pasar una semana sin mi teléfono es mejor que pasar una semana sin música.",
+                    "pt": "Passar uma semana sem o meu telefone é melhor do que passar uma semana sem música.",
+                    "bn": "গান ছাড়া এক সপ্তাহ কাটানোর চেয়ে আমার ফোন ছাড়া এক সপ্তাহ কাটানো ভালো।",
+                    "fr": "Passer une semaine sans mon téléphone, c'est mieux que passer une semaine sans musique.",
+                    "hi": "मेरे फोन के बिना एक हफ्ता रहना संगीत के बिना एक हफ्ता रहने से बेहतर है।"
+                  }
+                },
+                {
+                  "nextStep": 3,
+                  "text": {
+                    "en": "I would rather go a week without my phone than go a week without listening to any music.",
+                    "es": "Preferiría pasar una semana sin mi teléfono que pasar una semana sin escuchar nada de música.",
+                    "pt": "Eu prefiro passar uma semana sem o meu telefone a passar uma semana sem ouvir nenhuma música.",
+                    "bn": "আমি কোনো গান না শুনে এক সপ্তাহ কাটানোর চেয়ে আমার ফোন ছাড়া এক সপ্তাহ কাটাতে পছন্দ করব।",
+                    "fr": "Je préférerais passer une semaine sans mon téléphone plutôt que de passer une semaine sans écouter de musique.",
+                    "hi": "मैं मेरे फोन के बिना एक हफ्ता रहना बिना कोई संगीत सुने एक हफ्ता रहने से ज़्यादा पसंद करूंगा।"
+                  }
+                },
+                {
+                  "nextStep": 4,
+                  "text": {
+                    "en": "Given the choice between going a week without your phone and going a week without listening to any music, I would choose to go a week without my phone.",
+                    "es": "Dada la opción entre pasar una semana sin tu teléfono y pasar una semana sin escuchar nada de música, elegiría pasar una semana sin mi teléfono.",
+                    "pt": "Dada a escolha entre passar uma semana sem o seu telefone e passar uma semana sem ouvir nenhuma música, eu escolheria passar uma semana sem o meu telefone.",
+                    "bn": "ফোন ছাড়া এক সপ্তাহ কাটানো এবং কোনো গান না শুনে এক সপ্তাহ কাটানোর মধ্যে পছন্দ দেওয়া হলে, আমি আমার ফোন ছাড়া এক সপ্তাহ কাটানো বেছে নেব।",
+                    "fr": "Si je devais choisir entre passer une semaine sans mon téléphone et passer une semaine sans écouter de musique, je choisirais de passer une semaine sans mon téléphone.",
+                    "hi": "एक सप्ताह अपने फ़ोन के बिना रहने और एक सप्ताह कोई संगीत सुने बिना रहने के बीच चुनाव दिया जाए, तो मैं एक सप्ताह अपने फ़ोन के बिना रहना चुनूँगा।"
+                  }
+                }
+              ]
+            },
+            {
+              "text": {
+                "en": "A week without music",
+                "es": "Una semana sin música",
+                "pt": "Uma semana sem música",
+                "bn": "গান ছাড়া এক সপ্তাহ",
+                "fr": "Une semaine sans musique",
+                "hi": "संगीत के बिना एक हफ्ता"
+              },
+              "chooseStep": [
+                {
+                  "nextStep": 5,
+                  "text": {
+                    "en": "A week without music.",
+                    "es": "Una semana sin música.",
+                    "pt": "Uma semana sem música.",
+                    "bn": "গান ছাড়া এক সপ্তাহ।",
+                    "fr": "Une semaine sans musique.",
+                    "hi": "संगीत के बिना एक हफ़्ता।"
+                  }
+                },
+                {
+                  "nextStep": 6,
+                  "text": {
+                    "en": "Going a week without music is better than going a week without my phone.",
+                    "es": "Pasar una semana sin música es mejor que pasar una semana sin mi teléfono.",
+                    "pt": "Passar uma semana sem música é melhor do que passar uma semana sem o meu telefone.",
+                    "bn": "আমার ফোন ছাড়া এক সপ্তাহ কাটানোর চেয়ে গান ছাড়া এক সপ্তাহ কাটানো ভালো।",
+                    "fr": "Passer une semaine sans musique, c'est mieux que passer une semaine sans mon téléphone.",
+                    "hi": "एक हफ्ता संगीत के बिना रहना मेरे फोन के बिना एक हफ्ता रहने से बेहतर है।"
+                  }
+                },
+                {
+                  "nextStep": 7,
+                  "text": {
+                    "en": "I would rather go a week without listening to any music than go a week without my phone.",
+                    "es": "Preferiría pasar una semana sin escuchar nada de música que pasar una semana sin mi teléfono.",
+                    "pt": "Eu prefiro passar uma semana sem ouvir nenhuma música a passar uma semana sem o meu telefone.",
+                    "bn": "আমি আমার ফোন ছাড়া এক সপ্তাহ কাটানোর চেয়ে কোনো গান না শুনে এক সপ্তাহ কাটাতে পছন্দ করব।",
+                    "fr": "Je préférerais passer une semaine sans écouter de musique plutôt que de passer une semaine sans mon téléphone.",
+                    "hi": "मैं एक हफ्ता बिना कोई संगीत सुने रहना मेरे फोन के बिना एक हफ्ता रहने से ज़्यादा पसंद करूंगा।"
+                  }
+                },
+                {
+                  "nextStep": 8,
+                  "text": {
+                    "en": "Given the choice between going a week without your phone and going a week without listening to any music, I would choose to go a week without listening to any music.",
+                    "es": "Dada la opción entre pasar una semana sin tu teléfono y pasar una semana sin escuchar nada de música, elegiría pasar una semana sin escuchar nada de música.",
+                    "pt": "Dada a escolha entre passar uma semana sem o seu telefone e passar uma semana sem ouvir nenhuma música, eu escolheria passar uma semana sem ouvir nenhuma música.",
+                    "bn": "ফোন ছাড়া এক সপ্তাহ কাটানো এবং কোনো গান না শুনে এক সপ্তাহ কাটানোর মধ্যে পছন্দ দেওয়া হলে, আমি কোনো গান না শুনে এক সপ্তাহ কাটানো বেছে নেব।",
+                    "fr": "Si je devais choisir entre passer une semaine sans mon téléphone et passer une semaine sans écouter de musique, je choisirais de passer une semaine sans écouter de musique.",
+                    "hi": "एक सप्ताह अपने फ़ोन के बिना रहने और एक सप्ताह कोई संगीत सुने बिना रहने के बीच चुनाव दिया जाए, तो मैं एक सप्ताह कोई संगीत सुने बिना रहना चुनूँगा।"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-f-05-01",
+          "cue": [
+            {
+              "en": "A week without your phone.",
+              "es": "Una semana sin tu teléfono.",
+              "pt": "Uma semana sem o seu telefone.",
+              "bn": "ফোন ছাড়া এক সপ্তাহ।",
+              "fr": "Une semaine sans ton téléphone.",
+              "hi": "आपके फ़ोन के बिना एक हफ़्ता।"
+            }
+          ],
+          "nextStep": 8,
+          "subtitles": {
+            "en": "A week without your phone.",
+            "es": "Una semana sin tu teléfono.",
+            "pt": "Uma semana sem o seu telefone.",
+            "bn": "ফোন ছাড়া এক সপ্তাহ।",
+            "fr": "Une semaine sans ton téléphone.",
+            "hi": "आपके फ़ोन के बिना एक हफ़्ता।"
+          },
+          "publishLessonId": "f"
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-f-05-02",
+          "cue": [
+            {
+              "en": "Going a week without my phone is better than going a week without music.",
+              "es": "Pasar una semana sin mi teléfono es mejor que pasar una semana sin música.",
+              "pt": "Passar uma semana sem o meu telefone é melhor do que passar uma semana sem música.",
+              "bn": "গান ছাড়া এক সপ্তাহ কাটানোর চেয়ে আমার ফোন ছাড়া এক সপ্তাহ কাটানো ভালো।",
+              "fr": "Passer une semaine sans mon téléphone, c'est mieux que passer une semaine sans musique.",
+              "hi": "मेरे फोन के बिना एक हफ्ता रहना संगीत के बिना एक हफ्ता रहने से बेहतर है।"
+            }
+          ],
+          "nextStep": 7,
+          "subtitles": {
+            "en": "Going a week without my phone is better than going a week without music.",
+            "es": "Pasar una semana sin mi teléfono es mejor que pasar una semana sin música.",
+            "pt": "Passar uma semana sem o meu telefone é melhor do que passar uma semana sem música.",
+            "bn": "গান ছাড়া এক সপ্তাহ কাটানোর চেয়ে আমার ফোন ছাড়া এক সপ্তাহ কাটানো ভালো।",
+            "fr": "Passer une semaine sans mon téléphone, c'est mieux que passer une semaine sans musique.",
+            "hi": "मेरे फोन के बिना एक हफ्ता रहना संगीत के बिना एक हफ्ता रहने से बेहतर है।"
+          },
+          "publishLessonId": "f"
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-f-05-03",
+          "cue": [
+            {
+              "en": "I would rather go a week without my phone than go a week without listening to any music.",
+              "es": "Preferiría pasar una semana sin mi teléfono que pasar una semana sin escuchar nada de música.",
+              "pt": "Eu prefiro passar uma semana sem o meu telefone a passar uma semana sem ouvir nenhuma música.",
+              "bn": "আমি কোনো গান না শুনে এক সপ্তাহ কাটানোর চেয়ে আমার ফোন ছাড়া এক সপ্তাহ কাটাতে পছন্দ করব।",
+              "fr": "Je préférerais passer une semaine sans mon téléphone plutôt que de passer une semaine sans écouter de musique.",
+              "hi": "मैं मेरे फोन के बिना एक हफ्ता रहना बिना कोई संगीत सुने एक हफ्ता रहने से ज़्यादा पसंद करूंगा।"
+            }
+          ],
+          "nextStep": 6,
+          "subtitles": {
+            "en": "I would rather go a week without my phone than go a week without listening to any music.",
+            "es": "Preferiría pasar una semana sin mi teléfono que pasar una semana sin escuchar nada de música.",
+            "pt": "Eu prefiro passar uma semana sem o meu telefone a passar uma semana sem ouvir nenhuma música.",
+            "bn": "আমি কোনো গান না শুনে এক সপ্তাহ কাটানোর চেয়ে আমার ফোন ছাড়া এক সপ্তাহ কাটাতে পছন্দ করব।",
+            "fr": "Je préférerais passer une semaine sans mon téléphone plutôt que de passer une semaine sans écouter de musique.",
+            "hi": "मैं मेरे फोन के बिना एक हफ्ता रहना बिना कोई संगीत सुने एक हफ्ता रहने से ज़्यादा पसंद करूंगा।"
+          },
+          "publishLessonId": "f"
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-f-05-04",
+          "cue": [
+            {
+              "en": "Given the choice between going a week without your phone and going a week without listening to any music, I would choose to go a week without my phone.",
+              "es": "Dada la opción entre pasar una semana sin tu teléfono y pasar una semana sin escuchar nada de música, elegiría pasar una semana sin mi teléfono.",
+              "pt": "Dada a escolha entre passar uma semana sem o seu telefone e passar uma semana sem ouvir nenhuma música, eu escolheria passar uma semana sem o meu telefone.",
+              "bn": "ফোন ছাড়া এক সপ্তাহ কাটানো এবং কোনো গান না শুনে এক সপ্তাহ কাটানোর মধ্যে পছন্দ দেওয়া হলে, আমি আমার ফোন ছাড়া এক সপ্তাহ কাটানো বেছে নেব।",
+              "fr": "Si je devais choisir entre passer une semaine sans mon téléphone et passer une semaine sans écouter de musique, je choisirais de passer une semaine sans mon téléphone.",
+              "hi": "एक सप्ताह अपने फ़ोन के बिना रहने और एक सप्ताह कोई संगीत सुने बिना रहने के बीच चुनाव दिया जाए, तो मैं एक सप्ताह अपने फ़ोन के बिना रहना चुनूँगा।"
+            }
+          ],
+          "nextStep": 5,
+          "subtitles": {
+            "en": "Given the choice between going a week without your phone and going a week without listening to any music, I would choose to go a week without my phone.",
+            "es": "Dada la opción entre pasar una semana sin tu teléfono y pasar una semana sin escuchar nada de música, elegiría pasar una semana sin mi teléfono.",
+            "pt": "Dada a escolha entre passar uma semana sem o seu telefone e passar uma semana sem ouvir nenhuma música, eu escolheria passar uma semana sem o meu telefone.",
+            "bn": "ফোন ছাড়া এক সপ্তাহ কাটানো এবং কোনো গান না শুনে এক সপ্তাহ কাটানোর মধ্যে পছন্দ দেওয়া হলে, আমি আমার ফোন ছাড়া এক সপ্তাহ কাটানো বেছে নেব।",
+            "fr": "Si je devais choisir entre passer une semaine sans mon téléphone et passer une semaine sans écouter de musique, je choisirais de passer une semaine sans mon téléphone.",
+            "hi": "एक सप्ताह अपने फ़ोन के बिना रहने और एक सप्ताह कोई संगीत सुने बिना रहने के बीच चुनाव दिया जाए, तो मैं एक सप्ताह अपने फ़ोन के बिना रहना चुनूँगा।"
+          },
+          "publishLessonId": "f"
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-f-06-01",
+          "cue": [
+            {
+              "en": "A week without music.",
+              "es": "Una semana sin música.",
+              "pt": "Uma semana sem música.",
+              "bn": "গান ছাড়া এক সপ্তাহ।",
+              "fr": "Une semaine sans musique.",
+              "hi": "संगीत के बिना एक हफ़्ता।"
+            }
+          ],
+          "nextStep": 4,
+          "subtitles": {
+            "en": "A week without music.",
+            "es": "Una semana sin música.",
+            "pt": "Uma semana sem música.",
+            "bn": "গান ছাড়া এক সপ্তাহ।",
+            "fr": "Une semaine sans musique.",
+            "hi": "संगीत के बिना एक हफ़्ता।"
+          },
+          "publishLessonId": "f"
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-f-06-02",
+          "cue": [
+            {
+              "en": "Going a week without music is better than going a week without my phone.",
+              "es": "Pasar una semana sin música es mejor que pasar una semana sin mi teléfono.",
+              "pt": "Passar uma semana sem música é melhor do que passar uma semana sem o meu telefone.",
+              "bn": "আমার ফোন ছাড়া এক সপ্তাহ কাটানোর চেয়ে গান ছাড়া এক সপ্তাহ কাটানো ভালো।",
+              "fr": "Passer une semaine sans musique, c'est mieux que passer une semaine sans mon téléphone.",
+              "hi": "एक हफ्ता संगीत के बिना रहना मेरे फोन के बिना एक हफ्ता रहने से बेहतर है।"
+            }
+          ],
+          "nextStep": 3,
+          "subtitles": {
+            "en": "Going a week without music is better than going a week without my phone.",
+            "es": "Pasar una semana sin música es mejor que pasar una semana sin mi teléfono.",
+            "pt": "Passar uma semana sem música é melhor do que passar uma semana sem o meu telefone.",
+            "bn": "আমার ফোন ছাড়া এক সপ্তাহ কাটানোর চেয়ে গান ছাড়া এক সপ্তাহ কাটানো ভালো।",
+            "fr": "Passer une semaine sans musique, c'est mieux que passer une semaine sans mon téléphone.",
+            "hi": "एक हफ्ता संगीत के बिना रहना मेरे फोन के बिना एक हफ्ता रहने से बेहतर है।"
+          },
+          "publishLessonId": "f"
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-f-06-03",
+          "cue": [
+            {
+              "en": "I would rather go a week without listening to any music than go a week without my phone.",
+              "es": "Preferiría pasar una semana sin escuchar nada de música que pasar una semana sin mi teléfono.",
+              "pt": "Eu prefiro passar uma semana sem ouvir nenhuma música a passar uma semana sem o meu telefone.",
+              "bn": "আমি আমার ফোন ছাড়া এক সপ্তাহ কাটানোর চেয়ে কোনো গান না শুনে এক সপ্তাহ কাটাতে পছন্দ করব।",
+              "fr": "Je préférerais passer une semaine sans écouter de musique plutôt que de passer une semaine sans mon téléphone.",
+              "hi": "मैं एक हफ्ता बिना कोई संगीत सुने रहना मेरे फोन के बिना एक हफ्ता रहने से ज़्यादा पसंद करूंगा।"
+            }
+          ],
+          "nextStep": 2,
+          "subtitles": {
+            "en": "I would rather go a week without listening to any music than go a week without my phone.",
+            "es": "Preferiría pasar una semana sin escuchar nada de música que pasar una semana sin mi teléfono.",
+            "pt": "Eu prefiro passar uma semana sem ouvir nenhuma música a passar uma semana sem o meu telefone.",
+            "bn": "আমি আমার ফোন ছাড়া এক সপ্তাহ কাটানোর চেয়ে কোনো গান না শুনে এক সপ্তাহ কাটাতে পছন্দ করব।",
+            "fr": "Je préférerais passer une semaine sans écouter de musique plutôt que de passer une semaine sans mon téléphone.",
+            "hi": "मैं एक हफ्ता बिना कोई संगीत सुने रहना मेरे फोन के बिना एक हफ्ता रहने से ज़्यादा पसंद करूंगा।"
+          },
+          "publishLessonId": "f"
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather-f-06-04",
+          "cue": [
+            {
+              "en": "Given the choice between going a week without your phone and going a week without listening to any music, I would choose to go a week without listening to any music.",
+              "es": "Dada la opción entre pasar una semana sin tu teléfono y pasar una semana sin escuchar nada de música, elegiría pasar una semana sin escuchar nada de música.",
+              "pt": "Dada a escolha entre passar uma semana sem o seu telefone e passar uma semana sem ouvir nenhuma música, eu escolheria passar uma semana sem ouvir nenhuma música.",
+              "bn": "ফোন ছাড়া এক সপ্তাহ কাটানো এবং কোনো গান না শুনে এক সপ্তাহ কাটানোর মধ্যে পছন্দ দেওয়া হলে, আমি কোনো গান না শুনে এক সপ্তাহ কাটানো বেছে নেব।",
+              "fr": "Si je devais choisir entre passer une semaine sans mon téléphone et passer une semaine sans écouter de musique, je choisirais de passer une semaine sans écouter de musique.",
+              "hi": "एक सप्ताह अपने फ़ोन के बिना रहने और एक सप्ताह कोई संगीत सुने बिना रहने के बीच चुनाव दिया जाए, तो मैं एक सप्ताह कोई संगीत सुने बिना रहना चुनूँगा।"
+            }
+          ],
+          "nextStep": 1,
+          "subtitles": {
+            "en": "Given the choice between going a week without your phone and going a week without listening to any music, I would choose to go a week without listening to any music.",
+            "es": "Dada la opción entre pasar una semana sin tu teléfono y pasar una semana sin escuchar nada de música, elegiría pasar una semana sin escuchar nada de música.",
+            "pt": "Dada a escolha entre passar uma semana sem o seu telefone e passar uma semana sem ouvir nenhuma música, eu escolheria passar uma semana sem ouvir nenhuma música.",
+            "bn": "ফোন ছাড়া এক সপ্তাহ কাটানো এবং কোনো গান না শুনে এক সপ্তাহ কাটানোর মধ্যে পছন্দ দেওয়া হলে, আমি কোনো গান না শুনে এক সপ্তাহ কাটানো বেছে নেব।",
+            "fr": "Si je devais choisir entre passer une semaine sans mon téléphone et passer une semaine sans écouter de musique, je choisirais de passer une semaine sans écouter de musique.",
+            "hi": "एक सप्ताह अपने फ़ोन के बिना रहने और एक सप्ताह कोई संगीत सुने बिना रहने के बीच चुनाव दिया जाए, तो मैं एक सप्ताह कोई संगीत सुने बिना रहना चुनूँगा।"
+          },
+          "publishLessonId": "f"
+        },
+        {
+          "responseType": "branching",
+          "chooseStep": [
+            {
+              "nextStep": 1,
+              "text": {
                 "en": "Thank you. Bye!",
                 "es": "¡Gracias! ¡Adiós!",
                 "pt": "Obrigado. Tchau!",

@@ -17,12 +17,13 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import generated from './wouldyourather.json';
 import model from './wouldyourather-test.json';
+import { FRIEND_CLOSING_LINES } from '../../scripts/lib/sheet-config-utils.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '../..');
 
 const LOCALES = ['en', 'es', 'pt', 'bn', 'fr', 'hi'];
-const TAKE_RE = /^wouldyourather-[a-f]-\d{2}-\d{2}$/;
+const TAKE_RE = /^wouldyourather-[a-g]-\d{2}-\d{2}$/;
 
 /**
  * The model is the TEST course, so its FRIEND clips live in that course's
@@ -59,16 +60,17 @@ describe('the generated config matches the hand-written ABABAB model', () => {
 
 describe('the generated config is course-agnostic in shape', () => {
     it.each(generated.lessons.map((l) => l.lessonId))(
-        'lesson %s is a respond-then-record lesson (the terminal one closes)',
+        'lesson %s is a respond-then-record lesson (the closing lesson closes instead)',
         (lessonId) => {
             const lesson = generated.lessons.find((l) => l.lessonId === lessonId);
             const branches = lesson.steps.filter((s) => s.responseType === 'branching');
             const responses = lesson.steps.filter((s) => s.responseType === 'friendClosedResponse');
             // The seed lesson asks; every later lesson answers AND records —
-            // except the chain's terminal lesson, which closes instead.
+            // except the chain's CLOSING lesson, which answers and says
+            // goodbye instead of recording another question set.
             const expected = lessonId === 'a'
                 ? { steps: 16, branches: 3, responses: 12 }
-                : lessonId === 'f'
+                : lessonId === 'g'
                     ? { steps: 33, branches: 4, responses: 28 }
                     : { steps: 43, branches: 6, responses: 36 };
             expect(lesson.steps).toHaveLength(expected.steps);
@@ -83,10 +85,10 @@ describe('the generated config is course-agnostic in shape', () => {
             const lesson = generated.lessons.find((l) => l.lessonId === lessonId);
             for (const step of lesson.steps) {
                 if (step.responseType !== 'friendClosedResponse') continue;
-                // Only the terminal lesson's goodbye takes have no video: the
+                // Only the closing lesson's goodbye takes have no video: the
                 // learner records their own voice, and nothing is published.
                 if (!step.simpleVideoUrl) {
-                    expect(lessonId, `${lessonId}: text-only response outside the closing block`).toBe('f');
+                    expect(lessonId, `${lessonId}: text-only response outside the closing block`).toBe('g');
                     expect(step.publishLessonId, `${lessonId}: a closing take publishes nothing`).toBeUndefined();
                 } else {
                     expect(TAKE_RE.test(step.simpleVideoUrl), `${lessonId}: ${step.simpleVideoUrl}`).toBe(true);
@@ -104,11 +106,24 @@ describe('the generated config is course-agnostic in shape', () => {
         }
     );
 
-    it('the terminal lesson has exactly four text-only closing takes', () => {
+    it('the closing lesson has exactly four text-only closing takes', () => {
         const closing = generated.lessons
-            .find((l) => l.lessonId === 'f').steps
+            .find((l) => l.lessonId === 'g').steps
             .filter((s) => s.responseType === 'friendClosedResponse' && !s.simpleVideoUrl);
         expect(closing).toHaveLength(4);
+    });
+
+    it('the closing lesson says the code-owned goodbye, in every locale', () => {
+        // The sign-off is lesson FRAMING: the generator owns the lines
+        // (FRIEND_CLOSING_LINES), the sheet authors questions and answers.
+        const lesson = generated.lessons.find((l) => l.lessonId === 'g');
+        const branch = lesson.steps.findLast((s) => s.responseType === 'branching');
+        expect(branch.chooseStep.map((c) => c.text.en)).toEqual(FRIEND_CLOSING_LINES.map((l) => l.en));
+        for (const [i, choice] of branch.chooseStep.entries()) {
+            for (const locale of LOCALES) {
+                expect(choice.text[locale], `goodbye ${i} ${locale}`).toBe(FRIEND_CLOSING_LINES[i][locale]);
+            }
+        }
     });
 
     it('no step references a take-group video (the combined video)', () => {

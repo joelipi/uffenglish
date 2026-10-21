@@ -255,6 +255,10 @@
         "id": "f",
         "title": "Preferences F"
       },
+      "closing": {
+        "id": "g",
+        "title": "Preferences G"
+      },
       "topics": [
         {
           "question": [
