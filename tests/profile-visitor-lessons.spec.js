@@ -77,8 +77,14 @@ async function seedOwner(page, friendLinks, overrides = {}) {
         queryClient.setQueryData(['user', 'profile', 'shareCode', key], profile);
     }, { key: OWNER, profile: { ...OWNER_PROFILE, friendLinks, ...overrides } });
     // The injected row is now the query's data; wait for the render that shows
-    // it, so the next assertion never races the re-render.
-    await expect(page.getByTestId('friend-lesson-links').or(page.getByTestId('friend-lessons-expired'))).toBeVisible();
+    // it, so the next assertion never races the re-render. A logged-in viewer
+    // whose completions arrive later may switch the section to the
+    // all-completed variant, so that card is a valid settled state too.
+    await expect(
+        page.getByTestId('friend-lesson-links')
+            .or(page.getByTestId('friend-lessons-expired'))
+            .or(page.getByTestId('friend-lessons-all-completed'))
+    ).toBeVisible();
 }
 
 // The visitor's language is the app's guest-first session language, which
@@ -192,6 +198,28 @@ test.describe('public-profile visitor awareness', () => {
         await expect(links.nth(1)).not.toHaveCSS('text-decoration-line', /line-through/);
 
         await expect(page.getByTestId('visitor-login-banner')).toHaveCount(0);
+        // One open link is still uncompleted, so the section keeps its list.
+        await expect(page.getByTestId('friend-lessons-all-completed')).toHaveCount(0);
+    });
+
+    test('all open links already completed together: the no-open-lessons variant replaces the list', async ({ page }) => {
+        // The owner has ONE open link and the visitor answered it (completed
+        // `b`, the lesson the link opens). From the visitor's side there is
+        // nothing left to do with this owner, so the section shows the variant
+        // message instead of a list of finished links.
+        const single = { [`${COURSE_ID}:a`]: LINKS[`${COURSE_ID}:a`] };
+        await seedOwner(page, single);
+        await seedViewer(page, { completions: [completionRow('b')] });
+
+        await expect(page.getByTestId('friend-lessons-all-completed')).toBeVisible();
+        await expect(page.getByTestId('friend-lessons-all-completed-message')).toHaveText(
+            "There are no open lessons right now. You've already completed them together — start a brand new lesson in a new course and send them the link."
+        );
+        // Nothing left to answer: the finished link is not listed.
+        await expect(page.getByTestId('friend-lesson-link')).toHaveCount(0);
+        await expect(page.getByTestId('friend-lesson-links')).toHaveCount(0);
+        // The way forward is a brand new lesson, from the public course list.
+        await expect(page.getByTestId('friend-lessons-practice-free')).toHaveAttribute('href', '/courses');
     });
 
     test('a done lesson is badged on ANOTHER user\'s profile (the owner\'s recorded lesson alone is not enough)', async ({ page }) => {

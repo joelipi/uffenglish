@@ -503,6 +503,50 @@ describe('buildVisitorPracticeView', () => {
         expect(entries.every((e) => e.completedTogether === false)).toBe(true);
     });
 
+    it('is all-completed when every OPEN link is already badged for this visitor', () => {
+        const viewer = {
+            ...emptyViewer,
+            friendCompletions: [
+                { courseId: 'friendchain', lessonId: 'b' },
+                { courseId: 'friendchain', lessonId: 'd' },
+            ],
+        };
+        const view = buildVisitorPracticeView({ friendLinks: mixedLinks, nowMs: NOW, viewer });
+        expect(view.mode).toBe('all-completed');
+        // Nothing left to answer: no countdown is shown, so the clock stops.
+        expect(view.isTicking).toBe(false);
+        expect(view.groups.flatMap((g) => g.entries).every((e) => e.completedTogether)).toBe(true);
+    });
+
+    it('stays active when even one open link is NOT completed together', () => {
+        const viewer = { ...emptyViewer, friendCompletions: [{ courseId: 'friendchain', lessonId: 'b' }] };
+        const view = buildVisitorPracticeView({ friendLinks: mixedLinks, nowMs: NOW, viewer });
+        expect(view.mode).toBe('active');
+        expect(view.isTicking).toBe(true);
+    });
+
+    it('only counts OPEN links when deciding all-completed', () => {
+        // The `c` link is past 48h; the visitor completed the only open one (`a`
+        // → `b`), so there is nothing left for them to answer.
+        const viewer = { ...emptyViewer, friendCompletions: [{ courseId: 'friendchain', lessonId: 'b' }] };
+        const view = buildVisitorPracticeView({
+            friendLinks: {
+                'friendchain:a': entryA,
+                'friendchain:c': { ...entryC, addedAt: iso(NOW - 49 * HOUR) },
+            },
+            nowMs: NOW,
+            viewer,
+        });
+        expect(view.mode).toBe('all-completed');
+        expect(recordedLessons(view)).toEqual(['a']);
+    });
+
+    it('logged-out is never all-completed (no viewer, so nothing is completed)', () => {
+        const view = buildVisitorPracticeView({ friendLinks: mixedLinks, nowMs: NOW, viewer: null });
+        expect(view.mode).toBe('active');
+        expect(view.isTicking).toBe(true);
+    });
+
     it('is expired with the unchanged shape for empty / expired input', () => {
         expect(buildVisitorPracticeView({ friendLinks: {}, nowMs: NOW, viewer: emptyViewer }))
             .toEqual({ mode: 'expired', groups: [], isTicking: false });

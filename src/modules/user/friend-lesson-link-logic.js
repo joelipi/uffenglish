@@ -236,6 +236,11 @@ function viewerNotifiedEntry(entry, notifications, ownerShareCode) {
  * - every listed entry carries `completedTogether` (the visitor completed the
  *   link's target lesson THROUGH this owner), so the section can badge the
  *   joint completion and strike the lesson name.
+ * - `mode` is 'all-completed' when there ARE open links but the visitor has
+ *   already done every one of them with this owner. From the visitor's side
+ *   there is nothing left to answer, so the section shows the "no open lessons
+ *   right now" variant (start a brand new lesson) instead of a list of links
+ *   they have all finished. `isTicking` is false there: no countdown is shown.
  *
  * With no `viewer` this delegates to `buildFriendPracticeView`, preserving the
  * logged-out output exactly.
@@ -268,7 +273,12 @@ export function buildVisitorPracticeView({ friendLinks, nowMs, viewer = null } =
 
     const groups = groupEntries(listed);
     const activeView = groups.length > 0;
-    return { mode: activeView ? 'active' : 'expired', groups, isTicking: activeView };
+    // Every OPEN link is one the visitor already did with this owner: there is
+    // nothing left for them to answer, so the section offers a brand new lesson
+    // instead of a list of finished ones. Only an empty list is 'expired'.
+    const allCompletedTogether = activeView && listed.every((entry) => entry.completedTogether);
+    const mode = !activeView ? 'expired' : allCompletedTogether ? 'all-completed' : 'active';
+    return { mode, groups, isTicking: mode === 'active' };
 }
 
 /**
