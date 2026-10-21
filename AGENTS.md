@@ -59,6 +59,17 @@ Two rules follow from the shell owning the frame:
 
 The drawer's entries and the "is this viewer registered?" gate live in the pure module `src/modules/navigation/app-menu-logic.js` (the header stays render-only), and the drawer's hover state is a CSS class (`.uff-menu-link` in `src/assets/css/app.css`), never a `e.currentTarget.style` write from an event handler.
 
+## A dead course/lesson link is a 404, not a technical error
+
+A link can outlive what it points at: a course config is retired (or renamed) and a recorded friend link still names it, or the config bot regenerates the config and the lesson id in the link is gone. **That is a dead link, not a broken connection.** The app answers it with the real not-found page — `src/components/NotFoundPage.jsx`, the same card the `*` route renders ("the link may be mistyped or no longer active", with the course list and the homepage as ways out).
+
+The critical-error screen (`src/components/modals/CriticalErrorModal.jsx`) is for TECHNICAL failures only, and its message ("The lesson failed to load. Check your internet connection.") sends the visitor hunting for a network problem that does not exist — that is what a retired friend link used to produce, and it read as a DNS error to the person who clicked it.
+
+- The rules live in the pure module `src/modules/lesson/lesson-not-found-logic.js`: `classifyCourseConfigResponse` (a missing config answers with the **SPA shell**, because Pages rewrites every path to `index.html` — so a 200 `text/html` body means "the course is gone", not "the fetch failed"), `isLessonMissingFromConfig`, and the `markNotFoundError` / `isNotFoundError` tag.
+- `src/routes/AppLayout.jsx` classifies the config response and renders the not-found page; `src/hooks/use-initialize-lesson-webonly.js` tags a missing lesson and must NOT set the critical message for it; `src/components/LessonContainer.jsx` renders the page for it.
+- **Pages answers a missing file with 200, not 404** — never branch on the status alone, and never assume a failed JSON parse is a network problem.
+- The lesson player is outside the app shell, so the shared card carries `height: '100%'` to fill the 9:16 frame; inside the shell the flex rule (`flex: 1`) wins and the layout is unchanged.
+
 ## No media may start while a camera/microphone capture is open
 
 On Android an open capture holds the device in a communication audio mode, and the media route then ducks (or mutes) whatever plays next — the Android-only "the video starts silent for a second or two" bug (`stories/075-fix-android-silent-video-start`). Releasing the capture "somewhere around the recording" is not enough: it has to be released **before** the media starts, and the audio route needs a moment to hand back afterwards.

@@ -1488,6 +1488,17 @@ describe('recorder auto-render — zero server changes', () => {
             'src/components/profile/UserProfile.jsx',
             'src/routes/NotFoundRoute.jsx',
             'src/routes/home-navigation-wiring.test.js',
+            // A dead course/lesson link (a retired course, a lesson id the
+            // regenerated config no longer has) is a 404, not a technical
+            // error: the shared not-found card, the pure rules that tell the
+            // two apart, and the wiring that renders it.
+            'src/components/NotFoundPage.jsx',
+            'src/hooks/use-initialize-lesson-webonly.js',
+            'src/modules/lesson/lesson-not-found-logic.js',
+            'src/modules/lesson/lesson-not-found-logic.test.js',
+            'src/modules/lesson/lesson-not-found-wiring.test.js',
+            'src/routes/AppLayout.jsx',
+            'tests/dead-lesson-link.spec.js',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);

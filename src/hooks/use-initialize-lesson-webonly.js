@@ -13,6 +13,11 @@ import { getAppLanguageFor } from '../modules/bilingual/config-normalizer.js';
 import { trackEvent } from '../modules/utils/posthog.js';
 import { getVideoUrl, getPosterUrl } from '../modules/video/video-url.js';
 import { planLessonPreload, preloadLessonVideos } from '../modules/video/lesson-preload.js';
+import {
+    isLessonMissingFromConfig,
+    isNotFoundError,
+    markNotFoundError,
+} from '../modules/lesson/lesson-not-found-logic.js';
 
 export function useInitializeLesson({ forceRestart = false } = {}) {
     const initializeLesson = useCallback(async (courseId, lessonId, configData, userData) => {
@@ -28,6 +33,13 @@ export function useInitializeLesson({ forceRestart = false } = {}) {
 
             if (!configData || !configData.lessons) {
                 throw new Error("No course configuration or lessons available.");
+            }
+            // A lesson id that is not in the course is a DEAD LINK: the course
+            // config was regenerated (or the lesson retired) while the link was
+            // being handed out. Tag it so the caller answers with the not-found
+            // page instead of the critical-error screen.
+            if (isLessonMissingFromConfig(configData, resolvedLessonId)) {
+                throw markNotFoundError(new Error(`Lesson '${resolvedLessonId}' not found in course configuration.`));
             }
             const lesson = configData.lessons.find(l => l.lessonId === resolvedLessonId);
             if (!lesson) {
@@ -60,7 +72,12 @@ export function useInitializeLesson({ forceRestart = false } = {}) {
                 error: error.message,
             });
             appStore.getState().setIsLoaded(true);
-            appStore.getState().setCriticalErrorMessage(Strings.get('lesson_load_error', getAppLanguageFor(userData)));
+            // A dead link is not a technical failure: the route shows the
+            // not-found page for it, so the critical-error screen (and its
+            // "check your internet connection" message) must stay off.
+            if (!isNotFoundError(error)) {
+                appStore.getState().setCriticalErrorMessage(Strings.get('lesson_load_error', getAppLanguageFor(userData)));
+            }
             return { success: false, error };
         }
     }, [forceRestart]);
