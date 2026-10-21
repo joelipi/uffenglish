@@ -264,12 +264,12 @@ describe('friend-response notification strings', () => {
         bn: 'আপনার কাছে উত্তর দেওয়ার জন্য মাত্র 48 ঘণ্টা আছে',
     };
     const MESSAGE = {
-        en: 'Sam created a video with your questions',
-        es: 'Sam creó un video con tus preguntas',
-        pt: 'Sam criou um vídeo com as suas perguntas',
-        fr: 'Sam a créé une vidéo avec vos questions',
-        hi: 'Sam ने आपके सवालों के साथ एक वीडियो बनाया',
-        bn: 'Sam আপনার প্রশ্নগুলো নিয়ে একটি ভিডিও তৈরি করেছে',
+        en: 'Sam continued your conversation lesson! 🥳See if you need to respond.',
+        es: 'Sam ¡continuó tu lección de conversación! 🥳Mira si necesitas responder.',
+        pt: 'Sam continuou sua aula de conversa! 🥳Veja se você precisa responder.',
+        fr: 'Sam a poursuivi votre leçon de conversation ! 🥳Voyez si vous devez répondre.',
+        hi: 'Sam ने आपकी बातचीत का पाठ जारी रखा! 🥳देखें कि आपको जवाब देना है या नहीं।',
+        bn: 'Sam আপনার কথোপকথনের পাঠ চালিয়ে গেছেন! 🥳দেখুন আপনাকে উত্তর দিতে হবে কি না।',
     };
     // notifications_friend_response carries {name}, so it is covered by the
     // interpolation test below rather than the no-placeholder exact-copy table.

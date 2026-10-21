@@ -1630,12 +1630,12 @@ const strings = {
         bn: "এখনও কোনো বিজ্ঞপ্তি নেই"
     },
     'notifications_friend_response': {
-        en: "{name} created a video with your questions",
-        es: "{name} creó un video con tus preguntas",
-        pt: "{name} criou um vídeo com as suas perguntas",
-        fr: "{name} a créé une vidéo avec vos questions",
-        hi: "{name} ने आपके सवालों के साथ एक वीडियो बनाया",
-        bn: "{name} আপনার প্রশ্নগুলো নিয়ে একটি ভিডিও তৈরি করেছে"
+        en: "{name} continued your conversation lesson! 🥳See if you need to respond.",
+        es: "{name} ¡continuó tu lección de conversación! 🥳Mira si necesitas responder.",
+        pt: "{name} continuou sua aula de conversa! 🥳Veja se você precisa responder.",
+        fr: "{name} a poursuivi votre leçon de conversation ! 🥳Voyez si vous devez répondre.",
+        hi: "{name} ने आपकी बातचीत का पाठ जारी रखा! 🥳देखें कि आपको जवाब देना है या नहीं।",
+        bn: "{name} আপনার কথোপকথনের পাঠ চালিয়ে গেছেন! 🥳দেখুন আপনাকে উত্তর দিতে হবে কি না।"
     },
     'notifications_respond_deadline': {
         en: "You only have 48 hours to respond",

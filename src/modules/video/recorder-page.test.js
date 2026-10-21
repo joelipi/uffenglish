@@ -1384,6 +1384,10 @@ describe('recorder auto-render — zero server changes', () => {
             'src/components/homescreen/NotificationsBell.web.test.jsx',
             'src/modules/notifications/notification-logic.js',
             'src/modules/notifications/notification-logic.test.js',
+            // The friend-response notification copy (the inbox row and the
+            // push body share one string).
+            'stories/019-notify-share-link-video-created/story.md',
+            'src/modules/notifications/push-copy.test.js',
             'src/components/BilingualString.jsx',
             'src/components/courses/CourseTopicFilter.jsx',
             'src/components/courses/FriendCoursesView.jsx',

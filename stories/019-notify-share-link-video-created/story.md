@@ -335,7 +335,7 @@ The whole block stays inside the existing `try/catch`, so a notification failure
 |---|---|---|---|---|---|---|
 | `notifications_title` | `Notifications` | `Notificaciones` | `Notificações` | `Notifications` | `सूचनाएँ` | `বিজ্ঞপ্তি` |
 | `notifications_empty` | `No notifications yet` | `Aún no hay notificaciones` | `Ainda não há notificações` | `Aucune notification pour l'instant` | `अभी कोई सूचना नहीं` | `এখনও কোনো বিজ্ঞপ্তি নেই` |
-| `notifications_friend_response` | `{name} created a video with your questions` | `{name} creó un video con tus preguntas` | `{name} criou um vídeo com as suas perguntas` | `{name} a créé une vidéo avec vos questions` | `{name} ने आपके सवालों के साथ एक वीडियो बनाया` | `{name} আপনার প্রশ্নগুলো নিয়ে একটি ভিডিও তৈরি করেছে` |
+| `notifications_friend_response` | `{name} continued your conversation lesson! 🥳See if you need to respond.` | `{name} ¡continuó tu lección de conversación! 🥳Mira si necesitas responder.` | `{name} continuou sua aula de conversa! 🥳Veja se você precisa responder.` | `{name} a poursuivi votre leçon de conversation ! 🥳Voyez si vous devez répondre.` | `{name} ने आपकी बातचीत का पाठ जारी रखा! 🥳देखें कि आपको जवाब देना है या नहीं।` | `{name} আপনার কথোপকথনের পাঠ চালিয়ে গেছেন! 🥳দেখুন আপনাকে উত্তর দিতে হবে কি না।` |
 | `notifications_respond_deadline` | `You only have 48 hours to respond` | `Solo tienes 48 horas para responder` | `Você só tem 48 horas para responder` | `Vous n'avez que 48 heures pour répondre` | `आपके पास जवाब देने के लिए केवल 48 घंटे हैं` | `আপনার কাছে উত্তর দেওয়ার জন্য মাত্র 48 ঘণ্টা আছে` |
 | `notifications_someone` | `A friend` | `Un amigo` | `Um amigo` | `Un ami` | `एक मित्र` | `একজন বন্ধু` |
 
@@ -516,7 +516,7 @@ The test imports only `NotificationList.web.jsx` (presentational, no `api.js`/Su
 
 - `NotificationList` with two `friend_response` rows, newest first, rendered at `lang='en'`
   - → `[data-testid="notification-item"]` count is `2`
-  - → the first item's text contains `Sam created a video with your questions`
+  - → the first item's text contains `Sam continued your conversation lesson! 🥳See if you need to respond.`
   - → the first item's `[data-testid="notification-link"]` `href` is `https://ultrafastfluency.com/sam123`
   - → the first item shows `[data-testid="notification-deadline"]` with text `You only have 48 hours to respond`
   - → the first item shows a non-empty `[data-testid="notification-timestamp"]`
@@ -596,7 +596,7 @@ Fixtures: `['notifications','u1'] = [<unread from 'Sam'/'sam123', created_at '20
   1. Apply `005_add_user_notifications.sql` to the Supabase project (or local stack).
   2. `npm run dev`, log in as `B`, open `/course/friend/lesson/b?shareCode=<A>` (B's browser must have captured the share code), complete the lesson, and click the generate button (confirm the answer clips upload).
   3. Confirm a `user_notifications` row exists with `recipient_id = A`, `actor_id = B`, `type = 'friend_response'`, and a `payload` carrying B's `shareCode`/name.
-  4. Log in as `A`, open `/`: the bell shows a `1` badge; opening it lists "B… created a video with your questions" with a timestamp and the "You only have 48 hours to respond" line, and the link opens B's public profile. A week-old notification still shows both lines (the timestamp reveals the elapsed time).
+  4. Log in as `A`, open `/`: the bell shows a `1` badge; opening it lists "B… continued your conversation lesson! 🥳See if you need to respond." with a timestamp and the "You only have 48 hours to respond" line, and the link opens B's public profile. A week-old notification still shows both lines (the timestamp reveals the elapsed time).
   5. Re-answer as `B`: the same row is refreshed (unread again), not duplicated.
   6. Export `/course/friend/lesson/a` as `A`: no new notification (only the friend link is recorded).
   7. As a guest, generate a lesson-b video and decline login: no notification row.

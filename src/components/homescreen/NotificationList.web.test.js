@@ -61,7 +61,7 @@ describe('NotificationList.web', () => {
         expect(items).toHaveLength(2);
 
         const first = items[0];
-        expect(first.textContent).toContain('Sam created a video with your questions');
+        expect(first.textContent).toContain('Sam continued your conversation lesson! 🥳See if you need to respond.');
         const link = first.querySelector('[data-testid="notification-link"]');
         expect(link.getAttribute('href')).toBe(`${window.location.origin}/sam123`);
         expect(first.querySelector('[data-testid="notification-deadline"]').textContent)
@@ -76,7 +76,7 @@ describe('NotificationList.web', () => {
 
     it('localizes the message and deadline', () => {
         render([fresh], { lang: 'es' });
-        expect(container.textContent).toContain('Sam creó un video con tus preguntas');
+        expect(container.textContent).toContain('Sam ¡continuó tu lección de conversación! 🥳Mira si necesitas responder.');
         expect(container.textContent).toContain('Solo tienes 48 horas para responder');
     });
 
@@ -114,13 +114,13 @@ describe('NotificationList.web', () => {
 
     it('falls back to "A friend" when the actor name is missing', () => {
         render([{ ...fresh, payload: { actorShareCode: 'sam123' } }]);
-        expect(container.textContent).toContain('A friend created a video with your questions');
+        expect(container.textContent).toContain('A friend continued your conversation lesson! 🥳See if you need to respond.');
     });
 
     it('renders a non-link message when the actor share code is missing', () => {
         render([{ ...fresh, payload: { actorName: 'Sam' } }]);
         expect(container.querySelectorAll('[data-testid="notification-item"]')).toHaveLength(1);
         expect(container.querySelector('[data-testid="notification-link"]')).toBeNull();
-        expect(container.textContent).toContain('Sam created a video with your questions');
+        expect(container.textContent).toContain('Sam continued your conversation lesson! 🥳See if you need to respond.');
     });
 });
