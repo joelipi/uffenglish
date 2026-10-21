@@ -1,5 +1,8 @@
 // @ts-check
 import { test, expect } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 // Public-profile friend-challenge links. The profile is loaded through
 // useUserByShareCode; we settle its initial (empty) query, then inject the
@@ -16,6 +19,14 @@ const SHARE_CODE = 'k9gy';
 // keeps and `c` is filtered out for a logged-out visitor.
 const COURSE_ID = 'wouldyourather-test';
 const COURSE_NAME = 'Get $1 million or $5 million?';
+
+// The profile labels a link with the lesson's POSITION in the course ("Lesson
+// 3 of 7"). The total is the course's lesson count, so it is read from the
+// config instead of being hard-coded: the chain grew a closing lesson, and a
+// hard-coded total breaks every time the course changes.
+const COURSE_LESSON_COUNT = JSON.parse(
+    readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'src', 'config', `${COURSE_ID}.json`), 'utf8')
+).lessons.length;
 
 const PROFILE = {
     id: 'u1',
@@ -74,7 +85,7 @@ test.describe('public-profile friend-challenge links', () => {
         // The label is the lesson's POSITION in the course chain, read from
         // the config at render time (the stored title is only the fallback
         // for a config that has not loaded).
-        await expect(link).toHaveText('Lesson 1 of 6');
+        await expect(link).toHaveText(`Lesson 1 of ${COURSE_LESSON_COUNT}`);
         // The link is an IN-APP link: a react-router <Link> to a PATH, so the
         // click is a client-side navigation. A document load (a plain <a href>)
         // is the only thing in the app that can end in a browser-level "This
@@ -116,12 +127,12 @@ test.describe('public-profile friend-challenge links', () => {
             'href',
             `/course/${COURSE_ID}/lesson/b?shareCode=k9gy`
         );
-        await expect(links.nth(0)).toHaveText('Lesson 1 of 6');
+        await expect(links.nth(0)).toHaveText(`Lesson 1 of ${COURSE_LESSON_COUNT}`);
         await expect(links.nth(1)).toHaveAttribute(
             'href',
             `/course/${COURSE_ID}/lesson/d?shareCode=k9gy`
         );
-        await expect(links.nth(1)).toHaveText('Lesson 3 of 6');
+        await expect(links.nth(1)).toHaveText(`Lesson 3 of ${COURSE_LESSON_COUNT}`);
     });
 
     test('every lesson link stays on the site origin', async ({ page }) => {

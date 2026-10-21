@@ -16,7 +16,7 @@ const COURSES = [
 function render(container, props) {
     const root = createRoot(container);
     act(() => {
-        root.render(React.createElement(CourseListings, { lang: 'en', onBack: () => {}, ...props }));
+        root.render(React.createElement(CourseListings, { lang: 'en', ...props }));
     });
     return root;
 }

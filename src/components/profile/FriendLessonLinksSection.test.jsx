@@ -341,6 +341,18 @@ describe('FriendLessonLinksSection visitor awareness', () => {
         },
     });
 
+    // Two open links, only `a` completed by the visitor. The section stays in
+    // its list mode (the all-completed variant needs EVERY open link badged),
+    // which is what the badge/strikethrough tests below need to observe.
+    const mixedActiveLinks = () => ({
+        ...activeLinks(),
+        'friendchain:c': {
+            courseId: 'friendchain', courseName: 'Friend Chain',
+            recordedLessonId: 'c', lessonId: 'd', shareCode: 'owner1',
+            addedAt: iso(NOW - 2 * HOUR), lessonTitle: 'Follow Up',
+        },
+    });
+
     beforeEach(() => {
         container = document.createElement('div');
         document.body.appendChild(container);
@@ -394,7 +406,7 @@ describe('FriendLessonLinksSection visitor awareness', () => {
 
     it('badges an entry completed together, leaving the countdown markup unchanged', () => {
         // Baseline (no badge) capture of the countdown's own markup.
-        root = renderSection(container, { friendLinks: activeLinks(), lang: 'en', shareCode: 'owner1' });
+        root = renderSection(container, { friendLinks: mixedActiveLinks(), lang: 'en', shareCode: 'owner1' });
         const baseline = container.querySelector('[data-testid="friend-lesson-link-countdown"]').outerHTML;
         const anchorBaseline = container.querySelector('[data-testid="friend-lesson-link"]').style.textDecoration;
         expect(anchorBaseline).toBe('underline');
@@ -406,7 +418,7 @@ describe('FriendLessonLinksSection visitor awareness', () => {
         // The visitor completed the lesson the link opens (`b`), not the
         // owner's recorded lesson (`a`) — the reported bug keyed on `a`.
         const viewer = { shareCode: 'viewer1', friendCompletions: [{ courseId: 'friendchain', lessonId: 'b' }], notifications: [], ownerShareCode: 'owner1' };
-        root = renderSection(container, { friendLinks: activeLinks(), lang: 'en', shareCode: 'owner1', viewer });
+        root = renderSection(container, { friendLinks: mixedActiveLinks(), lang: 'en', shareCode: 'owner1', viewer });
 
         const badge = container.querySelector('[data-testid="friend-lesson-link-completed"]');
         expect(badge).not.toBeNull();
@@ -419,11 +431,13 @@ describe('FriendLessonLinksSection visitor awareness', () => {
 
     it('strikes through the lesson name when completed together', () => {
         root = renderSection(container, {
-            friendLinks: activeLinks(), lang: 'en', shareCode: 'owner1',
+            friendLinks: mixedActiveLinks(), lang: 'en', shareCode: 'owner1',
             viewer: { shareCode: 'viewer1', friendCompletions: [{ courseId: 'friendchain', lessonId: 'b' }], notifications: [], ownerShareCode: 'owner1' },
         });
 
         const anchor = container.querySelector('[data-testid="friend-lesson-link"]');
+        // No `lessonOrdinals` prop in this harness, so the stored title is the
+        // label (the production page supplies the positional label).
         expect(anchor.textContent).toBe('Ask');
         expect(anchor.style.textDecoration).toContain('underline');
         expect(anchor.style.textDecoration).toContain('line-through');
@@ -446,5 +460,67 @@ describe('FriendLessonLinksSection visitor awareness', () => {
         expect(container.querySelector('[data-testid="friend-lesson-link-completed"]')).toBeNull();
         expect(container.querySelector('[data-testid="friend-lesson-link"]').style.textDecoration)
             .not.toContain('line-through');
+    });
+
+    it('replaces the list with the all-completed variant when every open link is badged', () => {
+        // The visitor answered the only open link (`a` opens `b`), so there is
+        // nothing left for them to do with this owner.
+        const viewer = {
+            shareCode: 'viewer1',
+            friendCompletions: [{ courseId: 'friendchain', lessonId: 'b' }],
+            notifications: [],
+            ownerShareCode: 'owner1',
+        };
+        root = renderSection(container, { friendLinks: activeLinks(), lang: 'en', shareCode: 'owner1', viewer });
+
+        const card = container.querySelector('[data-testid="friend-lessons-all-completed"]');
+        expect(card).not.toBeNull();
+        expect(container.querySelector('[data-testid="friend-lessons-all-completed-message"]').textContent)
+            .toBe("There are no open lessons right now. You've already completed them together — start a brand new lesson in a new course and send them the link.");
+
+        // The finished links are not listed: there is nothing left to answer.
+        expect(container.querySelector('[data-testid="friend-lesson-links"]')).toBeNull();
+        expect(container.querySelectorAll('[data-testid="friend-lesson-link"]')).toHaveLength(0);
+        expect(container.querySelectorAll('[data-testid="friend-lesson-link-completed"]')).toHaveLength(0);
+
+        const cta = container.querySelector('[data-testid="friend-lessons-practice-free"]');
+        expect(cta.getAttribute('href')).toBe('/courses');
+        expect(cta.textContent).toBe('Start here');
+    });
+
+    it('keeps the list when one open link is still uncompleted', () => {
+        const links = {
+            ...activeLinks(),
+            'friendchain:c': {
+                courseId: 'friendchain', courseName: 'Friend Chain',
+                recordedLessonId: 'c', lessonId: 'd', shareCode: 'owner1',
+                addedAt: iso(NOW - 2 * HOUR), lessonTitle: 'Follow Up',
+            },
+        };
+        const viewer = {
+            shareCode: 'viewer1',
+            friendCompletions: [{ courseId: 'friendchain', lessonId: 'b' }],
+            notifications: [],
+            ownerShareCode: 'owner1',
+        };
+        root = renderSection(container, { friendLinks: links, lang: 'en', shareCode: 'owner1', viewer });
+
+        expect(container.querySelector('[data-testid="friend-lessons-all-completed"]')).toBeNull();
+        expect(container.querySelectorAll('[data-testid="friend-lesson-link"]')).toHaveLength(2);
+    });
+
+    it('localizes the all-completed variant', () => {
+        const viewer = {
+            shareCode: 'viewer1',
+            friendCompletions: [{ courseId: 'friendchain', lessonId: 'b' }],
+            notifications: [],
+            ownerShareCode: 'owner1',
+        };
+        root = renderSection(container, { friendLinks: activeLinks(), lang: 'hi', shareCode: 'owner1', viewer });
+
+        expect(container.querySelector('[data-testid="friend-lessons-all-completed-message"]').textContent)
+            .toBe(Strings.get('profile_friend_lessons_all_completed', 'hi'));
+        expect(container.querySelector('[data-testid="friend-lessons-practice-free"]').textContent)
+            .toBe(Strings.get('profile_friend_start_here', 'hi'));
     });
 });

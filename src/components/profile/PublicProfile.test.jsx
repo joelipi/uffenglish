@@ -206,9 +206,30 @@ describe('PublicProfile completed-together badge wiring', () => {
 
     it('badges the entry when the viewer completed its target lesson WITH this owner', () => {
         friendCompletionsState.data = [{ courseId: 'friendchain', lessonId: 'b' }];
+        // A second open link the viewer has NOT completed keeps the section in
+        // list mode; when every open link is completed it shows the
+        // all-completed variant instead of the badge.
+        profileState.data = {
+            ...profileState.data,
+            friendLinks: {
+                'friendchain:a': { ...ACTIVE_LINK, addedAt: new Date().toISOString() },
+                'friendchain:c': {
+                    courseId: 'friendchain', courseName: 'Friend Chain',
+                    recordedLessonId: 'c', lessonId: 'd', shareCode: 'owner1',
+                    lessonTitle: 'Follow Up', addedAt: new Date(Date.now() - 60000).toISOString(),
+                },
+            },
+        };
         render();
 
         expect(container.textContent).toContain(Strings.get('profile_completed_together', 'en'));
+    });
+
+    it('shows the all-completed variant when every open link was completed with this owner', () => {
+        friendCompletionsState.data = [{ courseId: 'friendchain', lessonId: 'b' }];
+        render();
+
+        expect(container.textContent).toContain(Strings.get('profile_friend_lessons_all_completed', 'en'));
     });
 
     it('does not badge it when the completion list for this owner is empty', () => {

@@ -1,5 +1,8 @@
 // @ts-check
 import { test, expect } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { get } from '../src/data/strings.js';
 
 // Public-profile visitor awareness (story 064). Logged-out visitors see every
@@ -42,6 +45,14 @@ const OWNER_PROFILE = {
 const COURSE_ID = 'wouldyourather-test';
 const COURSE_NAME = 'Get $1 million or $5 million?';
 
+// The profile labels a link with the lesson's POSITION in the course ("Lesson
+// 3 of 7"). The total is the course's lesson count, so it is read from the
+// config instead of being hard-coded: the chain grew a closing lesson, and a
+// hard-coded total breaks every time the course changes.
+const COURSE_LESSON_COUNT = JSON.parse(
+    readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'src', 'config', `${COURSE_ID}.json`), 'utf8')
+).lessons.length;
+
 const entry = (recordedLessonId, lessonId, lessonTitle, addedAt) => ({
     courseId: COURSE_ID, courseName: COURSE_NAME,
     recordedLessonId, lessonId, lessonTitle, shareCode: OWNER, addedAt,
@@ -66,8 +77,14 @@ async function seedOwner(page, friendLinks, overrides = {}) {
         queryClient.setQueryData(['user', 'profile', 'shareCode', key], profile);
     }, { key: OWNER, profile: { ...OWNER_PROFILE, friendLinks, ...overrides } });
     // The injected row is now the query's data; wait for the render that shows
-    // it, so the next assertion never races the re-render.
-    await expect(page.getByTestId('friend-lesson-links').or(page.getByTestId('friend-lessons-expired'))).toBeVisible();
+    // it, so the next assertion never races the re-render. A logged-in viewer
+    // whose completions arrive later may switch the section to the
+    // all-completed variant, so that card is a valid settled state too.
+    await expect(
+        page.getByTestId('friend-lesson-links')
+            .or(page.getByTestId('friend-lessons-expired'))
+            .or(page.getByTestId('friend-lessons-all-completed'))
+    ).toBeVisible();
 }
 
 // The visitor's language is the app's guest-first session language, which
@@ -138,8 +155,8 @@ test.describe('public-profile visitor awareness', () => {
         // first lesson.
         const links = page.getByTestId('friend-lesson-link');
         await expect(links).toHaveCount(2);
-        await expect(links.nth(0)).toHaveText('Lesson 1 of 6');
-        await expect(links.nth(1)).toHaveText('Lesson 3 of 6');
+        await expect(links.nth(0)).toHaveText(`Lesson 1 of ${COURSE_LESSON_COUNT}`);
+        await expect(links.nth(1)).toHaveText(`Lesson 3 of ${COURSE_LESSON_COUNT}`);
 
         await expect(page.getByTestId('visitor-login-banner')).toBeVisible();
         await expect(page.getByTestId('visitor-login-link')).toHaveText(
@@ -170,8 +187,8 @@ test.describe('public-profile visitor awareness', () => {
         // Featuring entry (c: inbox + pair completion) ahead of the other one (a).
         const links = page.getByTestId('friend-lesson-link');
         await expect(links).toHaveCount(2);
-        await expect(links.nth(0)).toHaveText('Lesson 3 of 6');
-        await expect(links.nth(1)).toHaveText('Lesson 1 of 6');
+        await expect(links.nth(0)).toHaveText(`Lesson 3 of ${COURSE_LESSON_COUNT}`);
+        await expect(links.nth(1)).toHaveText(`Lesson 1 of ${COURSE_LESSON_COUNT}`);
 
         const badges = page.getByTestId('friend-lesson-link-completed');
         await expect(badges).toHaveCount(1);
@@ -181,6 +198,28 @@ test.describe('public-profile visitor awareness', () => {
         await expect(links.nth(1)).not.toHaveCSS('text-decoration-line', /line-through/);
 
         await expect(page.getByTestId('visitor-login-banner')).toHaveCount(0);
+        // One open link is still uncompleted, so the section keeps its list.
+        await expect(page.getByTestId('friend-lessons-all-completed')).toHaveCount(0);
+    });
+
+    test('all open links already completed together: the no-open-lessons variant replaces the list', async ({ page }) => {
+        // The owner has ONE open link and the visitor answered it (completed
+        // `b`, the lesson the link opens). From the visitor's side there is
+        // nothing left to do with this owner, so the section shows the variant
+        // message instead of a list of finished links.
+        const single = { [`${COURSE_ID}:a`]: LINKS[`${COURSE_ID}:a`] };
+        await seedOwner(page, single);
+        await seedViewer(page, { completions: [completionRow('b')] });
+
+        await expect(page.getByTestId('friend-lessons-all-completed')).toBeVisible();
+        await expect(page.getByTestId('friend-lessons-all-completed-message')).toHaveText(
+            "There are no open lessons right now. You've already completed them together — start a brand new lesson in a new course and send them the link."
+        );
+        // Nothing left to answer: the finished link is not listed.
+        await expect(page.getByTestId('friend-lesson-link')).toHaveCount(0);
+        await expect(page.getByTestId('friend-lesson-links')).toHaveCount(0);
+        // The way forward is a brand new lesson, from the public course list.
+        await expect(page.getByTestId('friend-lessons-practice-free')).toHaveAttribute('href', '/courses');
     });
 
     test('a done lesson is badged on ANOTHER user\'s profile (the owner\'s recorded lesson alone is not enough)', async ({ page }) => {
@@ -192,7 +231,7 @@ test.describe('public-profile visitor awareness', () => {
         await seedViewer(page, { completions: [completionRow('b')] });
 
         const links = page.getByTestId('friend-lesson-link');
-        await expect(links.nth(0)).toHaveText('Lesson 1 of 6');
+        await expect(links.nth(0)).toHaveText(`Lesson 1 of ${COURSE_LESSON_COUNT}`);
         await expect(links.nth(0)).toHaveCSS('text-decoration-line', /line-through/);
         await expect(page.getByTestId('friend-lesson-link-completed')).toHaveCount(1);
         await expect(page.getByTestId('friend-lesson-link-completed')).toHaveText('Completed it together ✅');
@@ -228,7 +267,7 @@ test.describe('public-profile visitor awareness', () => {
 
         await expect(page.getByTestId('friend-lesson-link-completed')).toHaveCount(0);
         const links = page.getByTestId('friend-lesson-link');
-        await expect(links.nth(0)).toHaveText('Lesson 3 of 6');
+        await expect(links.nth(0)).toHaveText(`Lesson 3 of ${COURSE_LESSON_COUNT}`);
         await expect(links.nth(0)).not.toHaveCSS('text-decoration-line', /line-through/);
     });
 
@@ -238,8 +277,8 @@ test.describe('public-profile visitor awareness', () => {
 
         const links = page.getByTestId('friend-lesson-link');
         await expect(links).toHaveCount(2);
-        await expect(links.nth(0)).toHaveText('Lesson 1 of 6');
-        await expect(links.nth(1)).toHaveText('Lesson 3 of 6');
+        await expect(links.nth(0)).toHaveText(`Lesson 1 of ${COURSE_LESSON_COUNT}`);
+        await expect(links.nth(1)).toHaveText(`Lesson 3 of ${COURSE_LESSON_COUNT}`);
         await expect(page.getByTestId('visitor-login-banner')).toHaveCount(0);
         await expect(page.getByTestId('friend-lesson-link-completed')).toHaveCount(0);
     });

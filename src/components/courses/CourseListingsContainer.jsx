@@ -1,5 +1,4 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useNativeLanguage } from '../../hooks/use-native-language.js';
 import { useUserProfile } from '../../modules/api/api.js';
@@ -14,7 +13,6 @@ import CourseListings from './CourseListings.jsx';
 // users (guests see neither), and reports whether that profile query is still
 // in flight so the view does not call an unknown viewer a guest.
 export default function CourseListingsContainer() {
-    const navigate = useNavigate();
     const lang = useNativeLanguage();
     const { data: profile, isLoading: isProfileResolving, isError: isProfileError } = useUserProfile();
 
@@ -35,7 +33,6 @@ export default function CourseListingsContainer() {
             isError={isError}
             userId={profile?.$id}
             isResolving={isProfileResolving || isProfileError}
-            onBack={() => navigate('/')}
         />
     );
 }

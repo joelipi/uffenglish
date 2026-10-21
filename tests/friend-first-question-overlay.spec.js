@@ -97,14 +97,20 @@ test.describe('friend lessons: first question skips the mode chooser', () => {
         expect(observed.errors).toEqual([]);
     });
 
-    test('friend lesson via ?shareCode= on b: first response step goes interactive', async ({ page }) => {
+    test('friend lesson via ?shareCode= on b: the first response step goes straight to the video', async ({ page }) => {
         await page.route(/\.mp4(\?.*)?$/, HANG);
         await page.goto('/course/wouldyourather-test/lesson/b?shareCode=friendtest1');
         await confirmGuestLanguage(page);
         await waitForLessonReady(page, 'b');
 
         const snap = await loadStepIndex(page, 2);
-        expect(snap.appPhase).toBe('interactiveVideo+friendClosedResponse');
+        // The generated friend course carries every clip as `simpleVideoUrl`,
+        // so its first response step resolves to the SIMPLE video phase. The
+        // interactive phase needs a step with an `interactiveVideoUrl`, which
+        // only the hand-written `model` course has (the m-g case below covers
+        // it). What matters for story 029 is the same in both: the step goes
+        // STRAIGHT to the video — no mode chooser.
+        expect(snap.appPhase).toBe('simpleVideo');
         await expect(page.locator('#state-intro-choices')).toHaveCount(0);
         expect(observed.transitionWarnings).toEqual([]);
     });
