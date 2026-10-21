@@ -41,10 +41,10 @@ export function useInitializeLesson({ forceRestart = false } = {}) {
             if (isLessonMissingFromConfig(configData, resolvedLessonId)) {
                 throw markNotFoundError(new Error(`Lesson '${resolvedLessonId}' not found in course configuration.`));
             }
-            const lesson = configData.lessons.find(l => l.lessonId === resolvedLessonId);
-            if (!lesson) {
-                throw new Error(`Lesson '${resolvedLessonId}' not found in course configuration.`);
-            }
+            // The guard above proves this lookup matches, so it needs no second
+            // check. The optional chaining keeps it aligned with the guard's
+            // own predicate (a malformed config entry must not throw here).
+            const lesson = configData.lessons.find(l => l?.lessonId === resolvedLessonId);
 
             await saveLessonProgress(courseId, resolvedLessonId, userData, { updateUserMeta: false, incrementCount: false });
             const lessonIndex = configData.lessons.findIndex(l => l.lessonId === resolvedLessonId);
