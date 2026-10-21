@@ -6,6 +6,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
+import { MemoryRouter } from 'react-router-dom';
 
 import FriendLessonLinksSection from './FriendLessonLinksSection.jsx';
 
@@ -16,10 +17,19 @@ const HOUR = 60 * 60 * 1000;
 const NOW = Date.now();
 const iso = (ms) => new Date(ms).toISOString();
 
+// The lesson links are react-router <Link>s, so the component needs a router
+// context. A MemoryRouter is enough: it renders the same anchors and keeps the
+// navigation client-side (no document load).
 function renderSection(container, props) {
     const root = createRoot(container);
     act(() => {
-        root.render(React.createElement(FriendLessonLinksSection, props));
+        root.render(
+            React.createElement(
+                MemoryRouter,
+                { initialEntries: ['/owner1'] },
+                React.createElement(FriendLessonLinksSection, props)
+            )
+        );
     });
     return root;
 }
@@ -68,10 +78,13 @@ describe('FriendLessonLinksSection', () => {
         expect(anchors).toHaveLength(2);
         const byLabel = Object.fromEntries(anchors.map((a) => [a.textContent, a.getAttribute('href')]));
         // Each label is paired with its OWN target lesson (b for the 'a' entry, d for the 'c' entry).
+        // The href is a PATH, not an absolute URL: the link is a react-router
+        // <Link>, so the click is a client-side navigation and the browser
+        // never loads a new document for it.
         expect(byLabel['Make 3 questions'])
-            .toBe(`${window.location.origin}/course/friendchain/lesson/b?shareCode=code1`);
+            .toBe('/course/friendchain/lesson/b?shareCode=code1');
         expect(byLabel['Follow Up'])
-            .toBe(`${window.location.origin}/course/friendchain/lesson/d?shareCode=code1`);
+            .toBe('/course/friendchain/lesson/d?shareCode=code1');
 
         // Each link carries its own countdown element.
         expect(container.querySelectorAll('[data-testid="friend-lesson-link-countdown"]')).toHaveLength(2);
@@ -149,7 +162,32 @@ describe('FriendLessonLinksSection', () => {
         const anchor = container.querySelector('[data-testid="friend-lesson-link"]');
         expect(anchor.textContent).toBe('Practice English with Me');
         expect(anchor.getAttribute('href'))
-            .toBe(`${window.location.origin}/course/friendchain/lesson/b?shareCode=code1`);
+            .toBe('/course/friendchain/lesson/b?shareCode=code1');
+    });
+
+    it('renders the lesson link as a relative in-app path, not an absolute URL', () => {
+        // The regression guard for the "black error screen" report: the link
+        // used to be a plain <a href> with an absolute URL, so the click was a
+        // DOCUMENT load — the only thing in the app that can end in a
+        // browser-level "This site can't be reached / ERR_FAILED" page, and it
+        // also threw the in-memory guest language away. A react-router <Link>
+        // to a path keeps the click inside the SPA.
+        const links = {
+            'friendchain:a': {
+                courseId: 'friendchain', courseName: 'Friend Chain',
+                recordedLessonId: 'a', lessonId: 'b', shareCode: 'code1',
+                addedAt: iso(NOW - HOUR), lessonTitle: 'Ask',
+            },
+        };
+        root = renderSection(container, { friendLinks: links, lang: 'en' });
+
+        const anchor = container.querySelector('[data-testid="friend-lesson-link"]');
+        const href = anchor.getAttribute('href');
+        expect(href.startsWith('/course/')).toBe(true);
+        // No host in the href: an absolute URL would leave the app's own
+        // router, i.e. it would be a document load again.
+        expect(href).not.toContain('://');
+        expect(href).not.toContain(window.location.origin);
     });
 
     it('renders its own countdown per link', () => {

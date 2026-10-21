@@ -49,9 +49,24 @@ export function hasEarlierShareCtaLesson(configData, lessonId) {
     return false;
 }
 
-// Bare host/path, matching buildShareUrl's scheme-less convention.
+// The IN-APP path of a friend-practice lesson:
+// '/course/<courseId>/lesson/<lessonId>?shareCode=<code>'.
+//
+// Path + query only, deliberately NO host: the profile renders this with
+// react-router's <Link>, so the click is a client-side navigation. A document
+// load (a plain <a href>) is the only thing in the app that can end in a
+// browser-level "This site can't be reached / ERR_FAILED" page — a cancelled
+// or failed document navigation — and it also throws away the in-memory guest
+// language, so the lesson re-opens the language modal.
+export function buildFriendLessonPath({ courseId, lessonId, shareCode }) {
+    return `/course/${courseId}/lesson/${lessonId}?shareCode=${encodeURIComponent(shareCode ?? '')}`;
+}
+
+// Bare host/path, matching buildShareUrl's scheme-less convention. This is the
+// SHAREABLE form (the invite a learner sends on); the in-app link uses
+// buildFriendLessonPath instead.
 export function buildFriendLessonLink({ courseId, lessonId, shareCode, base = SHARE_URL_BASE }) {
-    return `${base}/course/${courseId}/lesson/${lessonId}?shareCode=${shareCode}`;
+    return `${base}${buildFriendLessonPath({ courseId, lessonId, shareCode })}`;
 }
 
 // A clickable anchor needs a scheme; SHARE_URL_BASE is deliberately scheme-less.

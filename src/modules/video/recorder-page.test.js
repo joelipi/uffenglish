@@ -1513,6 +1513,14 @@ describe('recorder auto-render — zero server changes', () => {
             'src/modules/notifications/notification-logic.test.js',
             'src/modules/user/friend-lesson-link-wiring.test.js',
             'tests/friend-lesson-link.spec.js',
+            // The profile's lesson link is a client-side navigation now (a
+            // document load was the only thing in the app that could end in a
+            // browser-level "This site can't be reached" page), so the share
+            // code has to be captured on every location change.
+            'src/App.jsx',
+            'src/routes/RootLayout.jsx',
+            'src/hooks/use-share-code.js',
+            'src/hooks/use-share-code.test.jsx',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);
