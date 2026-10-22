@@ -92,10 +92,12 @@ describe('speech orchestrator — no audio captured', () => {
         expect(hooks.onStopEarly).not.toHaveBeenCalled();
         expect(appStore.getState().recordedAudioPeaks).toBeNull();
         expect(appStore.getState().playbackBlob).toBeNull();
-        // A silent take must not be replayed to the learner.
+        // A silent take must not be replayed to the learner, and the capture
+        // stream must be released so the retry re-acquires a fresh mic track.
         expect(deps.stopSpeechCamRecording).toHaveBeenCalledWith(
             expect.objectContaining({ playback: false, autoplay: false }),
         );
+        expect(deps.safelyStopStream).toHaveBeenCalledTimes(1);
     });
 
     it('never sends an empty capture to Whisper', async () => {

@@ -20,6 +20,12 @@ import {
     shouldReleaseCaptureBeforePlayback,
     waitForAudioRouteSettle,
 } from './capture-release-logic.js';
+import {
+    resampleTo16k,
+    peakAmplitude,
+    selectRecordingMimeType,
+    WHISPER_SAMPLE_RATE,
+} from './audio-resample-logic.js';
 import Strings from '../../data/strings.js';
 import { getAppLanguage } from '../bilingual/config-normalizer.js';
 import { trackEvent } from '../utils/posthog.js';
@@ -87,8 +93,7 @@ function getMediaConstraints() {
             channelCount: 1,
             echoCancellation: true,
             noiseSuppression: true,
-            autoGainControl: true,
-            sampleRate: { ideal: 16000 }
+            autoGainControl: true
         }
     };
 }
@@ -269,7 +274,7 @@ function teardownPortraitCapture() {
 
 async function createPlaceholderStream() {
     const audioStream = await navigator.mediaDevices.getUserMedia({
-        audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true, sampleRate: { ideal: 16000 } }
+        audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true }
     });
 
     const canvas = document.createElement('canvas');
@@ -363,29 +368,45 @@ export async function warmUpSpeechCamStream() {
 
 export async function startSpeechCamRecording(micStatusText, userData, { deferStart = false } = {}) {
     try {
+        // Create and resume the AudioContext inside the user tap gesture BEFORE
+        // opening the camera/mic capture, matching the exact sequence that
+        // passed on-device in /audio-lab5 (freshContext -> getUserMedia ->
+        // MediaRecorder.start -> buildTap).
+        if (localAudioContext) {
+            try {
+                await localAudioContext.close();
+            } catch (e) {
+                console.warn('[Speech] Error closing previous AudioContext:', e.message);
+            } finally {
+                localAudioContext = null;
+            }
+        }
+        if (typeof window !== 'undefined' && (window.AudioContext || window.webkitAudioContext)) {
+            try {
+                localAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+                if (localAudioContext.state === 'suspended' && typeof localAudioContext.resume === 'function') {
+                    await localAudioContext.resume();
+                }
+            } catch (e) {
+                console.warn('[Speech] Could not pre-create AudioContext in tap gesture:', e.message);
+                localAudioContext = null;
+            }
+        }
+
         await ensureSpeechCamStream();
         setWebcamStream(speechCamStream);
 
-        let mimeType = '';
-        // Prefer mp4 (H.264/AAC) on Windows only. iOS Safari's MediaRecorder
-        // produces mp4s with a known track-alignment bug (audio echo/desync
-        // at the start), and iOS was already working fine via the original
-        // webm fallthrough (browser default) — DO NOT change iOS behavior.
-        // Android and Firefox still record webm reliably and fall through to
-        // the webm chain below.
-        const mp4Preferred = isWindows;
-        if (mp4Preferred) {
-            if (MediaRecorder.isTypeSupported('video/mp4;codecs=h264,aac')) mimeType = 'video/mp4;codecs=h264,aac';
-            else if (MediaRecorder.isTypeSupported('video/mp4')) mimeType = 'video/mp4';
-        }
-        if (!mimeType) {
-            if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) mimeType = 'video/webm;codecs=vp9';
-            else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8')) mimeType = 'video/webm;codecs=vp8';
-            else mimeType = 'video/webm';
-        }
+        const mimeType = selectRecordingMimeType({
+            isWindows,
+            isIOS: isIOS(),
+            isTypeSupported: (t) => typeof MediaRecorder !== 'undefined'
+                && typeof MediaRecorder.isTypeSupported === 'function'
+                && MediaRecorder.isTypeSupported(t),
+        });
 
         const options = mimeType ? { mimeType } : {};
         if (!mimeType) console.warn('[Recording] No preferred MIME type supported; using browser default');
+        else console.log('[Recording] MediaRecorder mimeType selected:', mimeType);
 
         speechCamChunks = [];
         speechCamRecorder = new MediaRecorder(speechCamStream, options);
@@ -395,10 +416,14 @@ export async function startSpeechCamRecording(micStatusText, userData, { deferSt
         };
 
         if (!deferStart) {
-            speechCamRecorder.start();
+            speechCamRecorder.start(250);
         }
     } catch (err) {
         console.error('[Recording] startSpeechCamRecording FAILED:', err);
+        if (localAudioContext) {
+            try { await localAudioContext.close(); } catch (e) { /* ignore */ }
+            localAudioContext = null;
+        }
         // Recovery guidance is owned by the orchestrator/uiHooks so it can be
         // localized and kept on-screen. A blocking native alert here would
         // dead-end the user with no way back to the mode chooser.
@@ -421,7 +446,8 @@ export async function startDeferredSpeechCamRecording() {
             }
         }
         if (speechCamRecorder && speechCamRecorder.state === 'inactive') {
-            speechCamRecorder.start();
+            speechCamRecorder.start(250);
+            console.log('[Recording] MediaRecorder started, state:', speechCamRecorder.state, 'mimeType:', speechCamRecorder.mimeType);
         }
         // Frozen-take detection: report once if the composite stops producing
         // frames. Sinks are logging + telemetry only (no user-facing copy in
@@ -469,20 +495,34 @@ export function stopSpeechCamRecording({ download = true, persist = false, meta 
         safelyStopStream();
     };
     // Whether the capture is closed when the recording ends anyway. Android
-    // always closes it (the composite must not stay alive into Whisper);
-    // everywhere else the caller decides via `keepStreamAlive`.
-    const releaseAfterRecording = shouldForceReleaseComposite({ isAndroid, keepStreamAlive, recordingStarted: true });
+    // and iOS always close it (Android so the composite does not stay alive
+    // into Whisper; iOS so playback never mutes a still-open mic track and the
+    // next take acquires a fresh stream); everywhere else the caller decides
+    // via `keepStreamAlive`.
+    const releaseAfterRecording = shouldForceReleaseComposite({ isAndroid, isIOS: isIOS(), keepStreamAlive, recordingStarted: true });
     try {
         if (speechCamRecorder && speechCamRecorder.state !== 'inactive') {
             const recorder = speechCamRecorder;
             const chunks = speechCamChunks;
-            const mime = recorder.mimeType || 'video/webm';
+            const mime = recorder.mimeType || (isIOS() ? 'video/mp4' : 'video/webm');
 
             speechCamRecorder = null;
             // Moved clearing of chunks to the finally block below to prevent race conditions
 
             return new Promise((resolve) => {
+                let settled = false;
+                const stopTimer = setTimeout(() => {
+                    if (settled) return;
+                    console.warn('[Recording] MediaRecorder.onstop timed out after 1500ms; forcing cleanup (chunks:', chunks.length, ')');
+                    if (typeof recorder.onstop === 'function') {
+                        recorder.onstop();
+                    }
+                }, 1500);
+
                 recorder.onstop = async () => {
+                    if (settled) return;
+                    settled = true;
+                    clearTimeout(stopTimer);
                     let blobToReturn = null;
                     try {
                         if (chunks.length === 0) { console.warn('[DBUG] chunks empty, resolving null'); resolve(null); return; }
@@ -553,6 +593,10 @@ export function stopSpeechCamRecording({ download = true, persist = false, meta 
         } else {
             speechCamRecorder = null;
             speechCamChunks = [];
+            if (localAudioContext && !localAudioWorkletNode) {
+                try { localAudioContext.close().catch(() => {}); } catch (e) { /* ignore */ }
+                localAudioContext = null;
+            }
             // Clear frozen-take reporter + tick timer.
             if (compositeFreezeTickTimer) {
                 clearInterval(compositeFreezeTickTimer);
@@ -569,6 +613,10 @@ export function stopSpeechCamRecording({ download = true, persist = false, meta 
     } catch (err) {
         speechCamRecorder = null;
         speechCamChunks = [];
+        if (localAudioContext && !localAudioWorkletNode) {
+            try { localAudioContext.close().catch(() => {}); } catch (e) { /* ignore */ }
+            localAudioContext = null;
+        }
         if (compositeFreezeTickTimer) {
             clearInterval(compositeFreezeTickTimer);
             compositeFreezeTickTimer = null;
@@ -599,21 +647,20 @@ export async function startLocalAudioTap(stream, onSpeechDetected = null) {
     // and no accumulated state.  The small latency cost of creating a
     // new AudioContext is acceptable for the reliability gain.
     //
-    if (localAudioContext) {
+    // Reuse the AudioContext pre-created and resumed during the user tap
+    // gesture in `startSpeechCamRecording` when available; otherwise create a
+    // fresh native-rate context here.
+    if (!localAudioContext || localAudioContext.state === 'closed') {
+        localAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (localAudioContext.state === 'suspended' && typeof localAudioContext.resume === 'function') {
         try {
-            await localAudioContext.close();
+            await localAudioContext.resume();
         } catch (e) {
-            console.warn('[Speech] Error closing previous AudioContext:', e.message);
-        } finally {
-            localAudioContext = null;
+            console.warn('[Speech] AudioContext resume note:', e.message);
         }
     }
-
-    // Create a new AudioContext at 16 kHz.  Note: on iOS Safari the
-    // hardware runs at 48 kHz and WebKit may silently resample; we
-    // log the actual sample rate so we can spot a mismatch in diags.
-    localAudioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
-    console.log('[Speech] AudioContext created, actual sampleRate:', localAudioContext.sampleRate);
+    console.log('[Speech] AudioContext ready, actual sampleRate:', localAudioContext.sampleRate, 'state:', localAudioContext.state);
 
     // ── AudioWorklet module ────────────────────────────────────────────
     // Even if the same URL was loaded on a previous AudioContext, we
@@ -666,7 +713,7 @@ export async function startLocalAudioTap(stream, onSpeechDetected = null) {
     source.connect(localAudioWorkletNode);
     
     const silentGain = localAudioContext.createGain();
-    silentGain.gain.value = 0;
+    silentGain.gain.value = 0.001;
     localAudioWorkletNode.connect(silentGain);
     silentGain.connect(localAudioContext.destination);
 }
@@ -719,15 +766,16 @@ export async function stopLocalAudioTap() {
     // silence or garbage (the iOS degradation symptom).  This lets us
     // confirm the fix is working or detect new failures in the field
     // without relying on user reports.
-    let maxAmp = 0;
-    for (let i = 0; i < flattenedAudio.length; i++) {
-        const abs = Math.abs(flattenedAudio[i]);
-        if (abs > maxAmp) maxAmp = abs;
-    }
+    const maxAmp = peakAmplitude(flattenedAudio);
     console.log(`[Speech] Captured ${flattenedAudio.length} samples, max amplitude: ${maxAmp.toFixed(4)}, sampleRate: ${closedSampleRate ?? 'N/A'}`);
 
+    const audioForWhisper = resampleTo16k(flattenedAudio, closedSampleRate);
+    if (audioForWhisper.length !== flattenedAudio.length) {
+        console.log(`[Speech] Resampled ${flattenedAudio.length} frames @ ${closedSampleRate} Hz → ${audioForWhisper.length} frames @ ${WHISPER_SAMPLE_RATE} Hz, max amplitude: ${peakAmplitude(audioForWhisper).toFixed(4)}`);
+    }
+
     localRawAudioChunks = [];
-    return flattenedAudio;
+    return audioForWhisper;
 }
 
 /* 

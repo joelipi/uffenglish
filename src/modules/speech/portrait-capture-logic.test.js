@@ -8,6 +8,7 @@ import {
     paintCompositeFrame,
     createLivenessCounter,
     shouldForceReleaseComposite,
+    syncWebcamPreviewElement,
     isTakeFrozen,
     createFreezeReporter,
     resolveCompositeWatchdog,
@@ -110,6 +111,12 @@ describe('shouldForceReleaseComposite', () => {
     it('Android + recorded → true', () => {
         expect(shouldForceReleaseComposite({ isAndroid: true, keepStreamAlive: true, recordingStarted: true })).toBe(true);
     });
+    it('iOS + recorded → true', () => {
+        expect(shouldForceReleaseComposite({ isAndroid: false, isIOS: true, keepStreamAlive: true, recordingStarted: true })).toBe(true);
+    });
+    it('iOS + never-started → false', () => {
+        expect(shouldForceReleaseComposite({ isAndroid: false, isIOS: true, keepStreamAlive: true, recordingStarted: false })).toBe(false);
+    });
     it('Android + never-started → false', () => {
         expect(shouldForceReleaseComposite({ isAndroid: true, keepStreamAlive: true, recordingStarted: false })).toBe(false);
     });
@@ -121,6 +128,38 @@ describe('shouldForceReleaseComposite', () => {
     });
     it('non-Android + keepStreamAlive false → true', () => {
         expect(shouldForceReleaseComposite({ isAndroid: false, keepStreamAlive: false, recordingStarted: false })).toBe(true);
+    });
+});
+
+describe('syncWebcamPreviewElement', () => {
+    it('is a no-op when video is null', () => {
+        expect(() => syncWebcamPreviewElement(null, { id: 's' }, true)).not.toThrow();
+    });
+
+    it('attaches srcObject without calling play while hidden (show=false)', () => {
+        const video = { srcObject: null, play: vi.fn(), pause: vi.fn() };
+        const stream = { id: 's' };
+        syncWebcamPreviewElement(video, stream, false);
+        expect(video.srcObject).toBe(stream);
+        expect(video.play).not.toHaveBeenCalled();
+    });
+
+    it('calls play when the preview becomes visible (show=true)', () => {
+        const video = { srcObject: null, play: vi.fn(() => Promise.resolve()), pause: vi.fn() };
+        const stream = { id: 's' };
+        syncWebcamPreviewElement(video, stream, false);
+        expect(video.play).not.toHaveBeenCalled();
+
+        syncWebcamPreviewElement(video, stream, true);
+        expect(video.srcObject).toBe(stream);
+        expect(video.play).toHaveBeenCalledTimes(1);
+    });
+
+    it('pauses and clears srcObject when stream is null', () => {
+        const video = { srcObject: { id: 's' }, play: vi.fn(), pause: vi.fn() };
+        syncWebcamPreviewElement(video, null, false);
+        expect(video.pause).toHaveBeenCalledTimes(1);
+        expect(video.srcObject).toBeNull();
     });
 });
 

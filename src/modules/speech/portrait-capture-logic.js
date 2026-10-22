@@ -56,10 +56,39 @@ export function createLivenessCounter() {
     };
 }
 
-export function shouldForceReleaseComposite({ isAndroid, keepStreamAlive, recordingStarted }) {
+export function shouldForceReleaseComposite({ isAndroid, isIOS = false, keepStreamAlive, recordingStarted }) {
     if (keepStreamAlive === false) return true;
-    if (isAndroid && recordingStarted) return true;
+    if ((isAndroid || isIOS) && recordingStarted) return true;
     return false;
+}
+
+/**
+ * Sync the `<video id="webcam-preview">` element with the active capture
+ * stream and its visibility (`show`).
+ *
+ * When `setWebcamStream(stream)` runs inside `startSpeechCamRecording`, the
+ * phase is still the pre-recording phase (`show === false`, wrapper has
+ * `d-none`). On iOS WebKit, `<video autoPlay>` does not start while an
+ * ancestor is `display: none`, so `video.play()` must be triggered once `show`
+ * becomes `true` (`mediaState === 'webcamOrAvatar'`). Calling `play()` only
+ * when `show` is `true` also keeps it out of the lesson-video phases.
+ */
+export function syncWebcamPreviewElement(video, stream, show) {
+    if (!video) return;
+    if (!stream) {
+        video.pause();
+        video.srcObject = null;
+        return;
+    }
+    if (video.srcObject !== stream) {
+        video.srcObject = stream;
+    }
+    if (show) {
+        const playResult = video.play();
+        if (playResult && typeof playResult.catch === 'function') {
+            playResult.catch((e) => console.warn('[Webcam] play failed:', e));
+        }
+    }
 }
 
 export function isTakeFrozen({ framesDrawn, sourceAdvances, baselineFramesDrawn, baselineSourceAdvances, nowMs, recordingStartedAtMs }) {

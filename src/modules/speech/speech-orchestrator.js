@@ -439,20 +439,27 @@ export function createSpeechOrchestrator({
 
                 await new Promise(r => setTimeout(r, 250));
 
-                if (!videoBlob) {
-                    stopListeningEarly(userData, player, uiHooks);
-                    appStore.getState().setMicActive(false);
-                    return;
-                }
-
                 if (!capture.usable) {
                     appStore.getState().clearRecordedAudioPeaks();
                     appStore.getState().clearPlaybackBlob();
+                    if (typeof safelyStopStream === 'function') {
+                        try {
+                            safelyStopStream();
+                        } catch (e) {
+                            console.warn('[Speech] Could not release silent capture stream:', e);
+                        }
+                    }
                     if (uiHooks?.onNoAudioCaptured) {
                         uiHooks.onNoAudioCaptured(userData);
                     } else {
                         stopListeningEarly(userData, player, uiHooks);
                     }
+                    return;
+                }
+
+                if (!videoBlob) {
+                    stopListeningEarly(userData, player, uiHooks);
+                    appStore.getState().setMicActive(false);
                     return;
                 }
 

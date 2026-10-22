@@ -4,6 +4,7 @@ import { appStore, getWebcamStream } from '../../modules/store/store.js';
 import { getBilingual } from '../../data/strings.js';
 import { useNativeLanguage } from '../../hooks/use-native-language.js';
 import { getRecordingPhraseOverlay } from '../../modules/video/recording-subtitle-logic.js';
+import { syncWebcamPreviewElement } from '../../modules/speech/portrait-capture-logic.js';
 
 export default function WebcamPreview() {
     // Subscribe to the key counter (bumped by setWebcamStream) for reactivity,
@@ -56,23 +57,8 @@ export default function WebcamPreview() {
     }, [fullScreen]);
 
     useEffect(() => {
-        const stream = getWebcamStream();
-        const video = videoRef.current;
-        if (!video) return;
-
-        if (stream) {
-            if (video.srcObject !== stream) {
-                video.srcObject = stream;
-            }
-            // Do not call video.play() imperatively here. The PiP element is
-            // muted and carries `autoPlay`; starting it synchronously can
-            // extend past the transient user-activation window and force the
-            // lesson video's play() into its muted fallback.
-        } else {
-            video.pause();
-            video.srcObject = null;
-        }
-    }, [webcamStreamKey]);
+        syncWebcamPreviewElement(videoRef.current, getWebcamStream(), show);
+    }, [webcamStreamKey, show]);
 
     let className = 'pip-container';
     if (show) {

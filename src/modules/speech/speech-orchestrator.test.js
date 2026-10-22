@@ -260,6 +260,32 @@ describe('speech orchestrator — 3-2-1 pre-roll', () => {
         await p;
         expect(appStore.getState().recordingCountdown).toBeNull();
     });
+
+    it('starts the deferred MediaRecorder and then the local audio tap after the 3-2-1 countdown finishes', async () => {
+        const order = [];
+        const { orchestrator, deps } = makeRecordingOrchestrator({
+            startDeferredSpeechCamRecording: vi.fn(async () => {
+                order.push(`recorderStart:${appStore.getState().recordingCountdown}`);
+            }),
+            startLocalAudioTap: vi.fn(async () => {
+                order.push(`tapStart:${appStore.getState().recordingCountdown}`);
+            }),
+        });
+        appStore.getState().setRecordingCountdown(null);
+
+        const p = orchestrator.toggleSpeechRecognition(baseParams({}));
+        await vi.advanceTimersByTimeAsync(100);
+        expect(deps.startDeferredSpeechCamRecording).not.toHaveBeenCalled();
+        expect(deps.startLocalAudioTap).not.toHaveBeenCalled();
+
+        await vi.advanceTimersByTimeAsync(3000);
+        await p;
+
+        expect(order).toEqual([
+            'recorderStart:null',
+            'tapStart:null',
+        ]);
+    });
 });
 
 // ────────────────────────────────────────────────────────────────────────────
