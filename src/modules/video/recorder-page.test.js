@@ -1577,6 +1577,11 @@ describe('recorder auto-render — zero server changes', () => {
             'src/data/strings.test.js',
             'src/modules/speech/audio-resample-logic.js',
             'src/modules/speech/audio-resample-logic.test.js',
+            // Friend-response walkthrough tutorial: a real screen recording of
+            // lesson A's first friend-response step, replacing the text-on-screen
+            // placeholder for tutorial-friendClosedResponse.mp4.
+            'scripts/record-tutorial-walkthrough.mjs',
+            'scripts/record-tutorial-walkthrough.test.js',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);
