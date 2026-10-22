@@ -1,5 +1,13 @@
 # Learnings
 
+## iOS voice capture requires plain `video/mp4`, a gesture-resumed native-rate `AudioContext`, and playing `WebcamPreview` once visible
+**Date**: 2026-10-22
+**Area**: speech | ios | architecture
+**What happened**: On iPadOS 27.0.1, every lesson recording take captured digital silence (`0.0000` amplitude) and hung on the `processing/transcribing` screen even though standalone `/audio-lab5` tests on the same iPad passed (`0.81+`). Four differences between the app's take and the passing lab page combined to cause it: (1) `speech.web.js` set `mp4Preferred = isWindows` and fell through to `else mimeType = 'video/webm'` on iOS (whereas every lab page and `video-processor.web.js` picked `video/mp4` first); on iPadOS 27, WebKit's `video/webm` `MediaRecorder` produces `chunks: 0`, never fires `recorder.onstop` (hanging `stopSpeechCamRecording()`), and starves the concurrent `AudioWorklet` tap; (2) `localAudioContext` was created 3 seconds after the user tap (after the 3-2-1 countdown expired user activation) at `{ sampleRate: 16000 }` with `gain = 0`; (3) `WebcamPreview.jsx` assigned `video.srcObject = stream` while `#pip-wrapper` was `display: none` (`d-none`) and never called `video.play()` when `show` became `true`; and (4) `speech-orchestrator.js` checked `if (!videoBlob)` before `if (!capture.usable)`.
+**Takeaway**: On iOS, (1) always prefer plain `'video/mp4'` in `selectRecordingMimeType` (`src/modules/speech/audio-resample-logic.js`) and pass a timeslice (`recorder.start(250)`) plus a `recorder.onstop` safety timeout so `stopSpeechCamRecording` can never hang; (2) pre-create and `.resume()` `localAudioContext` inside the user tap gesture (`startSpeechCamRecording`) at the device's native sample rate with `silentGain.gain.value = 0.001`, then downsample to 16 kHz in JS via `resampleTo16k()`; (3) call `video.play()` via `syncWebcamPreviewElement` when `WebcamPreview` transitions to `show = true`; and (4) release the capture after every take on iOS (`shouldForceReleaseComposite`) so playback never mutes a still-open mic track.
+
+---
+
 ## A rejection hook that runs after `processing/transcribing` must move the phase back itself
 **Date**: 2026-10-21
 **Area**: architecture | speech
