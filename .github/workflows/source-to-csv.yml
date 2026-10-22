@@ -15,7 +15,7 @@ on:
     # must never write — it can only dry-run manually.
     branches: [main]
     paths:
-      - '*.source.txt'
+      - 'sources/*.source.txt'
       - scripts/generate-master-csv.mjs
       - scripts/generate-sheet-from-source.mjs
       - scripts/lib/source-bridge-utils.js
@@ -60,7 +60,7 @@ jobs:
           # = "true" comparison handles that — do not simplify under set -u.
           DRY_RUN_FLAG=""
           if [ "${{ inputs.dry_run }}" = "true" ]; then DRY_RUN_FLAG="--dry-run"; fi
-          for src in *.source.txt; do
+          for src in sources/*.source.txt; do
             [ -f "$src" ] || continue
             base=$(basename "$src" .source.txt)
             node scripts/generate-master-csv.mjs --source="$src" --out="public/$base.master.csv" $DRY_RUN_FLAG 2>&1 | tee -a /tmp/source-sync.log
@@ -76,7 +76,7 @@ jobs:
           no-change-echo: no master CSV changes
           regenerate: |
             set -euo pipefail
-            for src in *.source.txt; do
+            for src in sources/*.source.txt; do
               [ -f "$src" ] || continue
               base=$(basename "$src" .source.txt)
               node scripts/generate-master-csv.mjs --source="$src" --out="public/$base.master.csv" 2>&1 | tee -a /tmp/source-sync.log

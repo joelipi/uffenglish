@@ -1,7 +1,7 @@
 # Authoring — source file to master CSV
 
-The lesson script lives in `wouldyourather.source.txt` (repo root, edited on the
-GitHub web UI). Saving it regenerates the committed `public/wouldyourather.master.csv`
+The lesson script lives in `sources/wouldyourather.source.txt` (the `sources/`
+directory, edited on the GitHub web UI). Saving it regenerates the committed `public/wouldyourather.master.csv`
 — one row per spoken sentence — and every consumer reads that file: the recorder
 fetches it same-origin, the config generator (`scripts/generate-config-from-sheet.mjs`)
 reads it from disk, and the Modal render fetches it over HTTP. There is no remote
@@ -217,8 +217,8 @@ records takes and presses **render**:
 
 ## Editing the script on the GitHub web UI (push-the-button authoring)
 
-The friend-course script lives at `wouldyourather.source.txt` (repo root, on
-`main`). Edit it directly on the GitHub website — no local checkout, no
+The friend-course script lives at `sources/wouldyourather.source.txt` (in the
+`sources/` directory, on `main`). Edit it directly on the GitHub website — no local checkout, no
 commands. Saving the edit pushes to `main`, and
 `.github/workflows/source-to-csv.yml` validates the source (JSON + structure)
 and regenerates the committed `public/wouldyourather.master.csv` (translations

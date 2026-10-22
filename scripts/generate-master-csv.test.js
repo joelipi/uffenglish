@@ -161,7 +161,7 @@ describe('every committed course: source -> master CSV consistency', () => {
     // The courses are DISCOVERED from the repo's `*.source.txt` files, so a
     // new course is covered the day its source lands instead of escaping the
     // guard until somebody remembers to add it.
-    const sources = readdirSync(ROOT).filter((f) => f.endsWith('.source.txt')).sort();
+    const sources = readdirSync(path.join(ROOT, 'sources')).filter((f) => f.endsWith('.source.txt')).sort();
 
     // The English source columns the carry-over rule compares: a reworded
     // source blanks its translation on the next regeneration, so the committed
@@ -173,7 +173,7 @@ describe('every committed course: source -> master CSV consistency', () => {
     });
 
     it.each(sources)('%s: the bridge output matches the committed CSV row-for-row', (file) => {
-        const sourceText = readFileSync(path.join(ROOT, file), 'utf8');
+        const sourceText = readFileSync(path.join(ROOT, 'sources', file), 'utf8');
         const fresh = sourceToRows(parseSourceConfig(sourceText));
         const committed = parseCsv(readFileSync(path.join(ROOT, masterCsvRelFor(file)), 'utf8'));
         expect(committed.headers.join(',')).toBe(MASTER_HEADER.map((h) => h.toLowerCase()).join(','));

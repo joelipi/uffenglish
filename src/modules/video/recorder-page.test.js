@@ -362,7 +362,7 @@ describe('recorder page — same-origin master CSV', () => {
             // The committed store matches the bridge expansion exactly (pinned
             // by generate-master-csv.test.js); the recorder sees every take.
             const { parseSourceConfig, sourceToRows } = await import('../../../scripts/lib/source-bridge-utils.js');
-            const sourceText = fs.readFileSync(path.join(REPO_ROOT, 'wouldyourather.source.txt'), 'utf8');
+            const sourceText = fs.readFileSync(path.join(REPO_ROOT, 'sources', 'wouldyourather.source.txt'), 'utf8');
             const expected = sourceToRows(parseSourceConfig(sourceText))
                 .filter((r) => String(r.filename || '').trim() !== '').length;
             expect(expected).toBeGreaterThan(0);
@@ -1001,7 +1001,7 @@ describe('recorder auto-render — zero server changes', () => {
         // feature; 068 works on the render's overlay + social publish.
         const allowlist = [
             // wouldyourather: stale lesson titles + stray SRT batch markers.
-            'wouldyourather.source.txt',
+            'sources/wouldyourather.source.txt',
             'src/config/wouldyourather.json',
             'src/config/wouldyourather-test.json',
             'src/config/wouldyourather.test.js',
@@ -1580,7 +1580,7 @@ describe('recorder auto-render — zero server changes', () => {
             // Story 089: the health course — a second ABABAB course, authored
             // as a source file and generated into a config like any other.
             'stories/089-health-course/story.md',
-            'health.source.txt',
+            'sources/health.source.txt',
             'public/health.master.csv',
             'public/courses.json',
             'scripts/lib/generated-configs.json',

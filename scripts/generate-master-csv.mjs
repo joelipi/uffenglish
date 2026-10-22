@@ -18,7 +18,7 @@
 // Usage:
 //   node scripts/generate-master-csv.mjs [--source=<path>] [--out=<path>] [--dry-run]
 
-import { promises as fs } from 'node:fs';
+import { promises as fs, readdirSync as syncReaddir } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { flagValue } from './lib/cli-utils.js';
@@ -49,7 +49,7 @@ export function masterCsvRelFor(sourcePath) {
  * caller must name one.
  */
 export function defaultSourcePath(root = ROOT) {
-    const sources = fs.readdirSync(root).filter((f) => f.endsWith('.source.txt')).sort();
+    const sources = syncReaddir(root).filter((f) => f.endsWith('.source.txt')).sort();
     if (sources.length === 1) return path.join(root, sources[0]);
     if (sources.length === 0) throw new Error(`no *.source.txt in ${root}; pass --source`);
     throw new Error(
@@ -111,7 +111,7 @@ async function main() {
     const sourceFlag = flagValue(args, '--source');
     const sourcePath = sourceFlag
         ? path.resolve(sourceFlag)
-        : path.join(ROOT, defaultSourcePath());
+        : defaultSourcePath(path.join(ROOT, 'sources'));
     const outFlag = flagValue(args, '--out');
     const outPath = outFlag ? path.resolve(outFlag) : path.join(ROOT, masterCsvRelFor(sourcePath));
     const dryRun = args.includes('--dry-run');

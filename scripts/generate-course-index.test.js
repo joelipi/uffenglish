@@ -12,7 +12,7 @@ const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..')
 
 describe('courseIds', () => {
     it('lists the repo\'s source configs, in a stable order', async () => {
-        const ids = await courseIds(ROOT);
+        const ids = await courseIds(path.join(ROOT, 'sources'));
         expect(ids.length).toBeGreaterThan(0);
         for (const id of ids) expect(id).toMatch(/^[A-Za-z0-9][A-Za-z0-9_-]*$/);
         expect([...ids].sort()).toEqual(ids);
@@ -40,6 +40,6 @@ describe('runGenerateCourseIndex', () => {
 
     it('the committed index matches the repo\'s sources', async () => {
         const committed = JSON.parse(readFileSync(path.join(ROOT, COURSE_INDEX_REL), 'utf8'));
-        expect(committed.courses).toEqual(await courseIds(ROOT));
+        expect(committed.courses).toEqual(await courseIds(path.join(ROOT, 'sources')));
     });
 });

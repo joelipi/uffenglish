@@ -56,7 +56,8 @@ async function main() {
     const outFlag = flagValue(args, '--out');
     const dryRun = args.includes('--dry-run');
     const { target, json } = await runGenerateCourseIndex({
-        outPath: outFlag ? path.resolve(outFlag) : undefined,
+        root: path.join(ROOT, 'sources'),
+        outPath: outFlag ? path.resolve(outFlag) : path.join(ROOT, COURSE_INDEX_REL),
     });
     if (dryRun) return;
     await fs.mkdir(path.dirname(target), { recursive: true });

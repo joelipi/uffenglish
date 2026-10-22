@@ -52,7 +52,7 @@ describe('the generated config matches the hand-written ABABAB model', () => {
     );
 
     it('the generated course carries the tags the source declares', () => {
-        const source = readFileSync(path.join(ROOT, 'wouldyourather.source.txt'), 'utf8');
+        const source = readFileSync(path.join(ROOT, 'sources', 'wouldyourather.source.txt'), 'utf8');
         const declared = JSON.parse(source.replace(/^\s*\/\/.*$/gm, '')).tags;
         expect(generated.tags).toEqual(declared);
     });

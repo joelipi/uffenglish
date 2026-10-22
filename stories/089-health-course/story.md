@@ -19,9 +19,9 @@ sheet the recorder, the render and the config bot all read.
 
 ## Approach
 
-### 1. The authoring surface: `health.source.txt`
+### 1. The authoring surface: `sources/health.source.txt`
 
-A copy of `wouldyourather.source.txt` with new values: the course id `health`,
+A copy of `sources/wouldyourather.source.txt` with new values: the course id `health`,
 the title "What is better for your health?", the mission "talk about health",
 the topics `health` and `wellness`, the A1..C1 pattern ladder, and **9 health
 topics** in 3 ask/answer pairs plus the closing lesson on the last pair:
@@ -84,7 +84,7 @@ source-tree asset, `src/assets/img/healthhero.svg` — an SVG, because nothing i
 
 ## Acceptance criteria
 
-1. `health.source.txt` declares the health course: the `health` id, the health
+1. `sources/health.source.txt` declares the health course: the `health` id, the health
    title/mission, the two topics, the A1..C1 ladder and the four rungs — a
    guard over the source file.
 2. The committed `public/health.master.csv` is the bridge output of that
@@ -118,7 +118,7 @@ source-tree asset, `src/assets/img/healthhero.svg` — an SVG, because nothing i
 
 ## Files
 
-- `health.source.txt` (new) — the authoring surface
+- `sources/health.source.txt` (new) — the authoring surface
 - `public/health.master.csv` (new) — the committed sheet
 - `public/courses.json` — the recorder's course index
 - `src/config/health.json` (new) — the generated config

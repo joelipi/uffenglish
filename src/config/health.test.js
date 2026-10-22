@@ -236,7 +236,7 @@ describe('the health course is localized', () => {
 describe('the health course is the generated one', () => {
     it('the source file declares the health course', () => {
         const source = JSON.parse(
-            readFileSync(path.join(ROOT, 'health.source.txt'), 'utf8').replace(/^\s*\/\/.*$/gm, ''),
+            readFileSync(path.join(ROOT, 'sources', 'health.source.txt'), 'utf8').replace(/^\s*\/\/.*$/gm, ''),
         );
         expect(source.course).toBe('health');
         expect(source.title).toBe('What is better for your health?');
@@ -269,7 +269,7 @@ describe('the health course is the generated one', () => {
     });
 
     it('carries the topics the source declares, each with a translated label', () => {
-        const source = readFileSync(path.join(ROOT, 'health.source.txt'), 'utf8');
+        const source = readFileSync(path.join(ROOT, 'sources', 'health.source.txt'), 'utf8');
         const declared = JSON.parse(source.replace(/^\s*\/\/.*$/gm, '')).tags;
         expect(health.tags).toEqual(declared);
         for (const tag of health.tags) {
