@@ -216,10 +216,25 @@ describe('module safety and capture path', () => {
         }
     });
 
-    it('captures with the CDP screencast, acking each frame after it is drawn', () => {
-        expect(source).toContain('Page.startScreencast');
-        expect(source).toContain('Page.screencastFrame');
-        expect(source).toContain('Page.screencastFrameAck');
+    it('captures with the CDP screencast, acking each frame only after it is drawn', () => {
+        // Chrome waits for the ack before sending the next frame, so acking
+        // before the frame is drawn records a stuttering clip. Presence is not
+        // containment: assert the order inside `startCapture` itself.
+        const start = source.indexOf('async function startCapture');
+        expect(start).toBeGreaterThan(-1);
+        const end = source.indexOf('async function applyBeat', start);
+        expect(end).toBeGreaterThan(start);
+        const region = source.slice(start, end);
+        const at = (token) => {
+            const index = region.indexOf(token);
+            expect(index, `${token} missing from startCapture`).toBeGreaterThan(-1);
+            return index;
+        };
+        expect(at("client.on('Page.screencastFrame'")).toBeLessThan(at('Page.startScreencast'));
+        expect(at('Promise.resolve(onFrame(')).toBeLessThan(at('Page.screencastFrameAck'));
+        // The ack belongs to the frame handler's own cleanup, so a rejected
+        // draw cannot stall the screencast.
+        expect(region).toContain('.finally(');
         // Node has no VideoEncoder, so the encode must happen in the browser.
         expect(source).toContain("channel: 'chrome'");
         expect(source).toContain('MediaRecorder');
