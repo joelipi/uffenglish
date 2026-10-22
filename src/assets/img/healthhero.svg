@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900" role="img" aria-label="A sunrise over green hills with a heartbeat line">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8fd0ea"/>
+      <stop offset="0.55" stop-color="#cfe9f2"/>
+      <stop offset="1" stop-color="#fdf3e0"/>
+    </linearGradient>
+    <linearGradient id="hillFar" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8ed3ae"/>
+      <stop offset="1" stop-color="#5cb489"/>
+    </linearGradient>
+    <linearGradient id="hillMid" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#57b189"/>
+      <stop offset="1" stop-color="#2f8a63"/>
+    </linearGradient>
+    <linearGradient id="hillNear" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2f7f5f"/>
+      <stop offset="1" stop-color="#17513c"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1600" height="900" fill="url(#sky)"/>
+
+  <circle cx="1190" cy="300" r="185" fill="#ffe9a8" opacity="0.22"/>
+  <circle cx="1190" cy="300" r="118" fill="#ffe9a8" opacity="0.9"/>
+
+  <g fill="#ffffff" opacity="0.75">
+    <ellipse cx="300" cy="215" rx="105" ry="38"/>
+    <ellipse cx="370" cy="200" rx="78" ry="30"/>
+    <ellipse cx="245" cy="230" rx="66" ry="26"/>
+    <ellipse cx="880" cy="150" rx="86" ry="30"/>
+    <ellipse cx="935" cy="138" rx="62" ry="24"/>
+  </g>
+
+  <path d="M0 585 C 210 540, 330 620, 520 585 C 720 548, 830 520, 1010 552 C 1190 584, 1340 620, 1600 578 L1600 900 L0 900 Z" fill="url(#hillFar)"/>
+  <path d="M0 690 C 190 640, 360 706, 560 676 C 760 646, 900 618, 1110 656 C 1290 690, 1420 716, 1600 686 L1600 900 L0 900 Z" fill="url(#hillMid)"/>
+  <path d="M0 800 C 240 760, 420 812, 640 792 C 880 770, 1040 754, 1250 782 C 1400 802, 1490 818, 1600 806 L1600 900 L0 900 Z" fill="url(#hillNear)"/>
+
+  <polyline points="0,742 400,742 452,742 492,676 540,806 588,724 626,742 1600,742"
+            fill="none" stroke="#ffffff" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" opacity="0.92"/>
+</svg>

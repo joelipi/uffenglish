@@ -1,5 +1,8 @@
 // @ts-check
 import { test, expect } from '@playwright/test';
+import { readdirSync, readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
 
 // The topic pages: `/welcome` ("choose your topic") and the tag pages it links
 // to. Both are INSIDE pages of the app (the shared header, like the courses
@@ -11,6 +14,30 @@ import { test, expect } from '@playwright/test';
 // (the regular course) and `preferences` (the friend course). A topic is
 // listed by its DISPLAY label ("Preferences"), while its href is the
 // normalized tag (`/tags/preferences`).
+
+const CONFIG_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '../src/config');
+// The reserved fixtures never reach a listing.
+const EXCLUDED_COURSE_IDS = ['test', 'wouldyourather-test'];
+
+/**
+ * The courses the listings page shows (a config with a shareCta lesson, minus
+ * the reserved fixtures) and the topics they carry. DERIVED from the configs,
+ * so a new course cannot leave this spec asserting a stale count or a stale
+ * topic list.
+ */
+const LISTED = (() => {
+    const courses = [];
+    const topics = new Set();
+    for (const file of readdirSync(CONFIG_DIR).filter((f) => f.endsWith('.json')).sort()) {
+        const courseId = file.replace(/\.json$/, '');
+        if (EXCLUDED_COURSE_IDS.includes(courseId)) continue;
+        const config = JSON.parse(readFileSync(path.join(CONFIG_DIR, file), 'utf8'));
+        if (!Array.isArray(config.lessons) || !config.lessons.some((l) => l.recapOverlay === 'shareCta')) continue;
+        courses.push(courseId);
+        for (const tag of config.tags || []) topics.add(tag);
+    }
+    return { courseIds: courses, topics: [...topics].sort() };
+})();
 
 async function openWelcome(page) {
     await page.goto('/welcome');
@@ -33,6 +60,19 @@ test.describe('the topic pages', () => {
         // The course topics under test are all reachable.
         expect(hrefs).toContain('/tags/food');
         expect(hrefs).toContain('/tags/preferences');
+        expect(hrefs).toContain('/tags/health');
+    });
+
+    test('a topic page lists the health course under its own topic', async ({ page }) => {
+        await openWelcome(page);
+
+        await page.getByTestId('welcome-tag-button').filter({ hasText: 'Health' }).click();
+        await expect(page.getByTestId('tag-heading')).toContainText('Health');
+
+        const hrefs = await page.getByTestId('tag-course-card').evaluateAll(
+            (els) => els.map((el) => el.getAttribute('href'))
+        );
+        expect(hrefs).toContain('/course/health/lesson/a');
     });
 
     test('the welcome page renders inside the app shell, with the shared header', async ({ page }) => {
@@ -126,13 +166,12 @@ test.describe('the topic drop-down on the course lists', () => {
         expect(values[0]).toBe('');
         // The options are the topics of the courses ON SCREEN, so the picker
         // can never offer a topic with no course behind it.
-        expect(values.slice(1).sort()).toEqual(['getting to know you', 'money', 'preferences']);
+        expect(values.slice(1).sort()).toEqual(LISTED.topics);
     });
 
     test('choosing a topic keeps the course that carries it', async ({ page }) => {
-        // The one listed course carries every topic the drop-down offers, so
-        // the list cannot get shorter here; the filtering itself is covered by
-        // the component test, which renders several courses.
+        // Filtering by one topic keeps exactly the courses that carry it, and
+        // clearing the filter brings every listed course back.
         await page.goto('/courses');
         await expect(page.getByTestId('friend-course-card').first()).toBeVisible();
 
@@ -142,7 +181,7 @@ test.describe('the topic drop-down on the course lists', () => {
             .toHaveAttribute('href', '/course/wouldyourather/lesson/a');
 
         await page.getByTestId('course-topic-select').selectOption('');
-        await expect(page.getByTestId('friend-course-card')).toHaveCount(1);
+        await expect(page.getByTestId('friend-course-card')).toHaveCount(LISTED.courseIds.length);
     });
 
     test('the home screen carries the same drop-down, with no guest modal over it', async ({ page }) => {

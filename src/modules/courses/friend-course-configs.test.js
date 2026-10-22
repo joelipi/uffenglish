@@ -44,7 +44,10 @@ describe('loadConfigEntries', () => {
 
     it('feeds listFriendCourses to the expected friend courses', async () => {
         const courses = listFriendCourses(await loadConfigEntries());
-        expect(courses.map((c) => c.courseId)).toEqual(['wouldyourather']);
+        // The listed courses: every config that is a friend course and is not
+        // one of the reserved fixtures (`test`, `wouldyourather-test`). The
+        // health course is the second ABABAB course, so it is listed too.
+        expect(courses.map((c) => c.courseId)).toEqual(['health', 'wouldyourather']);
         for (const course of courses) {
             expect(course.firstLessonId).toBe('a');
         }
@@ -56,6 +59,25 @@ describe('loadConfigEntries', () => {
         expect(course.heroImage).toBe('src/assets/img/wouldyouratherhero.jpg');
         expect(Object.keys(course.mission).sort()).toEqual(['A1', 'A2', 'B1', 'B2', 'C1', 'mission']);
         expect(course.mission.A1).toEqual({ en: 'X or Y' });
+    });
+
+    it('carries the health hero, topics and leveled mission end to end', async () => {
+        const courses = listFriendCourses(await loadConfigEntries());
+        const course = courses.find((c) => c.courseId === 'health');
+        expect(course.heroImage).toBe('src/assets/img/healthhero.svg');
+        expect(course.tags).toEqual(['health', 'wellness']);
+        expect(course.lessonCount).toBe(7);
+        expect(Object.keys(course.mission).sort()).toEqual(['A1', 'A2', 'B1', 'B2', 'C1', 'mission']);
+        expect(course.mission.A1).toEqual({ en: 'X or Y' });
+    });
+
+    it('resolves the health hero to a renderable image URL', () => {
+        const url = resolveCourseHeroImage('src/assets/img/healthhero.svg');
+        expect(typeof url).toBe('string');
+        expect(url.length).toBeGreaterThan(0);
+        // Vite inlines a small asset as a data URI and emits a file URL for a
+        // large one; both are renderable, and neither may be null.
+        expect(url.startsWith('data:image/svg+xml') || url.includes('healthhero.svg')).toBe(true);
     });
 });
 

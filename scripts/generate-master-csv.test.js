@@ -3,7 +3,7 @@
 // translation carry-over across regenerations, atomic output.
 import { describe, it, expect } from 'vitest';
 import { execFile } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -157,14 +157,35 @@ describe('generate-master-csv CLI', () => {
     });
 });
 
-describe('real source + committed store consistency', () => {
-    it('the bridge output matches the committed CSV row-for-row (ignoring translations)', () => {
-        const sourceText = readFileSync(path.join(ROOT, 'wouldyourather.source.txt'), 'utf8');
+describe('every committed course: source -> master CSV consistency', () => {
+    // The courses are DISCOVERED from the repo's `*.source.txt` files, so a
+    // new course is covered the day its source lands instead of escaping the
+    // guard until somebody remembers to add it.
+    const sources = readdirSync(ROOT).filter((f) => f.endsWith('.source.txt')).sort();
+
+    // The English source columns the carry-over rule compares: a reworded
+    // source blanks its translation on the next regeneration, so the committed
+    // sheet must match the bridge output byte-for-byte on these columns.
+    const ENGLISH_SOURCE_COLUMNS = ['lesson_title', 'mission', 'phrase', 'choose_step_text', 'subtitle_text'];
+
+    it('discovers more than one course (a guard over one file proves nothing)', () => {
+        expect(sources.length).toBeGreaterThan(1);
+    });
+
+    it.each(sources)('%s: the bridge output matches the committed CSV row-for-row', (file) => {
+        const sourceText = readFileSync(path.join(ROOT, file), 'utf8');
         const fresh = sourceToRows(parseSourceConfig(sourceText));
-        const committed = parseCsv(readFileSync(path.join(ROOT, masterCsvRelFor('wouldyourather.source.txt')), 'utf8'));
+        const committed = parseCsv(readFileSync(path.join(ROOT, masterCsvRelFor(file)), 'utf8'));
         expect(committed.headers.join(',')).toBe(MASTER_HEADER.map((h) => h.toLowerCase()).join(','));
         expect(committed.rows.length).toBe(fresh.length);
         expect(committed.rows.filter((r) => r.filename.trim()).length)
             .toBe(fresh.filter((r) => String(r.filename || '').trim()).length);
+        // The English cells must be identical, or the next regeneration blanks
+        // the translations this sheet carries.
+        for (const [i, row] of fresh.entries()) {
+            for (const col of ENGLISH_SOURCE_COLUMNS) {
+                expect(committed.rows[i][col], `${file} row ${i} ${col}`).toBe(String(row[col] ?? ''));
+            }
+        }
     });
 });

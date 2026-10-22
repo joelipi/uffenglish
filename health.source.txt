@@ -1,0 +1,348 @@
+// ===========================================================================
+// FRIEND-course source config — the authoring surface, one layer above the
+// app config. Each pair groups an ASK lesson (a, c, e, ...) with its ANSWER
+// lesson (b, d, f, ...); the app still receives them as separate lessons.
+//
+// Authored here (plain English strings; translations are the translator script's
+// job and live outside this file): course header, per-pair lesson ids/titles, and
+// per topic the question variants, the branch labels, and the answer variants. Nothing else.
+// Everything else is derived — never written here:
+//   step video slugs:   {course}-{askId|ansId}-{step:02}
+//   take slugs:         {video}-{take:02}
+//   UGC clips:          {recorder}-{inviter}-{course}-{lesson}-{step:02}  (share
+//                       codes; recorder first, the code that invited them second —
+//                       the same code twice when self-initiated, e.g. the first
+//                       ask lesson). No "response" marker: the step number is
+//                       already unique within the lesson.
+//   overlay HTML:       rungs template; take N shows rungs 1..N-1 plain,
+//                       rung N filled + bold (the spoken line), rest blank
+//   SRT / cue arrays:   from the phrases in order (timings measured at render)
+//   routing:            each pair's topics run question -> branch -> answers; the
+//                       branch's k-th choice targets the k-th answer group; each
+//                       answer advances past its group (1-4 choices supported)
+//   republish:          the answer lesson replays each topic's question video with
+//                       publishLessonId = the ask lesson id
+//   lesson framing:     every lesson opens straight on content (no intro step);
+//                       recap settings + success step are code-owned per the
+//                       friend-lesson rules (recap = UGC only; overlay shareCta);
+//                       the chain's LAST answer lesson closes with a code-owned
+//                       goodbye block instead of the record phase (there is no
+//                       next question set to record)
+//   response type:      every content step is friendClosedResponse; the branch step
+//                       is the one with choices
+// Within a pair, a topic is written in order: question variants, friend clip +
+// branch labels, then the answer variants — so each topic is self-contained.
+// Media (background, mirror, effect, character, sounds, ...) is pipeline-only:
+// reserved slots, never emitted to the app config. Omitted here until used.
+//
+// The course subject is HEALTH: every question is a health choice, and every
+// phrase is health vocabulary (sleep, hydration, exercise, diet, medicine,
+// doctor visits, vaccines, mental health) a learner can reuse in real life.
+// ===========================================================================
+{
+  "course": "health",
+  "title": "What is better for your health?",
+  "hero": "src/assets/img/healthhero.svg",
+  "video_title": "Health in English",
+  "mission": "talk about health",
+  "tags": ["health", "wellness"],
+  "levels": {
+    "A1": {
+      "en": "X or Y"
+    },
+    "A2": {
+      "en": "which is better, health noun X or health noun Y"
+    },
+    "B1": {
+      "en": "would you rather + [health verb stem X] or [health verb stem Y]"
+    },
+    "B2": {
+      "en": "given the choice between [gerund health verb X] and [gerund health verb Y]"
+    },
+    "C1": {
+      "en": "if I had to choose between [gerund health verb X] and [gerund health verb Y], I would choose to [infinitive health verb]"
+    }
+  },
+  "rungs": [
+    "A1",
+    "A2",
+    "B1",
+    "B2"
+  ],
+  "pairs": [
+    {
+      "ask": {
+        "id": "a",
+        "title": "Health A"
+      },
+      "answer": {
+        "id": "b",
+        "title": "Health B"
+      },
+      "topics": [
+        {
+          "question": [
+            "Eight hours of sleep or six hours of sleep?",
+            "Which is better: sleeping eight hours a night or sleeping six hours a night?",
+            "Would you rather sleep eight hours every night or sleep six hours every night?",
+            "Given the choice between sleeping eight hours every night and sleeping six hours every night, which would you choose?"
+          ],
+          "choices": [
+            "Eight hours of sleep",
+            "Six hours of sleep"
+          ],
+          "answers": [
+            [
+              "Eight hours of sleep.",
+              "Sleeping eight hours a night is better than sleeping six hours a night.",
+              "I would rather sleep eight hours every night than sleep six hours every night.",
+              "Given the choice between sleeping eight hours every night and sleeping six hours every night, I would choose to sleep eight hours every night."
+            ],
+            [
+              "Six hours of sleep.",
+              "Sleeping six hours a night is better than sleeping eight hours a night.",
+              "I would rather sleep six hours every night than sleep eight hours every night.",
+              "Given the choice between sleeping eight hours every night and sleeping six hours every night, I would choose to sleep six hours every night."
+            ]
+          ]
+        },
+        {
+          "question": [
+            "Drink water every day or drink coffee every day?",
+            "Which is better: drinking water every day or drinking coffee every day?",
+            "Would you rather drink water every day or drink coffee every day?",
+            "Given the choice between drinking water every day and drinking coffee every day, which would you choose?"
+          ],
+          "choices": [
+            "Drink water every day",
+            "Drink coffee every day"
+          ],
+          "answers": [
+            [
+              "Drink water every day.",
+              "Drinking water every day is better than drinking coffee every day.",
+              "I would rather drink water every day than drink coffee every day.",
+              "Given the choice between drinking water every day and drinking coffee every day, I would choose to drink water every day."
+            ],
+            [
+              "Drink coffee every day.",
+              "Drinking coffee every day is better than drinking water every day.",
+              "I would rather drink coffee every day than drink water every day.",
+              "Given the choice between drinking water every day and drinking coffee every day, I would choose to drink coffee every day."
+            ]
+          ]
+        },
+        {
+          "question": [
+            "Exercise in the morning or exercise in the evening?",
+            "Which is better: exercising in the morning or exercising in the evening?",
+            "Would you rather exercise in the morning or exercise in the evening?",
+            "Given the choice between exercising in the morning and exercising in the evening, which would you choose?"
+          ],
+          "choices": [
+            "Exercise in the morning",
+            "Exercise in the evening"
+          ],
+          "answers": [
+            [
+              "Exercise in the morning.",
+              "Exercising in the morning is better than exercising in the evening.",
+              "I would rather exercise in the morning than exercise in the evening.",
+              "Given the choice between exercising in the morning and exercising in the evening, I would choose to exercise in the morning."
+            ],
+            [
+              "Exercise in the evening.",
+              "Exercising in the evening is better than exercising in the morning.",
+              "I would rather exercise in the evening than exercise in the morning.",
+              "Given the choice between exercising in the morning and exercising in the evening, I would choose to exercise in the evening."
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "ask": {
+        "id": "c",
+        "title": "Health C"
+      },
+      "answer": {
+        "id": "d",
+        "title": "Health D"
+      },
+      "topics": [
+        {
+          "question": [
+            "Eat fruit every day or eat meat every day?",
+            "Which is better: eating fruit every day or eating meat every day?",
+            "Would you rather eat fruit every day or eat meat every day?",
+            "Given the choice between eating fruit every day and eating meat every day, which would you choose?"
+          ],
+          "choices": [
+            "Eat fruit every day",
+            "Eat meat every day"
+          ],
+          "answers": [
+            [
+              "Eat fruit every day.",
+              "Eating fruit every day is better than eating meat every day.",
+              "I would rather eat fruit every day than eat meat every day.",
+              "Given the choice between eating fruit every day and eating meat every day, I would choose to eat fruit every day."
+            ],
+            [
+              "Eat meat every day.",
+              "Eating meat every day is better than eating fruit every day.",
+              "I would rather eat meat every day than eat fruit every day.",
+              "Given the choice between eating fruit every day and eating meat every day, I would choose to eat meat every day."
+            ]
+          ]
+        },
+        {
+          "question": [
+            "Take vitamins every day or take medicine only when you are sick?",
+            "Which is better: taking vitamins every day or taking medicine only when you are sick?",
+            "Would you rather take vitamins every day or take medicine only when you are sick?",
+            "Given the choice between taking vitamins every day and taking medicine only when you are sick, which would you choose?"
+          ],
+          "choices": [
+            "Take vitamins every day",
+            "Take medicine when you are sick"
+          ],
+          "answers": [
+            [
+              "Take vitamins every day.",
+              "Taking vitamins every day is better than taking medicine only when you are sick.",
+              "I would rather take vitamins every day than take medicine only when I am sick.",
+              "Given the choice between taking vitamins every day and taking medicine only when you are sick, I would choose to take vitamins every day."
+            ],
+            [
+              "Take medicine when you are sick.",
+              "Taking medicine only when you are sick is better than taking vitamins every day.",
+              "I would rather take medicine when I am sick than take vitamins every day.",
+              "Given the choice between taking vitamins every day and taking medicine only when you are sick, I would choose to take medicine when I am sick."
+            ]
+          ]
+        },
+        {
+          "question": [
+            "Go on a diet or change your daily habits?",
+            "Which is better: going on a diet or changing your daily habits?",
+            "Would you rather go on a diet or change your daily habits?",
+            "Given the choice between going on a diet and changing your daily habits, which would you choose?"
+          ],
+          "choices": [
+            "Go on a diet",
+            "Change your daily habits"
+          ],
+          "answers": [
+            [
+              "Go on a diet.",
+              "Going on a diet is better than changing your daily habits.",
+              "I would rather go on a diet than change my daily habits.",
+              "Given the choice between going on a diet and changing your daily habits, I would choose to go on a diet."
+            ],
+            [
+              "Change your daily habits.",
+              "Changing your daily habits is better than going on a diet.",
+              "I would rather change my daily habits than go on a diet.",
+              "Given the choice between going on a diet and changing your daily habits, I would choose to change my daily habits."
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "ask": {
+        "id": "e",
+        "title": "Health E"
+      },
+      "answer": {
+        "id": "f",
+        "title": "Health F"
+      },
+      "closing": {
+        "id": "g",
+        "title": "Health G"
+      },
+      "topics": [
+        {
+          "question": [
+            "See the doctor every year or see the doctor only when you are sick?",
+            "Which is better: seeing the doctor every year or seeing the doctor only when you are sick?",
+            "Would you rather see the doctor every year or see the doctor only when you are sick?",
+            "Given the choice between seeing the doctor every year and seeing the doctor only when you are sick, which would you choose?"
+          ],
+          "choices": [
+            "See the doctor every year",
+            "See the doctor when you are sick"
+          ],
+          "answers": [
+            [
+              "See the doctor every year.",
+              "Seeing the doctor every year is better than seeing the doctor only when you are sick.",
+              "I would rather see the doctor every year than see the doctor only when I am sick.",
+              "Given the choice between seeing the doctor every year and seeing the doctor only when you are sick, I would choose to see the doctor every year."
+            ],
+            [
+              "See the doctor when you are sick.",
+              "Seeing the doctor only when you are sick is better than seeing the doctor every year.",
+              "I would rather see the doctor when I am sick than see the doctor every year.",
+              "Given the choice between seeing the doctor every year and seeing the doctor only when you are sick, I would choose to see the doctor when I am sick."
+            ]
+          ]
+        },
+        {
+          "question": [
+            "Get the flu vaccine every year or never get the vaccine?",
+            "Which is better: getting the flu vaccine every year or never getting the vaccine?",
+            "Would you rather get the flu vaccine every year or never get the vaccine?",
+            "Given the choice between getting the flu vaccine every year and never getting the vaccine, which would you choose?"
+          ],
+          "choices": [
+            "Get the vaccine every year",
+            "Never get the vaccine"
+          ],
+          "answers": [
+            [
+              "Get the flu vaccine every year.",
+              "Getting the flu vaccine every year is better than never getting the vaccine.",
+              "I would rather get the flu vaccine every year than never get the vaccine.",
+              "Given the choice between getting the flu vaccine every year and never getting the vaccine, I would choose to get the flu vaccine every year."
+            ],
+            [
+              "Never get the vaccine.",
+              "Never getting the vaccine is better than getting the flu vaccine every year.",
+              "I would rather never get the vaccine than get the flu vaccine every year.",
+              "Given the choice between getting the flu vaccine every year and never getting the vaccine, I would choose never to get the vaccine."
+            ]
+          ]
+        },
+        {
+          "question": [
+            "Talk to a friend about your problems or keep them to yourself?",
+            "Which is better: talking to a friend about your problems or keeping them to yourself?",
+            "Would you rather talk to a friend about your problems or keep them to yourself?",
+            "Given the choice between talking to a friend about your problems and keeping them to yourself, which would you choose?"
+          ],
+          "choices": [
+            "Talk to a friend",
+            "Keep them to yourself"
+          ],
+          "answers": [
+            [
+              "Talk to a friend about your problems.",
+              "Talking to a friend about your problems is better than keeping them to yourself.",
+              "I would rather talk to a friend about my problems than keep them to myself.",
+              "Given the choice between talking to a friend about my problems and keeping them to yourself, I would choose to talk to a friend."
+            ],
+            [
+              "Keep your problems to yourself.",
+              "Keeping your problems to yourself is better than talking to a friend about them.",
+              "I would rather keep my problems to myself than talk to a friend about them.",
+              "Given the choice between talking to a friend about my problems and keeping them to yourself, I would choose to keep my problems to myself."
+            ]
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -16,6 +16,7 @@ const INTRO_SLUGS = [
     'wouldyourather-a-01',
     'wouldyourather-c-01',
     'wouldyourather-e-01',
+    'health-a-01-01',
 ];
 
 describe('poster-lqips module', () => {

@@ -1577,6 +1577,22 @@ describe('recorder auto-render — zero server changes', () => {
             'src/data/strings.test.js',
             'src/modules/speech/audio-resample-logic.js',
             'src/modules/speech/audio-resample-logic.test.js',
+            // Story 089: the health course — a second ABABAB course, authored
+            // as a source file and generated into a config like any other.
+            'stories/089-health-course/story.md',
+            'health.source.txt',
+            'public/health.master.csv',
+            'public/courses.json',
+            'scripts/lib/generated-configs.json',
+            'src/assets/img/healthhero.svg',
+            'src/config/health.json',
+            'src/config/health.test.js',
+            'src/data/strings.js',
+            'scripts/generate-master-csv.test.js',
+            'scripts/lib/poster-utils.test.js',
+            'src/generated/poster-lqips.test.js',
+            'docs/product.md',
+            'tests/topic-pages.spec.js',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);
