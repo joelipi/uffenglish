@@ -11,6 +11,7 @@ import { useAuthStatus, useUserProfile } from '../modules/api/api.js';
 import { setupAppInfra } from './app-infra-webonly.js';
 import { usePreloader } from './usePreloader.js';
 import Strings from '../data/strings.js';
+import { probeFreshCaptureDiagnostic } from '../modules/speech/speech.web.js';
 
 export function useAppBootstrap({ courseId } = {}) {
     const [bootState, setBootState] = useState('loading');
@@ -37,6 +38,12 @@ export function useAppBootstrap({ courseId } = {}) {
                 storage: false, gamification: false, all: false
             };
         }
+        // TEMP DIAGNOSTIC (field bug: every take captures digital silence).
+        // Runs while the app holds NO capture at all, so it answers whether the
+        // APP'S DOCUMENT is hostile to microphone capture from the start.
+        setTimeout(() => { probeFreshCaptureDiagnostic('page probe').catch(() => {}); }, 3000);
+        // Retry later in case the first one had to prompt for the microphone.
+        setTimeout(() => { probeFreshCaptureDiagnostic('page probe 2').catch(() => {}); }, 12000);
         appStore.getState().setIsLoaded(false);
 
         requestPersistentStorage();

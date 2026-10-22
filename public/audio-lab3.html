@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Audio lab 3 — bisecting the silence trigger</title>
+<style>
+    :root { color-scheme: dark; }
+    body { margin: 0; padding: 20px 18px 60px; font: 17px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0b1220; color: #e7eefc; }
+    h1 { font-size: 21px; margin: 0 0 6px; }
+    .hint { color: #9fb3d1; margin: 0 0 16px; font-size: 15px; }
+    button { display: block; width: 100%; padding: 18px 16px; font-size: 18px; font-weight: 700; border: 0; border-radius: 14px; background: #2f6df6; color: #fff; }
+    button:active { opacity: .8; }
+    table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+    td, th { padding: 9px 6px; border-bottom: 1px solid #22304a; text-align: left; font-size: 14px; vertical-align: top; }
+    th { color: #9fb3d1; font-weight: 600; }
+    .pass { color: #54e08a; font-weight: 700; }
+    .fail { color: #ff6b6b; font-weight: 700; }
+    .wait { color: #ffd166; font-weight: 700; }
+    pre { white-space: pre-wrap; word-break: break-word; font-size: 12px; line-height: 1.45; background: #0f1a2e; border: 1px solid #22304a; border-radius: 10px; padding: 10px; color: #b9c9e2; }
+    h2 { font-size: 15px; color: #9fb3d1; margin: 22px 0 8px; text-transform: uppercase; letter-spacing: .06em; }
+</style>
+</head>
+<body>
+<h1>Audio lab 3 — bisecting the silence trigger</h1>
+<p class="hint">
+    Lab 2 proved the failure can happen on a plain page, but its "video" test never
+    actually played anything. This page separates the two things that happened in that
+    test: <b>closing an AudioContext that owns the live capture</b> vs
+    <b>touching a media element</b>. Every test uses a fresh capture and one shared,
+    long-lived AudioContext, exactly like the app.
+</p>
+
+<div id="verdictBox" style="display:none;margin:0 0 16px;padding:16px 14px;border-radius:14px;background:#12203a;border:2px solid #2f6df6;text-align:center">
+    <div style="font-size:13px;letter-spacing:.14em;color:#9fb3d1;text-transform:uppercase">Result code</div>
+    <div id="verdictCode" style="font-size:64px;font-weight:800;line-height:1;margin:6px 0 4px">—</div>
+    <div id="verdictText" style="font-size:16px;color:#e7eefc"></div>
+    <div style="font-size:13px;color:#9fb3d1;margin-top:8px">This result is sent to the developer automatically. Nothing to copy.</div>
+</div>
+
+<button id="runAll">Run the 5 tests</button>
+
+<table>
+    <thead><tr><th>Test</th><th>Peak</th><th>Result</th></tr></thead>
+    <tbody id="rows"></tbody>
+</table>
+
+<video id="video" playsinline preload="auto"></video>
+
+<details style="margin-top:18px">
+    <summary style="color:#9fb3d1;font-size:14px">Raw log (not needed — the letter above is the result)</summary>
+    <pre id="log"></pre>
+</details>
+
+<script>
+(function () {
+    'use strict';
+
+    if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
+        navigator.serviceWorker.getRegistrations().then((rs) => rs.forEach((r) => r.unregister())).catch(() => {});
+    }
+
+    // Auto-report: the learner must not have to copy anything off the iPad.
+    const SUPABASE_URL = 'https://jbrbmbmupjfangqvaevx.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_xd9bYag0bVG7m74CemthjQ_sJEbQG9S';
+    window.__labResults = [];
+    function report(payload) {
+        try {
+            fetch(`${SUPABASE_URL}/rest/v1/field_diag`, {
+                method: 'POST',
+                keepalive: true,
+                headers: {
+                    apikey: SUPABASE_ANON_KEY,
+                    Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+                    'Content-Type': 'application/json',
+                    Prefer: 'return=minimal',
+                },
+                body: JSON.stringify({ source: 'audio-lab3', payload }),
+            }).catch((e) => log('report failed:', e && e.message));
+        } catch (e) {
+            log('report failed:', e && e.message);
+        }
+    }
+
+    const rowsEl = document.getElementById('rows');
+    const logEl = document.getElementById('log');
+    const video = document.getElementById('video');
+    const runBtn = document.getElementById('runAll');
+    const PASS = 0.01;
+    const VIDEO_SRC = 'https://r2.ultrafastfluency.com/assets/videos/wouldyourather-a-01-01.mp4';
+
+    const log = (...parts) => {
+        const line = parts.join(' ');
+        console.log('[lab3]', line);
+        logEl.textContent += line + '\n';
+    };
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    function withTimeout(promise, ms, label) {
+        return Promise.race([
+            promise,
+            new Promise((_, reject) => setTimeout(() => reject(new Error(label + ' did not settle in ' + ms + 'ms')), ms)),
+        ]);
+    }
+
+    function addRow(name) {
+        const tr = document.createElement('tr');
+        const a = document.createElement('td'); a.textContent = name;
+        const b = document.createElement('td'); b.textContent = '—';
+        const c = document.createElement('td'); c.textContent = 'pending'; c.className = 'wait';
+        tr.append(a, b, c); rowsEl.appendChild(tr);
+        return { b, c };
+    }
+    function setResult(row, peak, ok, note) {
+        window.__labResults.push({ ok, peak: Number(Number(peak).toFixed(5)), note: note || '' });
+        row.b.textContent = Number(peak).toFixed(5);
+        row.c.textContent = (ok ? 'AUDIO ✓' : 'SILENT ✗') + (note ? ' — ' + note : '');
+        row.c.className = ok ? 'pass' : 'fail';
+    }
+
+    const newCtx = () => new (window.AudioContext || window.webkitAudioContext)();
+    const sessionType = () => (navigator.audioSession ? navigator.audioSession.type : 'unavailable');
+
+    let ctx = null;   // the one long-lived "app-like" context
+
+    function attach(stream) {
+        const source = ctx.createMediaStreamSource(stream);
+        const analyser = ctx.createAnalyser();
+        analyser.fftSize = 2048;
+        const gain = ctx.createGain();
+        gain.gain.value = 0.001;
+        source.connect(analyser); analyser.connect(gain); gain.connect(ctx.destination);
+        return analyser;
+    }
+
+    async function measure(analyser, ms) {
+        const buf = new Float32Array(analyser.fftSize);
+        let peak = 0;
+        let ticks = 0;
+        const end = performance.now() + ms;
+        while (performance.now() < end) {
+            await sleep(100);
+            analyser.getFloatTimeDomainData(buf);
+            for (let i = 0; i < buf.length; i++) { const v = Math.abs(buf[i]); if (v > peak) peak = v; }
+            ticks += 1;
+        }
+        log('  ticks:', ticks, 'peak:', peak.toFixed(5), 'ctx:', ctx && ctx.state, 'audioSession:', sessionType());
+        return peak;
+    }
+
+    async function openMic() {
+        const stream = await withTimeout(navigator.mediaDevices.getUserMedia({ audio: true }), 10000, 'getUserMedia');
+        const track = stream.getAudioTracks()[0];
+        log('  mic:', track.label, '| state:', track.readyState, '| muted:', track.muted, '| audioSession:', sessionType());
+        return stream;
+    }
+    function stop(stream) {
+        if (!stream) return;
+        stream.getTracks().forEach((t) => { try { t.stop(); } catch (e) { /* ignore */ } });
+    }
+
+    async function freshContext() {
+        if (ctx) { try { await withTimeout(ctx.close(), 1000, 'ctx.close'); } catch (e) { /* ignore */ } }
+        ctx = newCtx();
+        try { await withTimeout(ctx.resume(), 1500, 'ctx.resume'); } catch (e) { log('  ctx.resume:', e.message); }
+        log('  fresh context:', ctx.sampleRate, ctx.state);
+    }
+
+    async function closeContext() {
+        if (!ctx) return;
+        try { await withTimeout(ctx.close(), 1500, 'ctx.close'); } catch (e) { log('  ctx.close:', e.message); }
+        log('  context closed. audioSession:', sessionType());
+        ctx = null;
+    }
+
+    // 1. Control.
+    async function test1() {
+        const row = addRow('1. Control: one capture, one measurement');
+        await freshContext();
+        const stream = await openMic();
+        const peak = await measure(attach(stream), 2000);
+        stop(stream);
+        const ok = peak > PASS;
+        setResult(row, peak, ok);
+        return ok;
+    }
+
+    // 2. Lab 2's test 2 with the video removed: measure the SAME capture twice,
+    //    closing the context in between (which is what the app does between takes).
+    async function test2() {
+        const row = addRow('2. Same capture, measured twice, context CLOSED in between');
+        await freshContext();
+        const stream = await openMic();
+        const before = await measure(attach(stream), 1200);
+        log('  first peak:', before.toFixed(5));
+        await closeContext();
+        await freshContext();
+        const after = await measure(attach(stream), 2200);
+        stop(stream);
+        const ok = after > PASS;
+        setResult(row, after, ok, ok ? '' : 'closing the context killed the live capture');
+        return ok;
+    }
+
+    // 3. Same capture measured twice, context kept OPEN (no video involved).
+    async function test3() {
+        const row = addRow('3. Same capture, measured twice, context kept OPEN');
+        await freshContext();
+        const stream = await openMic();
+        const before = await measure(attach(stream), 1200);
+        log('  first peak:', before.toFixed(5));
+        await sleep(300);
+        const after = await measure(attach(stream), 2200);
+        stop(stream);
+        const ok = after > PASS;
+        setResult(row, after, ok, ok ? '' : 'the capture died with no context close and no video');
+        return ok;
+    }
+
+    // 4. Capture stays open, context stays open, only a media element is touched
+    //    (this is what lab 2's test 2 did besides closing the context).
+    async function test4() {
+        const row = addRow('4. Same capture, media element touched (src + play attempt)');
+        await freshContext();
+        const stream = await openMic();
+        const before = await measure(attach(stream), 1200);
+        log('  first peak:', before.toFixed(5));
+        if (video.src !== VIDEO_SRC) video.src = VIDEO_SRC;
+        video.muted = false;
+        try { await withTimeout(video.play(), 4000, 'video.play'); } catch (e) { log('  video.play:', e.message); }
+        log('  video playing=', !video.paused, 'muted=', video.muted, 't=', video.currentTime.toFixed(2), 'audioSession:', sessionType());
+        await sleep(1200);
+        const after = await measure(attach(stream), 2200);
+        try { video.pause(); } catch (e) { /* ignore */ }
+        stop(stream);
+        const ok = after > PASS;
+        setResult(row, after, ok, ok ? '' : 'touching the media element killed the capture');
+        return ok;
+    }
+
+    // 5. Same capture, a SECOND AudioContext created while the first stays open.
+    async function test5() {
+        const row = addRow('5. Same capture, a SECOND AudioContext created alongside');
+        await freshContext();
+        const stream = await openMic();
+        const before = await measure(attach(stream), 1200);
+        log('  first peak:', before.toFixed(5));
+        const ctx2 = newCtx();
+        try { await withTimeout(ctx2.resume(), 1500, 'ctx2.resume'); } catch (e) { log('  ctx2.resume:', e.message); }
+        log('  second context:', ctx2.sampleRate, ctx2.state);
+        const after = await measure(attach(stream), 2200);
+        try { await withTimeout(ctx2.close(), 1000, 'ctx2.close'); } catch (e) { /* ignore */ }
+        stop(stream);
+        const ok = after > PASS;
+        setResult(row, after, ok, ok ? '' : 'a second context killed the live capture');
+        return ok;
+    }
+
+    async function run(fn, label) {
+        try { return await withTimeout(fn(), 45000, label); }
+        catch (e) { log(label, 'FAILED:', e && e.message); return false; }
+    }
+
+    async function runAll() {
+        runBtn.disabled = true;
+        runBtn.textContent = 'Running…';
+        rowsEl.innerHTML = '';
+        logEl.textContent = '';
+        window.__labResults = [];
+        log('userAgent:', navigator.userAgent);
+        log('audioSession API:', sessionType());
+        log('');
+
+        const r = [];
+        r.push(await run(test1, 'test 1')); await sleep(400);
+        r.push(await run(test2, 'test 2')); await sleep(400);
+        r.push(await run(test3, 'test 3')); await sleep(400);
+        r.push(await run(test4, 'test 4')); await sleep(400);
+        r.push(await run(test5, 'test 5'));
+
+        const names = [
+            '1 one capture, one measurement',
+            '2 measured twice, context closed in between',
+            '3 measured twice, context kept open',
+            '4 media element touched',
+            '5 second context created',
+        ];
+        log('');
+        log('SUMMARY');
+        r.forEach((ok, i) => log(names[i] + ':', ok ? 'AUDIO' : 'SILENT'));
+        log('');
+        let code = 'F';
+        let text = '';
+        if (!r[0]) {
+            code = 'A'; text = 'The control test failed — reload the page and run again.';
+            log('VERDICT: the control failed — reload the page and run again before trusting this run.');
+        } else if (!r[1] && r[2] && r[4]) {
+            code = 'B'; text = 'Closing the AudioContext that owns the live capture is what silences it.';
+            log('VERDICT: CLOSING the AudioContext that owns the live capture is what silences it. Nothing else does.');
+        } else if (!r[3] && r[1]) {
+            code = 'C'; text = 'Touching the media element silences the live capture.';
+            log('VERDICT: touching the media element silences the live capture (the context close is innocent).');
+        } else if (!r[4]) {
+            code = 'D'; text = 'A second AudioContext silences the live capture.';
+            log('VERDICT: a SECOND AudioContext silences the live capture.');
+        } else if (!r[2]) {
+            code = 'E'; text = 'The capture dies on its own while the page is idle.';
+            log('VERDICT: the capture dies on its own while the page stays idle — the measurement itself (a second MediaStreamAudioSourceNode) is the suspect.');
+        } else {
+            log('VERDICT: none of the isolated triggers reproduce it. Lab 2 test 2 differs in some other way (state left by tests 1-4).');
+        }
+        const box = document.getElementById('verdictBox');
+        document.getElementById('verdictCode').textContent = code;
+        document.getElementById('verdictText').textContent = text;
+        box.style.display = '';
+        box.scrollIntoView({ block: 'start' });
+        report({
+            code,
+            text,
+            results: window.__labResults,
+            ua: navigator.userAgent,
+            audioSession: sessionType(),
+            at: new Date().toISOString(),
+        });
+        log('reported to the developer (result code ' + code + ')');
+        runBtn.disabled = false;
+        runBtn.textContent = 'Run again';
+    }
+
+    runBtn.addEventListener('click', () => { runAll().catch((e) => log('runAll failed:', e && e.message)); });
+})();
+</script>
+</body>
+</html>

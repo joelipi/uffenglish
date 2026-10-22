@@ -2,6 +2,7 @@
 // Web-only module — uses navigator.userAgent, navigator.platform, navigator.mediaDevices.
 // React Native replaces this with speech.native.js via platform-specific file resolution.
 import { saveSpeechRecording } from '../storage/storage.js';
+import { fieldDiag } from '../debug/field-diag.webonly.js';
 import { appStore, setWebcamStream } from '../store/store.js';
 import { DEFAULT_USER_AVATAR_URL } from '../user/tutor-config.js';
 import { generateThumbFromBlob } from '../video/thumbnail.js';
@@ -357,6 +358,12 @@ async function ensureSpeechCamStream() {
         isPlaceholderStream = true;
     } else {
         const rawStream = await navigator.mediaDevices.getUserMedia(getMediaConstraints());
+        // DIAGNOSTIC: on-screen (console text is impractical to copy on an iPad).
+        try {
+            const at = rawStream.getAudioTracks()[0];
+            fieldDiag('mic', `${at?.label || 'none'} ${at?.readyState} muted=${at?.muted}`);
+            fieldDiag('session', navigator.audioSession ? navigator.audioSession.type : 'unavailable');
+        } catch (e) { /* ignore */ }
         // Every platform except iOS wraps the camera in a 9:16 canvas so the
         // preview and recording are always Reels-size. iOS keeps the raw camera
         // stream unchanged (its MediaRecorder path is fragile).
@@ -475,6 +482,46 @@ export async function startDeferredSpeechCamRecording() {
 // not stay alive into transcription/Whisper (canvas + software encoder +
 // recorded blob + Whisper WASM is what OOM'd Android). `keepStreamAlive` is only
 // a warmup optimisation; the next step rebuilds the stream via warmUp.
+/**
+ * TEMP DIAGNOSTIC (field bug: every take captures digital silence).
+ *
+ * The Web Audio tap reports zeros while the MediaRecorder records the same
+ * stream. Decoding the recorded clip answers the question the log cannot: does
+ * the CLIP carry the voice (recorder healthy, tap broken) or is the clip silent
+ * too (the capture itself is mute)?
+ *
+ * Delayed on purpose: this creates an AudioContext, and the take's own playback
+ * must not be disturbed by it.
+ */
+function inspectRecordedClipAudio(blob) {
+    setTimeout(async () => {
+        let ctx = null;
+        try {
+            const bytes = await blob.arrayBuffer();
+            ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const decoded = await Promise.race([
+                ctx.decodeAudioData(bytes),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('decodeAudioData never settled')), 6000)),
+            ]);
+            let peak = 0;
+            for (let ch = 0; ch < decoded.numberOfChannels; ch++) {
+                const data = decoded.getChannelData(ch);
+                for (let i = 0; i < data.length; i++) {
+                    const v = Math.abs(data[i]);
+                    if (v > peak) peak = v;
+                }
+            }
+            console.log(`[CLIP] decode ok | type: ${blob.type} | bytes: ${blob.size} | dur: ${decoded.duration.toFixed(2)}s | rate: ${decoded.sampleRate} | channels: ${decoded.numberOfChannels} | peak: ${peak.toFixed(5)} | audioSession: ${navigator.audioSession ? navigator.audioSession.type : 'unavailable'}`);
+            fieldDiag('clip peak', `${peak.toFixed(4)} (${decoded.duration.toFixed(1)}s, ${blob.size}b)`);
+        } catch (e) {
+            console.warn(`[CLIP] decode failed | type: ${blob.type} | bytes: ${blob.size} | ${e?.name}: ${e?.message}`);
+            fieldDiag('clip peak', `decode failed (${e?.name}) ${blob.size}b`);
+        } finally {
+            try { if (ctx) await ctx.close(); } catch (e) { /* ignore */ }
+        }
+    }, 1500);
+}
+
 export function stopSpeechCamRecording({ download = true, persist = false, meta = {}, keepStreamAlive = false, playback = true, autoplay = false } = {}) {
     // The capture may be closed twice — once before the clip is handed to the
     // player and once in the finally block — so the release is idempotent.
@@ -503,8 +550,10 @@ export function stopSpeechCamRecording({ download = true, persist = false, meta 
     // a dead track.
     const releaseBeforePlayback = releaseAfterRecording || isIOS();
     try {
+        fieldDiag('recorder', speechCamRecorder ? speechCamRecorder.state : 'none');
         if (speechCamRecorder && speechCamRecorder.state !== 'inactive') {
             const recorder = speechCamRecorder;
+            fieldDiag('chunks', `${speechCamChunks.length}`);
             const chunks = speechCamChunks;
             const mime = recorder.mimeType || 'video/webm';
 
@@ -520,6 +569,9 @@ export function stopSpeechCamRecording({ download = true, persist = false, meta 
                         const blob = new Blob(chunks, { type: mime });
                         blobToReturn = blob;
                         console.warn('[DBUG] blob created, size:', blob.size, 'playback:', playback);
+                        // TEMP DIAGNOSTIC — see inspectRecordedClipAudio.
+                        fieldDiag('clip bytes', `${blob.size} ${blob.type || 'unknown'}`);
+                        inspectRecordedClipAudio(blob);
 
                         if (playback && blob.size > 0) {
                             // The capture must be closed BEFORE the clip reaches the
@@ -578,6 +630,10 @@ export function stopSpeechCamRecording({ download = true, persist = false, meta 
                             compositeFreezeReporter = null;
                         }
                         if (releaseAfterRecording) { releaseCapture(); }
+                        // TEMP DIAGNOSTIC: the same question with no second live
+                        // capture in the page (the in-take probe is confounded by
+                        // the app's own open camera/mic).
+                        setTimeout(() => { probeFreshCaptureDiagnostic('after probe').catch(() => {}); }, 2000);
                         resolve(blobToReturn);
                     }
                 };
@@ -609,6 +665,55 @@ export function stopSpeechCamRecording({ download = true, persist = false, meta 
         compositeFreezeReporter = null;
         releaseCapture();
         return Promise.resolve(null);
+    }
+}
+
+/**
+ * TEMP DIAGNOSTIC (field bug: every take captures digital silence).
+ *
+ * The standalone lab pages prove that the same graph reads audio on this device:
+ * getUserMedia -> MediaStreamAudioSourceNode -> AudioWorkletNode -> gain ->
+ * destination. The app's page reads zeros. This probe answers the one question
+ * that separates the two: is the APP'S PAGE hostile to a microphone capture, or
+ * is only the app's own graph dead?
+ *
+ * It opens a capture of its own and reads it through a context of its own,
+ * touching nothing the take uses.
+ */
+export async function probeFreshCaptureDiagnostic(label) {
+    let stream = null;
+    let ctx = null;
+    try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        ctx = new (window.AudioContext || window.webkitAudioContext)();
+        try { await ctx.resume(); } catch (e) { /* ignore */ }
+        const src = ctx.createMediaStreamSource(stream);
+        const analyser = ctx.createAnalyser();
+        analyser.fftSize = 2048;
+        const gain = ctx.createGain();
+        gain.gain.value = 0.001;
+        src.connect(analyser);
+        analyser.connect(gain);
+        gain.connect(ctx.destination);
+        const buf = new Float32Array(analyser.fftSize);
+        let peak = 0;
+        const end = performance.now() + 2500;
+        while (performance.now() < end) {
+            await new Promise((r) => setTimeout(r, 100));
+            analyser.getFloatTimeDomainData(buf);
+            for (let i = 0; i < buf.length; i++) {
+                const v = Math.abs(buf[i]);
+                if (v > peak) peak = v;
+            }
+        }
+        console.log(`[FRESH] ${label} probe: ${peak.toFixed(5)} | ctx: ${ctx.sampleRate} ${ctx.state} | session: ${navigator.audioSession ? navigator.audioSession.type : 'unavailable'}`);
+        fieldDiag(label, `${peak.toFixed(5)} fresh capture + fresh context`);
+    } catch (e) {
+        console.warn(`[FRESH] ${label} failed:`, e?.name, e?.message);
+        fieldDiag(label, `failed ${e?.name || e?.message}`);
+    } finally {
+        try { stream?.getTracks().forEach((t) => t.stop()); } catch (e) { /* ignore */ }
+        try { if (ctx) await ctx.close(); } catch (e) { /* ignore */ }
     }
 }
 
@@ -677,7 +782,8 @@ export async function startLocalAudioTap(stream, onSpeechDetected = null) {
         const settings = track?.getSettings?.() || {};
         console.log('[TAP] track:', track?.label, '| readyState:', track?.readyState, '| muted:', track?.muted,
             '| settings:', JSON.stringify({ sampleRate: settings.sampleRate, channelCount: settings.channelCount, latency: settings.latency }),
-            '| contextRate:', localAudioContext.sampleRate);
+            '| contextRate:', localAudioContext.sampleRate,
+            '| audioSession:', navigator.audioSession ? navigator.audioSession.type : 'unavailable');
     } catch (e) {
         console.warn('[TAP] could not read track settings:', e?.message);
     }
@@ -740,7 +846,9 @@ export async function startLocalAudioTap(stream, onSpeechDetected = null) {
                 ticks++;
                 try {
                     probe.getFloatTimeDomainData(probeBuf);
-                    console.log(`[TAP-PROBE] tick ${ticks} peak ${peakAmplitude(probeBuf).toFixed(5)} ctx=${localAudioContext?.state} chunks=${localRawAudioChunks.length}`);
+                    const probePeak = peakAmplitude(probeBuf);
+                    console.log(`[TAP-PROBE] tick ${ticks} peak ${probePeak.toFixed(5)} ctx=${localAudioContext?.state} chunks=${localRawAudioChunks.length}`);
+                    if (ticks === 2 || ticks === 8) fieldDiag('tap peak', probePeak.toFixed(5));
                 } catch (e) {
                     console.warn('[TAP-PROBE] read failed:', e?.message);
                 }
@@ -753,6 +861,10 @@ export async function startLocalAudioTap(stream, onSpeechDetected = null) {
             console.warn('[TAP-PROBE] could not attach:', e?.message);
         }
     }
+
+    // TEMP DIAGNOSTIC: does a capture that has nothing to do with the take work
+    // on this page? Runs once, 2 s into the take.
+    setTimeout(() => { probeFreshCaptureDiagnostic('fresh probe').catch(() => {}); }, 2000);
 
     // ── Silent camera-stream tap → retry on an audio-only capture ───────
     // Field finding: on iOS the AudioWorklet receives nothing but zeros from
@@ -858,6 +970,7 @@ export async function stopLocalAudioTap() {
         if (abs > maxAmp) maxAmp = abs;
     }
     console.log(`[Speech] Captured ${flattenedAudio.length} samples, max amplitude: ${maxAmp.toFixed(4)}, sampleRate: ${closedSampleRate ?? 'N/A'}`);
+    fieldDiag('captured', `${maxAmp.toFixed(4)} (${flattenedAudio.length} samples @ ${closedSampleRate ?? '?'}Hz)`);
 
     // Whisper consumes 16 kHz mono. The graph runs at the device's rate, so the
     // conversion happens here (once, in JS) instead of inside WebKit's capture
@@ -884,4 +997,10 @@ export function isWebSpeechActive() {
 
 export function stopWebSpeech() {
     if (recognition) recognition.stop();
-   
+    clearTimeout(recognitionTimeout);
+}
+
+export function startWebSpeechRecognition({ lang = 'en-US', audioTrack = null, nativeLanguage = null } = {}) {
+    // ... logic removed for brevity but functionally disabled
+}
+*/

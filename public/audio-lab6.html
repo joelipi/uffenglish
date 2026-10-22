@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Audio lab 6 — does an idle capture go dead?</title>
+<style>
+    :root { color-scheme: dark; }
+    body { margin: 0; padding: 20px 18px 60px; font: 17px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0b1220; color: #e7eefc; }
+    h1 { font-size: 20px; margin: 0 0 6px; }
+    .hint { color: #9fb3d1; margin: 0 0 16px; font-size: 15px; }
+    button { display: block; width: 100%; padding: 18px 16px; font-size: 18px; font-weight: 700; border: 0; border-radius: 14px; background: #2f6df6; color: #fff; }
+    button:active { opacity: .8; }
+    table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+    td, th { padding: 9px 6px; border-bottom: 1px solid #22304a; text-align: left; font-size: 14px; vertical-align: top; }
+    th { color: #9fb3d1; font-weight: 600; }
+    .pass { color: #54e08a; font-weight: 700; }
+    .fail { color: #ff6b6b; font-weight: 700; }
+    pre { white-space: pre-wrap; word-break: break-word; font-size: 12px; line-height: 1.45; background: #0f1a2e; border: 1px solid #22304a; border-radius: 10px; padding: 10px; color: #b9c9e2; }
+</style>
+</head>
+<body>
+<h1>Audio lab 6 — does an idle capture go dead?</h1>
+<p class="hint">
+    The app opens the microphone when you press the mic button, then waits through a 3-2-1 countdown
+    before anything reads it. This page tests whether a capture that nobody is consuming goes silent
+    while it waits. One tap, ~45 s.
+</p>
+
+<div id="verdictBox" style="display:none;margin:0 0 16px;padding:16px 14px;border-radius:14px;background:#12203a;border:2px solid #2f6df6;text-align:center">
+    <div style="font-size:13px;letter-spacing:.14em;color:#9fb3d1;text-transform:uppercase">Result code</div>
+    <div id="verdictCode" style="font-size:64px;font-weight:800;line-height:1;margin:6px 0 4px">—</div>
+    <div id="verdictText" style="font-size:16px;color:#e7eefc"></div>
+    <div style="font-size:13px;color:#9fb3d1;margin-top:8px">This result is sent to the developer automatically. Nothing to copy.</div>
+</div>
+
+<button id="runAll">Run the 4 tests</button>
+
+<table>
+    <thead><tr><th>Test</th><th>Peak</th><th></th></tr></thead>
+    <tbody id="rows"></tbody>
+</table>
+
+<details style="margin-top:18px">
+    <summary style="color:#9fb3d1;font-size:14px">Raw log (not needed — the letter above is the result)</summary>
+    <pre id="log"></pre>
+</details>
+
+<script>
+(function () {
+    'use strict';
+
+    if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
+        navigator.serviceWorker.getRegistrations().then((rs) => rs.forEach((r) => r.unregister())).catch(() => {});
+    }
+
+    const SUPABASE_URL = 'https://jbrbmbmupjfangqvaevx.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_xd9bYag0bVG7m74CemthjQ_sJEbQG9S';
+    window.__labResults = [];
+
+    function report(payload) {
+        try {
+            fetch(`${SUPABASE_URL}/rest/v1/field_diag`, {
+                method: 'POST',
+                keepalive: true,
+                headers: {
+                    apikey: SUPABASE_ANON_KEY,
+                    Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+                    'Content-Type': 'application/json',
+                    Prefer: 'return=minimal',
+                },
+                body: JSON.stringify({ source: 'audio-lab6', payload }),
+            }).catch((e) => log('report failed:', e && e.message));
+        } catch (e) {
+            log('report failed:', e && e.message);
+        }
+    }
+
+    const rowsEl = document.getElementById('rows');
+    const logEl = document.getElementById('log');
+    const runBtn = document.getElementById('runAll');
+    const PASS = 0.01;
+
+    const log = (...parts) => {
+        const line = parts.join(' ');
+        console.log('[lab6]', line);
+        logEl.textContent += line + '\n';
+    };
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const withTimeout = (p, ms, label) => Promise.race([
+        p,
+        new Promise((_, rej) => setTimeout(() => rej(new Error(label + ' did not settle in ' + ms + 'ms')), ms)),
+    ]);
+
+    function addRow(name) {
+        const tr = document.createElement('tr');
+        const a = document.createElement('td'); a.textContent = name;
+        const b = document.createElement('td'); b.textContent = '—';
+        const c = document.createElement('td'); c.textContent = '';
+        tr.append(a, b, c); rowsEl.appendChild(tr);
+        return { b, c };
+    }
+    function setRow(row, peak, note) {
+        row.b.textContent = peak === null ? '—' : Number(peak).toFixed(5) + (peak > PASS ? ' ✓' : ' ✗');
+        row.b.className = peak > PASS ? 'pass' : 'fail';
+        row.c.textContent = note || '';
+    }
+
+    const newCtx = () => new (window.AudioContext || window.webkitAudioContext)();
+    const sessionType = () => (navigator.audioSession ? navigator.audioSession.type : 'unavailable');
+
+    async function openMic() {
+        const stream = await withTimeout(navigator.mediaDevices.getUserMedia({ audio: true }), 12000, 'getUserMedia');
+        const t = stream.getAudioTracks()[0];
+        log('  mic opened:', t.label, t.readyState, 'muted=' + t.muted, 'session=' + sessionType());
+        return stream;
+    }
+    const stop = (s) => { if (s) s.getTracks().forEach((t) => { try { t.stop(); } catch (e) { /* ignore */ } }); };
+
+    /** Measure through a NEW context that is created only now (like the app's tap). */
+    async function measure(stream, ms) {
+        const ctx = newCtx();
+        try { await withTimeout(ctx.resume(), 1500, 'ctx.resume'); } catch (e) { log('  resume:', e.message); }
+        const src = ctx.createMediaStreamSource(stream);
+        const analyser = ctx.createAnalyser();
+        analyser.fftSize = 2048;
+        const gain = ctx.createGain();
+        gain.gain.value = 0.001;
+        src.connect(analyser);
+        analyser.connect(gain);
+        gain.connect(ctx.destination);
+        const buf = new Float32Array(analyser.fftSize);
+        let peak = 0;
+        const end = performance.now() + ms;
+        while (performance.now() < end) {
+            await sleep(100);
+            analyser.getFloatTimeDomainData(buf);
+            for (let i = 0; i < buf.length; i++) { const v = Math.abs(buf[i]); if (v > peak) peak = v; }
+        }
+        log('  measured:', peak.toFixed(5), 'ctx', ctx.sampleRate, ctx.state, 'session', sessionType());
+        try { await withTimeout(ctx.close(), 1200, 'ctx.close'); } catch (e) { /* ignore */ }
+        return peak;
+    }
+
+    // 1. Control: measure immediately after opening (what every lab has done until now).
+    async function test1() {
+        const row = addRow('1. Control: measure immediately');
+        const stream = await openMic();
+        const peak = await measure(stream, 2000);
+        stop(stream);
+        setRow(row, peak, '');
+        window.__labResults.push({ t: 1, peak: +peak.toFixed(5) });
+        return peak > PASS;
+    }
+
+    // 2. THE APP'S ORDER: open, then wait ~4 s with NOTHING attached, then measure.
+    async function test2() {
+        const row = addRow('2. Open, wait 4 s with nothing consuming it, then measure');
+        const stream = await openMic();
+        log('  idling 4 s with no consumer…');
+        await sleep(4000);
+        log('  track after idle:', stream.getAudioTracks()[0].readyState, 'muted=' + stream.getAudioTracks()[0].muted);
+        const peak = await measure(stream, 2000);
+        stop(stream);
+        setRow(row, peak, peak > PASS ? '' : 'the idle capture went dead');
+        window.__labResults.push({ t: 2, peak: +peak.toFixed(5) });
+        return peak > PASS;
+    }
+
+    // 3. Open, wait 4 s with a MediaRecorder keeping it consumed, then measure.
+    async function test3() {
+        const row = addRow('3. Open, wait 4 s with a RECORDER consuming it');
+        const stream = await openMic();
+        let rec = null;
+        try {
+            const mime = MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4' : '';
+            rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+            rec.start(250);
+            await sleep(4000);
+            const peak = await measure(stream, 2000);
+            stop(stream);
+            setRow(row, peak, '');
+            window.__labResults.push({ t: 3, peak: +peak.toFixed(5) });
+            return peak > PASS;
+        } finally {
+            try { if (rec) rec.stop(); } catch (e) { /* ignore */ }
+        }
+    }
+
+    // 4. Open, wait 4 s with a silent AudioContext source attached (the cheap fix shape).
+    async function test4() {
+        const row = addRow('4. Open, wait 4 s with a silent context attached');
+        const stream = await openMic();
+        let ctx = null;
+        try {
+            ctx = newCtx();
+            try { await withTimeout(ctx.resume(), 1500, 'ctx.resume'); } catch (e) { /* ignore */ }
+            const src = ctx.createMediaStreamSource(stream);
+            const gain = ctx.createGain();
+            gain.gain.value = 0.001;
+            src.connect(gain);
+            gain.connect(ctx.destination);
+            await sleep(4000);
+            const peak = await measure(stream, 2000);
+            stop(stream);
+            setRow(row, peak, '');
+            window.__labResults.push({ t: 4, peak: +peak.toFixed(5) });
+            return peak > PASS;
+        } finally {
+            try { if (ctx) await ctx.close(); } catch (e) { /* ignore */ }
+        }
+    }
+
+    async function run(fn, label) {
+        try { return await withTimeout(fn(), 45000, label); }
+        catch (e) { log(label, 'FAILED:', e && e.message); return false; }
+    }
+
+    async function runAll() {
+        runBtn.disabled = true;
+        runBtn.textContent = 'Running…';
+        rowsEl.innerHTML = '';
+        logEl.textContent = '';
+        window.__labResults = [];
+        log('userAgent:', navigator.userAgent);
+        log('audioSession:', sessionType());
+        log('');
+
+        const r = [];
+        r.push(await run(test1, 'test 1')); await sleep(500);
+        r.push(await run(test2, 'test 2')); await sleep(500);
+        r.push(await run(test3, 'test 3')); await sleep(500);
+        r.push(await run(test4, 'test 4'));
+
+        let code = 'Z';
+        let text = '';
+        if (!r[0]) { code = 'Z'; text = 'The control failed — reload the page and run again.'; }
+        else if (!r[1] && r[2] && r[3]) {
+            code = 'V';
+            text = 'AN IDLE CAPTURE GOES DEAD. Keeping it consumed (recorder or a silent context) prevents it.';
+        } else if (!r[1] && !r[2]) {
+            code = 'W';
+            text = 'The capture dies while idle and a recorder does not save it.';
+        } else {
+            code = 'X';
+            text = 'An idle capture survives 4 s — this is not the cause.';
+        }
+        log('VERDICT:', code, text);
+        const box = document.getElementById('verdictBox');
+        document.getElementById('verdictCode').textContent = code;
+        document.getElementById('verdictText').textContent = text;
+        box.style.display = '';
+        box.scrollIntoView({ block: 'start' });
+        report({ code, text, results: window.__labResults, ua: navigator.userAgent, audioSession: sessionType(), at: new Date().toISOString() });
+        log('reported to the developer (result code ' + code + ')');
+        runBtn.disabled = false;
+        runBtn.textContent = 'Run again';
+    }
+
+    runBtn.addEventListener('click', () => { runAll().catch((e) => log('runAll failed:', e && e.message)); });
+})();
+</script>
+</body>
+</html>

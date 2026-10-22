@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Audio lab 4 — the AudioWorklet</title>
+<style>
+    :root { color-scheme: dark; }
+    body { margin: 0; padding: 20px 18px 60px; font: 17px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0b1220; color: #e7eefc; }
+    h1 { font-size: 20px; margin: 0 0 6px; }
+    .hint { color: #9fb3d1; margin: 0 0 16px; font-size: 15px; }
+    button { display: block; width: 100%; padding: 18px 16px; font-size: 18px; font-weight: 700; border: 0; border-radius: 14px; background: #2f6df6; color: #fff; }
+    button:active { opacity: .8; }
+    table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+    td, th { padding: 9px 6px; border-bottom: 1px solid #22304a; text-align: left; font-size: 14px; vertical-align: top; }
+    th { color: #9fb3d1; font-weight: 600; }
+    .pass { color: #54e08a; font-weight: 700; }
+    .fail { color: #ff6b6b; font-weight: 700; }
+    .wait { color: #ffd166; font-weight: 700; }
+    pre { white-space: pre-wrap; word-break: break-word; font-size: 12px; line-height: 1.45; background: #0f1a2e; border: 1px solid #22304a; border-radius: 10px; padding: 10px; color: #b9c9e2; }
+</style>
+</head>
+<body>
+<h1>Audio lab 4 — does the AudioWorklet kill the microphone?</h1>
+<p class="hint">
+    Every other page delivered audio. This is the only ingredient of the app's audio graph that no
+    page has used yet: the <b>AudioWorklet</b> the app copies the microphone PCM through. One tap.
+</p>
+
+<div id="verdictBox" style="display:none;margin:0 0 16px;padding:16px 14px;border-radius:14px;background:#12203a;border:2px solid #2f6df6;text-align:center">
+    <div style="font-size:13px;letter-spacing:.14em;color:#9fb3d1;text-transform:uppercase">Result code</div>
+    <div id="verdictCode" style="font-size:64px;font-weight:800;line-height:1;margin:6px 0 4px">—</div>
+    <div id="verdictText" style="font-size:16px;color:#e7eefc"></div>
+    <div style="font-size:13px;color:#9fb3d1;margin-top:8px">This result is sent to the developer automatically. Nothing to copy.</div>
+</div>
+
+<button id="runAll">Run the 4 tests</button>
+
+<table>
+    <thead><tr><th>Test</th><th>Probe</th><th>Worklet</th></tr></thead>
+    <tbody id="rows"></tbody>
+</table>
+
+<details style="margin-top:18px">
+    <summary style="color:#9fb3d1;font-size:14px">Raw log (not needed — the letter above is the result)</summary>
+    <pre id="log"></pre>
+</details>
+
+<script>
+(function () {
+    'use strict';
+
+    if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
+        navigator.serviceWorker.getRegistrations().then((rs) => rs.forEach((r) => r.unregister())).catch(() => {});
+    }
+
+    // Auto-report: nothing to copy off the iPad.
+    const SUPABASE_URL = 'https://jbrbmbmupjfangqvaevx.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_xd9bYag0bVG7m74CemthjQ_sJEbQG9S';
+    window.__labResults = [];
+    function report(payload) {
+        try {
+            fetch(`${SUPABASE_URL}/rest/v1/field_diag`, {
+                method: 'POST',
+                keepalive: true,
+                headers: {
+                    apikey: SUPABASE_ANON_KEY,
+                    Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+                    'Content-Type': 'application/json',
+                    Prefer: 'return=minimal',
+                },
+                body: JSON.stringify({ source: 'audio-lab4', payload }),
+            }).catch((e) => log('report failed:', e && e.message));
+        } catch (e) {
+            log('report failed:', e && e.message);
+        }
+    }
+
+    const rowsEl = document.getElementById('rows');
+    const logEl = document.getElementById('log');
+    const runBtn = document.getElementById('runAll');
+    const PASS = 0.01;
+
+    const log = (...parts) => {
+        const line = parts.join(' ');
+        console.log('[lab4]', line);
+        logEl.textContent += line + '\n';
+    };
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    function withTimeout(promise, ms, label) {
+        return Promise.race([
+            promise,
+            new Promise((_, reject) => setTimeout(() => reject(new Error(label + ' did not settle in ' + ms + 'ms')), ms)),
+        ]);
+    }
+
+    // The app's own processor, verbatim (src/workers/whisper/audio-processor.js).
+    const WORKLET_SRC = `
+class AudioProcessor extends AudioWorkletProcessor {
+    process(inputs, outputs, parameters) {
+        const input = inputs[0];
+        if (input.length > 0) {
+            const channelData = input[0];
+            this.port.postMessage(new Float32Array(channelData));
+        }
+        return true;
+    }
+}
+registerProcessor('audio-processor', AudioProcessor);
+`;
+
+    let workletUrl = null;
+    function getWorkletUrl() {
+        if (!workletUrl) workletUrl = URL.createObjectURL(new Blob([WORKLET_SRC], { type: 'application/javascript' }));
+        return workletUrl;
+    }
+
+    function addRow(name) {
+        const tr = document.createElement('tr');
+        const a = document.createElement('td'); a.textContent = name;
+        const b = document.createElement('td'); b.textContent = '—';
+        const c = document.createElement('td'); c.textContent = '—';
+        tr.append(a, b, c); rowsEl.appendChild(tr);
+        return { b, c };
+    }
+    function setRow(row, probe, worklet, ok) {
+        row.b.textContent = probe === null ? '—' : Number(probe).toFixed(5) + (probe > PASS ? ' ✓' : ' ✗');
+        row.c.textContent = worklet === null ? '—' : Number(worklet).toFixed(5) + (worklet > PASS ? ' ✓' : ' ✗');
+        row.b.className = probe === null ? '' : (probe > PASS ? 'pass' : 'fail');
+        row.c.className = worklet === null ? '' : (worklet > PASS ? 'pass' : 'fail');
+        if (!ok) { row.b.parentElement.style.opacity = '1'; }
+    }
+
+    const newCtx = () => new (window.AudioContext || window.webkitAudioContext)();
+    const sessionType = () => (navigator.audioSession ? navigator.audioSession.type : 'unavailable');
+
+    async function openMic() {
+        const stream = await withTimeout(navigator.mediaDevices.getUserMedia({ audio: true }), 10000, 'getUserMedia');
+        const t = stream.getAudioTracks()[0];
+        log('  mic:', t.label, t.readyState, 'muted=' + t.muted, 'session=' + sessionType());
+        return stream;
+    }
+    const stop = (s) => { if (s) s.getTracks().forEach((t) => { try { t.stop(); } catch (e) { /* ignore */ } }); };
+
+    /** source -> [worklet] -> silent gain -> destination, plus an analyser on the source. */
+    async function buildGraph(stream, { useWorklet, ctx }) {
+        const source = stream ? ctx.createMediaStreamSource(stream) : null;
+        const analyser = ctx.createAnalyser();
+        analyser.fftSize = 2048;
+        const gain = ctx.createGain();
+        gain.gain.value = 0.001;
+        let workletNode = null;
+        let workletSamples = null;
+        let workletPeak = 0;
+
+        if (useWorklet) {
+            await withTimeout(ctx.audioWorklet.addModule(getWorkletUrl()), 8000, 'addModule');
+            workletNode = new AudioWorkletNode(ctx, 'audio-processor');
+            workletSamples = 0;
+            workletNode.port.onmessage = (e) => {
+                const data = e.data;
+                workletSamples += data.length;
+                for (let i = 0; i < data.length; i++) {
+                    const v = Math.abs(data[i]);
+                    if (v > workletPeak) workletPeak = v;
+                }
+            };
+        }
+
+        let osc = null;
+        const input = source || (() => {
+            osc = ctx.createOscillator();
+            osc.frequency.value = 440;
+            const oscGain = ctx.createGain();
+            oscGain.gain.value = 0.5;
+            osc.connect(oscGain);
+            return oscGain;
+        })();
+
+        if (workletNode) {
+            input.connect(workletNode);
+            workletNode.connect(gain);
+        } else {
+            input.connect(analyser);
+        }
+        if (source && workletNode) source.connect(analyser);
+        gain.connect(ctx.destination);
+        if (osc) osc.start();
+
+        return {
+            analyser,
+            gain,
+            getWorkletPeak: () => workletPeak,
+            getWorkletSamples: () => workletSamples,
+        };
+    }
+
+    async function measure(graph, ms) {
+        const buf = new Float32Array(graph.analyser.fftSize);
+        let probePeak = 0;
+        const end = performance.now() + ms;
+        while (performance.now() < end) {
+            await sleep(100);
+            graph.analyser.getFloatTimeDomainData(buf);
+            for (let i = 0; i < buf.length; i++) { const v = Math.abs(buf[i]); if (v > probePeak) probePeak = v; }
+        }
+        return { probePeak, workletPeak: graph.getWorkletPeak(), workletSamples: graph.getWorkletSamples() };
+    }
+
+    async function freshContext() {
+        const ctx = newCtx();
+        try { await withTimeout(ctx.resume(), 1500, 'ctx.resume'); } catch (e) { log('  ctx.resume:', e.message); }
+        log('  context:', ctx.sampleRate, ctx.state);
+        return ctx;
+    }
+
+    // 1. Control: capture + analyser only (the shape that has always worked).
+    async function test1() {
+        const row = addRow('1. Control: capture + analyser, NO worklet');
+        const ctx = await freshContext();
+        const stream = await openMic();
+        const graph = await buildGraph(stream, { useWorklet: false, ctx });
+        const m = await measure(graph, 2200);
+        stop(stream); try { await ctx.close(); } catch (e) { /* ignore */ }
+        log('  probe:', m.probePeak.toFixed(5));
+        setRow(row, m.probePeak, null, m.probePeak > PASS);
+        window.__labResults.push({ test: 1, probe: +m.probePeak.toFixed(5), worklet: null });
+        return m.probePeak > PASS;
+    }
+
+    // 2. The app's graph, built the app's way: source + worklet + analyser.
+    async function test2() {
+        const row = addRow('2. Capture through the app\'s AudioWorklet');
+        const ctx = await freshContext();
+        const stream = await openMic();
+        const graph = await buildGraph(stream, { useWorklet: true, ctx });
+        const m = await measure(graph, 2500);
+        stop(stream); try { await ctx.close(); } catch (e) { /* ignore */ }
+        log(`  probe: ${m.probePeak.toFixed(5)} | worklet peak: ${m.workletPeak.toFixed(5)} | worklet samples: ${m.workletSamples}`);
+        setRow(row, m.probePeak, m.workletPeak, m.probePeak > PASS && m.workletPeak > PASS);
+        window.__labResults.push({
+            test: 2,
+            probe: +m.probePeak.toFixed(5),
+            worklet: +m.workletPeak.toFixed(5),
+            workletSamples: m.workletSamples,
+        });
+        return m.probePeak > PASS && m.workletPeak > PASS;
+    }
+
+    // 3. A synthetic 440 Hz tone through the same worklet: is the WORKLET broken,
+    //    or only the microphone+worklet combination?
+    async function test3() {
+        const row = addRow('3. 440 Hz tone through the same worklet (no microphone)');
+        const ctx = await freshContext();
+        const graph = await buildGraph(null, { useWorklet: true, ctx });
+        const m = await measure(graph, 2000);
+        try { await ctx.close(); } catch (e) { /* ignore */ }
+        log(`  tone -> worklet peak: ${m.workletPeak.toFixed(5)} | samples: ${m.workletSamples}`);
+        setRow(row, null, m.workletPeak, m.workletPeak > PASS);
+        window.__labResults.push({ test: 3, probe: null, worklet: +m.workletPeak.toFixed(5), workletSamples: m.workletSamples });
+        return m.workletPeak > PASS;
+    }
+
+    // 4. The app's exact order: worklet module loaded BEFORE the capture is opened.
+    async function test4() {
+        const row = addRow('4. Worklet loaded first, THEN the capture opens');
+        const ctx = await freshContext();
+        try { await withTimeout(ctx.audioWorklet.addModule(getWorkletUrl()), 8000, 'addModule'); } catch (e) { log('  addModule:', e.message); }
+        const stream = await openMic();
+        const graph = await buildGraph(stream, { useWorklet: true, ctx });
+        const m = await measure(graph, 2500);
+        stop(stream); try { await ctx.close(); } catch (e) { /* ignore */ }
+        log(`  probe: ${m.probePeak.toFixed(5)} | worklet peak: ${m.workletPeak.toFixed(5)} | samples: ${m.workletSamples}`);
+        setRow(row, m.probePeak, m.workletPeak, m.probePeak > PASS && m.workletPeak > PASS);
+        window.__labResults.push({ test: 4, probe: +m.probePeak.toFixed(5), worklet: +m.workletPeak.toFixed(5), workletSamples: m.workletSamples });
+        return m.probePeak > PASS && m.workletPeak > PASS;
+    }
+
+    async function run(fn, label) {
+        try { return await withTimeout(fn(), 45000, label); }
+        catch (e) { log(label, 'FAILED:', e && e.message); return false; }
+    }
+
+    async function runAll() {
+        runBtn.disabled = true;
+        runBtn.textContent = 'Running…';
+        rowsEl.innerHTML = '';
+        logEl.textContent = '';
+        window.__labResults = [];
+        log('userAgent:', navigator.userAgent);
+        log('audioSession:', sessionType());
+        log('');
+
+        const r = [];
+        r.push(await run(test1, 'test 1')); await sleep(400);
+        r.push(await run(test2, 'test 2')); await sleep(400);
+        r.push(await run(test3, 'test 3')); await sleep(400);
+        r.push(await run(test4, 'test 4'));
+
+        let code = 'J';
+        let text = '';
+        if (!r[0]) {
+            code = 'J';
+            text = 'The control failed — reload the page and run again.';
+        } else if (!r[2]) {
+            code = 'I';
+            text = 'The AudioWorklet itself is broken on this OS (it drops a plain tone).';
+        } else if (!r[1] || !r[3]) {
+            code = 'H';
+            text = 'The AudioWorklet kills the microphone signal.';
+        } else {
+            code = 'G';
+            text = 'The worklet is fine — the fault is elsewhere.';
+        }
+        log('VERDICT:', code, text);
+        const box = document.getElementById('verdictBox');
+        document.getElementById('verdictCode').textContent = code;
+        document.getElementById('verdictText').textContent = text;
+        box.style.display = '';
+        box.scrollIntoView({ block: 'start' });
+        report({
+            code,
+            text,
+            results: window.__labResults,
+            ua: navigator.userAgent,
+            audioSession: sessionType(),
+            at: new Date().toISOString(),
+        });
+        log('reported to the developer (result code ' + code + ')');
+        runBtn.disabled = false;
+        runBtn.textContent = 'Run again';
+    }
+
+    runBtn.addEventListener('click', () => { runAll().catch((e) => log('runAll failed:', e && e.message)); });
+})();
+</script>
+</body>
+</html>

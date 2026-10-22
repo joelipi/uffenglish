@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mic / camera capture harness</title>
+<style>
+    :root { color-scheme: dark; }
+    body {
+        margin: 0; padding: 20px 18px 60px;
+        font: 17px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: #0b1220; color: #e7eefc;
+    }
+    h1 { font-size: 22px; margin: 0 0 6px; }
+    .hint { color: #9fb3d1; margin: 0 0 18px; font-size: 15px; }
+    button {
+        display: block; width: 100%; margin: 0 0 12px; padding: 18px 16px;
+        font-size: 18px; font-weight: 700; border: 0; border-radius: 14px;
+        background: #2f6df6; color: #fff;
+    }
+    button.secondary { background: #22304a; }
+    button:active { opacity: .8; }
+    table { width: 100%; border-collapse: collapse; margin: 18px 0; }
+    td, th { padding: 10px 8px; border-bottom: 1px solid #22304a; text-align: left; font-size: 15px; vertical-align: top; }
+    th { color: #9fb3d1; font-weight: 600; }
+    .pass { color: #54e08a; font-weight: 700; }
+    .fail { color: #ff6b6b; font-weight: 700; }
+    .wait { color: #ffd166; font-weight: 700; }
+    video { width: 100%; max-height: 38vh; background: #000; border-radius: 12px; margin: 12px 0; }
+    audio { width: 100%; margin: 12px 0; }
+    pre {
+        white-space: pre-wrap; word-break: break-word; font-size: 12px; line-height: 1.45;
+        background: #0f1a2e; border: 1px solid #22304a; border-radius: 10px; padding: 10px; color: #b9c9e2;
+    }
+    h2 { font-size: 16px; color: #9fb3d1; margin: 24px 0 8px; text-transform: uppercase; letter-spacing: .06em; }
+</style>
+</head>
+<body>
+<h1>Mic / camera capture harness</h1>
+<p class="hint">
+    Standalone page — it does not load the app. It answers one question:
+    can <em>this device</em> deliver microphone audio to a web page, and does that change
+    when the camera is part of the same capture?
+</p>
+
+<button id="runAll">Run all tests in order</button>
+
+<table>
+    <thead><tr><th>Test</th><th>Peak</th><th>Result</th></tr></thead>
+    <tbody id="rows"></tbody>
+</table>
+
+<video id="preview" playsinline muted autoplay></video>
+<audio id="playback" controls></audio>
+
+<h2>Environment</h2>
+<pre id="env">…</pre>
+
+<h2>Log</h2>
+<pre id="log"></pre>
+
+<script>
+(function () {
+    'use strict';
+
+    const rowsEl = document.getElementById('rows');
+    const logEl = document.getElementById('log');
+    const envEl = document.getElementById('env');
+    const preview = document.getElementById('preview');
+    const playback = document.getElementById('playback');
+    const runAllBtn = document.getElementById('runAll');
+
+    const log = (...parts) => {
+        const line = parts.join(' ');
+        console.log('[harness]', line);
+        logEl.textContent += line + '\n';
+    };
+
+    const PASS_PEAK = 0.01;
+
+    function addRow(name) {
+        const tr = document.createElement('tr');
+        const nameTd = document.createElement('td');
+        nameTd.textContent = name;
+        const peakTd = document.createElement('td');
+        peakTd.textContent = '—';
+        const resultTd = document.createElement('td');
+        resultTd.textContent = 'pending';
+        resultTd.className = 'wait';
+        tr.append(nameTd, peakTd, resultTd);
+        rowsEl.appendChild(tr);
+        return { tr, peakTd, resultTd };
+    }
+
+    function setResult(row, peak, ok, note) {
+        row.peakTd.textContent = Number(peak).toFixed(5);
+        row.resultTd.textContent = (ok ? 'AUDIO ✓' : 'SILENT ✗') + (note ? ' — ' + note : '');
+        row.resultTd.className = ok ? 'pass' : 'fail';
+    }
+
+    function setError(row, err) {
+        row.peakTd.textContent = '—';
+        row.resultTd.textContent = 'ERROR — ' + (err && (err.name || '') + ' ' + (err.message || err));
+        row.resultTd.className = 'fail';
+    }
+
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+    function makeContext() {
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        return new Ctx();
+    }
+
+    async function probeStream(stream, ms) {
+        const ctx = makeContext();
+        try { await ctx.resume(); } catch (e) { log('ctx.resume failed:', e && e.message); }
+        const source = ctx.createMediaStreamSource(stream);
+        const analyser = ctx.createAnalyser();
+        analyser.fftSize = 2048;
+        const gain = ctx.createGain();
+        gain.gain.value = 0.001;
+        source.connect(analyser);
+        analyser.connect(gain);
+        gain.connect(ctx.destination);
+
+        const buf = new Float32Array(analyser.fftSize);
+        let peak = 0;
+        let ticks = 0;
+        const end = performance.now() + ms;
+        while (performance.now() < end) {
+            await sleep(100);
+            ticks++;
+            analyser.getFloatTimeDomainData(buf);
+            for (let i = 0; i < buf.length; i++) {
+                const v = Math.abs(buf[i]);
+                if (v > peak) peak = v;
+            }
+        }
+        log('probe ticks:', ticks, 'peak:', peak.toFixed(5), 'ctxRate:', ctx.sampleRate);
+        try { await ctx.close(); } catch (e) { /* ignore */ }
+        return peak;
+    }
+
+    function describeTracks(stream) {
+        return (stream.getAudioTracks() || []).map((t) => {
+            let settings = {};
+            try { settings = t.getSettings ? t.getSettings() : {}; } catch (e) { /* ignore */ }
+            return 'audio=' + (t.label || 'unlabelled') + ' state=' + t.readyState +
+                ' muted=' + t.muted + ' sampleRate=' + (settings.sampleRate || '?');
+        }).join(' | ') || 'no audio track';
+    }
+
+    function stopStream(stream) {
+        if (!stream) return;
+        stream.getTracks().forEach((t) => { try { t.stop(); } catch (e) { /* ignore */ } });
+    }
+
+    async function showEnvironment() {
+        const lines = [];
+        lines.push('userAgent: ' + navigator.userAgent);
+        lines.push('secureContext: ' + window.isSecureContext);
+        lines.push('platform: ' + (navigator.platform || '?'));
+        try {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            devices.forEach((d) => lines.push(d.kind + ': ' + (d.label || '(no label)') + ' [' + d.deviceId.slice(0, 8) + ']'));
+        } catch (e) {
+            lines.push('enumerateDevices failed: ' + (e && e.message));
+        }
+        envEl.textContent = lines.join('\n');
+        log('environment written');
+    }
+
+    async function withStream(constraints, name, fn) {
+        const row = addRow(name);
+        let stream = null;
+        try {
+            stream = await navigator.mediaDevices.getUserMedia(constraints);
+            log(name, '→', describeTracks(stream));
+            const peak = await fn(stream);
+            const ok = peak > PASS_PEAK;
+            setResult(row, peak, ok, ok ? '' : 'microphone delivered only zeros');
+            return { peak, ok };
+        } catch (err) {
+            log(name, 'ERROR', err && err.name, err && err.message);
+            setError(row, err);
+            return { peak: 0, ok: false };
+        } finally {
+            stopStream(stream);
+            preview.srcObject = null;
+        }
+    }
+
+    function runMicOnly() {
+        return withStream({ audio: true }, '1. Microphone only (no camera)', (stream) => probeStream(stream, 2500));
+    }
+
+    function runCameraMic() {
+        return withStream(
+            { video: { facingMode: 'user' }, audio: true },
+            '2. Camera + microphone',
+            (stream) => {
+                preview.srcObject = stream;
+                preview.play().catch(() => {});
+                return probeStream(stream, 2500);
+            },
+        );
+    }
+
+    function runAppConstraints() {
+        return withStream(
+            {
+                video: { aspectRatio: { ideal: 16 / 9 }, facingMode: 'user' },
+                audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+            },
+            '3. Camera + mic, app\'s exact constraints (EC/NS/AGC)',
+            (stream) => {
+                preview.srcObject = stream;
+                preview.play().catch(() => {});
+                return probeStream(stream, 2500);
+            },
+        );
+    }
+
+    function runCameraMicWhileRecording() {
+        return withStream(
+            { video: { facingMode: 'user' }, audio: true },
+            '4. Camera + mic WHILE recording (app\'s order)',
+            async (stream) => {
+                preview.srcObject = stream;
+                preview.play().catch(() => {});
+                const mime = ['video/mp4', 'video/webm;codecs=vp8,opus', 'video/webm']
+                    .find((t) => window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t));
+                let recorder = null;
+                try {
+                    recorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+                } catch (e) {
+                    log('MediaRecorder could not be created:', e && e.message);
+                }
+                const chunks = [];
+                if (recorder) {
+                    recorder.ondataavailable = (ev) => { if (ev.data && ev.data.size) chunks.push(ev.data); };
+                    recorder.start();
+                    log('MediaRecorder started', mime || '(default)');
+                }
+                const peak = await probeStream(stream, 2500);
+                if (recorder && recorder.state !== 'inactive') {
+                    await new Promise((resolve) => {
+                        recorder.onstop = resolve;
+                        recorder.stop();
+                    });
+                }
+                if (chunks.length) {
+                    const blob = new Blob(chunks, { type: mime || 'video/webm' });
+                    playback.src = URL.createObjectURL(blob);
+                    log('recorded', blob.size, 'bytes — press play to hear it');
+                }
+                return peak;
+            },
+        );
+    }
+
+    // App condition: the lesson already ran with its own audio. On iOS a page
+    // can have several AudioContexts, and the first one to run owns the output
+    // (and, possibly, the input). Reproduce "a context is already running".
+    async function runWithExistingContext() {
+        const row = addRow('6. Another AudioContext already running, then mic only');
+        let stream = null;
+        let ctxA = null;
+        try {
+            ctxA = makeContext();
+            const quiet = ctxA.createGain();
+            quiet.gain.value = 0.001;
+            quiet.connect(ctxA.destination);
+            await Promise.race([ctxA.resume().catch(() => {}), sleep(1500)]);
+            await sleep(400);
+            log('existing context state:', ctxA.state, 'rate:', ctxA.sampleRate);
+            stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            log('mic track with an existing context:', describeTracks(stream));
+            const peak = await probeStream(stream, 2500);
+            setResult(row, peak, peak > PASS_PEAK, peak > PASS_PEAK ? '' : 'silent while another AudioContext is running');
+            return { peak, ok: peak > PASS_PEAK };
+        } catch (err) {
+            setError(row, err);
+            return { peak: 0, ok: false };
+        } finally {
+            stopStream(stream);
+            try { if (ctxA) await ctxA.close(); } catch (e) { /* ignore */ }
+        }
+    }
+
+    // App condition: a video element has played in the page (the lesson video
+    // runs immediately before the recording step).
+    async function runAfterVideo() {
+        const row = addRow('5. Video has played, then mic only');
+        let stream = null;
+        let video = null;
+        try {
+            video = document.createElement('video');
+            video.src = '/assets/videos/wouldyourather-a-01-01.mp4';
+            video.loop = true;
+            video.playsInline = true;
+            video.muted = false;
+            video.style.display = 'none';
+            document.body.appendChild(video);
+            await video.play().catch((e) => log('video.play failed:', e && e.message));
+            await sleep(800);
+            log('video playing:', !video.paused, 'muted:', video.muted, 'readyState:', video.readyState);
+            stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const peak = await probeStream(stream, 2500);
+            setResult(row, peak, peak > PASS_PEAK, peak > PASS_PEAK ? '' : 'silent while a video element is playing');
+            return { peak, ok: peak > PASS_PEAK };
+        } catch (err) {
+            setError(row, err);
+            return { peak: 0, ok: false };
+        } finally {
+            stopStream(stream);
+            if (video) {
+                try { video.pause(); video.removeAttribute('src'); video.load(); video.remove(); } catch (e) { /* ignore */ }
+            }
+        }
+    }
+
+    async function runAll() {
+        runAllBtn.disabled = true;
+        runAllBtn.textContent = 'Running… watch the meters';
+        rowsEl.innerHTML = '';
+        logEl.textContent = '';
+        const safe = async (fn, label) => {
+            try {
+                return await Promise.race([
+                    fn(),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error(label + ' timed out after 20s')), 20000)),
+                ]);
+            } catch (e) {
+                log(label, 'FAILED:', e && e.message);
+                return { peak: 0, ok: false };
+            }
+        };
+
+        const results = [];
+        results.push(await safe(runMicOnly, 'test 1'));
+        await sleep(400);
+        results.push(await safe(runCameraMic, 'test 2'));
+        await sleep(400);
+        results.push(await safe(runAppConstraints, 'test 3'));
+        await sleep(400);
+        results.push(await safe(runCameraMicWhileRecording, 'test 4'));
+        await sleep(400);
+        results.push(await safe(runAfterVideo, 'test 5'));
+        await sleep(400);
+        results.push(await safe(runWithExistingContext, 'test 6'));
+
+        log('');
+        log('SUMMARY');
+        log('1 mic only:', results[0].ok ? 'AUDIO' : 'SILENT', '(' + results[0].peak.toFixed(5) + ')');
+        log('2 camera+mic:', results[1].ok ? 'AUDIO' : 'SILENT', '(' + results[1].peak.toFixed(5) + ')');
+        log('3 app constraints:', results[2].ok ? 'AUDIO' : 'SILENT', '(' + results[2].peak.toFixed(5) + ')');
+        log('4 while recording:', results[3].ok ? 'AUDIO' : 'SILENT', '(' + results[3].peak.toFixed(5) + ')');
+        log('5 after a video played:', results[4].ok ? 'AUDIO' : 'SILENT', '(' + results[4].peak.toFixed(5) + ')');
+        log('6 another context running:', results[5].ok ? 'AUDIO' : 'SILENT', '(' + results[5].peak.toFixed(5) + ')');
+        if (!results[0].ok) {
+            log('VERDICT: this page cannot get microphone audio at all on this device right now (device/OS level).');
+        } else if (!results[1].ok) {
+            log('VERDICT: the microphone works, but a capture that includes the camera is silent (device/OS level).');
+        } else if (!results[3].ok) {
+            log('VERDICT: camera+mic works, but recording silences it.');
+        } else if (!results[4].ok) {
+            log('VERDICT: a playing video silences the microphone (app-level: stop media before the take).');
+        } else if (!results[5].ok) {
+            log('VERDICT: a second AudioContext silences the microphone (app-level: close other contexts first).');
+        } else {
+            log('VERDICT: every capture shape delivered audio. The device is fine right now — the app is doing something else.');
+        }
+        runAllBtn.disabled = false;
+        runAllBtn.textContent = 'Run all tests again';
+    }
+
+    runAllBtn.addEventListener('click', () => { runAll().catch((e) => log('runAll failed:', e && e.message)); });
+    showEnvironment().catch((e) => log('env failed:', e && e.message));
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Audio lab 5 — the app's full capture shape</title>
+<style>
+    :root { color-scheme: dark; }
+    body { margin: 0; padding: 20px 18px 60px; font: 17px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0b1220; color: #e7eefc; }
+    h1 { font-size: 20px; margin: 0 0 6px; }
+    .hint { color: #9fb3d1; margin: 0 0 16px; font-size: 15px; }
+    button { display: block; width: 100%; padding: 18px 16px; font-size: 18px; font-weight: 700; border: 0; border-radius: 14px; background: #2f6df6; color: #fff; }
+    button:active { opacity: .8; }
+    table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+    td, th { padding: 9px 6px; border-bottom: 1px solid #22304a; text-align: left; font-size: 14px; vertical-align: top; }
+    th { color: #9fb3d1; font-weight: 600; }
+    .pass { color: #54e08a; font-weight: 700; }
+    .fail { color: #ff6b6b; font-weight: 700; }
+    pre { white-space: pre-wrap; word-break: break-word; font-size: 12px; line-height: 1.45; background: #0f1a2e; border: 1px solid #22304a; border-radius: 10px; padding: 10px; color: #b9c9e2; }
+    video { width: 34%; border-radius: 10px; background: #000; }
+</style>
+</head>
+<body>
+<h1>Audio lab 5 — the app's full capture shape</h1>
+<p class="hint">
+    Each part of the graph has already been proven fine on its own (mic, camera+mic, constraints, the
+    worklet, the recorder). This page combines them in the app's exact order. One tap, ~70 s.
+</p>
+
+<div id="verdictBox" style="display:none;margin:0 0 16px;padding:16px 14px;border-radius:14px;background:#12203a;border:2px solid #2f6df6;text-align:center">
+    <div style="font-size:13px;letter-spacing:.14em;color:#9fb3d1;text-transform:uppercase">Result code</div>
+    <div id="verdictCode" style="font-size:64px;font-weight:800;line-height:1;margin:6px 0 4px">—</div>
+    <div id="verdictText" style="font-size:16px;color:#e7eefc"></div>
+    <div style="font-size:13px;color:#9fb3d1;margin-top:8px">This result is sent to the developer automatically. Nothing to copy.</div>
+</div>
+
+<button id="runAll">Run the 5 tests</button>
+
+<table>
+    <thead><tr><th>Test</th><th>Probe</th><th>Worklet</th></tr></thead>
+    <tbody id="rows"></tbody>
+</table>
+
+<video id="preview" playsinline muted autoplay></video>
+
+<details style="margin-top:18px">
+    <summary style="color:#9fb3d1;font-size:14px">Raw log (not needed — the letter above is the result)</summary>
+    <pre id="log"></pre>
+</details>
+
+<script>
+(function () {
+    'use strict';
+
+    if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
+        navigator.serviceWorker.getRegistrations().then((rs) => rs.forEach((r) => r.unregister())).catch(() => {});
+    }
+
+    const SUPABASE_URL = 'https://jbrbmbmupjfangqvaevx.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_xd9bYag0bVG7m74CemthjQ_sJEbQG9S';
+    window.__labResults = [];
+
+    function report(payload) {
+        try {
+            fetch(`${SUPABASE_URL}/rest/v1/field_diag`, {
+                method: 'POST',
+                keepalive: true,
+                headers: {
+                    apikey: SUPABASE_ANON_KEY,
+                    Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+                    'Content-Type': 'application/json',
+                    Prefer: 'return=minimal',
+                },
+                body: JSON.stringify({ source: 'audio-lab5', payload }),
+            }).catch((e) => log('report failed:', e && e.message));
+        } catch (e) {
+            log('report failed:', e && e.message);
+        }
+    }
+
+    // The app's own processor, verbatim (src/workers/whisper/audio-processor.js).
+    const WORKLET_SRC = `
+class AudioProcessor extends AudioWorkletProcessor {
+    process(inputs, outputs, parameters) {
+        const input = inputs[0];
+        if (input.length > 0) {
+            const channelData = input[0];
+            this.port.postMessage(new Float32Array(channelData));
+        }
+        return true;
+    }
+}
+registerProcessor('audio-processor', AudioProcessor);
+`;
+    let workletUrl = null;
+    const getWorkletUrl = () => {
+        if (!workletUrl) workletUrl = URL.createObjectURL(new Blob([WORKLET_SRC], { type: 'application/javascript' }));
+        return workletUrl;
+    };
+
+    const rowsEl = document.getElementById('rows');
+    const logEl = document.getElementById('log');
+    const runBtn = document.getElementById('runAll');
+    const preview = document.getElementById('preview');
+    const PASS = 0.01;
+
+    const log = (...parts) => {
+        const line = parts.join(' ');
+        console.log('[lab5]', line);
+        logEl.textContent += line + '\n';
+    };
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const withTimeout = (p, ms, label) => Promise.race([
+        p,
+        new Promise((_, rej) => setTimeout(() => rej(new Error(label + ' did not settle in ' + ms + 'ms')), ms)),
+    ]);
+
+    function addRow(name) {
+        const tr = document.createElement('tr');
+        const a = document.createElement('td'); a.textContent = name;
+        const b = document.createElement('td'); b.textContent = '—';
+        const c = document.createElement('td'); c.textContent = '—';
+        tr.append(a, b, c); rowsEl.appendChild(tr);
+        return { b, c };
+    }
+    function setRow(row, probe, worklet) {
+        row.b.textContent = probe === null ? '—' : Number(probe).toFixed(5) + (probe > PASS ? ' ✓' : ' ✗');
+        row.c.textContent = worklet === null ? '—' : Number(worklet).toFixed(5) + (worklet > PASS ? ' ✓' : ' ✗');
+        row.b.className = probe > PASS ? 'pass' : 'fail';
+        row.c.className = worklet !== null ? (worklet > PASS ? 'pass' : 'fail') : '';
+    }
+
+    const newCtx = () => new (window.AudioContext || window.webkitAudioContext)();
+    const sessionType = () => (navigator.audioSession ? navigator.audioSession.type : 'unavailable');
+
+    // The app's exact constraints (src/modules/speech/speech.web.js getMediaConstraints).
+    const APP_CONSTRAINTS = {
+        video: { aspectRatio: { ideal: 16 / 9 }, facingMode: 'user' },
+        audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+    };
+
+    async function open({ camera }) {
+        const constraints = camera ? APP_CONSTRAINTS : { audio: true };
+        const stream = await withTimeout(navigator.mediaDevices.getUserMedia(constraints), 12000, 'getUserMedia');
+        const t = stream.getAudioTracks()[0];
+        log('  mic:', t.label, t.readyState, 'muted=' + t.muted, 'session=' + sessionType());
+        return stream;
+    }
+    const stop = (s) => { if (s) s.getTracks().forEach((t) => { try { t.stop(); } catch (e) { /* ignore */ } }); };
+
+    async function startRecorder(stream) {
+        const candidates = ['video/mp4', 'video/webm;codecs=vp9', 'video/webm'];
+        let mime = '';
+        for (const c of candidates) {
+            if (window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(c)) { mime = c; break; }
+        }
+        const rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+        const chunks = [];
+        rec.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+        rec.start(250);
+        await sleep(600);
+        log('  recorder:', rec.state, mime || '(default)');
+        return { rec, chunks };
+    }
+
+    async function buildTap(stream, ctx) {
+        await withTimeout(ctx.audioWorklet.addModule(getWorkletUrl()), 8000, 'addModule');
+        const node = new AudioWorkletNode(ctx, 'audio-processor');
+        let samples = 0;
+        let peak = 0;
+        node.port.onmessage = (e) => {
+            samples += e.data.length;
+            for (let i = 0; i < e.data.length; i++) {
+                const v = Math.abs(e.data[i]);
+                if (v > peak) peak = v;
+            }
+        };
+        const source = ctx.createMediaStreamSource(stream);
+        const analyser = ctx.createAnalyser();
+        analyser.fftSize = 2048;
+        const gain = ctx.createGain();
+        gain.gain.value = 0.001;
+        source.connect(analyser);
+        source.connect(node);
+        node.connect(gain);
+        gain.connect(ctx.destination);
+        return { analyser, get: () => ({ peak, samples }) };
+    }
+
+    async function measure(tap, ms) {
+        const buf = new Float32Array(tap.analyser.fftSize);
+        let probePeak = 0;
+        const end = performance.now() + ms;
+        while (performance.now() < end) {
+            await sleep(100);
+            tap.analyser.getFloatTimeDomainData(buf);
+            for (let i = 0; i < buf.length; i++) { const v = Math.abs(buf[i]); if (v > probePeak) probePeak = v; }
+        }
+        return { probePeak, ...tap.get() };
+    }
+
+    async function freshContext() {
+        const ctx = newCtx();
+        try { await withTimeout(ctx.resume(), 1500, 'ctx.resume'); } catch (e) { log('  ctx.resume:', e.message); }
+        log('  context:', ctx.sampleRate, ctx.state);
+        return ctx;
+    }
+
+    async function playPreview(stream) {
+        try {
+            preview.srcObject = stream;
+            preview.muted = true;
+            await withTimeout(preview.play(), 4000, 'preview.play');
+            await sleep(700);
+            log('  preview: playing=', !preview.paused, 'size=', preview.videoWidth + 'x' + preview.videoHeight);
+        } catch (e) {
+            log('  preview:', e.message);
+        }
+    }
+    function clearPreview() {
+        try { preview.pause(); preview.srcObject = null; } catch (e) { /* ignore */ }
+    }
+
+    async function scenario({ camera, recorder, previewOn }) {
+        const ctx = await freshContext();
+        const stream = await open({ camera });
+        let rec = null;
+        try {
+            if (previewOn) await playPreview(stream);
+            if (recorder) rec = await startRecorder(stream);
+            const tap = await buildTap(stream, ctx);
+            const m = await measure(tap, 2600);
+            log(`  probe ${m.probePeak.toFixed(5)} | worklet ${m.peak.toFixed(5)} | frames ${m.samples}`);
+            return m;
+        } finally {
+            if (rec) { try { rec.rec.stop(); } catch (e) { /* ignore */ } }
+            clearPreview();
+            stop(stream);
+            try { await withTimeout(ctx.close(), 1500, 'ctx.close'); } catch (e) { /* ignore */ }
+            await sleep(400);
+        }
+    }
+
+    async function test1() {  // control
+        const row = addRow('1. Control: mic + worklet');
+        const m = await scenario({ camera: false, recorder: false, previewOn: false });
+        setRow(row, m.probePeak, m.peak);
+        window.__labResults.push({ t: 1, probe: +m.probePeak.toFixed(5), worklet: +m.peak.toFixed(5), frames: m.samples });
+        return m.probePeak > PASS && m.peak > PASS;
+    }
+    async function test2() {  // + recorder (app starts the recorder before the tap)
+        const row = addRow('2. Mic + RECORDER running + worklet');
+        const m = await scenario({ camera: false, recorder: true, previewOn: false });
+        setRow(row, m.probePeak, m.peak);
+        window.__labResults.push({ t: 2, probe: +m.probePeak.toFixed(5), worklet: +m.peak.toFixed(5), frames: m.samples });
+        return m.probePeak > PASS && m.peak > PASS;
+    }
+    async function test3() {  // + camera stream
+        const row = addRow('3. Camera+mic + worklet');
+        const m = await scenario({ camera: true, recorder: false, previewOn: false });
+        setRow(row, m.probePeak, m.peak);
+        window.__labResults.push({ t: 3, probe: +m.probePeak.toFixed(5), worklet: +m.peak.toFixed(5), frames: m.samples });
+        return m.probePeak > PASS && m.peak > PASS;
+    }
+    async function test4() {  // + preview element
+        const row = addRow('4. Camera+mic + PREVIEW playing + worklet');
+        const m = await scenario({ camera: true, recorder: false, previewOn: true });
+        setRow(row, m.probePeak, m.peak);
+        window.__labResults.push({ t: 4, probe: +m.probePeak.toFixed(5), worklet: +m.peak.toFixed(5), frames: m.samples });
+        return m.probePeak > PASS && m.peak > PASS;
+    }
+    async function test5() {  // the app's exact shape
+        const row = addRow('5. THE APP: camera+mic + preview + recorder + worklet');
+        const m = await scenario({ camera: true, recorder: true, previewOn: true });
+        setRow(row, m.probePeak, m.peak);
+        window.__labResults.push({ t: 5, probe: +m.probePeak.toFixed(5), worklet: +m.peak.toFixed(5), frames: m.samples });
+        return m.probePeak > PASS && m.peak > PASS;
+    }
+
+    async function run(fn, label) {
+        try { return await withTimeout(fn(), 60000, label); }
+        catch (e) { log(label, 'FAILED:', e && e.message); return false; }
+    }
+
+    async function runAll() {
+        runBtn.disabled = true;
+        runBtn.textContent = 'Running…';
+        rowsEl.innerHTML = '';
+        logEl.textContent = '';
+        window.__labResults = [];
+        log('userAgent:', navigator.userAgent);
+        log('audioSession:', sessionType());
+        log('');
+
+        const r = [];
+        r.push(await run(test1, 'test 1')); await sleep(500);
+        r.push(await run(test2, 'test 2')); await sleep(500);
+        r.push(await run(test3, 'test 3')); await sleep(500);
+        r.push(await run(test4, 'test 4')); await sleep(500);
+        r.push(await run(test5, 'test 5'));
+
+        let code = 'T';
+        let text = 'Everything passes — the audio graph is not the cause.';
+        if (!r[0]) { code = 'U'; text = 'The control failed — reload the page and run again.'; }
+        else if (!r[1]) { code = 'P'; text = 'A running MediaRecorder silences the worklet tap.'; }
+        else if (!r[2]) { code = 'Q'; text = 'The camera+mic stream silences the worklet tap.'; }
+        else if (!r[3]) { code = 'R'; text = 'The video preview element silences the worklet tap.'; }
+        else if (!r[4]) { code = 'S'; text = 'Only the full combination fails — camera + preview + recorder + worklet.'; }
+
+        log('VERDICT:', code, text);
+        const box = document.getElementById('verdictBox');
+        document.getElementById('verdictCode').textContent = code;
+        document.getElementById('verdictText').textContent = text;
+        box.style.display = '';
+        box.scrollIntoView({ block: 'start' });
+        report({ code, text, results: window.__labResults, ua: navigator.userAgent, audioSession: sessionType(), at: new Date().toISOString() });
+        log('reported to the developer (result code ' + code + ')');
+        runBtn.disabled = false;
+        runBtn.textContent = 'Run again';
+    }
+
+    runBtn.addEventListener('click', () => { runAll().catch((e) => log('runAll failed:', e && e.message)); });
+})();
+</script>
+</body>
+</html>
