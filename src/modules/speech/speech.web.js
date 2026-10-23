@@ -19,6 +19,7 @@ import {
     resolveFilterModeFromSearch,
     shouldUsePortraitComposite,
     paintFilterEffect,
+    createFaceBoxTracker,
 } from './portrait-capture-logic.js';
 import {
     shouldReleaseCaptureBeforePlayback,
@@ -97,6 +98,9 @@ let recordingFilterMode = 'none';
 let faceFilterInstance = null;
 let faceFilterCanvasEl = null;
 let faceFilterBox = null;
+// Holds + eases the detected box so a detector drop-out cannot make the mask
+// blink off (the light NN's confidence oscillates around the threshold).
+let faceBoxTracker = null;
 let faceFilterInitPromise = null;
 // Bumped by every teardown. An init that is still awaiting the library/model
 // compares against it and aborts, so a slow load can never resurrect the
@@ -168,14 +172,9 @@ async function initFaceFilter(sourceVideoEl) {
                     console.log('[Filter] face tracking ready, mode:', recordingFilterMode);
                 },
                 callbackTrack: (detectState) => {
-                    if (!detectState) return;
-                    // The object is reused by the library — copy the values.
-                    faceFilterBox = {
-                        detected: detectState.detected,
-                        x: detectState.x,
-                        y: detectState.y,
-                        s: detectState.s,
-                    };
+                    if (!detectState || !faceBoxTracker) return;
+                    faceBoxTracker.update(detectState, performance.now());
+                    faceFilterBox = faceBoxTracker.current(performance.now());
                 },
             });
         } catch (e) {
@@ -188,6 +187,7 @@ async function initFaceFilter(sourceVideoEl) {
 function teardownFaceFilter() {
     faceFilterGeneration += 1;
     faceFilterBox = null;
+    if (faceBoxTracker) { faceBoxTracker.reset(); faceBoxTracker = null; }
     faceFilterInitPromise = null;
     const instance = faceFilterInstance;
     faceFilterInstance = null;
@@ -290,6 +290,7 @@ function createPortraitCaptureStream(rawStream) {
     // Spike-only: start face tracking once the first frame is decodable, reusing
     // this element so no second camera capture is opened.
     if (recordingFilterMode !== 'none') {
+        faceBoxTracker = createFaceBoxTracker();
         video.addEventListener('loadeddata', () => { initFaceFilter(video); }, { once: true });
     }
 
@@ -311,11 +312,16 @@ function createPortraitCaptureStream(rawStream) {
             if (!filterScratchCanvas) {
                 filterScratchCanvas = document.createElement('canvas');
             }
+            // Resolve the held box per frame so an expired hold actually hides.
+            faceFilterBox = faceBoxTracker ? faceBoxTracker.current(performance.now()) : null;
             paintFilterEffect({
                 ctx,
                 source: canvas,
                 filterMode: recordingFilterMode,
                 faceBox: faceFilterBox,
+                videoWidth: video.videoWidth,
+                videoHeight: video.videoHeight,
+                crop: rect,
                 canvasWidth: canvas.width,
                 canvasHeight: canvas.height,
                 scratch: filterScratchCanvas,

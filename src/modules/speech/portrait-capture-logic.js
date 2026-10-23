@@ -88,19 +88,78 @@ export function shouldUsePortraitComposite({ isIOS = false, filterMode = 'none' 
 
 /**
  * Jeeliz detectState → a pixel rect on the composite canvas.
- * `x`/`y` are in [-1, 1] with y measured from the BOTTOM; `s` is the square
- * detection frame's width as a fraction of the viewport width.
+ *
+ * `x`/`y` are in [-1, 1] with y measured from the BOTTOM, and `s` is the square
+ * detection frame's width as a fraction of the CAMERA frame width — NOT of the
+ * canvas. The composite centre-crops that camera frame into 9:16 (a 1280×720
+ * camera fills a 405-wide slice), so the box must be mapped through the same
+ * `compositeCropRect` the frame is painted with. Mapping it straight onto the
+ * canvas puts the mask tens of percent off the face on any landscape camera.
  */
-export function faceBoxToCanvasRect(faceBox, canvasWidth, canvasHeight) {
-    if (!faceBox || !Number.isFinite(canvasWidth) || !Number.isFinite(canvasHeight)) return null;
+export function faceBoxToCanvasRect({ faceBox, videoWidth, videoHeight, crop, canvasWidth, canvasHeight }) {
+    if (!faceBox || !crop) return null;
+    if (!Number.isFinite(videoWidth) || videoWidth <= 0) return null;
+    if (!Number.isFinite(videoHeight) || videoHeight <= 0) return null;
+    if (!Number.isFinite(canvasWidth) || canvasWidth <= 0) return null;
+    if (!Number.isFinite(canvasHeight) || canvasHeight <= 0) return null;
     const { x, y, s, detected } = faceBox;
     if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(s)) return null;
     if (Number.isFinite(detected) && detected < FACE_DETECTED_THRESHOLD) return null;
-    const cx = ((x + 1) / 2) * canvasWidth;
-    const cy = ((1 - y) / 2) * canvasHeight;
-    const size = Math.abs(s) * canvasWidth * FACE_BOX_PADDING;
-    if (size <= 0) return null;
+    // Centre of the detection frame, in CAMERA pixels (y from the top).
+    const videoCx = ((x + 1) / 2) * videoWidth;
+    const videoCy = ((1 - y) / 2) * videoHeight;
+    // The crop maps crop.sw camera px onto canvasWidth canvas px (cover fill, so
+    // both axes share the scale).
+    const scale = canvasWidth / crop.sw;
+    const size = Math.abs(s) * videoWidth * scale * FACE_BOX_PADDING;
+    if (!(size > 0) || !Number.isFinite(scale)) return null;
+    const cx = (videoCx - crop.sx) * scale;
+    const cy = (videoCy - crop.sy) * (canvasHeight / crop.sh);
     return { rx: cx - size / 2, ry: cy - size / 2, rw: size, rh: size };
+}
+
+export const FACE_BOX_HOLD_MS = 900;
+export const FACE_BOX_SMOOTHING = 0.35;
+
+/**
+ * Keeps a stable box across the detector's drop-outs.
+ *
+ * The light NN's `detected` oscillates around the threshold, so a raw per-frame
+ * box makes the mask blink and the face show through between blinks — which is
+ * both ugly and a privacy leak. A box is therefore HELD for `holdMs` after the
+ * last confident detection, and positions are eased so the mask does not jitter.
+ * `update` takes the raw state; `current` is what the painter draws (null once
+ * the hold expires).
+ */
+export function createFaceBoxTracker({ holdMs = FACE_BOX_HOLD_MS, smoothing = FACE_BOX_SMOOTHING } = {}) {
+    let box = null;
+    let lastSeenAtMs = null;
+    return {
+        update(faceBox, nowMs) {
+            if (!faceBox) return;
+            if (!Number.isFinite(faceBox.detected) || faceBox.detected < FACE_DETECTED_THRESHOLD) return;
+            if (!Number.isFinite(faceBox.x) || !Number.isFinite(faceBox.y) || !Number.isFinite(faceBox.s)) return;
+            lastSeenAtMs = nowMs;
+            if (!box) {
+                box = { x: faceBox.x, y: faceBox.y, s: faceBox.s };
+                return;
+            }
+            box = {
+                x: box.x + (faceBox.x - box.x) * smoothing,
+                y: box.y + (faceBox.y - box.y) * smoothing,
+                s: box.s + (faceBox.s - box.s) * smoothing,
+            };
+        },
+        current(nowMs) {
+            if (!box || lastSeenAtMs === null) return null;
+            if (nowMs - lastSeenAtMs > holdMs) return null;
+            return { detected: 1, x: box.x, y: box.y, s: box.s };
+        },
+        reset() {
+            box = null;
+            lastSeenAtMs = null;
+        },
+    };
 }
 
 /**
@@ -165,9 +224,9 @@ export function paintFaceMask({ ctx, box }) {
  * Returns the effect that was actually painted ('none' when nothing applied —
  * no face yet, unknown mode, or a drawing failure), so the caller can log it.
  */
-export function paintFilterEffect({ ctx, source, filterMode, faceBox, canvasWidth, canvasHeight, scratch }) {
+export function paintFilterEffect({ ctx, source, filterMode, faceBox, videoWidth, videoHeight, crop, canvasWidth, canvasHeight, scratch }) {
     if (filterMode !== 'blur' && filterMode !== 'mask') return 'none';
-    const box = faceBoxToCanvasRect(faceBox, canvasWidth, canvasHeight);
+    const box = faceBoxToCanvasRect({ faceBox, videoWidth, videoHeight, crop, canvasWidth, canvasHeight });
     if (filterMode === 'blur') {
         // A face-less frame falls back to a full-frame soft focus: the learner
         // asked for privacy, so never leave the raw frame visible.

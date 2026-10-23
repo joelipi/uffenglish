@@ -16,6 +16,7 @@ import {
     resolveFilterModeFromSearch,
     shouldUsePortraitComposite,
     faceBoxToCanvasRect,
+    createFaceBoxTracker,
 } from './portrait-capture-logic.js';
 
 describe('resolveCompositeDimensions', () => {
@@ -357,24 +358,86 @@ describe('shouldUsePortraitComposite', () => {
 });
 
 describe('faceBoxToCanvasRect', () => {
-    it('maps a centred half-width face to the frame centre', () => {
-        const rect = faceBoxToCanvasRect({ detected: 1, x: 0, y: 0, s: 0.5 }, 720, 1280);
-        expect(rect.rx + rect.rw / 2).toBe(360);
-        expect(rect.ry + rect.rh / 2).toBe(640);
-        expect(rect.rw).toBe(rect.rh);
+    // A 1280×720 landscape camera cover-filled into a 720×1280 canvas: the crop
+    // keeps a 405-wide slice centred at x=437.5, which is the mapping the mask
+    // must follow (the Android "mask off my face" bug).
+    const videoWidth = 1280;
+    const videoHeight = 720;
+    const canvasWidth = 720;
+    const canvasHeight = 1280;
+    const crop = { sx: 437.5, sy: 0, sw: 405, sh: 720 };
+
+    it('maps a centred face to the frame centre', () => {
+        const rect = faceBoxToCanvasRect({
+            faceBox: { detected: 1, x: 0, y: 0, s: 0.3 },
+            videoWidth, videoHeight, crop, canvasWidth, canvasHeight,
+        });
+        expect(rect.rx + rect.rw / 2).toBeCloseTo(360, 5);
+        expect(rect.ry + rect.rh / 2).toBeCloseTo(640, 5);
+        expect(rect.rw).toBeCloseTo(rect.rh, 5);
     });
+
+    it('follows the crop: a face at the camera centre is NOT the canvas centre when the crop is off-centre', () => {
+        const offCentre = { sx: 0, sy: 0, sw: 405, sh: 720 };
+        const centred = faceBoxToCanvasRect({
+            faceBox: { detected: 1, x: 0, y: 0, s: 0.3 },
+            videoWidth, videoHeight, crop: offCentre, canvasWidth, canvasHeight,
+        });
+        // centre of the 1280-wide camera mapped through a left-edge crop lands
+        // far to the RIGHT of the canvas centre
+        expect(centred.rx + centred.rw / 2).toBeGreaterThan(canvasWidth / 2);
+    });
+
     it('flips y (Jeeliz measures it from the bottom)', () => {
-        const high = faceBoxToCanvasRect({ detected: 1, x: 0, y: 0.5, s: 0.2 }, 720, 1280);
-        const low = faceBoxToCanvasRect({ detected: 1, x: 0, y: -0.5, s: 0.2 }, 720, 1280);
+        const high = faceBoxToCanvasRect({ faceBox: { detected: 1, x: 0, y: 0.5, s: 0.2 }, videoWidth, videoHeight, crop, canvasWidth, canvasHeight });
+        const low = faceBoxToCanvasRect({ faceBox: { detected: 1, x: 0, y: -0.5, s: 0.2 }, videoWidth, videoHeight, crop, canvasWidth, canvasHeight });
         expect(high.ry).toBeLessThan(low.ry);
     });
+
     it('no face above the detection threshold → null', () => {
-        expect(faceBoxToCanvasRect({ detected: 0.1, x: 0, y: 0, s: 0.5 }, 720, 1280)).toBeNull();
+        expect(faceBoxToCanvasRect({ faceBox: { detected: 0.1, x: 0, y: 0, s: 0.5 }, videoWidth, videoHeight, crop, canvasWidth, canvasHeight })).toBeNull();
     });
+
     it('missing / non-finite input → null', () => {
-        expect(faceBoxToCanvasRect(null, 720, 1280)).toBeNull();
-        expect(faceBoxToCanvasRect({ detected: 1, x: NaN, y: 0, s: 0.5 }, 720, 1280)).toBeNull();
-        expect(faceBoxToCanvasRect({ detected: 1, x: 0, y: 0, s: 0.5 }, 0, 0)).toBeNull();
+        expect(faceBoxToCanvasRect({ faceBox: null, videoWidth, videoHeight, crop, canvasWidth, canvasHeight })).toBeNull();
+        expect(faceBoxToCanvasRect({ faceBox: { detected: 1, x: NaN, y: 0, s: 0.5 }, videoWidth, videoHeight, crop, canvasWidth, canvasHeight })).toBeNull();
+        expect(faceBoxToCanvasRect({ faceBox: { detected: 1, x: 0, y: 0, s: 0.5 }, videoWidth: 0, videoHeight, crop, canvasWidth, canvasHeight })).toBeNull();
+        expect(faceBoxToCanvasRect({ faceBox: { detected: 1, x: 0, y: 0, s: 0.5 }, videoWidth, videoHeight, crop: null, canvasWidth, canvasHeight })).toBeNull();
+    });
+});
+
+describe('createFaceBoxTracker', () => {
+    it('holds the last box through a drop-out instead of blinking off', () => {
+        const tracker = createFaceBoxTracker({ holdMs: 900, smoothing: 0.35 });
+        tracker.update({ detected: 0.9, x: 0, y: 0, s: 0.3 }, 0);
+        // detector loses the face for 500 ms
+        tracker.update({ detected: 0.1, x: 0, y: 0, s: 0.3 }, 500);
+        expect(tracker.current(500)).not.toBeNull();
+    });
+
+    it('releases the box once the hold expires', () => {
+        const tracker = createFaceBoxTracker({ holdMs: 900 });
+        tracker.update({ detected: 0.9, x: 0, y: 0, s: 0.3 }, 0);
+        expect(tracker.current(901)).toBeNull();
+    });
+
+    it('never reports a box before the first detection', () => {
+        const tracker = createFaceBoxTracker();
+        expect(tracker.current(100)).toBeNull();
+    });
+
+    it('eases toward the new position instead of jumping', () => {
+        const tracker = createFaceBoxTracker({ smoothing: 0.5 });
+        tracker.update({ detected: 0.9, x: 0, y: 0, s: 0.3 }, 0);
+        tracker.update({ detected: 0.9, x: 0.5, y: 0, s: 0.3 }, 10);
+        expect(tracker.current(10).x).toBeCloseTo(0.25, 5);
+    });
+
+    it('reset drops the held box', () => {
+        const tracker = createFaceBoxTracker();
+        tracker.update({ detected: 0.9, x: 0, y: 0, s: 0.3 }, 0);
+        tracker.reset();
+        expect(tracker.current(0)).toBeNull();
     });
 });
 
