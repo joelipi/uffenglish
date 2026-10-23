@@ -1,0 +1,347 @@
+// ===========================================================================
+// FRIEND-course source config — the authoring surface, one layer above the
+// app config. Each pair groups an ASK lesson (a, c, e, ...) with its ANSWER
+// lesson (b, d, f, ...); the app still receives them as separate lessons.
+//
+// Authored here (plain English strings; translations are the translator script's
+// job and live outside this file): course header, per-pair lesson ids/titles, and
+// per topic the question variants, the branch labels, and the answer variants. Nothing else.
+// Everything else is derived — never written here:
+//   step video slugs:   {course}-{askId|ansId}-{step:02}
+//   take slugs:         {video}-{take:02}
+//   UGC clips:          {recorder}-{inviter}-{course}-{lesson}-{step:02}  (share
+//                       codes; recorder first, the code that invited them second —
+//                       the same code twice when self-initiated, e.g. the first
+//                       ask lesson). No "response" marker: the step number is
+//                       already unique within the lesson.
+//   overlay HTML:       rungs template; take N shows rungs 1..N-1 plain,
+//                       rung N filled + bold (the spoken line), rest blank
+//   SRT / cue arrays:   from the phrases in order (timings measured at render)
+//   routing:            each pair's topics run question -> branch -> answers; the
+//                       branch's k-th choice targets the k-th answer group; each
+//                       answer advances past its group (1-4 choices supported)
+//   republish:          the answer lesson replays each topic's question video with
+//                       publishLessonId = the ask lesson id
+//   lesson framing:     every lesson opens straight on content (no intro step);
+//                       recap settings + success step are code-owned per the
+//                       friend-lesson rules (recap = UGC only; overlay shareCta);
+//                       the chain's LAST answer lesson closes with a code-owned
+//                       goodbye block instead of the record phase (there is no
+//                       next question set to record)
+//   response type:      every content step is friendClosedResponse; the branch step
+//                       is the one with choices
+// Within a pair, a topic is written in order: question variants, friend clip +
+// branch labels, then the answer variants — so each topic is self-contained.
+// Media (background, mirror, effect, character, sounds, ...) is pipeline-only:
+// reserved slots, never emitted to the app config. Omitted here until used.
+//
+// The course subject is FRUIT PREFERENCES: every question is a choice between
+// two fruits, as if you're hosting a guest with two kinds of fruit in the fridge
+// and offering them. Countable fruits take "a/an"; non-countable ones
+// (pineapple, grapes, watermelon, cantaloupe, berries) take "some" or a
+// portion word ("a slice of", "a bit of"). All vocabulary is reusable in real life.
+// ===========================================================================
+{
+  "course": "fruit-preferences",
+  "title": "An apple or an orange?",
+  "hero": "src/assets/img/wouldyouratherhero.jpg",
+  "video_title": "Fruit preferences in English",
+  "mission": "talk about fruit preferences",
+  "tags": ["fruit", "food", "preferences"],
+  "levels": {
+    "A1": {
+      "en": "X or Y"
+    },
+    "A2": {
+      "en": "Can I get you X or Y?"
+    },
+    "B1": {
+      "en": "Could I offer you X or Y?"
+    },
+    "B2": {
+      "en": "How about I get you X or maybe Y?"
+    }
+  },
+  "rungs": [
+    "A1",
+    "A2",
+    "B1",
+    "B2"
+  ],
+  "pairs": [
+    {
+      "ask": {
+        "id": "a",
+        "title": "Fruit Preferences A"
+      },
+      "answer": {
+        "id": "b",
+        "title": "Fruit Preferences B"
+      },
+      "topics": [
+        {
+          "question": [
+            "An apple or an orange?",
+            "Can I get you an apple or an orange?",
+            "Could I offer you an apple or an orange?",
+            "How about I get you an apple or maybe an orange?"
+          ],
+          "choices": [
+            "An apple",
+            "An orange"
+          ],
+          "answers": [
+            [
+              "An apple.",
+              "I'll have an apple, please.",
+              "An apple would be great, thank you.",
+              "I'd really love an apple, thank you."
+            ],
+            [
+              "An orange.",
+              "I'll have an orange, please.",
+              "An orange would be great, thank you.",
+              "I'd really love an orange, thank you."
+            ]
+          ]
+        },
+        {
+          "question": [
+            "A banana or some grapes?",
+            "Can I get you a banana or some grapes?",
+            "Could I offer you a banana or some grapes?",
+            "How about I get you a banana or maybe some grapes?"
+          ],
+          "choices": [
+            "A banana",
+            "Some grapes"
+          ],
+          "answers": [
+            [
+              "A banana.",
+              "I'll have a banana, please.",
+              "A banana would be great, thank you.",
+              "I'd really love a banana, thank you."
+            ],
+            [
+              "Some grapes.",
+              "I'll have some grapes, please.",
+              "Some grapes would be great, thank you.",
+              "I'd really love some grapes, thank you."
+            ]
+          ]
+        },
+        {
+          "question": [
+            "Some pineapple or a mango?",
+            "Can I get you some pineapple or a mango?",
+            "Could I offer you a slice of pineapple or a mango?",
+            "How about I get you a bit of pineapple or maybe a mango?"
+          ],
+          "choices": [
+            "Some pineapple",
+            "A mango"
+          ],
+          "answers": [
+            [
+              "Some pineapple.",
+              "I'll have some pineapple, please.",
+              "A slice of pineapple would be great, thank you.",
+              "I'd really love a bit of pineapple, thank you."
+            ],
+            [
+              "A mango.",
+              "I'll have a mango, please.",
+              "A mango would be great, thank you.",
+              "I'd really love a mango, thank you."
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "ask": {
+        "id": "c",
+        "title": "Fruit Preferences C"
+      },
+      "answer": {
+        "id": "d",
+        "title": "Fruit Preferences D"
+      },
+      "topics": [
+        {
+          "question": [
+            "A peach or a plum?",
+            "Can I get you a peach or a plum?",
+            "Could I offer you a peach or a plum?",
+            "How about I get you a peach or maybe a plum?"
+          ],
+          "choices": [
+            "A peach",
+            "A plum"
+          ],
+          "answers": [
+            [
+              "A peach.",
+              "I'll have a peach, please.",
+              "A peach would be great, thank you.",
+              "I'd really love a peach, thank you."
+            ],
+            [
+              "A plum.",
+              "I'll have a plum, please.",
+              "A plum would be great, thank you.",
+              "I'd really love a plum, thank you."
+            ]
+          ]
+        },
+        {
+          "question": [
+            "A strawberry or some blueberries?",
+            "Can I get you a strawberry or some blueberries?",
+            "Could I offer you a strawberry or some blueberries?",
+            "How about I get you a strawberry or maybe some blueberries?"
+          ],
+          "choices": [
+            "A strawberry",
+            "Some blueberries"
+          ],
+          "answers": [
+            [
+              "A strawberry.",
+              "I'll have a strawberry, please.",
+              "A strawberry would be great, thank you.",
+              "I'd really love a strawberry, thank you."
+            ],
+            [
+              "Some blueberries.",
+              "I'll have some blueberries, please.",
+              "Some blueberries would be great, thank you.",
+              "I'd really love some blueberries, thank you."
+            ]
+          ]
+        },
+        {
+          "question": [
+            "A cherry or some raspberries?",
+            "Can I get you a cherry or some raspberries?",
+            "Could I offer you a cherry or some raspberries?",
+            "How about I get you a cherry or maybe some raspberries?"
+          ],
+          "choices": [
+            "A cherry",
+            "Some raspberries"
+          ],
+          "answers": [
+            [
+              "A cherry.",
+              "I'll have a cherry, please.",
+              "A cherry would be great, thank you.",
+              "I'd really love a cherry, thank you."
+            ],
+            [
+              "Some raspberries.",
+              "I'll have some raspberries, please.",
+              "Some raspberries would be great, thank you.",
+              "I'd really love some raspberries, thank you."
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "ask": {
+        "id": "e",
+        "title": "Fruit Preferences E"
+      },
+      "answer": {
+        "id": "f",
+        "title": "Fruit Preferences F"
+      },
+      "closing": {
+        "id": "g",
+        "title": "Fruit Preferences G"
+      },
+      "topics": [
+        {
+          "question": [
+            "Some watermelon or some cantaloupe?",
+            "Can I get you some watermelon or some cantaloupe?",
+            "Could I offer you a slice of watermelon or a slice of cantaloupe?",
+            "How about I get you a bit of watermelon or maybe a bit of cantaloupe?"
+          ],
+          "choices": [
+            "Some watermelon",
+            "Some cantaloupe"
+          ],
+          "answers": [
+            [
+              "Some watermelon.",
+              "I'll have some watermelon, please.",
+              "A slice of watermelon would be great, thank you.",
+              "I'd really love a bit of watermelon, thank you."
+            ],
+            [
+              "Some cantaloupe.",
+              "I'll have some cantaloupe, please.",
+              "A slice of cantaloupe would be great, thank you.",
+              "I'd really love a bit of cantaloupe, thank you."
+            ]
+          ]
+        },
+        {
+          "question": [
+            "A lemon or a lime?",
+            "Can I get you a lemon or a lime?",
+            "Could I offer you a lemon or a lime?",
+            "How about I get you a lemon or maybe a lime?"
+          ],
+          "choices": [
+            "A lemon",
+            "A lime"
+          ],
+          "answers": [
+            [
+              "A lemon.",
+              "I'll have a lemon, please.",
+              "A lemon would be great, thank you.",
+              "I'd really love a lemon, thank you."
+            ],
+            [
+              "A lime.",
+              "I'll have a lime, please.",
+              "A lime would be great, thank you.",
+              "I'd really love a lime, thank you."
+            ]
+          ]
+        },
+        {
+          "question": [
+            "A kiwi or some pomegranate?",
+            "Can I get you a kiwi or some pomegranate?",
+            "Could I offer you a kiwi or some pomegranate?",
+            "How about I get you a kiwi or maybe some pomegranate?"
+          ],
+          "choices": [
+            "A kiwi",
+            "Some pomegranate"
+          ],
+          "answers": [
+            [
+              "A kiwi.",
+              "I'll have a kiwi, please.",
+              "A kiwi would be great, thank you.",
+              "I'd really love a kiwi, thank you."
+            ],
+            [
+              "Some pomegranate.",
+              "I'll have some pomegranate, please.",
+              "Some pomegranate would be great, thank you.",
+              "I'd really love some pomegranate, thank you."
+            ]
+          ]
+        }
+      ]
+    }
+  ]
+}
