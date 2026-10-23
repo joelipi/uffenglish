@@ -1,0 +1,346 @@
+// ===========================================================================
+// FRIEND-course source config — the authoring surface, one layer above the
+// app config. Each pair groups an ASK lesson (a, c, e, ...) with its ANSWER
+// lesson (b, d, f, ...); the app still receives them as separate lessons.
+//
+// Authored here (plain English strings; translations are the translator script's
+// job and live outside this file): course header, per-pair lesson ids/titles, and
+// per topic the question variants, the branch labels, and the answer variants. Nothing else.
+// Everything else is derived — never written here:
+//   step video slugs:   {course}-{askId|ansId}-{step:02}
+//   take slugs:         {video}-{take:02}
+//   UGC clips:          {recorder}-{inviter}-{course}-{lesson}-{step:02}  (share
+//                       codes; recorder first, the code that invited them second —
+//                       the same code twice when self-initiated, e.g. the first
+//                       ask lesson). No "response" marker: the step number is
+//                       already unique within the lesson.
+//   overlay HTML:       rungs template; take N shows rungs 1..N-1 plain,
+//                       rung N filled + bold (the spoken line), rest blank
+//   SRT / cue arrays:   from the phrases in order (timings measured at render)
+//   routing:            each pair's topics run question -> branch -> answers; the
+//                       branch's k-th choice targets the k-th answer group; each
+//                       answer advances past its group (1-4 choices supported)
+//   republish:          the answer lesson replays each topic's question video with
+//                       publishLessonId = the ask lesson id
+//   lesson framing:     every lesson opens straight on content (no intro step);
+//                       recap settings + success step are code-owned per the
+//                       friend-lesson rules (recap = UGC only; overlay shareCta);
+//                       the chain's LAST answer lesson closes with a code-owned
+//                       goodbye block instead of the record phase (there is no
+//                       next question set to record)
+//   response type:      every content step is friendClosedResponse; the branch step
+//                       is the one with choices
+// Within a pair, a topic is written in order: question variants, friend clip +
+// branch labels, then the answer variants — so each topic is self-contained.
+// Media (background, mirror, effect, character, sounds, ...) is pipeline-only:
+// reserved slots, never emitted to the app config. Omitted here until used.
+//
+// The course subject is CARTOON PREFERENCES: the friend keeps asking which
+// cartoon character you are more like. Every character is one a global audience
+// knows (Mickey Mouse, Bugs Bunny, SpongeBob, Shrek, Elsa...), so the vocabulary
+// is reusable in real life and needs no cultural footnote.
+// ===========================================================================
+{
+  "course": "cartoon-preferences",
+  "title": "Mickey Mouse or Bugs Bunny?",
+  "hero": "src/assets/img/wouldyouratherhero.jpg",
+  "video_title": "Cartoon preferences in English",
+  "mission": "talk about cartoon characters",
+  "tags": ["cartoons", "personality", "preferences"],
+  "levels": {
+    "A1": {
+      "en": "X or Y"
+    },
+    "A2": {
+      "en": "Are you more like X or Y?"
+    },
+    "B1": {
+      "en": "Would you say you're more like X or Y?"
+    },
+    "B2": {
+      "en": "If someone asked which one you're more like, would you say X or Y?"
+    }
+  },
+  "rungs": [
+    "A1",
+    "A2",
+    "B1",
+    "B2"
+  ],
+  "pairs": [
+    {
+      "ask": {
+        "id": "a",
+        "title": "Cartoon Preferences A"
+      },
+      "answer": {
+        "id": "b",
+        "title": "Cartoon Preferences B"
+      },
+      "topics": [
+        {
+          "question": [
+            "Mickey Mouse or Bugs Bunny?",
+            "Are you more like Mickey Mouse or Bugs Bunny?",
+            "Would you say you're more like Mickey Mouse or Bugs Bunny?",
+            "If someone asked which one you're more like, would you say Mickey Mouse or Bugs Bunny?"
+          ],
+          "choices": [
+            "Mickey Mouse",
+            "Bugs Bunny"
+          ],
+          "answers": [
+            [
+              "Mickey Mouse.",
+              "I'm more like Mickey Mouse.",
+              "I'd say I'm more like Mickey Mouse.",
+              "If someone asked me, I'd say I'm more like Mickey Mouse."
+            ],
+            [
+              "Bugs Bunny.",
+              "I'm more like Bugs Bunny.",
+              "I'd say I'm more like Bugs Bunny.",
+              "If someone asked me, I'd say I'm more like Bugs Bunny."
+            ]
+          ]
+        },
+        {
+          "question": [
+            "Tom or Jerry?",
+            "Are you more like Tom or Jerry?",
+            "Would you say you're more like Tom or Jerry?",
+            "If someone asked which one you're more like, would you say Tom or Jerry?"
+          ],
+          "choices": [
+            "Tom",
+            "Jerry"
+          ],
+          "answers": [
+            [
+              "Tom.",
+              "I'm more like Tom.",
+              "I'd say I'm more like Tom.",
+              "If someone asked me, I'd say I'm more like Tom."
+            ],
+            [
+              "Jerry.",
+              "I'm more like Jerry.",
+              "I'd say I'm more like Jerry.",
+              "If someone asked me, I'd say I'm more like Jerry."
+            ]
+          ]
+        },
+        {
+          "question": [
+            "Donald Duck or Daffy Duck?",
+            "Are you more like Donald Duck or Daffy Duck?",
+            "Would you say you're more like Donald Duck or Daffy Duck?",
+            "If someone asked which one you're more like, would you say Donald Duck or Daffy Duck?"
+          ],
+          "choices": [
+            "Donald Duck",
+            "Daffy Duck"
+          ],
+          "answers": [
+            [
+              "Donald Duck.",
+              "I'm more like Donald Duck.",
+              "I'd say I'm more like Donald Duck.",
+              "If someone asked me, I'd say I'm more like Donald Duck."
+            ],
+            [
+              "Daffy Duck.",
+              "I'm more like Daffy Duck.",
+              "I'd say I'm more like Daffy Duck.",
+              "If someone asked me, I'd say I'm more like Daffy Duck."
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "ask": {
+        "id": "c",
+        "title": "Cartoon Preferences C"
+      },
+      "answer": {
+        "id": "d",
+        "title": "Cartoon Preferences D"
+      },
+      "topics": [
+        {
+          "question": [
+            "SpongeBob or Patrick?",
+            "Are you more like SpongeBob or Patrick?",
+            "Would you say you're more like SpongeBob or Patrick?",
+            "If someone asked which one you're more like, would you say SpongeBob or Patrick?"
+          ],
+          "choices": [
+            "SpongeBob",
+            "Patrick"
+          ],
+          "answers": [
+            [
+              "SpongeBob.",
+              "I'm more like SpongeBob.",
+              "I'd say I'm more like SpongeBob.",
+              "If someone asked me, I'd say I'm more like SpongeBob."
+            ],
+            [
+              "Patrick.",
+              "I'm more like Patrick.",
+              "I'd say I'm more like Patrick.",
+              "If someone asked me, I'd say I'm more like Patrick."
+            ]
+          ]
+        },
+        {
+          "question": [
+            "Shrek or Donkey?",
+            "Are you more like Shrek or Donkey?",
+            "Would you say you're more like Shrek or Donkey?",
+            "If someone asked which one you're more like, would you say Shrek or Donkey?"
+          ],
+          "choices": [
+            "Shrek",
+            "Donkey"
+          ],
+          "answers": [
+            [
+              "Shrek.",
+              "I'm more like Shrek.",
+              "I'd say I'm more like Shrek.",
+              "If someone asked me, I'd say I'm more like Shrek."
+            ],
+            [
+              "Donkey.",
+              "I'm more like Donkey.",
+              "I'd say I'm more like Donkey.",
+              "If someone asked me, I'd say I'm more like Donkey."
+            ]
+          ]
+        },
+        {
+          "question": [
+            "Simba or Nemo?",
+            "Are you more like Simba or Nemo?",
+            "Would you say you're more like Simba or Nemo?",
+            "If someone asked which one you're more like, would you say Simba or Nemo?"
+          ],
+          "choices": [
+            "Simba",
+            "Nemo"
+          ],
+          "answers": [
+            [
+              "Simba.",
+              "I'm more like Simba.",
+              "I'd say I'm more like Simba.",
+              "If someone asked me, I'd say I'm more like Simba."
+            ],
+            [
+              "Nemo.",
+              "I'm more like Nemo.",
+              "I'd say I'm more like Nemo.",
+              "If someone asked me, I'd say I'm more like Nemo."
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "ask": {
+        "id": "e",
+        "title": "Cartoon Preferences E"
+      },
+      "answer": {
+        "id": "f",
+        "title": "Cartoon Preferences F"
+      },
+      "closing": {
+        "id": "g",
+        "title": "Cartoon Preferences G"
+      },
+      "topics": [
+        {
+          "question": [
+            "Elsa or Moana?",
+            "Are you more like Elsa or Moana?",
+            "Would you say you're more like Elsa or Moana?",
+            "If someone asked which one you're more like, would you say Elsa or Moana?"
+          ],
+          "choices": [
+            "Elsa",
+            "Moana"
+          ],
+          "answers": [
+            [
+              "Elsa.",
+              "I'm more like Elsa.",
+              "I'd say I'm more like Elsa.",
+              "If someone asked me, I'd say I'm more like Elsa."
+            ],
+            [
+              "Moana.",
+              "I'm more like Moana.",
+              "I'd say I'm more like Moana.",
+              "If someone asked me, I'd say I'm more like Moana."
+            ]
+          ]
+        },
+        {
+          "question": [
+            "Woody or Buzz Lightyear?",
+            "Are you more like Woody or Buzz Lightyear?",
+            "Would you say you're more like Woody or Buzz Lightyear?",
+            "If someone asked which one you're more like, would you say Woody or Buzz Lightyear?"
+          ],
+          "choices": [
+            "Woody",
+            "Buzz Lightyear"
+          ],
+          "answers": [
+            [
+              "Woody.",
+              "I'm more like Woody.",
+              "I'd say I'm more like Woody.",
+              "If someone asked me, I'd say I'm more like Woody."
+            ],
+            [
+              "Buzz Lightyear.",
+              "I'm more like Buzz Lightyear.",
+              "I'd say I'm more like Buzz Lightyear.",
+              "If someone asked me, I'd say I'm more like Buzz Lightyear."
+            ]
+          ]
+        },
+        {
+          "question": [
+            "Homer Simpson or Bart Simpson?",
+            "Are you more like Homer Simpson or Bart Simpson?",
+            "Would you say you're more like Homer Simpson or Bart Simpson?",
+            "If someone asked which one you're more like, would you say Homer Simpson or Bart Simpson?"
+          ],
+          "choices": [
+            "Homer Simpson",
+            "Bart Simpson"
+          ],
+          "answers": [
+            [
+              "Homer Simpson.",
+              "I'm more like Homer Simpson.",
+              "I'd say I'm more like Homer Simpson.",
+              "If someone asked me, I'd say I'm more like Homer Simpson."
+            ],
+            [
+              "Bart Simpson.",
+              "I'm more like Bart Simpson.",
+              "I'd say I'm more like Bart Simpson.",
+              "If someone asked me, I'd say I'm more like Bart Simpson."
+            ]
+          ]
+        }
+      ]
+    }
+  ]
+}
