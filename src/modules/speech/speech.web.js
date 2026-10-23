@@ -98,6 +98,11 @@ let faceFilterInstance = null;
 let faceFilterCanvasEl = null;
 let faceFilterBox = null;
 let faceFilterInitPromise = null;
+// Bumped by every teardown. An init that is still awaiting the library/model
+// compares against it and aborts, so a slow load can never resurrect the
+// tracker after the capture was released (that would put a WebGL context and a
+// camera reference back into the Whisper window).
+let faceFilterGeneration = 0;
 // Tiny offscreen canvas used for the downscale/upscale blur.
 let filterScratchCanvas = null;
 
@@ -119,6 +124,8 @@ function readFilterModeFromUrl() {
 async function initFaceFilter(sourceVideoEl) {
     if (recordingFilterMode === 'none' || faceFilterInstance) return;
     if (faceFilterInitPromise) return faceFilterInitPromise;
+    const generation = faceFilterGeneration;
+    const isStale = () => generation !== faceFilterGeneration;
     faceFilterInitPromise = (async () => {
         try {
             const [{ default: faceFilter }, nnResponse] = await Promise.all([
@@ -127,6 +134,11 @@ async function initFaceFilter(sourceVideoEl) {
             ]);
             if (!nnResponse.ok) throw new Error(`NN model HTTP ${nnResponse.status}`);
             const NNC = await nnResponse.json();
+            // The take was released while the library/model were loading.
+            if (isStale()) {
+                console.log('[Filter] capture released before the tracker loaded; not starting it');
+                return;
+            }
 
             const trackerCanvas = document.createElement('canvas');
             trackerCanvas.width = 256;
@@ -144,10 +156,16 @@ async function initFaceFilter(sourceVideoEl) {
                     if (errCode) {
                         console.warn('[Filter] face tracking unavailable:', errCode, '— recording unfiltered');
                         faceFilterInstance = null;
-                    } else {
-                        faceFilterInstance = faceFilter;
-                        console.log('[Filter] face tracking ready, mode:', recordingFilterMode);
+                        return;
                     }
+                    // Same guard for the async ready callback: a release that
+                    // happened during init must not leave the tracker running.
+                    if (isStale()) {
+                        try { Promise.resolve(faceFilter.destroy()).catch(() => {}); } catch (e) { /* ignore */ }
+                        return;
+                    }
+                    faceFilterInstance = faceFilter;
+                    console.log('[Filter] face tracking ready, mode:', recordingFilterMode);
                 },
                 callbackTrack: (detectState) => {
                     if (!detectState) return;
@@ -168,6 +186,7 @@ async function initFaceFilter(sourceVideoEl) {
 }
 
 function teardownFaceFilter() {
+    faceFilterGeneration += 1;
     faceFilterBox = null;
     faceFilterInitPromise = null;
     const instance = faceFilterInstance;
