@@ -34,8 +34,12 @@ This story adds a minimal, URL-flagged (`?filter=mask` or `?filter=blur`) hook d
   - → returns `'none'`
 - `resolveFilterModeFromSearch('?filter=blur')` and `resolveFilterModeFromSearch('?filter=mask')` + called in unit test
   - → returns `'blur'` and `'mask'` respectively
-- `faceBoxToCanvasRect({ x, y, s }, canvasWidth, canvasHeight)` + called in unit test
-  - → converts normalized Jeeliz coordinates (`x, y` in `[-1, 1]`, `s` in `[0, 1]`) into pixel `{ rx, ry, rw, rh }` on the composite canvas
+- `faceBoxToCanvasRect({ faceBox, videoWidth, videoHeight, crop, canvasWidth, canvasHeight })` + called in unit test
+  - → converts normalized Jeeliz coordinates (`x, y` in `[-1, 1]`, `s` in `[0, 1]`, relative to the CAMERA frame) into a pixel `{ rx, ry, rw, rh }` on the composite canvas, mapped through the same `compositeCropRect` the frame is painted with (device testing showed mapping straight onto the 9:16 canvas puts the mask off the face on a landscape camera)
+- detector drops the face for less than the hold window + `createFaceBoxTracker().current(now)`
+  - → returns the last confident box (no blink)
+- detector drops the face for longer than the hold window + `current(now)`
+  - → returns `null`
 
 ## Notes
 
