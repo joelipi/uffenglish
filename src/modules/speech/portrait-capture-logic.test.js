@@ -12,6 +12,10 @@ import {
     isTakeFrozen,
     createFreezeReporter,
     resolveCompositeWatchdog,
+    // Recording looks (stories/091): `?beauty=` + `?overlay=`.
+    resolveBeautyModeFromSearch,
+    resolveOverlayModeFromSearch,
+    resolveOverlayDestRect,
 } from './portrait-capture-logic.js';
 
 describe('resolveCompositeDimensions', () => {
@@ -314,8 +318,78 @@ describe('resolveCompositeWatchdog', () => {
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-describe('no browser globals (source guard)', () => {
-    it('portrait-capture-logic.js does not reference window/document/navigator', () => {
+describe('recording looks (stories/091)', () => {
+    it('no flags → both looks off', () => {
+        expect(resolveBeautyModeFromSearch('')).toBe('none');
+        expect(resolveOverlayModeFromSearch('')).toBe('none');
+    });
+
+    it('unknown value → none, never throws', () => {
+        expect(resolveBeautyModeFromSearch('?beauty=insta')).toBe('none');
+        expect(resolveOverlayModeFromSearch('?overlay=nope')).toBe('none');
+    });
+
+    it('explicit none → none', () => {
+        expect(resolveBeautyModeFromSearch('?beauty=none')).toBe('none');
+        expect(resolveOverlayModeFromSearch('?overlay=none')).toBe('none');
+    });
+
+    it('the three beauty presets resolve', () => {
+        expect(resolveBeautyModeFromSearch('?beauty=soft')).toBe('soft');
+        expect(resolveBeautyModeFromSearch('?beauty=glow')).toBe('glow');
+        expect(resolveBeautyModeFromSearch('?beauty=warm')).toBe('warm');
+    });
+
+    it('the three props resolve', () => {
+        expect(resolveOverlayModeFromSearch('?overlay=hat')).toBe('hat');
+        expect(resolveOverlayModeFromSearch('?overlay=desk')).toBe('desk');
+        expect(resolveOverlayModeFromSearch('?overlay=frame')).toBe('frame');
+    });
+
+    it('top placement anchors to the top edge at full width, aspect preserved', () => {
+        const rect = resolveOverlayDestRect({
+            imageWidth: 720, imageHeight: 420, canvasWidth: 720, canvasHeight: 1280, placement: 'top',
+        });
+        expect(rect.dy).toBe(0);
+        expect(rect.dx).toBe(0);
+        expect(rect.dw).toBe(720);
+        expect(rect.dh).toBe(420);
+    });
+
+    it('bottom placement ends exactly at the canvas bottom', () => {
+        const rect = resolveOverlayDestRect({
+            imageWidth: 720, imageHeight: 300, canvasWidth: 720, canvasHeight: 1280, placement: 'bottom',
+        });
+        expect(rect.dy + rect.dh).toBe(1280);
+        expect(rect.dw).toBe(720);
+    });
+
+    it('full placement cover-fits the canvas', () => {
+        const rect = resolveOverlayDestRect({
+            imageWidth: 720, imageHeight: 1280, canvasWidth: 1080, canvasHeight: 1920, placement: 'full',
+        });
+        expect(rect.dw).toBeGreaterThanOrEqual(1080);
+        expect(rect.dh).toBeGreaterThanOrEqual(1920);
+        // aspect preserved
+        expect(rect.dw / rect.dh).toBeCloseTo(720 / 1280, 2);
+    });
+
+    it('a prop wider than the canvas scales down (never overflows the width)', () => {
+        const rect = resolveOverlayDestRect({
+            imageWidth: 1440, imageHeight: 600, canvasWidth: 720, canvasHeight: 1280, placement: 'top',
+        });
+        expect(rect.dw).toBe(720);
+        expect(rect.dx + rect.dw).toBeLessThanOrEqual(720);
+    });
+
+    it('missing / zero image dimensions → null (caller draws nothing)', () => {
+        expect(resolveOverlayDestRect({ imageWidth: 0, imageHeight: 300, canvasWidth: 720, canvasHeight: 1280, placement: 'top' })).toBeNull();
+        expect(resolveOverlayDestRect({ imageWidth: 720, imageHeight: 0, canvasWidth: 720, canvasHeight: 1280, placement: 'top' })).toBeNull();
+        expect(resolveOverlayDestRect({ canvasWidth: 720, canvasHeight: 1280, placement: 'top' })).toBeNull();
+    });
+});
+
+describe('no browser globals (source guard)', () => {    it('portrait-capture-logic.js does not reference window/document/navigator', () => {
         const src = readFileSync(resolve(process.cwd(), 'src/modules/speech/portrait-capture-logic.js'), 'utf8');
         // Strip nothing — assert on raw source. These tokens must not appear.
         expect(src).not.toMatch(/\bwindow\b/);

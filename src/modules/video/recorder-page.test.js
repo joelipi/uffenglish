@@ -1014,6 +1014,18 @@ describe('recorder auto-render — zero server changes', () => {
             '.github/workflows/source-to-csv.yml',
             'scripts/source-to-csv-workflow.test.js',
             'src/modules/video/recorder-page.test.js',
+            // Story 091 (recording looks): the tracker-free beauty pass +
+            // stationary prop overlays, their placeholder art, and the precache
+            // exclusion that keeps the art off a learner who never picks one.
+            'stories/091-recording-overlays/story.md',
+            'src/modules/speech/portrait-capture-logic.js',
+            'src/modules/speech/portrait-capture-logic.test.js',
+            'src/modules/speech/speech.web.js',
+            'scripts/generate-overlay-art.py',
+            'public/overlays/hat.png',
+            'public/overlays/desk.png',
+            'public/overlays/frame.png',
+            'vite.config.js',
             'scripts/translate-master-csv.mjs',
             'scripts/sync-srt-workflow.test.js',
             'scripts/translate-master-workflow.test.js',

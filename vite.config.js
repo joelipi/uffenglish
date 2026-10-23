@@ -44,6 +44,10 @@ const WORKBOX_IGNORES = [
     // from the precached SPA shell.
     'recorder.html',
     'landing.html',
+    // Optional prop art for the recording looks (stories/091): a learner who
+    // never picks a prop must not pay for the download, so keep it out of the
+    // precache and fetch it on demand.
+    '**/overlays/**',
     // Icon-generation source (see pwa-assets.config.js).
     'pwa-icon-source.png',
 ]
