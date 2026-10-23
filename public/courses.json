@@ -1,6 +1,8 @@
 {
   "courses": [
+    "fruit-preferences",
     "health",
+    "money-preferences",
     "wouldyourather"
   ]
 }
