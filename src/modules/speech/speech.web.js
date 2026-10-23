@@ -18,6 +18,7 @@ import {
     // Recording looks (stories/091): `?beauty=` + `?overlay=`, no tracking.
     resolveBeautyModeFromSearch,
     resolveOverlayModeFromSearch,
+    shouldCompositeForLook,
     paintBeautyPass,
     paintStationaryOverlay,
     OVERLAY_PLACEMENTS,
@@ -54,8 +55,8 @@ const canvasCaptureSupported = typeof HTMLCanvasElement !== 'undefined'
 // recording; otherwise the captured clip (and everything derived from it) comes
 // out at whatever aspect the camera hands back (often 16:9/4:3) rather than
 // Reels-size.
-export function shouldUsePortraitCapture() {
-    return !isIOS();
+export function shouldUsePortraitCapture(options) {
+    return shouldCompositeForLook(options);
 }
 
 
@@ -433,7 +434,11 @@ async function ensureSpeechCamStream() {
         // Every platform except iOS wraps the camera in a 9:16 canvas so the
         // preview and recording are always Reels-size. iOS keeps the raw camera
         // stream unchanged (its MediaRecorder path is fragile).
-        const useComposite = shouldUsePortraitCapture();
+        const useComposite = shouldUsePortraitCapture({
+            isIOS: isIOS(),
+            beautyMode: recordingBeautyMode,
+            overlayMode: recordingOverlayMode,
+        });
         speechCamStream = useComposite && canvasCaptureSupported
             ? createPortraitCaptureStream(rawStream)
             : rawStream;

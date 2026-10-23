@@ -223,6 +223,16 @@ export function resolveOverlayModeFromSearch(search) {
 }
 
 /**
+ * iOS keeps the raw camera stream (its MediaRecorder path is fragile and
+ * working) — but a look can only be baked into the take through the composite
+ * canvas, so an active look opts iOS into it. No look → today's rule, exactly.
+ */
+export function shouldCompositeForLook({ isIOS = false, beautyMode = 'none', overlayMode = 'none' } = {}) {
+    if (beautyMode !== 'none' || overlayMode !== 'none') return true;
+    return !isIOS;
+}
+
+/**
  * Destination rect for a stationary prop. Aspect ratio is always preserved, and
  * `top`/`bottom` span the full canvas width (the art is authored at canvas width;
  * a taller-than-canvas image is clamped so it can never overflow).

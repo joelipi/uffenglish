@@ -16,6 +16,7 @@ import {
     resolveBeautyModeFromSearch,
     resolveOverlayModeFromSearch,
     resolveOverlayDestRect,
+    shouldCompositeForLook,
 } from './portrait-capture-logic.js';
 
 describe('resolveCompositeDimensions', () => {
@@ -386,6 +387,19 @@ describe('recording looks (stories/091)', () => {
         expect(resolveOverlayDestRect({ imageWidth: 0, imageHeight: 300, canvasWidth: 720, canvasHeight: 1280, placement: 'top' })).toBeNull();
         expect(resolveOverlayDestRect({ imageWidth: 720, imageHeight: 0, canvasWidth: 720, canvasHeight: 1280, placement: 'top' })).toBeNull();
         expect(resolveOverlayDestRect({ canvasWidth: 720, canvasHeight: 1280, placement: 'top' })).toBeNull();
+    });
+});
+
+describe('shouldCompositeForLook', () => {
+    it('iOS without a look keeps the raw camera stream', () => {
+        expect(shouldCompositeForLook({ isIOS: true })).toBe(false);
+    });
+    it('iOS WITH a look opts into the composite (only the canvas is captured)', () => {
+        expect(shouldCompositeForLook({ isIOS: true, beautyMode: 'soft' })).toBe(true);
+        expect(shouldCompositeForLook({ isIOS: true, overlayMode: 'hat' })).toBe(true);
+    });
+    it('non-iOS always composites', () => {
+        expect(shouldCompositeForLook({ isIOS: false })).toBe(true);
     });
 });
 
