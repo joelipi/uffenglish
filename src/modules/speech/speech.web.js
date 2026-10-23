@@ -15,6 +15,10 @@ import {
     createFreezeReporter,
     resolveCompositeWatchdog,
     COMPOSITE_WATCHDOG_MS,
+    // Recording privacy filters (stories/090 spike): `?filter=blur|mask`.
+    resolveFilterModeFromSearch,
+    shouldUsePortraitComposite,
+    paintFilterEffect,
 } from './portrait-capture-logic.js';
 import {
     shouldReleaseCaptureBeforePlayback,
@@ -48,8 +52,12 @@ const canvasCaptureSupported = typeof HTMLCanvasElement !== 'undefined'
 // recording; otherwise the captured clip (and everything derived from it) comes
 // out at whatever aspect the camera hands back (often 16:9/4:3) rather than
 // Reels-size.
-export function shouldUsePortraitCapture() {
-    return !isIOS();
+//
+// Exception, spike-only (stories/090): when `?filter=` is in the URL a filter has
+// to be painted into the frame, and only the composite canvas is captured — so
+// iOS is opted INTO the composite for that take.
+export function shouldUsePortraitCapture(options) {
+    return shouldUsePortraitComposite(options);
 }
 
 
@@ -74,6 +82,105 @@ let compositeFreezeReporter = null;
 let compositeFreezeTickTimer = null;
 let compositeLastSourceTime = 0;
 let compositeCanvasEl = null;
+
+// ---------------------------------------------------------------------------
+// Recording privacy filters — spike only (stories/090).
+//
+// Activated by a URL flag on the real lesson player (`?filter=blur` or
+// `?filter=mask`) so the owner can test on their own devices with the whole
+// pipeline (Whisper + MediaRecorder + the end-of-lesson render) running. With no
+// flag the app behaves exactly as before: no tracker, no WebGL context, no
+// filter paint.
+// ---------------------------------------------------------------------------
+let recordingFilterMode = 'none';
+// The Jeeliz instance, its own small WebGL canvas, and the last tracking result.
+let faceFilterInstance = null;
+let faceFilterCanvasEl = null;
+let faceFilterBox = null;
+let faceFilterInitPromise = null;
+// Tiny offscreen canvas used for the downscale/upscale blur.
+let filterScratchCanvas = null;
+
+function readFilterModeFromUrl() {
+    if (typeof window === 'undefined' || !window.location) return 'none';
+    return resolveFilterModeFromSearch(window.location.search);
+}
+
+/**
+ * Start face tracking for the filter take. Runs AFTER the camera grant and
+ * after the source <video> has decoded (Jeeliz reports low `detected` values if
+ * it starts before that). The library is loaded lazily so a lesson without a
+ * filter never downloads it.
+ *
+ * `videoSettings.videoElement` hands Jeeliz the ALREADY-OPEN camera element, so
+ * it never calls getUserMedia a second time (a second capture locks the camera
+ * on Android/iOS).
+ */
+async function initFaceFilter(sourceVideoEl) {
+    if (recordingFilterMode === 'none' || faceFilterInstance) return;
+    if (faceFilterInitPromise) return faceFilterInitPromise;
+    faceFilterInitPromise = (async () => {
+        try {
+            const [{ default: faceFilter }, nnResponse] = await Promise.all([
+                import(/* @vite-ignore */ '/vendor/jeeliz/jeelizFaceFilter.moduleES6.js'),
+                fetch('/vendor/jeeliz/NN_VERYLIGHT_1.json'),
+            ]);
+            if (!nnResponse.ok) throw new Error(`NN model HTTP ${nnResponse.status}`);
+            const NNC = await nnResponse.json();
+
+            const trackerCanvas = document.createElement('canvas');
+            trackerCanvas.width = 256;
+            trackerCanvas.height = 256;
+            trackerCanvas.style.cssText = 'position:fixed;top:0;left:0;width:2px;height:2px;opacity:0.01;pointer-events:none;';
+            document.body.appendChild(trackerCanvas);
+            faceFilterCanvasEl = trackerCanvas;
+
+            faceFilter.init({
+                canvas: trackerCanvas,
+                NNC,
+                maxFacesDetected: 1,
+                videoSettings: { videoElement: sourceVideoEl },
+                callbackReady: (errCode) => {
+                    if (errCode) {
+                        console.warn('[Filter] face tracking unavailable:', errCode, '— recording unfiltered');
+                        faceFilterInstance = null;
+                    } else {
+                        faceFilterInstance = faceFilter;
+                        console.log('[Filter] face tracking ready, mode:', recordingFilterMode);
+                    }
+                },
+                callbackTrack: (detectState) => {
+                    if (!detectState) return;
+                    // The object is reused by the library — copy the values.
+                    faceFilterBox = {
+                        detected: detectState.detected,
+                        x: detectState.x,
+                        y: detectState.y,
+                        s: detectState.s,
+                    };
+                },
+            });
+        } catch (e) {
+            console.warn('[Filter] face tracking failed to start; recording unfiltered:', e?.message || e);
+        }
+    })();
+    return faceFilterInitPromise;
+}
+
+function teardownFaceFilter() {
+    faceFilterBox = null;
+    faceFilterInitPromise = null;
+    const instance = faceFilterInstance;
+    faceFilterInstance = null;
+    if (instance) {
+        try { Promise.resolve(instance.destroy()).catch(() => {}); } catch (e) { /* ignore */ }
+    }
+    if (faceFilterCanvasEl) {
+        if (faceFilterCanvasEl.parentNode) faceFilterCanvasEl.parentNode.removeChild(faceFilterCanvasEl);
+        faceFilterCanvasEl = null;
+    }
+    filterScratchCanvas = null;
+}
 
 let recognition = null;
 let recognitionTimeout = null;
@@ -161,10 +268,19 @@ function createPortraitCaptureStream(rawStream) {
     video.srcObject = rawStream;
     video.play().catch((e) => console.warn('[Speech] portrait-capture playback failed:', e));
 
+    // Spike-only: start face tracking once the first frame is decodable, reusing
+    // this element so no second camera capture is opened.
+    if (recordingFilterMode !== 'none') {
+        video.addEventListener('loadeddata', () => { initFaceFilter(video); }, { once: true });
+    }
+
     compositeLiveness = createLivenessCounter();
     compositeLastSourceTime = 0;
 
-    function draw() {
+    // One frame: crop the camera into the canvas, then paint the active filter
+    // over it. Everything the captureStream sees goes through here, so the
+    // recorded blob (and the preview) always agree.
+    function paintFrame() {
         const rect = compositeCropRect({
             videoWidth: video.videoWidth,
             videoHeight: video.videoHeight,
@@ -172,6 +288,25 @@ function createPortraitCaptureStream(rawStream) {
             canvasHeight: canvas.height,
         });
         const painted = paintCompositeFrame({ ctx, video, rect, canvasWidth: canvas.width, canvasHeight: canvas.height });
+        if (painted && recordingFilterMode !== 'none') {
+            if (!filterScratchCanvas) {
+                filterScratchCanvas = document.createElement('canvas');
+            }
+            paintFilterEffect({
+                ctx,
+                source: canvas,
+                filterMode: recordingFilterMode,
+                faceBox: faceFilterBox,
+                canvasWidth: canvas.width,
+                canvasHeight: canvas.height,
+                scratch: filterScratchCanvas,
+            });
+        }
+        return painted;
+    }
+
+    function draw() {
+        const painted = paintFrame();
         if (painted && compositeLiveness) compositeLiveness.recordPaint();
         if (video.currentTime > compositeLastSourceTime) {
             compositeLiveness.recordSourceAdvance();
@@ -189,13 +324,7 @@ function createPortraitCaptureStream(rawStream) {
     let lastSourceAdvanceAt = performance.now();
     function tick() {
         const prevSourceTime = compositeLastSourceTime;
-        const rect = compositeCropRect({
-            videoWidth: video.videoWidth,
-            videoHeight: video.videoHeight,
-            canvasWidth: canvas.width,
-            canvasHeight: canvas.height,
-        });
-        const painted2 = paintCompositeFrame({ ctx, video, rect, canvasWidth: canvas.width, canvasHeight: canvas.height });
+        const painted2 = paintFrame();
         if (painted2 && compositeLiveness) compositeLiveness.recordPaint();
         if (video.currentTime > prevSourceTime) {
             if (compositeLiveness) compositeLiveness.recordSourceAdvance();
@@ -236,6 +365,9 @@ function createPortraitCaptureStream(rawStream) {
 }
 
 function teardownPortraitCapture() {
+    // Free the filter's WebGL context + scratch canvas at the same moment as the
+    // composite (i.e. before Whisper runs) so the OOM window stays closed.
+    teardownFaceFilter();
     if (compositeRafId) {
         cancelAnimationFrame(compositeRafId);
         compositeRafId = null;
@@ -335,6 +467,12 @@ async function createPlaceholderStream() {
 }
 
 async function ensureSpeechCamStream() {
+    // Resolve the spike flag once per acquisition (the URL does not change while
+    // a take runs). `none` keeps today's behaviour byte-for-byte.
+    recordingFilterMode = readFilterModeFromUrl();
+    if (recordingFilterMode !== 'none') {
+        console.log('[Filter] recording filter active:', recordingFilterMode);
+    }
     const wantsPlaceholder = !!appStore.getState().isCameraOff;
     if (speechCamStream) {
         if (isPlaceholderStream === wantsPlaceholder) return speechCamStream;
@@ -347,8 +485,10 @@ async function ensureSpeechCamStream() {
         const rawStream = await navigator.mediaDevices.getUserMedia(getMediaConstraints());
         // Every platform except iOS wraps the camera in a 9:16 canvas so the
         // preview and recording are always Reels-size. iOS keeps the raw camera
-        // stream unchanged (its MediaRecorder path is fragile).
-        speechCamStream = shouldUsePortraitCapture() && canvasCaptureSupported
+        // stream unchanged (its MediaRecorder path is fragile) — unless a
+        // recording filter is active, which can only be painted into the canvas.
+        const useComposite = shouldUsePortraitCapture({ isIOS: isIOS(), filterMode: recordingFilterMode });
+        speechCamStream = useComposite && canvasCaptureSupported
             ? createPortraitCaptureStream(rawStream)
             : rawStream;
         isPlaceholderStream = false;

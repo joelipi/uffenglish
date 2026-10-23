@@ -12,6 +12,10 @@ import {
     isTakeFrozen,
     createFreezeReporter,
     resolveCompositeWatchdog,
+    // Recording privacy filters (stories/090 spike, `?filter=blur|mask`).
+    resolveFilterModeFromSearch,
+    shouldUsePortraitComposite,
+    faceBoxToCanvasRect,
 } from './portrait-capture-logic.js';
 
 describe('resolveCompositeDimensions', () => {
@@ -313,6 +317,66 @@ describe('resolveCompositeWatchdog', () => {
 
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+
+// ---------------------------------------------------------------------------
+// Recording privacy filters — spike (stories/090).
+// Deliberately tiny: the real acceptance test is the owner recording on their
+// own iPhone / Android / Windows box.
+// ---------------------------------------------------------------------------
+describe('resolveFilterModeFromSearch', () => {
+    it('no query → none', () => {
+        expect(resolveFilterModeFromSearch('')).toBe('none');
+    });
+    it('absent param → none', () => {
+        expect(resolveFilterModeFromSearch('?course=wouldyourather')).toBe('none');
+    });
+    it('blur → blur', () => {
+        expect(resolveFilterModeFromSearch('?filter=blur')).toBe('blur');
+    });
+    it('mask → mask', () => {
+        expect(resolveFilterModeFromSearch('?filter=mask')).toBe('mask');
+    });
+    it('unknown value → none (never throws)', () => {
+        expect(resolveFilterModeFromSearch('?filter=glitter')).toBe('none');
+    });
+});
+
+describe('shouldUsePortraitComposite', () => {
+    it('iOS without a filter keeps the raw camera stream', () => {
+        expect(shouldUsePortraitComposite({ isIOS: true, filterMode: 'none' })).toBe(false);
+    });
+    it('iOS WITH a filter opts into the composite (only the canvas is captured)', () => {
+        expect(shouldUsePortraitComposite({ isIOS: true, filterMode: 'blur' })).toBe(true);
+    });
+    it('non-iOS always composites', () => {
+        expect(shouldUsePortraitComposite({ isIOS: false, filterMode: 'none' })).toBe(true);
+    });
+    it('defaults to the unfiltered rule', () => {
+        expect(shouldUsePortraitComposite()).toBe(true);
+    });
+});
+
+describe('faceBoxToCanvasRect', () => {
+    it('maps a centred half-width face to the frame centre', () => {
+        const rect = faceBoxToCanvasRect({ detected: 1, x: 0, y: 0, s: 0.5 }, 720, 1280);
+        expect(rect.rx + rect.rw / 2).toBe(360);
+        expect(rect.ry + rect.rh / 2).toBe(640);
+        expect(rect.rw).toBe(rect.rh);
+    });
+    it('flips y (Jeeliz measures it from the bottom)', () => {
+        const high = faceBoxToCanvasRect({ detected: 1, x: 0, y: 0.5, s: 0.2 }, 720, 1280);
+        const low = faceBoxToCanvasRect({ detected: 1, x: 0, y: -0.5, s: 0.2 }, 720, 1280);
+        expect(high.ry).toBeLessThan(low.ry);
+    });
+    it('no face above the detection threshold → null', () => {
+        expect(faceBoxToCanvasRect({ detected: 0.1, x: 0, y: 0, s: 0.5 }, 720, 1280)).toBeNull();
+    });
+    it('missing / non-finite input → null', () => {
+        expect(faceBoxToCanvasRect(null, 720, 1280)).toBeNull();
+        expect(faceBoxToCanvasRect({ detected: 1, x: NaN, y: 0, s: 0.5 }, 720, 1280)).toBeNull();
+        expect(faceBoxToCanvasRect({ detected: 1, x: 0, y: 0, s: 0.5 }, 0, 0)).toBeNull();
+    });
+});
 
 describe('no browser globals (source guard)', () => {
     it('portrait-capture-logic.js does not reference window/document/navigator', () => {

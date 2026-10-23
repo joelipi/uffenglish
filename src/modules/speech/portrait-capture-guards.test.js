@@ -39,9 +39,13 @@ describe('portrait capture (9:16)', () => {
     it('gates the composite on a device check that excludes iOS only', () => {
         expect(WEB).toMatch(/import \{ isIOS \} from '\.\.\/\.\.\/utils\/detectIOS\.js'/);
         expect(WEB).toMatch(/const isAndroid = \/Android\/i\.test\(navigator\.userAgent\)/);
-        const body = functionBody(WEB, 'export function shouldUsePortraitCapture()');
+        // The rule itself is pure and tested behaviourally in
+        // portrait-capture-logic.test.js; the adapter must delegate, never
+        // re-implement it (stories/090 added the `?filter=` opt-in).
+        const body = functionBody(WEB, 'export function shouldUsePortraitCapture(');
         expect(body).not.toBe('');
-        expect(body).toMatch(/return !isIOS\(\)/);
+        expect(body).toMatch(/shouldUsePortraitComposite\(/);
+        expect(body).not.toMatch(/return !isIOS\(\)/);
         // Android must NOT be excluded — its recording must be 9:16 too.
         expect(body).not.toMatch(/isAndroid/);
     });
@@ -74,10 +78,38 @@ describe('portrait capture (9:16)', () => {
     it('only applies the composite when the device check passes', () => {
         const body = functionBody(WEB, 'async function ensureSpeechCamStream()');
         expect(body).not.toBe('');
-        expect(body).toMatch(/shouldUsePortraitCapture\(\)/);
+        expect(body).toMatch(/shouldUsePortraitCapture\(\{/);
+        expect(body).toMatch(/filterMode: recordingFilterMode/);
         expect(body).toMatch(/createPortraitCaptureStream\(rawStream\)/);
         // iOS (false branch) keeps the raw stream.
         expect(body).toMatch(/:\s*rawStream/);
+    });
+
+    it('reads the `?filter=` spike flag from the URL, defaulting to no filter', () => {
+        expect(WEB).toMatch(/resolveFilterModeFromSearch\(window\.location\.search\)/);
+        const body = functionBody(WEB, 'async function ensureSpeechCamStream()');
+        expect(body).toMatch(/recordingFilterMode = readFilterModeFromUrl\(\)/);
+    });
+
+    it('paints the filter into the captured canvas, never a second capture', () => {
+        const body = functionBody(WEB, 'function createPortraitCaptureStream(rawStream)');
+        expect(body).not.toBe('');
+        // the effect is painted over the base frame inside the same per-frame path
+        expect(body).toMatch(/paintFilterEffect\(/);
+        expect(body.indexOf('paintCompositeFrame(')).toBeLessThan(body.indexOf('paintFilterEffect('));
+        // Jeeliz reuses the already-open camera element instead of getUserMedia
+        expect(body).toMatch(/initFaceFilter\(video\)/);
+    });
+
+    it('tears the face tracker down with the composite (before Whisper runs)', () => {
+        const body = functionBody(WEB, 'function teardownPortraitCapture()');
+        expect(body).not.toBe('');
+        expect(body).toMatch(/teardownFaceFilter\(\)/);
+        const teardown = functionBody(WEB, 'function teardownFaceFilter()');
+        expect(teardown).not.toBe('');
+        // WebGL context + scratch canvas must not outlive the composite
+        expect(teardown).toMatch(/\.destroy\(\)/);
+        expect(teardown).toMatch(/faceFilterCanvasEl/);
     });
 
     it('Phase 1: pure-module wiring in createPortraitCaptureStream', () => {

@@ -44,6 +44,10 @@ const WORKBOX_IGNORES = [
     // from the precached SPA shell.
     'recorder.html',
     'landing.html',
+    // Vendored face-filter runtime for the `?filter=` spike (stories/090): it is
+    // dynamically imported only when a take actually uses a filter, so it must
+    // never be precached for every learner.
+    '**/vendor/jeeliz/**',
     // Icon-generation source (see pwa-assets.config.js).
     'pwa-icon-source.png',
 ]

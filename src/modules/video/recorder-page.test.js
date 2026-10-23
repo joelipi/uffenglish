@@ -1014,6 +1014,22 @@ describe('recorder auto-render — zero server changes', () => {
             '.github/workflows/source-to-csv.yml',
             'scripts/source-to-csv-workflow.test.js',
             'src/modules/video/recorder-page.test.js',
+            // Story 090 (spike): the vendored face-filter runtime is excluded from
+            // the service-worker precache so it is fetched only when a filtered
+            // take actually runs.
+            'vite.config.js',
+            // Story 090 (spike): a URL-flagged (`?filter=blur|mask`) face filter
+            // painted into the recording composite. Vendored Jeeliz FaceFilter
+            // (Apache-2.0) lives under public/ so it is loaded lazily and never
+            // enters the app bundle.
+            'stories/090-face-filter-recording/story.md',
+            'public/vendor/jeeliz/jeelizFaceFilter.moduleES6.js',
+            'public/vendor/jeeliz/NN_VERYLIGHT_1.json',
+            'public/vendor/jeeliz/LICENSE',
+            'src/modules/speech/portrait-capture-logic.js',
+            'src/modules/speech/portrait-capture-logic.test.js',
+            'src/modules/speech/portrait-capture-guards.test.js',
+            'src/modules/speech/speech.web.js',
             'scripts/translate-master-csv.mjs',
             'scripts/sync-srt-workflow.test.js',
             'scripts/translate-master-workflow.test.js',
