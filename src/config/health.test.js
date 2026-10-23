@@ -241,7 +241,7 @@ describe('the health course is the generated one', () => {
         expect(source.course).toBe('health');
         expect(source.title).toBe('What is better for your health?');
         expect(source.mission).toBe('talk about health');
-        expect(source.tags).toEqual(['health', 'wellness']);
+        expect(source.tags).toEqual(['health']);
         // The CEFR ladder: the mission dropdown shows these patterns.
         expect(Object.keys(source.levels).sort()).toEqual(['A1', 'A2', 'B1', 'B2', 'C1']);
         expect(source.rungs).toEqual(['A1', 'A2', 'B1', 'B2']);

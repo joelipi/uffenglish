@@ -46,7 +46,7 @@
   "hero": "src/assets/img/wouldyouratherhero.jpg",
   "video_title": "Cartoon preferences in English",
   "mission": "talk about cartoon characters",
-  "tags": ["cartoons", "personality", "preferences"],
+  "tags": ["media"],
   "levels": {
     "A1": {
       "en": "X or Y"

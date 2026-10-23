@@ -9,8 +9,7 @@
     "hi": "आपके स्वास्थ्य के लिए क्या बेहतर है?"
   },
   "tags": [
-    "health",
-    "wellness"
+    "health"
   ],
   "courseHeroImage": "src/assets/img/healthhero.svg",
   "courseMission": {

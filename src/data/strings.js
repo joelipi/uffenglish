@@ -3125,6 +3125,14 @@ const strings = {
         hi: "स्वास्थ्य",
         bn: "স্বাস্থ্য"
     },
+    'course_tag_media': {
+        en: "Media",
+        es: "Medios",
+        pt: "Média",
+        fr: "Médias",
+        hi: "मीडिया",
+        bn: "মিডিয়া"
+    },
     'course_tag_money': {
         en: "Money",
         es: "Dinero",
@@ -3180,14 +3188,6 @@ const strings = {
         fr: "Voyage",
         hi: "यात्रा",
         bn: "ভ্রমণ"
-    },
-    'course_tag_wellness': {
-        en: "Wellness",
-        es: "Bienestar",
-        pt: "Bem-estar",
-        fr: "Bien-être",
-        hi: "सुख-स्वास्थ्य",
-        bn: "সুস্থতা"
     }
 };
 

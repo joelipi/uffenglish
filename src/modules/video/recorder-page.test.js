@@ -1587,6 +1587,11 @@ describe('recorder auto-render — zero server changes', () => {
             'src/assets/img/healthhero.svg',
             'src/config/health.json',
             'src/config/health.test.js',
+            // The fruit and cartoon course sources (same authoring surface).
+            'sources/fruit-preferences.source.txt',
+            'sources/cartoon-preferences.source.txt',
+            'public/fruit-preferences.master.csv',
+            'public/cartoon-preferences.master.csv',
             'src/data/strings.js',
             'scripts/generate-master-csv.test.js',
             'scripts/lib/poster-utils.test.js',

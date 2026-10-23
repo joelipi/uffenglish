@@ -47,7 +47,7 @@
   "hero": "src/assets/img/wouldyouratherhero.jpg",
   "video_title": "Fruit preferences in English",
   "mission": "talk about fruit preferences",
-  "tags": ["fruit", "food", "preferences"],
+  "tags": ["food"],
   "levels": {
     "A1": {
       "en": "X or Y"

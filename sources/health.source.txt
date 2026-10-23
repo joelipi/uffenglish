@@ -45,7 +45,7 @@
   "hero": "src/assets/img/healthhero.svg",
   "video_title": "Health in English",
   "mission": "talk about health",
-  "tags": ["health", "wellness"],
+  "tags": ["health"],
   "levels": {
     "A1": {
       "en": "X or Y"

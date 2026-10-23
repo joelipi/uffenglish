@@ -65,7 +65,7 @@ describe('loadConfigEntries', () => {
         const courses = listFriendCourses(await loadConfigEntries());
         const course = courses.find((c) => c.courseId === 'health');
         expect(course.heroImage).toBe('src/assets/img/healthhero.svg');
-        expect(course.tags).toEqual(['health', 'wellness']);
+        expect(course.tags).toEqual(['health']);
         expect(course.lessonCount).toBe(7);
         expect(Object.keys(course.mission).sort()).toEqual(['A1', 'A2', 'B1', 'B2', 'C1', 'mission']);
         expect(course.mission.A1).toEqual({ en: 'X or Y' });
