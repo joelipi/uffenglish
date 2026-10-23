@@ -1,7 +1,7 @@
 {
-  "courseId": "wouldyourather",
+  "courseId": "wouldyourather-test",
   "courseName": {
-    "en": "Get $1 million or $5 million?",
+    "en": "$1 million or $5 million?",
     "es": "¿Un millón de dólares o cinco millones?",
     "pt": "Um milhão de dólares ou cinco milhões?",
     "fr": "Un million de dollars ou cinq millions ?",
@@ -61,16 +61,16 @@
         "hi": "पसंद के बारे में बात करें"
       },
       "a1": {
-        "en": "X or Y"
+        "en": "X or Y?"
       },
       "a2": {
-        "en": "which is better, noun X or noun Y"
+        "en": "which is better, noun X or noun Y?"
       },
       "b1": {
         "en": "would rather + [verb stem X] or [verb stem Y]"
       },
       "b2": {
-        "en": "given the choice between [gerund verb X] and [gerund verb Y]"
+        "en": "given the choice between [gerund verb X] and [gerund verb Y], would choose"
       },
       "c1": {
         "en": "if I had to choose between [gerund verb X] and [gerund verb Y], my preference would be to [infinitive verb]"
