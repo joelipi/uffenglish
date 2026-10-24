@@ -110,6 +110,18 @@ export const SCREEN_PRESETS = [
     { id: 'snowfall', label: 'Snowfall', labelKey: 'look_screen_snowfall', swatch: 'radial-gradient(circle at 28% 22%, #ffffff 0 5%, transparent 6%), radial-gradient(circle at 64% 44%, #ffffff 0 4%, transparent 5%), radial-gradient(circle at 42% 72%, #ffffff 0 4%, transparent 5%), linear-gradient(165deg, #1d2430 0%, #46536a 100%)' },
     { id: 'sunny', label: 'Sunny', labelKey: 'look_screen_sunny', swatch: 'radial-gradient(circle at 78% 10%, #fff7d6 0%, #ffd98a 16%, rgba(255,196,110,0.35) 38%, transparent 62%), linear-gradient(160deg, #1d2430 0%, #3b4a63 100%)' },
     { id: 'windy', label: 'Windy', labelKey: 'look_screen_windy', swatch: 'repeating-linear-gradient(8deg, transparent 0 6px, rgba(255,255,255,0.55) 7px, transparent 8px 14px), linear-gradient(160deg, #22303e 0%, #4a5c70 100%)' },
+    { id: 'confetti', label: 'Confetti', labelKey: 'look_screen_confetti', swatch: 'radial-gradient(circle at 25% 25%, #ff5656 0 8%, transparent 9%), radial-gradient(circle at 60% 40%, #ffc440 0 7%, transparent 8%), radial-gradient(circle at 40% 70%, #56c8ff 0 7%, transparent 8%), radial-gradient(circle at 80% 65%, #7ee07a 0 6%, transparent 7%), linear-gradient(150deg, #1d2430 0%, #3a4657 100%)' },
+    { id: 'leaves', label: 'Leaves', labelKey: 'look_screen_leaves', swatch: 'radial-gradient(circle at 35% 30%, #d6a84c 0 12%, transparent 13%), radial-gradient(circle at 65% 60%, #c46c34 0 11%, transparent 12%), radial-gradient(circle at 45% 80%, #7e9e4a 0 10%, transparent 11%), linear-gradient(150deg, #243024 0%, #4a5a3a 100%)' },
+    { id: 'petals', label: 'Petals', labelKey: 'look_screen_petals', swatch: 'radial-gradient(circle at 30% 30%, #ffb7d2 0 10%, transparent 11%), radial-gradient(circle at 62% 52%, #ff94b8 0 9%, transparent 10%), radial-gradient(circle at 42% 76%, #ffd2e2 0 8%, transparent 9%), linear-gradient(150deg, #2a1f28 0%, #5a3a4a 100%)' },
+    { id: 'bubbles', label: 'Bubbles', labelKey: 'look_screen_bubbles', swatch: 'radial-gradient(circle at 50% 58%, transparent 0 40%, rgba(220,245,255,0.9) 41% 47%, transparent 48%), radial-gradient(circle at 32% 30%, transparent 0 20%, rgba(220,245,255,0.6) 21% 25%, transparent 26%), linear-gradient(160deg, #132430 0%, #2f5568 100%)' },
+    { id: 'embers', label: 'Embers', labelKey: 'look_screen_embers', swatch: 'radial-gradient(circle at 30% 70%, #ffa848 0 7%, transparent 8%), radial-gradient(circle at 62% 45%, #ff7830 0 6%, transparent 7%), radial-gradient(circle at 45% 25%, #ffcc6e 0 5%, transparent 6%), linear-gradient(165deg, #1a1008 0%, #5a2a10 100%)' },
+    { id: 'fireflies', label: 'Fireflies', labelKey: 'look_screen_fireflies', swatch: 'radial-gradient(circle at 35% 40%, #ffec96 0 9%, transparent 10%), radial-gradient(circle at 65% 65%, #ffec96 0 7%, transparent 8%), linear-gradient(160deg, #0e1a12 0%, #1f3a26 100%)' },
+    { id: 'hearts', label: 'Hearts', labelKey: 'look_screen_hearts', swatch: 'radial-gradient(circle at 50% 38%, #ff608c 0 16%, transparent 17%), radial-gradient(circle at 50% 68%, #ff8caa 0 12%, transparent 13%), linear-gradient(160deg, #2a1420 0%, #5a2a3c 100%)' },
+    { id: 'stars', label: 'Starfield', labelKey: 'look_screen_stars', swatch: 'radial-gradient(circle at 20% 25%, #ffffff 0 5%, transparent 6%), radial-gradient(circle at 60% 35%, #ffffff 0 4%, transparent 5%), radial-gradient(circle at 40% 70%, #ffffff 0 4%, transparent 5%), radial-gradient(circle at 78% 62%, #ffffff 0 3%, transparent 4%), linear-gradient(170deg, #080b18 0%, #1b2440 100%)' },
+    { id: 'shootingstar', label: 'Shooting star', labelKey: 'look_screen_shooting_star', swatch: 'linear-gradient(20deg, transparent 0 55%, rgba(255,250,232,0.95) 58%, rgba(255,250,232,0.2) 62%, transparent 66%), linear-gradient(170deg, #080b18 0%, #1b2440 100%)' },
+    { id: 'vhs', label: 'VHS', labelKey: 'look_screen_vhs', swatch: 'repeating-linear-gradient(0deg, rgba(0,0,0,0.55) 0 2px, rgba(255,255,255,0.08) 2px 4px), linear-gradient(170deg, #101820 0%, #2a3a4a 100%)' },
+    { id: 'grain', label: 'Film grain', labelKey: 'look_screen_grain', swatch: 'radial-gradient(circle at 20% 30%, #ffffff 0 1.5%, transparent 2%), radial-gradient(circle at 55% 60%, #ffffff 0 1.5%, transparent 2%), radial-gradient(circle at 80% 25%, #ffffff 0 1.5%, transparent 2%), linear-gradient(160deg, #2a2a2a 0%, #3d3d3d 100%)' },
+    { id: 'bokeh', label: 'Bokeh', labelKey: 'look_screen_bokeh', swatch: 'radial-gradient(circle at 35% 38%, rgba(255,244,214,0.9) 0 14%, transparent 30%), radial-gradient(circle at 68% 62%, rgba(255,236,196,0.7) 0 10%, transparent 26%), linear-gradient(160deg, #141820 0%, #2a3444 100%)' },
 ];
 
 export const SCREEN_IDS = SCREEN_PRESETS.map((p) => p.id);
@@ -697,36 +709,370 @@ export function paintWindy({ ctx, canvasWidth, canvasHeight, timeMs = 0 }) {
  * ('none' when there is nothing to draw or the painter threw), so the adapter
  * can log it.
  */
-export function paintScreenOverlay({ ctx, canvasWidth, canvasHeight, screenId, timeMs = 0 }) {
-    const id = resolveScreenId(screenId);
-    if (!ctx || id === 'none') return 'none';
-    if (!(canvasWidth > 0) || !(canvasHeight > 0)) return 'none';
-    if (id === 'sunny') {
-        return paintSunny({ ctx, canvasWidth, canvasHeight, timeMs }) ? id : 'none';
+// ---------------------------------------------------------------------------
+// Particle fields. Every "stuff floating in the air" overlay (rain, snow,
+// confetti, petals, leaves, bubbles, embers, fireflies, hearts, bokeh) is the
+// same deterministic drift with a different motion, shape and colour, so they
+// share one resolver instead of ten near-copies.
+// ---------------------------------------------------------------------------
+
+/**
+ * One drifting particle.
+ *
+ * `motion`: 'down' | 'up' | 'across'. `sway` is in fractions of the width.
+ * Deterministic per (index, timeMs), so any frame can be reproduced exactly
+ * and a test can assert movement.
+ */
+export function resolveDriftParticle({
+    index,
+    timeMs = 0,
+    canvasWidth,
+    canvasHeight,
+    motion = 'down',
+    speed = [0.2, 0.5],
+    sway = [0, 0],
+    size = [0.004, 0.009],
+    alpha = [0.5, 0.9],
+}) {
+    const t = timeMs / 1000;
+    const r = (n) => hash01(index * 13 + n);
+    const travel = ((r(2) + t * (speed[0] + (speed[1] - speed[0]) * r(3))) % 1.2) - 0.1;
+    const swayAmp = (sway[0] + (sway[1] - sway[0]) * r(5)) * canvasWidth;
+    const swayValue = swayAmp ? Math.sin(t * (0.8 + r(4)) + r(1) * Math.PI * 2) * swayAmp : 0;
+    const column = (0.05 + r(1) * 0.9) * canvasWidth;
+    let x;
+    let y;
+    if (motion === 'up') {
+        x = column + swayValue;
+        y = canvasHeight * (1.06 - travel);
+    } else if (motion === 'across') {
+        x = (travel * 1.2 - 0.1) * canvasWidth;
+        y = (0.08 + r(1) * 0.8) * canvasHeight + swayValue;
+    } else {
+        x = column + swayValue;
+        y = travel * canvasHeight;
     }
-    if (id === 'windy') {
-        return paintWindy({ ctx, canvasWidth, canvasHeight, timeMs }) ? id : 'none';
-    }
-    if (id === 'snowfall') {
-        try {
-            ctx.save();
-            ctx.fillStyle = 'rgb(255, 255, 255)';
-            for (let i = 0; i < SNOWFLAKE_COUNT; i++) {
-                const flake = resolveSnowflake({ index: i, timeMs, canvasWidth, canvasHeight });
-                ctx.globalAlpha = flake.alpha;
-                ctx.beginPath();
-                ctx.arc(flake.x, flake.y, flake.radius, 0, Math.PI * 2);
-                ctx.fill();
-            }
-            ctx.restore();
-            return id;
-        } catch (e) {
-            return 'none';
-        }
-    }
-    if (id !== 'raindrops') return 'none';
+    return {
+        x: clamp(x, -canvasWidth * 0.05, canvasWidth * 1.05),
+        y: clamp(y, -canvasHeight * 0.1, canvasHeight * 1.1),
+        size: canvasWidth * (size[0] + (size[1] - size[0]) * r(4)),
+        alpha: alpha[0] + (alpha[1] - alpha[0]) * r(5),
+        rotation: t * (0.4 + r(4) * 1.8) + r(1) * Math.PI * 2,
+    };
+}
+
+/** Save/restore guard shared by every screen painter. */
+function paintGuarded(ctx, draw) {
+    if (!ctx) return false;
     try {
         ctx.save();
+        draw();
+        ctx.restore();
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
+export const CONFETTI_COUNT = 34;
+const CONFETTI_COLOURS = ['rgb(255, 86, 86)', 'rgb(255, 196, 64)', 'rgb(86, 200, 255)', 'rgb(126, 224, 122)', 'rgb(255, 126, 214)'];
+
+/** Confetti: coloured rectangles tumbling and drifting down. */
+export function paintConfetti({ ctx, canvasWidth, canvasHeight, timeMs = 0 }) {
+    return paintGuarded(ctx, () => {
+        for (let i = 0; i < CONFETTI_COUNT; i++) {
+            const p = resolveDriftParticle({
+                index: i, timeMs, canvasWidth, canvasHeight,
+                speed: [0.22, 0.5], sway: [0.01, 0.05], size: [0.01, 0.02], alpha: [0.7, 0.95],
+            });
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.rotation);
+            ctx.globalAlpha = p.alpha;
+            ctx.fillStyle = CONFETTI_COLOURS[i % CONFETTI_COLOURS.length];
+            ctx.fillRect(-p.size * 0.35, -p.size * 0.6, p.size * 0.7, p.size * 1.2);
+            ctx.restore();
+        }
+    });
+}
+
+export const LEAF_COUNT = 10;
+
+/** Falling leaves: flat ellipses rotating as they sway down. */
+export function paintLeaves({ ctx, canvasWidth, canvasHeight, timeMs = 0 }) {
+    return paintGuarded(ctx, () => {
+        for (let i = 0; i < LEAF_COUNT; i++) {
+            const p = resolveDriftParticle({
+                index: i, timeMs, canvasWidth, canvasHeight,
+                speed: [0.1, 0.2], sway: [0.03, 0.07], size: [0.012, 0.02], alpha: [0.65, 0.9],
+            });
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.rotation);
+            ctx.globalAlpha = p.alpha;
+            ctx.fillStyle = LEAF_COLOURS[i % LEAF_COLOURS.length];
+            ctx.beginPath();
+            ctx.ellipse(0, 0, p.size, p.size * 0.42, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+    });
+}
+
+export const PETAL_COUNT = 16;
+const PETAL_COLOURS = ['rgb(255, 183, 210)', 'rgb(255, 148, 184)', 'rgb(255, 210, 226)'];
+
+/** Petals: small pink ellipses, slower and lighter than leaves. */
+export function paintPetals({ ctx, canvasWidth, canvasHeight, timeMs = 0 }) {
+    return paintGuarded(ctx, () => {
+        for (let i = 0; i < PETAL_COUNT; i++) {
+            const p = resolveDriftParticle({
+                index: i, timeMs, canvasWidth, canvasHeight,
+                speed: [0.06, 0.14], sway: [0.02, 0.06], size: [0.006, 0.011], alpha: [0.5, 0.8],
+            });
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.rotation);
+            ctx.globalAlpha = p.alpha;
+            ctx.fillStyle = PETAL_COLOURS[i % PETAL_COLOURS.length];
+            ctx.beginPath();
+            ctx.ellipse(0, 0, p.size, p.size * 0.6, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+    });
+}
+
+export const BUBBLE_COUNT = 12;
+
+/** Bubbles: translucent rings with a highlight, rising and wobbling. */
+export function paintBubbles({ ctx, canvasWidth, canvasHeight, timeMs = 0 }) {
+    return paintGuarded(ctx, () => {
+        for (let i = 0; i < BUBBLE_COUNT; i++) {
+            const p = resolveDriftParticle({
+                index: i, timeMs, canvasWidth, canvasHeight,
+                motion: 'up', speed: [0.05, 0.12], sway: [0.015, 0.05], size: [0.012, 0.03], alpha: [0.3, 0.6],
+            });
+            ctx.globalAlpha = p.alpha;
+            ctx.strokeStyle = 'rgb(220, 245, 255)';
+            ctx.lineWidth = Math.max(1, p.size * 0.1);
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.globalAlpha = Math.min(1, p.alpha + 0.2);
+            ctx.fillStyle = 'rgb(255, 255, 255)';
+            ctx.beginPath();
+            ctx.arc(p.x - p.size * 0.35, p.y - p.size * 0.35, Math.max(1, p.size * 0.16), 0, Math.PI * 2);
+            ctx.fill();
+        }
+    });
+}
+
+export const EMBER_COUNT = 18;
+const EMBER_COLOURS = ['rgb(255, 168, 72)', 'rgb(255, 120, 48)', 'rgb(255, 204, 110)'];
+
+/** Embers: warm sparks drifting up and flickering. */
+export function paintEmbers({ ctx, canvasWidth, canvasHeight, timeMs = 0 }) {
+    return paintGuarded(ctx, () => {
+        const t = timeMs / 1000;
+        for (let i = 0; i < EMBER_COUNT; i++) {
+            const p = resolveDriftParticle({
+                index: i, timeMs, canvasWidth, canvasHeight,
+                motion: 'up', speed: [0.08, 0.2], sway: [0.008, 0.03], size: [0.002, 0.005], alpha: [0.5, 0.9],
+            });
+            // Flicker: each spark breathes on its own clock.
+            const flicker = 0.55 + 0.45 * Math.sin(t * (5 + (i % 7)) + i);
+            ctx.globalAlpha = p.alpha * flicker;
+            ctx.fillStyle = EMBER_COLOURS[i % EMBER_COLOURS.length];
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    });
+}
+
+export const FIREFLY_COUNT = 12;
+
+/** Fireflies: soft warm dots that pulse, wandering slowly upward. */
+export function paintFireflies({ ctx, canvasWidth, canvasHeight, timeMs = 0 }) {
+    return paintGuarded(ctx, () => {
+        const t = timeMs / 1000;
+        for (let i = 0; i < FIREFLY_COUNT; i++) {
+            const p = resolveDriftParticle({
+                index: i, timeMs, canvasWidth, canvasHeight,
+                motion: 'up', speed: [0.01, 0.03], sway: [0.04, 0.12], size: [0.0025, 0.005], alpha: [0.4, 0.85],
+            });
+            const pulse = 0.5 + 0.5 * Math.sin(t * (1.4 + (i % 5) * 0.4) + i);
+            // Halo, then the bright body.
+            ctx.globalAlpha = p.alpha * 0.25 * pulse;
+            ctx.fillStyle = 'rgb(255, 236, 150)';
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size * 3.2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = p.alpha * pulse;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    });
+}
+
+export const HEART_COUNT = 8;
+const HEART_COLOURS = ['rgb(255, 96, 140)', 'rgb(255, 140, 170)', 'rgb(255, 120, 120)'];
+
+/** Hearts: translucent hearts floating up. */
+export function paintHearts({ ctx, canvasWidth, canvasHeight, timeMs = 0 }) {
+    return paintGuarded(ctx, () => {
+        for (let i = 0; i < HEART_COUNT; i++) {
+            const p = resolveDriftParticle({
+                index: i, timeMs, canvasWidth, canvasHeight,
+                motion: 'up', speed: [0.03, 0.07], sway: [0.01, 0.04], size: [0.012, 0.022], alpha: [0.45, 0.75],
+            });
+            const s = p.size;
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(Math.sin(p.rotation) * 0.25);
+            ctx.globalAlpha = p.alpha;
+            ctx.fillStyle = HEART_COLOURS[i % HEART_COLOURS.length];
+            ctx.beginPath();
+            ctx.moveTo(0, s * 0.35);
+            ctx.bezierCurveTo(-s * 1.1, -s * 0.4, -s * 0.5, -s * 1.05, 0, -s * 0.45);
+            ctx.bezierCurveTo(s * 0.5, -s * 1.05, s * 1.1, -s * 0.4, 0, s * 0.35);
+            ctx.fill();
+            ctx.restore();
+        }
+    });
+}
+
+export const STAR_COUNT = 64;
+
+/** Starfield: fixed dots that twinkle, plus a few four-point sparkles. */
+export function paintStars({ ctx, canvasWidth, canvasHeight, timeMs = 0 }) {
+    return paintGuarded(ctx, () => {
+        const t = timeMs / 1000;
+        for (let i = 0; i < STAR_COUNT; i++) {
+            const p = resolveDriftParticle({
+                index: i, timeMs, canvasWidth, canvasHeight,
+                speed: [0, 0], sway: [0, 0], size: [0.0012, 0.0028], alpha: [0.4, 0.95],
+            });
+            const twinkle = 0.45 + 0.55 * Math.sin(t * (2 + (i % 6)) + i);
+            ctx.globalAlpha = p.alpha * twinkle;
+            ctx.fillStyle = 'rgb(255, 255, 255)';
+            if (i % 16 === 0) {
+                // A cross-shaped sparkle for the brightest few.
+                const s = p.size * 4;
+                ctx.fillRect(p.x - s, p.y - s * 0.12, s * 2, s * 0.24);
+                ctx.fillRect(p.x - s * 0.12, p.y - s, s * 0.24, s * 2);
+            } else {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+    });
+}
+
+export const SHOOTING_STAR_PERIOD = 6;
+
+/** The shooting star: a scheduled streak that only exists for part of a cycle. */
+export function resolveShootingStar({ timeMs = 0, canvasWidth, canvasHeight }) {
+    const cycle = (timeMs / 1000 % SHOOTING_STAR_PERIOD) / SHOOTING_STAR_PERIOD;
+    const travel = cycle * 1.4 - 0.2;
+    return {
+        headX: travel * canvasWidth,
+        headY: (0.06 + travel * 0.22) * canvasHeight,
+        length: canvasWidth * 0.22,
+        alpha: cycle < 0.05 ? cycle / 0.05 : cycle > 0.45 ? Math.max(0, (0.5 - cycle) / 0.05) : 1,
+        angle: Math.atan2(canvasHeight * 0.22, canvasWidth),
+    };
+}
+
+export function paintShootingStar({ ctx, canvasWidth, canvasHeight, timeMs = 0 }) {
+    return paintGuarded(ctx, () => {
+        const star = resolveShootingStar({ timeMs, canvasWidth, canvasHeight });
+        if (star.alpha <= 0) return;
+        // A tapered streak: 14 segments, fading and thinning toward the tail.
+        for (let i = 0; i < 14; i++) {
+            const k = i / 14;
+            const d = star.length * k;
+            const x = star.headX - Math.cos(star.angle) * d;
+            const y = star.headY - Math.sin(star.angle) * d;
+            ctx.globalAlpha = star.alpha * (1 - k) * 0.9;
+            ctx.fillStyle = 'rgb(255, 250, 232)';
+            const size = 3.2 * (1 - k) + 0.6;
+            ctx.beginPath();
+            ctx.arc(x, y, size, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    });
+}
+
+export const VHS_LINE_COUNT = 80;
+
+/** VHS: scanlines plus a bright band rolling down the frame. */
+export function paintVhs({ ctx, canvasWidth, canvasHeight, timeMs = 0 }) {
+    return paintGuarded(ctx, () => {
+        const t = timeMs / 1000;
+        const gap = canvasHeight / VHS_LINE_COUNT;
+        ctx.fillStyle = 'rgb(0, 0, 0)';
+        ctx.globalAlpha = 0.1;
+        for (let i = 0; i < VHS_LINE_COUNT; i++) {
+            ctx.fillRect(0, i * gap, canvasWidth, Math.max(1, gap * 0.35));
+        }
+        const bandY = ((t * 0.18) % 1.2 - 0.1) * canvasHeight;
+        const band = ctx.createLinearGradient(0, bandY, 0, bandY + canvasHeight * 0.12);
+        band.addColorStop(0, 'rgba(255,255,255,0)');
+        band.addColorStop(0.5, 'rgba(255,255,255,0.14)');
+        band.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = band;
+        ctx.fillRect(0, bandY, canvasWidth, canvasHeight * 0.12);
+    });
+}
+
+export const GRAIN_SPECKS = 320;
+/** Grain is re-seeded on a 45 ms bucket so it boils like film, not like noise. */
+export const GRAIN_BUCKET_MS = 45;
+
+/** Procedural film grain: a few hundred specks, re-seeded a few times a second. */
+export function paintGrain({ ctx, canvasWidth, canvasHeight, timeMs = 0 }) {
+    return paintGuarded(ctx, () => {
+        const bucket = Math.floor(timeMs / GRAIN_BUCKET_MS);
+        ctx.fillStyle = 'rgb(255, 255, 255)';
+        for (let i = 0; i < GRAIN_SPECKS; i++) {
+            const x = hash01(bucket * 31 + i * 3 + 1) * canvasWidth;
+            const y = hash01(bucket * 31 + i * 3 + 2) * canvasHeight;
+            ctx.globalAlpha = 0.04 + hash01(bucket * 31 + i * 3 + 3) * 0.1;
+            ctx.fillRect(x, y, 1.5, 1.5);
+        }
+    });
+}
+
+export const BOKEH_COUNT = 10;
+
+/** Bokeh: big, soft, translucent discs drifting up. */
+export function paintBokeh({ ctx, canvasWidth, canvasHeight, timeMs = 0 }) {
+    return paintGuarded(ctx, () => {
+        for (let i = 0; i < BOKEH_COUNT; i++) {
+            const p = resolveDriftParticle({
+                index: i, timeMs, canvasWidth, canvasHeight,
+                motion: 'up', speed: [0.01, 0.03], sway: [0.01, 0.04], size: [0.03, 0.08], alpha: [0.05, 0.16],
+            });
+            const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size);
+            gradient.addColorStop(0, 'rgba(255, 244, 214, 1)');
+            gradient.addColorStop(0.7, 'rgba(255, 236, 196, 0.55)');
+            gradient.addColorStop(1, 'rgba(255, 236, 196, 0)');
+            ctx.globalAlpha = p.alpha;
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    });
+}
+
+export function paintRaindrops({ ctx, canvasWidth, canvasHeight, timeMs = 0 }) {
+    return paintGuarded(ctx, () => {
         ctx.fillStyle = 'rgb(178, 220, 255)';
         for (let i = 0; i < RAINDROP_COUNT; i++) {
             const drop = resolveRaindrop({ index: i, timeMs, canvasWidth, canvasHeight });
@@ -743,11 +1089,53 @@ export function paintScreenOverlay({ ctx, canvasWidth, canvasHeight, screenId, t
             ctx.closePath();
             ctx.fill();
         }
-        ctx.restore();
-        return id;
-    } catch (e) {
-        return 'none';
-    }
+    });
+}
+
+export function paintSnowfall({ ctx, canvasWidth, canvasHeight, timeMs = 0 }) {
+    return paintGuarded(ctx, () => {
+        ctx.fillStyle = 'rgb(255, 255, 255)';
+        for (let i = 0; i < SNOWFLAKE_COUNT; i++) {
+            const flake = resolveSnowflake({ index: i, timeMs, canvasWidth, canvasHeight });
+            ctx.globalAlpha = flake.alpha;
+            ctx.beginPath();
+            ctx.arc(flake.x, flake.y, flake.radius, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    });
+}
+
+const SCREEN_PAINTERS = {
+    raindrops: paintRaindrops,
+    snowfall: paintSnowfall,
+    sunny: paintSunny,
+    windy: paintWindy,
+    confetti: paintConfetti,
+    leaves: paintLeaves,
+    petals: paintPetals,
+    bubbles: paintBubbles,
+    embers: paintEmbers,
+    fireflies: paintFireflies,
+    hearts: paintHearts,
+    stars: paintStars,
+    shootingstar: paintShootingStar,
+    vhs: paintVhs,
+    grain: paintGrain,
+    bokeh: paintBokeh,
+};
+
+/**
+ * Paint the chosen screen overlay over the whole frame. Returns the id painted
+ * ('none' when there is nothing to draw or the painter threw), so the adapter
+ * can log it.
+ */
+export function paintScreenOverlay({ ctx, canvasWidth, canvasHeight, screenId, timeMs = 0 }) {
+    const id = resolveScreenId(screenId);
+    if (!ctx || id === 'none') return 'none';
+    if (!(canvasWidth > 0) || !(canvasHeight > 0)) return 'none';
+    const painter = SCREEN_PAINTERS[id];
+    if (!painter) return 'none';
+    return painter({ ctx, canvasWidth, canvasHeight, timeMs }) ? id : 'none';
 }
 
 /**

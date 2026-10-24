@@ -11,6 +11,8 @@ import {
     resolveRaindrop,
     resolveSnowflake,
     resolvePollenMote,
+    resolveDriftParticle,
+    resolveShootingStar,
     resolveGust,
     resolveWindLeaf,
     paintSunny,
@@ -22,6 +24,9 @@ import {
     POLLEN_COUNT,
     GUST_COUNT,
     WIND_LEAF_COUNT,
+    VHS_LINE_COUNT,
+    GRAIN_SPECKS,
+    GRAIN_BUCKET_MS,
     SUN_POSITION,
     toggleFilterId,
     toggleLensId,
@@ -44,6 +49,7 @@ import {
     DEFAULT_FILTER_ID,
     DEFAULT_LENS_ID,
     DEFAULT_SCREEN_ID,
+    SCREEN_IDS,
     SCREEN_PRESETS,
     FILTER_IDS,
     FILTER_PRESETS,
@@ -312,8 +318,12 @@ describe('close-up lens — sharp oval, blurred everywhere else', () => {
 });
 
 describe('screen overlays — a category painted over the whole frame', () => {
-    it('offers None, the two weather particles and the two weather lights, and starts on None', () => {
-        expect(SCREEN_PRESETS.map((p) => p.id)).toEqual(['none', 'raindrops', 'snowfall', 'sunny', 'windy']);
+    it('offers every overlay, with None first', () => {
+        expect(SCREEN_PRESETS.map((p) => p.id)).toEqual([
+            'none', 'raindrops', 'snowfall', 'sunny', 'windy',
+            'confetti', 'leaves', 'petals', 'bubbles', 'embers', 'fireflies',
+            'hearts', 'stars', 'shootingstar', 'vhs', 'grain', 'bokeh',
+        ]);
         expect(DEFAULT_SCREEN_ID).toBe('none');
         expect(emptySelection().screenId).toBe('none');
         expect(resolveScreenId('bogus')).toBe('none');
@@ -573,6 +583,94 @@ describe('windy day — gusts and tumbling leaves', () => {
     it('is dispatched from the screen painter', () => {
         const ctx = makeCtx();
         expect(paintScreenOverlay({ ctx, ...base, screenId: 'windy', timeMs: 700 })).toBe('windy');
+    });
+});
+
+
+describe('the rest of the screen overlays', () => {
+    const base = { canvasWidth: 1080, canvasHeight: 1920 };
+    // Permissive context: enough for every painter, so a missing canvas method
+    // shows up as a failing dispatch rather than a silent 'none'.
+    function makeCtx() {
+        const gradient = { addColorStop() {} };
+        return {
+            save() {}, restore() {}, beginPath() {}, closePath() {},
+            moveTo() {}, lineTo() {}, bezierCurveTo() {}, quadraticCurveTo() {},
+            arc() {}, ellipse() {}, rect() {},
+            fill() {}, stroke() {}, fillRect() {}, translate() {}, rotate() {},
+            createRadialGradient: () => gradient,
+            createLinearGradient: () => gradient,
+            fillStyle: '', strokeStyle: '', lineWidth: 1, lineCap: 'butt',
+            globalAlpha: 1, globalCompositeOperation: 'source-over', imageSmoothingEnabled: true,
+        };
+    }
+
+    it('every preset has a painter that reports its own id', () => {
+        for (const id of SCREEN_IDS) {
+            if (id === 'none') continue;
+            const result = paintScreenOverlay({ ctx: makeCtx(), ...base, screenId: id, timeMs: 900 });
+            expect(result).toBe(id);
+        }
+    });
+
+    it('particles drift in the direction their overlay implies', () => {
+        const downA = resolveDriftParticle({ index: 4, ...base, timeMs: 0, motion: 'down' });
+        const downB = resolveDriftParticle({ index: 4, ...base, timeMs: 400, motion: 'down' });
+        expect(downB.y).toBeGreaterThan(downA.y);
+        const upA = resolveDriftParticle({ index: 4, ...base, timeMs: 0, motion: 'up' });
+        const upB = resolveDriftParticle({ index: 4, ...base, timeMs: 400, motion: 'up' });
+        expect(upB.y).toBeLessThan(upA.y);
+        const acrossA = resolveDriftParticle({ index: 4, ...base, timeMs: 0, motion: 'across' });
+        const acrossB = resolveDriftParticle({ index: 4, ...base, timeMs: 400, motion: 'across' });
+        expect(acrossB.x).toBeGreaterThan(acrossA.x);
+        // deterministic
+        expect(resolveDriftParticle({ index: 4, ...base, timeMs: 400, motion: 'across' })).toEqual(acrossB);
+    });
+
+    it('the shooting star only exists for part of its cycle', () => {
+        const early = resolveShootingStar({ ...base, timeMs: 100 });
+        const mid = resolveShootingStar({ ...base, timeMs: 1500 });
+        const late = resolveShootingStar({ ...base, timeMs: 2900 });
+        expect(mid.headX).toBeGreaterThan(early.headX);
+        expect(mid.alpha).toBe(1);
+        // fade in/out at the edges of the pass; nothing at all through the gap
+        expect(early.alpha).toBeLessThan(1);
+        expect(resolveShootingStar({ ...base, timeMs: 4000 }).alpha).toBe(0);
+        expect(late.alpha).toBeLessThan(1);
+    });
+
+    it('VHS draws its scanlines and a rolling band', () => {
+        const calls = { rects: 0, gradients: 0 };
+        const gradient = { addColorStop() {} };
+        const ctx = {
+            save() {}, restore() {},
+            fillRect() { calls.rects += 1; },
+            createLinearGradient() { calls.gradients += 1; return gradient; },
+            fillStyle: '', globalAlpha: 1,
+        };
+        expect(paintScreenOverlay({ ctx, ...base, screenId: 'vhs', timeMs: 300 })).toBe('vhs');
+        expect(calls.rects).toBe(VHS_LINE_COUNT + 1);
+        expect(calls.gradients).toBe(1);
+    });
+
+    it('grain re-seeds on its time bucket, so the specks boil', () => {
+        const positions = (timeMs) => {
+            const rows = [];
+            const ctx = {
+                save() {}, restore() {},
+                fillRect(x, y) { rows.push([Math.round(x), Math.round(y)]); },
+                fillStyle: '', globalAlpha: 1,
+            };
+            paintScreenOverlay({ ctx, ...base, screenId: 'grain', timeMs });
+            return rows;
+        };
+        // buckets are 45 ms wide: 1000 and 1020 share one, 1040 is the next
+        const a = positions(1000);
+        const sameBucket = positions(1020);
+        const nextBucket = positions(1060);
+        expect(a.length).toBe(GRAIN_SPECKS);
+        expect(sameBucket).toEqual(a);
+        expect(nextBucket).not.toEqual(a);
     });
 });
 
