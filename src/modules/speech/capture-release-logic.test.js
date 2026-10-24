@@ -11,6 +11,7 @@ import {
     describeRecordingBlob,
     isCameraFrameAdvanced,
     resolveCaptureReacquireDelay,
+    shouldProbeCamera,
     shouldReacquireCapture,
     shouldReleaseCaptureBeforePlayback,
     waitForAudioRouteSettle,
@@ -193,5 +194,18 @@ describe('resolveCaptureReacquireDelay', () => {
     it('honours a custom settle and rejects a non-positive one', () => {
         expect(resolveCaptureReacquireDelay({ releasedAtMs: 1000, nowMs: 1000, settleMs: 50 })).toBe(50);
         expect(resolveCaptureReacquireDelay({ releasedAtMs: 1000, nowMs: 1000, settleMs: 0 })).toBe(0);
+    });
+});
+
+describe('shouldProbeCamera', () => {
+    it('skips the first take (the coldest one) and probes a re-record', () => {
+        expect(shouldProbeCamera({ takeIndex: 0 })).toBe(false);
+        expect(shouldProbeCamera({ takeIndex: 1 })).toBe(true);
+        expect(shouldProbeCamera({ takeIndex: 3 })).toBe(true);
+    });
+
+    it('never probes the composite or placeholder paths', () => {
+        expect(shouldProbeCamera({ takeIndex: 2, hasCompositeLiveness: true })).toBe(false);
+        expect(shouldProbeCamera({ takeIndex: 2, isPlaceholder: true })).toBe(false);
     });
 });

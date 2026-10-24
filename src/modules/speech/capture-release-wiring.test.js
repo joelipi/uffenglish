@@ -166,11 +166,14 @@ describe('the raw camera is probed for moving frames before a take', () => {
         expect(stopFn).toContain('lastCaptureReleaseAtMs = Date.now();');
     });
 
-    it('probes the camera only where there is no composite liveness counter', () => {
-        expect(startFn).toContain('!compositeLiveness');
-        expect(startFn).toContain('probeCameraFrames(speechCamStream)');
-        // The probe is pointless for the placeholder stream (a canvas drawn once a second).
-        expect(startFn).toContain('!isPlaceholderStream');
+    it('probes only where it can help: a re-record of the raw camera', () => {
+        expect(startFn).toContain('shouldProbeCamera({');
+        expect(startFn).toContain('takeIndex: speechCamTakeIndex');
+        expect(startFn).toContain('hasCompositeLiveness: !!compositeLiveness');
+        // The placeholder is a canvas drawn once a second: probing it proves nothing.
+        expect(startFn).toContain('isPlaceholder: isPlaceholderStream');
+        // The first take is left unprobed on purpose (coldest take on the device).
+        expect(startFn).toContain('camera probe skipped');
     });
 
     it('probes before the recorder exists, and re-acquires once when frozen', () => {

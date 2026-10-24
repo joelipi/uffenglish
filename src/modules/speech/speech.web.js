@@ -24,6 +24,7 @@ import {
     describeRecordingBlob,
     isCameraFrameAdvanced,
     resolveCaptureReacquireDelay,
+    shouldProbeCamera,
     shouldReacquireCapture,
     shouldReleaseCaptureBeforePlayback,
     waitForAudioRouteSettle,
@@ -490,7 +491,16 @@ export async function startSpeechCamRecording(micStatusText, userData, { deferSt
         // a live-but-static track that yields a still-image take (stories/094).
         // Probe for moving frames before the recorder is created, and re-acquire
         // once when the camera is dead.
-        if (!compositeLiveness && !isPlaceholderStream) {
+        const probeCamera = shouldProbeCamera({
+            takeIndex: speechCamTakeIndex,
+            hasCompositeLiveness: !!compositeLiveness,
+            isPlaceholder: isPlaceholderStream,
+        });
+        if (!probeCamera) {
+            console.log('[Recording] camera probe skipped (first take / composite / placeholder)');
+            takeDiagnostics.push('camera probe skipped', { take: speechCamTakeIndex, composite: !!compositeLiveness, placeholder: isPlaceholderStream });
+        }
+        if (probeCamera) {
             let cameraProbe = await probeCameraFrames(speechCamStream);
             console.log('[Recording] camera probe', cameraProbe);
             takeDiagnostics.push('camera probe', cameraProbe);

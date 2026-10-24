@@ -210,3 +210,26 @@ export function resolveCaptureReacquireDelay({
     if (elapsedMs >= settleMs) return 0;
     return settleMs - elapsedMs;
 }
+
+/**
+ * Does this take need the camera frame probe?
+ *
+ * The probe costs an extra `<video>` consumer of the camera for ~400 ms, and it
+ * exists for ONE failure: a re-record, where iPadOS re-acquires the camera after
+ * the previous capture was released and can hand back a frozen feed. The first
+ * take always uses a fresh camera and has never shown that failure, so it is left
+ * as light as it was before the probe existed — the first take is also the
+ * coldest one (camera acquisition + Whisper warm-up share the device).
+ *
+ * @param {{ takeIndex?: number, hasCompositeLiveness?: boolean, isPlaceholder?: boolean }} [input]
+ * @returns {boolean}
+ */
+export function shouldProbeCamera({
+    takeIndex = 0,
+    hasCompositeLiveness = false,
+    isPlaceholder = false,
+} = {}) {
+    if (hasCompositeLiveness === true) return false;
+    if (isPlaceholder === true) return false;
+    return Number(takeIndex) > 0;
+}
