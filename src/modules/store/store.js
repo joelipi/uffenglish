@@ -15,6 +15,7 @@ import {
     applyStepOverlays,
     toggleLookDrawer,
     toggleFilterId,
+    toggleLensId,
     OVERLAY_SLOTS,
 } from '../looks/recording-looks-logic.js';
 
@@ -274,6 +275,14 @@ export const appStore = createStore(
                 lookSelection: sanitizeSelection({
                     ...state.lookSelection,
                     filterId: toggleFilterId(state.lookSelection.filterId, filterId),
+                }),
+            })),
+            // The lens effect is a separate choice from the filter, so both
+            // can be applied at once (e.g. Vintage + Soft focus).
+            toggleLookLens: (lensId) => set((state) => ({
+                lookSelection: sanitizeSelection({
+                    ...state.lookSelection,
+                    lensId: toggleLensId(state.lookSelection.lensId, lensId),
                 }),
             })),
             setLookSlot: (slot, slug) => set((state) => {

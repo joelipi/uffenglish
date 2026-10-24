@@ -46,6 +46,33 @@ export const FILTER_PRESETS = [
 export const FILTER_IDS = FILTER_PRESETS.map((p) => p.id);
 
 /**
+ * Lens effects: a category of its own, independent of the filter and of the
+ * prop slots — you can have a filter AND one of these (stories/092). A lens
+ * effect is the whole-frame optical treatment (soft focus, chiaroscuro), not a
+ * prop placed in the frame and not a colour tint, so it gets its own rail box
+ * and its own selection key. Painted after the grade and under the props.
+ *
+ * Nothing here tracks a face. Both are single canvas-wide passes centred on the
+ * assumed face zone (`SLOT_ANCHORS.face`), which is exact enough because the
+ * composite canvas is always the same 9:16 frame.
+ *
+ * `beautyMode` names a preset in `portrait-capture-logic.js`'s `BEAUTY_PRESETS`,
+ * so the existing downscale soft-focus + radial light + vignette painters are
+ * reused rather than duplicated (and none of them uses `ctx.filter`, which is a
+ * no-op on iOS).
+ */
+export const LENS_PRESETS = [
+    { id: 'none', label: 'None', labelKey: 'look_lens_none', beautyMode: null, swatch: NONE_SWATCH },
+    { id: 'softfocus', label: 'Soft focus', labelKey: 'look_lens_soft_focus', beautyMode: 'lensSoftFocus', swatch: 'radial-gradient(circle at 50% 42%, #ffffff 0%, #ffe9d8 45%, rgba(255,233,216,0.12) 100%)' },
+    { id: 'chiaroscuro', label: 'Chiaroscuro', labelKey: 'look_lens_chiaroscuro', beautyMode: 'lensChiaroscuro', swatch: 'radial-gradient(circle at 50% 42%, #ffd9a0 0%, #6b4a2a 35%, #0b0b0b 88%)' },
+];
+
+export const LENS_IDS = LENS_PRESETS.map((p) => p.id);
+
+/** Lens effects are opt-in too: the default is no effect at all. */
+export const DEFAULT_LENS_ID = 'none';
+
+/**
  * Asset registry: a config names a SLUG, never a path, so art can be swapped by
  * filename without touching a lesson config. `slot` is where it belongs in the
  * picker; `anchor` is its default position.
@@ -77,7 +104,7 @@ export const SLOT_ANCHORS = {
     lower: { cx: 0.5, cy: 0.74 },
 };
 
-export const LOOK_DRAWERS = ['filter', 'upper', 'face', 'lower'];
+export const LOOK_DRAWERS = ['filter', 'lens', 'upper', 'face', 'lower'];
 
 /** Toggle a left-rail fold-out drawer: tapping the open drawer folds it back in. */
 export function toggleLookDrawer(currentDrawer, clickedDrawer) {
@@ -131,6 +158,28 @@ export function resolveFilterPreset(id) {
     return FILTER_PRESETS.find((p) => p.id === resolved);
 }
 
+export function resolveLensId(id) {
+    return LENS_IDS.includes(id) ? id : DEFAULT_LENS_ID;
+}
+
+export function resolveLensPreset(id) {
+    const resolved = resolveLensId(id);
+    return LENS_PRESETS.find((p) => p.id === resolved);
+}
+
+/**
+ * Both pickers (filters and lens effects) behave the same way: a radio
+ * group with an explicit "None", where tapping the applied option removes it.
+ * Filters and lens effects are independent, so this is shared, never
+ * cross-checked.
+ */
+export function toggleChoiceId(ids, defaultId, currentId, clickedId) {
+    const clicked = ids.includes(clickedId) ? clickedId : defaultId;
+    if (clicked === defaultId) return defaultId;
+    const current = ids.includes(currentId) ? currentId : defaultId;
+    return clicked === current ? defaultId : clicked;
+}
+
 /**
  * Filter chips behave like a radio group with an explicit "None": exactly one
  * filter is applied at a time, tapping the applied filter removes it, and
@@ -141,6 +190,11 @@ export function toggleFilterId(currentId, clickedId) {
     const clicked = resolveFilterId(clickedId);
     if (clicked === DEFAULT_FILTER_ID) return DEFAULT_FILTER_ID;
     return clicked === resolveFilterId(currentId) ? DEFAULT_FILTER_ID : clicked;
+}
+
+/** Same rule for the lens effect, independently of the filter. */
+export function toggleLensId(currentId, clickedId) {
+    return toggleChoiceId(LENS_IDS, DEFAULT_LENS_ID, resolveLensId(currentId), clickedId);
 }
 
 /** Only the friend-closed-response step gets the preview gate + look controls. */
@@ -160,7 +214,7 @@ export function isSlugValidForSlot(slug, slot) {
 }
 
 export function emptySelection() {
-    return { filterId: DEFAULT_FILTER_ID, slots: { face: null, upper: null, lower: null } };
+    return { filterId: DEFAULT_FILTER_ID, lensId: DEFAULT_LENS_ID, slots: { face: null, upper: null, lower: null } };
 }
 
 export function emptyTuning() {
@@ -171,6 +225,7 @@ export function emptyTuning() {
 export function isLookActive(selection) {
     const safe = sanitizeSelection(selection);
     if (safe.filterId !== DEFAULT_FILTER_ID) return true;
+    if (safe.lensId !== DEFAULT_LENS_ID) return true;
     return OVERLAY_SLOTS.some((slot) => !!safe.slots[slot]);
 }
 
@@ -209,6 +264,7 @@ export function sanitizeSelection(selection) {
     const safe = emptySelection();
     if (!selection || typeof selection !== 'object') return safe;
     safe.filterId = resolveFilterId(selection.filterId);
+    safe.lensId = resolveLensId(selection.lensId);
     const slots = selection.slots;
     if (slots && typeof slots === 'object') {
         for (const slot of OVERLAY_SLOTS) {
@@ -362,7 +418,9 @@ export function paintSlotOverlay({ ctx, image, slot, canvasWidth, canvasHeight, 
  * The whole look for one frame, in the fixed order that matters:
  *   1. beauty (soft-focus + light) under the colour grade,
  *   2. colour grade,
- *   3. overlays face → upper → lower (a lower prop never covers a face cover).
+ *   3. the lens effect (soft focus / chiaroscuro) over the grade, under the
+ *      props — it is the room's lighting and optics, not a tint on the face,
+ *   4. overlays face → upper → lower (a lower prop never covers a face cover).
  *
  * `images` maps slug → decoded image; a slug whose image is still loading is
  * simply skipped for that frame.
@@ -378,7 +436,7 @@ export function paintLooks({
     images,
     paintBeauty,
 }) {
-    if (!ctx) return { filter: 'none', slots: [] };
+    if (!ctx) return { filter: 'none', lens: 'none', slots: [] };
     const safe = sanitizeSelection(selection);
     const safeTuning = sanitizeTuning(tuning);
     const preset = resolveFilterPreset(safe.filterId);
@@ -400,6 +458,21 @@ export function paintLooks({
         filterPainted = preset.id;
     }
 
+    // The lens effect is independent of the filter: both can be on at once.
+    let lensPainted = 'none';
+    const lensPreset = resolveLensPreset(safe.lensId);
+    if (lensPreset && lensPreset.beautyMode && typeof paintBeauty === 'function') {
+        const painted = paintBeauty({
+            ctx,
+            source,
+            scratch,
+            canvasWidth,
+            canvasHeight,
+            mode: lensPreset.beautyMode,
+        });
+        lensPainted = painted === 'none' ? 'none' : lensPreset.id;
+    }
+
     const paintedSlots = [];
     for (const slot of SLOT_DRAW_ORDER) {
         const slug = safe.slots[slot];
@@ -409,6 +482,6 @@ export function paintLooks({
             paintedSlots.push(slot);
         }
     }
-    return { filter: filterPainted, slots: paintedSlots };
+    return { filter: filterPainted, lens: lensPainted, slots: paintedSlots };
 }
 

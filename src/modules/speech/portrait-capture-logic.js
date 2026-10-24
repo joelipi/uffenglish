@@ -186,6 +186,14 @@ export const BEAUTY_PRESETS = {
     soft: { softFocus: 0.45, fillLight: 0.12, warmth: 0.06, vignette: 0.10 },
     glow: { softFocus: 0.30, fillLight: 0.24, warmth: 0.10, vignette: 0.14 },
     warm: { softFocus: 0.14, fillLight: 0.10, warmth: 0.26, vignette: 0.08 },
+    // Lens effects (stories/092): their own category, independent of the filter
+    // presets above, so a learner can combine a grade with either of these.
+    // Same levers, no new painters and no face tracking: the effect is centred
+    // on the assumed face zone of the fixed 9:16 frame.
+    //   softFocus  — a strong bloom over the whole frame, dreamy edges.
+    //   chiaroscuro — a lit centre with the surround falling into shadow.
+    lensSoftFocus: { softFocus: 0.62, fillLight: 0.14, warmth: 0.04, vignette: 0 },
+    lensChiaroscuro: { softFocus: 0.06, fillLight: 0.34, warmth: 0.18, vignette: 0.78 },
 };
 
 /** Placement is a rule, not baked pixel math: top / bottom / full cover-fit. */

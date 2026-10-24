@@ -3,11 +3,14 @@ import { useStore } from 'zustand';
 import { appStore } from '../../modules/store/store.js';
 import {
     FILTER_PRESETS,
+    LENS_PRESETS,
     OVERLAY_LIBRARY,
     overlaySlugsForSlot,
     assetFileForSlug,
     resolveFilterPreset,
+    resolveLensPreset,
     DEFAULT_FILTER_ID,
+    DEFAULT_LENS_ID,
     NONE_SWATCH,
     MIN_SCALE,
     MAX_SCALE,
@@ -26,19 +29,21 @@ const SLOT_RAIL_META = [
     { slot: 'lower', label: 'Bottom', icon: 'bi-layers' },
 ];
 
-function FilterStrip() {
-    const filterId = useStore(appStore, (state) => state.lookSelection.filterId);
+// One radio-group strip, reused by the filter picker and the lens-effect
+// picker: the two are independent choices, so they share the chrome, not the
+// state.
+function ChoiceStrip({ testidPrefix, presets, selectedId, onPick }) {
     return (
-        <div className="look-strip" data-testid="look-filter-strip" style={styles.foldoutStrip}>
-            {FILTER_PRESETS.map((preset) => {
-                const selected = preset.id === filterId;
+        <div className="look-strip" data-testid={`${testidPrefix}-strip`} style={styles.foldoutStrip}>
+            {presets.map((preset) => {
+                const selected = preset.id === selectedId;
                 return (
                     <button
                         key={preset.id}
                         type="button"
-                        data-testid={`look-filter-${preset.id}`}
+                        data-testid={`${testidPrefix}-${preset.id}`}
                         aria-pressed={selected}
-                        onClick={() => appStore.getState().toggleLookFilter(preset.id)}
+                        onClick={() => onPick(preset.id)}
                         style={{
                             ...styles.chip,
                             ...(selected ? styles.chipSelected : null),
@@ -55,6 +60,30 @@ function FilterStrip() {
                 );
             })}
         </div>
+    );
+}
+
+function FilterStrip() {
+    const filterId = useStore(appStore, (state) => state.lookSelection.filterId);
+    return (
+        <ChoiceStrip
+            testidPrefix="look-filter"
+            presets={FILTER_PRESETS}
+            selectedId={filterId}
+            onPick={(id) => appStore.getState().toggleLookFilter(id)}
+        />
+    );
+}
+
+function LensStrip() {
+    const lensId = useStore(appStore, (state) => state.lookSelection.lensId);
+    return (
+        <ChoiceStrip
+            testidPrefix="look-lens"
+            presets={LENS_PRESETS}
+            selectedId={lensId}
+            onPick={(id) => appStore.getState().toggleLookLens(id)}
+        />
     );
 }
 
@@ -126,6 +155,7 @@ export default function LookControls() {
     const awaiting = useStore(appStore, (state) => state.awaitingRecordingStart);
     const openDrawer = useStore(appStore, (state) => state.lookOpenDrawer);
     const filterId = useStore(appStore, (state) => state.lookSelection.filterId);
+    const lensId = useStore(appStore, (state) => state.lookSelection.lensId);
     const slots = useStore(appStore, (state) => state.lookSelection.slots);
     const activeSlot = useStore(appStore, (state) => state.lookActiveSlot);
 
@@ -134,6 +164,9 @@ export default function LookControls() {
     const currentPreset = resolveFilterPreset(filterId);
     const filterOpen = openDrawer === 'filter';
     const filterActive = filterId !== DEFAULT_FILTER_ID;
+    const currentLens = resolveLensPreset(lensId);
+    const lensOpen = openDrawer === 'lens';
+    const lensActive = lensId !== DEFAULT_LENS_ID;
 
     return (
         <div style={styles.rail} data-testid="look-controls" onPointerDown={(e) => e.stopPropagation()}>
@@ -152,6 +185,23 @@ export default function LookControls() {
                     <span style={styles.railLabel}>Filter</span>
                 </button>
                 {filterOpen && <FilterStrip />}
+            </div>
+
+            <div style={styles.railRow}>
+                <button
+                    type="button"
+                    data-testid="look-drawer-toggle-lens"
+                    aria-expanded={lensOpen}
+                    onClick={() => appStore.getState().toggleLookOpenDrawer('lens')}
+                    style={{
+                        ...styles.railBtn,
+                        ...(lensOpen ? styles.railBtnOpen : lensActive ? styles.railBtnActive : null),
+                    }}
+                >
+                    <span style={{ ...styles.railSwatch, background: currentLens.swatch }} />
+                    <span style={styles.railLabel}>Lens</span>
+                </button>
+                {lensOpen && <LensStrip />}
             </div>
 
             {SLOT_RAIL_META.map(({ slot, label, icon }) => {

@@ -17,6 +17,9 @@ import {
     resolveOverlayModeFromSearch,
     resolveOverlayDestRect,
     shouldCompositeForLook,
+    // Recording looks (stories/092): the lens effects reuse these painters.
+    BEAUTY_PRESETS,
+    paintBeautyPass,
 } from './portrait-capture-logic.js';
 
 describe('resolveCompositeDimensions', () => {
@@ -409,5 +412,58 @@ describe('no browser globals (source guard)', () => {    it('portrait-capture-lo
         expect(src).not.toMatch(/\bwindow\b/);
         expect(src).not.toMatch(/\bdocument\b/);
         expect(src).not.toMatch(/\bnavigator\b/);
+    });
+});
+describe('lens effect presets (stories/092)', () => {
+    function makePaintSpies() {
+        const calls = { draws: 0, fills: 0, gradients: 0 };
+        const scratch = {
+            width: 0,
+            height: 0,
+            getContext: () => ({
+                imageSmoothingEnabled: true,
+                drawImage: () => { calls.draws += 1; },
+            }),
+        };
+        const ctx = {
+            save() {},
+            restore() {},
+            fillRect: () => { calls.fills += 1; },
+            createRadialGradient: () => {
+                calls.gradients += 1;
+                return { addColorStop() {} };
+            },
+            imageSmoothingEnabled: true,
+            globalAlpha: 1,
+            fillStyle: '',
+            globalCompositeOperation: 'source-over',
+        };
+        return { ctx, scratch, calls };
+    }
+
+    it('gives each light option its own preset, within the painters’ ranges', () => {
+        for (const mode of ['lensSoftFocus', 'lensChiaroscuro']) {
+            const preset = BEAUTY_PRESETS[mode];
+            expect(preset).toBeTruthy();
+            for (const lever of ['softFocus', 'fillLight', 'warmth', 'vignette']) {
+                expect(preset[lever]).toBeGreaterThanOrEqual(0);
+                expect(preset[lever]).toBeLessThanOrEqual(1);
+            }
+        }
+        // Soft focus is a real bloom, not the mild filter-level soften; and
+        // chiaroscuro is mostly shadow around a lit centre.
+        expect(BEAUTY_PRESETS.lensSoftFocus.softFocus).toBeGreaterThan(BEAUTY_PRESETS.glow.softFocus);
+        expect(BEAUTY_PRESETS.lensChiaroscuro.vignette).toBeGreaterThan(BEAUTY_PRESETS.soft.vignette);
+    });
+
+    it('paints something for each light mode, and nothing for none', () => {
+        for (const mode of ['lensSoftFocus', 'lensChiaroscuro']) {
+            const { ctx, scratch, calls } = makePaintSpies();
+            expect(paintBeautyPass({ ctx, source: {}, scratch, canvasWidth: 720, canvasHeight: 1280, mode })).toBe(mode);
+            expect(calls.draws + calls.fills + calls.gradients).toBeGreaterThan(0);
+        }
+        const { ctx, scratch, calls } = makePaintSpies();
+        expect(paintBeautyPass({ ctx, source: {}, scratch, canvasWidth: 720, canvasHeight: 1280, mode: 'none' })).toBe('none');
+        expect(calls.draws + calls.fills + calls.gradients).toBe(0);
     });
 });

@@ -2,7 +2,10 @@ import { describe, it, expect, vi } from 'vitest';
 import {
     resolveFilterId,
     resolveFilterPreset,
+    resolveLensId,
+    resolveLensPreset,
     toggleFilterId,
+    toggleLensId,
     isLookActive,
     paintLooks,
     isPreviewGateStep,
@@ -19,8 +22,10 @@ import {
     toggleLookDrawer,
     computeDragOffset,
     DEFAULT_FILTER_ID,
+    DEFAULT_LENS_ID,
     FILTER_IDS,
     FILTER_PRESETS,
+    LENS_PRESETS,
     SLOT_ANCHORS,
 } from './recording-looks-logic.js';
 
@@ -105,7 +110,7 @@ describe('filters are opt-in — None is a real, selectable choice', () => {
             images: {},
             paintBeauty,
         });
-        expect(result).toEqual({ filter: 'none', slots: [] });
+        expect(result).toEqual({ filter: 'none', lens: 'none', slots: [] });
         expect(paintBeauty).not.toHaveBeenCalled();
     });
 
@@ -156,6 +161,79 @@ describe('toggleFilterId', () => {
         expect(toggleFilterId('warm', 'none')).toBe('none');
         expect(toggleFilterId('none', 'none')).toBe('none');
         expect(toggleFilterId('warm', 'neon')).toBe('none');
+    });
+});
+
+describe('lens effects — a category of their own, independent of the filter', () => {
+    it('offers None, Soft focus and Chiaroscuro, and starts on None', () => {
+        expect(LENS_PRESETS.map((p) => p.id)).toEqual(['none', 'softfocus', 'chiaroscuro']);
+        expect(DEFAULT_LENS_ID).toBe('none');
+        expect(emptySelection().lensId).toBe('none');
+        expect(resolveLensId('bogus')).toBe('none');
+        expect(resolveLensPreset('chiaroscuro').beautyMode).toBe('lensChiaroscuro');
+        expect(resolveLensPreset('none').beautyMode).toBeNull();
+    });
+
+    it('sanitises lensId, and a light alone counts as a look', () => {
+        expect(sanitizeSelection({ lensId: 'neon' }).lensId).toBe('none');
+        expect(sanitizeSelection({ lensId: 'softfocus' }).lensId).toBe('softfocus');
+        expect(isLookActive({ filterId: 'none', lensId: 'softfocus', slots: {} })).toBe(true);
+        expect(isLookActive({ filterId: 'none', lensId: 'chiaroscuro', slots: {} })).toBe(true);
+        expect(isLookActive(emptySelection())).toBe(false);
+    });
+
+    it('toggleLensId behaves like the filter picker: one at a time, tap again to clear', () => {
+        expect(toggleLensId('none', 'softfocus')).toBe('softfocus');
+        expect(toggleLensId('softfocus', 'chiaroscuro')).toBe('chiaroscuro');
+        expect(toggleLensId('softfocus', 'softfocus')).toBe('none');
+        expect(toggleLensId('none', 'none')).toBe('none');
+        expect(toggleLensId('softfocus', 'bogus')).toBe('none');
+    });
+
+    it('paints the light after the grade, on top of any filter', () => {
+        const modes = [];
+        const paintBeauty = vi.fn(({ mode }) => { modes.push(mode); return mode; });
+        const ctx = {
+            save() {}, restore() {},
+            fillRect() {},
+            createRadialGradient: () => ({ addColorStop() {} }),
+            globalCompositeOperation: 'source-over',
+            globalAlpha: 1,
+            fillStyle: '',
+        };
+        const result = paintLooks({
+            ctx,
+            source: {},
+            scratch: {},
+            canvasWidth: 720,
+            canvasHeight: 1280,
+            selection: { filterId: 'vintage', lensId: 'chiaroscuro', slots: { face: null, upper: null, lower: null } },
+            tuning: emptyTuning(),
+            images: {},
+            paintBeauty,
+        });
+        // vintage's own beauty pass, then the independent lens effect
+        expect(modes).toEqual(['soft', 'lensChiaroscuro']);
+        expect(result.filter).toBe('vintage');
+        expect(result.lens).toBe('chiaroscuro');
+    });
+
+    it('a light alone paints nothing but the light', () => {
+        const modes = [];
+        const paintBeauty = vi.fn(({ mode }) => { modes.push(mode); return mode; });
+        const result = paintLooks({
+            ctx: {},
+            source: {},
+            scratch: {},
+            canvasWidth: 720,
+            canvasHeight: 1280,
+            selection: { filterId: 'none', lensId: 'softfocus', slots: { face: null, upper: null, lower: null } },
+            tuning: emptyTuning(),
+            images: {},
+            paintBeauty,
+        });
+        expect(modes).toEqual(['lensSoftFocus']);
+        expect(result).toEqual({ filter: 'none', lens: 'softfocus', slots: [] });
     });
 });
 

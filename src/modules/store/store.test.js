@@ -432,3 +432,24 @@ describe('look filter selection (stories/092)', () => {
         expect(appStore.getState().lookSelection.slots.face).toBe('smiley');
     });
 });
+
+describe('look lens effect (stories/092)', () => {
+    beforeEach(() => appStore.setState({ lookSelection: { filterId: 'none', lensId: 'none', slots: { face: null, upper: null, lower: null } } }));
+
+    it('is a separate choice from the filter — both can be applied at once', () => {
+        appStore.getState().toggleLookFilter('vintage');
+        appStore.getState().toggleLookLens('softfocus');
+        expect(appStore.getState().lookSelection.filterId).toBe('vintage');
+        expect(appStore.getState().lookSelection.lensId).toBe('softfocus');
+    });
+
+    it('applies one light at a time and clears on a second tap, leaving the filter alone', () => {
+        appStore.getState().toggleLookFilter('vintage');
+        appStore.getState().toggleLookLens('softfocus');
+        appStore.getState().toggleLookLens('chiaroscuro');
+        expect(appStore.getState().lookSelection.lensId).toBe('chiaroscuro');
+        appStore.getState().toggleLookLens('chiaroscuro');
+        expect(appStore.getState().lookSelection.lensId).toBe('none');
+        expect(appStore.getState().lookSelection.filterId).toBe('vintage');
+    });
+});

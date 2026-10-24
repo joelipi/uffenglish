@@ -23,6 +23,10 @@ Nothing here tracks a face. "Face" and "Above face" are fixed anchor zones on th
 - **Pure module** `src/modules/looks/recording-looks-logic.js` owns every rule: the filter preset table, the overlay library (slug → slot + file), the three slot ids, the anchor defaults, the selection sanitiser, the step-config reader, and the merge that applies a step's config once without carrying it forward.
 - **Filter presets** are Canvas2D blend-mode recipes (`saturation` for mono, `screen`/`multiply` tints for warm/cool/vintage, an `overlay` pass for vivid) plus the beauty levers from 091, so there is no GL context and no `ctx.filter` (which is a no-op on iOS). Preset ids: `none`, `natural`, `warm`, `cool`, `soft`, `mono`, `vintage`, `vivid`; default `none`, so a learner who picks nothing gets an untouched camera frame and the picker shows **None** selected. Filters are a radio group with an explicit off: one at a time, and tapping the applied filter clears it back to `none` (`toggleFilterId`).
 - **The picker must show which filter is applied, and only that one**: the applied chip gets the green ring, a tint and a check badge (`aria-pressed="true"`), while an unapplied chip stays flat. On the rail, **white = this drawer is open, green = something is applied**, so a folded-out drawer never reads as "a filter is selected".
+- **Lens effects are a third kind of control**, next to the colour filter and the prop slots: a whole-frame optical treatment (soft focus, chiaroscuro) rather than a prop placed in the frame. They get their **own rail box** (`Lens`) and their own selection key, so a filter and a lens effect can be applied together (Vintage + Chiaroscuro) and both coexist with the three prop slots. The category is named for the standard term: a camera *lens effect* (Snapchat/Samsung camera call this strip "Lens"; cinema calls soft focus a diffusion filter and chiaroscuro lighting — the umbrella is the lens/camera effect).
+  - `LENS_PRESETS`: `none`, `softfocus`, `chiaroscuro`; default `none`, same radio-with-off rule as filters (`toggleLensId`).
+  - No face tracking: each is one canvas-wide pass centred on the assumed face zone (`SLOT_ANCHORS.face`, 50% / 42%), which is exact enough because the composite canvas is always the same 9:16 frame.
+  - The two effects reuse the 091 painters through the injected `paintBeauty` callback (`BEAUTY_PRESETS.lensSoftFocus` = strong downscale bloom + fill light; `lensChiaroscuro` = lit centre + 0.78 vignette), so there is no `ctx.filter` and no new blur technique. They are painted **after the colour grade and under the props** (`paintLooks` step 3).
 - **Three overlay slots** — `face`, `upper`, `lower` — each holding at most one asset slug plus its own user tuning (`dx`, `dy` as fractions of the canvas, `scale`). Anchor defaults stay clear of the top header blur and bottom mic band: `face` centred at 42% height, `upper` centred at 22% height, `lower` centred at 74% height. Drawing order is face → upper → lower so a lower prop never covers a face cover.
 - **Selection lives in the zustand store** (`lookSelection`, `lookTuning`, `lookActiveSlot`, `lookOpenDrawer`) and is read per frame by the recording composite, so a change repaints the live preview and is baked into the take because it is the same canvas.
 - **Config** per step:
@@ -72,6 +76,25 @@ Nothing here tracks a face. "Face" and "Above face" are fixed anchor zones on th
   - → `lookSelection.filterId` is `'warm'` then `'mono'` (one at a time, starting from `none`)
 - `toggleLookFilter('warm')` twice + called in unit test
   - → the second tap returns the selection to `'none'` and leaves the overlay slots untouched
+
+### Task 3 - Lens effects (their own category)
+
+- `LENS_PRESETS` / `DEFAULT_LENS_ID` + called in unit test
+  - → ids are `['none', 'softfocus', 'chiaroscuro']`, default is `'none'`, and `none` has no `beautyMode`
+- `resolveLensId('neon')` and `sanitizeSelection({ lensId: 'neon' })` + called in unit test
+  - → both fall back to `'none'`, while a valid `lensId` survives
+- `toggleLensId(current, clicked)` + called in unit test
+  - → one lens at a time, and tapping the applied lens clears it back to `'none'`
+- `isLookActive({ filterId: 'none', lensId: 'softfocus' })` + called in unit test
+  - → `true`, so a lens alone still switches the recording to the composite canvas
+- `paintLooks` with a filter **and** a lens + called in unit test
+  - → calls the beauty painter for the filter preset, then for the lens preset (`['soft', 'lensChiaroscuro']`), and returns `{ filter: 'vintage', lens: 'chiaroscuro', … }`
+- `BEAUTY_PRESETS.lensSoftFocus` / `lensChiaroscuro` + called in unit test
+  - → every lever is within 0…1, soft focus blurs harder than any filter preset, and chiaroscuro's vignette is heavier than any filter preset's
+- `paintBeautyPass({ mode: 'lensSoftFocus' | 'lensChiaroscuro' })` + called in unit test
+  - → paints at least one pass for each, and paints nothing for `none`
+- `toggleLookLens('softfocus')` on the store, then `toggleLookFilter('vintage')` + called in unit test
+  - → both selections hold at once; a second `toggleLookLens` clears only the lens
 
 ## Notes
 
