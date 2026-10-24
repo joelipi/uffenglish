@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { resolveStepPhase, interactiveDecisionPhase } from './step-phase-logic.js';
+import { resolveStepPhase, interactiveDecisionPhase, interactivePlaybackPhase } from './step-phase-logic.js';
 import { BRANCH_OVERLAY_PHASE } from './branch-choice-logic.js';
 import { appStore } from '../store/store.js';
 
@@ -109,6 +109,15 @@ describe('interactiveDecisionPhase', () => {
     it('falls back to the closedResponse decision phase for an unknown type', () => {
         expect(interactiveDecisionPhase(undefined)).toBe('interactiveVideo-decisionTime-closedResponse');
         expect(interactiveDecisionPhase('mystery')).toBe('interactiveVideo-decisionTime-closedResponse');
+    });
+});
+
+describe('interactivePlaybackPhase', () => {
+    it('names the phase that PLAYS the clip, not the decision screen', () => {
+        expect(interactivePlaybackPhase('closedResponse')).toBe('interactiveVideo+closedResponse');
+        expect(interactivePlaybackPhase('openResponse')).toBe('interactiveVideo+openResponse');
+        expect(interactivePlaybackPhase('friendClosedResponse')).toBe('interactiveVideo+friendClosedResponse');
+        expect(interactivePlaybackPhase('mystery')).toBe('interactiveVideo+closedResponse');
     });
 });
 

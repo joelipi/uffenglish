@@ -931,25 +931,24 @@ export function createAnswerPipeline(deps) {
                 }
                 appStore.getState().setMediaVisible(true);
 
-                // A friendClosedResponse step retries on its decision screen so
-                // the Continue → preview → microphone flow runs again on every
-                // attempt (stories/092). Every other step retries on the
-                // recording screen and re-hears the clip automatically.
+                // A friendClosedResponse step retries by replaying its clip: the
+                // clip's own end-of-playback transition then raises the decision
+                // screen (Continue), so the gradient overlay never covers a
+                // playing clip (stories/092). Every other step retries on the
+                // recording screen as before.
                 const retryPhase = resolveRetryPhase(stepData);
-                if (retryPhase === MIC_RETRY_PHASE) {
-                    const player = getCurrentVideoPlayer();
-                    if (player && typeof player.replay === 'function') {
-                        player.replay();
-                    }
-                } else {
-                    // The decision screen owns the Replay button, so the clip
-                    // does not start playing underneath the controls.
+                if (retryPhase !== MIC_RETRY_PHASE) {
                     appStore.getState().setAwaitingRecordingStart(false);
                     appStore.getState().setMicActive(false);
                 }
 
                 appStore.getState().setSystemMessage({ type: 'info', text: stepData.step || '' });
                 appStore.getState().transitionTo(retryPhase);
+
+                const player = getCurrentVideoPlayer();
+                if (player && typeof player.replay === 'function') {
+                    player.replay();
+                }
                 resetButtonState(button);
                 return;
             }

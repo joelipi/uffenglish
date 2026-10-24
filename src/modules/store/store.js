@@ -71,9 +71,11 @@ const answerFlowTransitions = {
     'interactiveVideo-decisionTime-openResponse':   ['recording/answering', 'interactiveVideo+openResponse'],
     'interactiveVideo-decisionTime-friendClosedResponse': ['recording/answering', 'interactiveVideo+friendClosedResponse'],
     'firstResponse':                             ['recording/answering'],
-    // A friendClosedResponse retry returns to its decision screen (the Continue
-    // button) instead of the recording screen (stories/092).
-    'recording/answering':                       ['processing/transcribing', 'feedback', 'simpleVideo-decisionTime-response', 'interactiveVideo-decisionTime-friendClosedResponse'],
+    // A friendClosedResponse retry replays its clip, and the clip's own
+    // end-of-playback transition raises the decision screen (Continue) — never
+    // the decision phase directly, which would paint the gradient overlay over
+    // a playing clip (stories/092).
+    'recording/answering':                       ['processing/transcribing', 'feedback', 'simpleVideo', 'interactiveVideo+friendClosedResponse'],
     'processing/transcribing':                   ['review', 'transcription preflight-rejected', 'recording/answering', 'feedback'],
     'transcription preflight-rejected':          ['recording/answering'],
     // 'recording/answering' is the "record again" ✕ on the Whisper review

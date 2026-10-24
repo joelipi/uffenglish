@@ -28,6 +28,15 @@ function interactivePhase(responseType) {
 }
 
 /**
+ * The phase that PLAYS an interactive response clip. Distinct from
+ * `interactiveDecisionPhase` below, which is the decision screen the clip
+ * raises when it reaches its overlay point.
+ */
+export function interactivePlaybackPhase(responseType) {
+    return interactivePhase(responseType);
+}
+
+/**
  * The decision ("did you understand?" / "repeat exactly") phase for an
  * interactive response clip. One name per response type, because the decision
  * screen reads the phase to decide its label and icon: lumping
