@@ -254,6 +254,9 @@ function createPortraitCaptureStream(rawStream) {
             tuning: state.lookTuning,
             images: getLookImages(state.lookSelection),
             paintBeauty: paintBeautyPass,
+            // Screen overlays animate (rain falls); the frame time keeps them
+            // deterministic per frame rather than random.
+            timeMs: performance.now(),
         });
         return true;
     }

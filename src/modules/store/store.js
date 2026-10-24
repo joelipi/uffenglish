@@ -16,6 +16,7 @@ import {
     toggleLookDrawer,
     toggleFilterId,
     toggleLensId,
+    toggleScreenId,
     OVERLAY_SLOTS,
 } from '../looks/recording-looks-logic.js';
 
@@ -283,6 +284,14 @@ export const appStore = createStore(
                 lookSelection: sanitizeSelection({
                     ...state.lookSelection,
                     lensId: toggleLensId(state.lookSelection.lensId, lensId),
+                }),
+            })),
+            // The screen overlay is a third independent choice (rain over a
+            // filter over a close-up lens all at once).
+            toggleLookScreen: (screenId) => set((state) => ({
+                lookSelection: sanitizeSelection({
+                    ...state.lookSelection,
+                    screenId: toggleScreenId(state.lookSelection.screenId, screenId),
                 }),
             })),
             setLookSlot: (slot, slug) => set((state) => {

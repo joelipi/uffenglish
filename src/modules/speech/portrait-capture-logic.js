@@ -194,6 +194,9 @@ export const BEAUTY_PRESETS = {
     //   chiaroscuro — a lit centre with the surround falling into shadow.
     lensSoftFocus: { softFocus: 0.62, fillLight: 0.14, warmth: 0.04, vignette: 0 },
     lensChiaroscuro: { softFocus: 0.06, fillLight: 0.34, warmth: 0.18, vignette: 0.78 },
+    // Close-up: the soft-focus pass alone, at full strength, cut around the
+    // sharp oval (`hole`), so the subject stays crisp inside it.
+    lensCloseUp: { softFocus: 0.95, fillLight: 0, warmth: 0, vignette: 0 },
 };
 
 /** Placement is a rule, not baked pixel math: top / bottom / full cover-fit. */
@@ -277,7 +280,7 @@ export function resolveOverlayDestRect({ imageWidth, imageHeight, canvasWidth, c
  * back at `strength`. Same downscale/upscale technique as the blur filter, which
  * is why it costs two drawImage calls and needs no shader.
  */
-export function paintSoftFocus({ ctx, source, scratch, canvasWidth, canvasHeight, strength }) {
+export function paintSoftFocus({ ctx, source, scratch, canvasWidth, canvasHeight, strength, hole }) {
     if (!ctx || !source || !scratch) return false;
     if (!(strength > 0)) return false;
     const sw = Math.max(1, Math.round(canvasWidth / SOFT_FOCUS_DOWNSCALE));
@@ -290,6 +293,16 @@ export function paintSoftFocus({ ctx, source, scratch, canvasWidth, canvasHeight
         sctx.imageSmoothingEnabled = true;
         sctx.drawImage(source, 0, 0, canvasWidth, canvasHeight, 0, 0, sw, sh);
         ctx.save();
+        if (hole) {
+            // Close-up lens: blur everywhere EXCEPT the oval. Clipping the frame
+            // rect plus the (counter-clockwise) ellipse with the even-odd rule
+            // leaves a hole, so the subject's own pixels are never overwritten —
+            // no second full-size canvas and no `ctx.filter` (an iOS no-op).
+            ctx.beginPath();
+            ctx.rect(0, 0, canvasWidth, canvasHeight);
+            ctx.ellipse(hole.cx, hole.cy, hole.rx, hole.ry, 0, 0, Math.PI * 2, true);
+            ctx.clip('evenodd');
+        }
         ctx.globalAlpha = Math.min(1, Math.max(0, strength));
         ctx.imageSmoothingEnabled = true;
         ctx.drawImage(scratch, 0, 0, sw, sh, 0, 0, canvasWidth, canvasHeight);
@@ -364,11 +377,11 @@ export function paintTone({ ctx, canvasWidth, canvasHeight, warmth, vignette }) 
  * mode that was actually painted ('none' for an unknown mode or a painter that
  * threw), so the adapter can log it.
  */
-export function paintBeautyPass({ ctx, source, scratch, canvasWidth, canvasHeight, mode }) {
+export function paintBeautyPass({ ctx, source, scratch, canvasWidth, canvasHeight, mode, hole = null }) {
     const preset = BEAUTY_PRESETS[mode];
     if (!preset || mode === 'none') return 'none';
     const painted = [
-        paintSoftFocus({ ctx, source, scratch, canvasWidth, canvasHeight, strength: preset.softFocus }),
+        paintSoftFocus({ ctx, source, scratch, canvasWidth, canvasHeight, strength: preset.softFocus, hole }),
         paintFillLight({ ctx, canvasWidth, canvasHeight, strength: preset.fillLight }),
         paintTone({ ctx, canvasWidth, canvasHeight, warmth: preset.warmth, vignette: preset.vignette }),
     ];

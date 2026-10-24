@@ -65,12 +65,53 @@ export const LENS_PRESETS = [
     { id: 'none', label: 'None', labelKey: 'look_lens_none', beautyMode: null, swatch: NONE_SWATCH },
     { id: 'softfocus', label: 'Soft focus', labelKey: 'look_lens_soft_focus', beautyMode: 'lensSoftFocus', swatch: 'radial-gradient(circle at 50% 42%, #ffffff 0%, #ffe9d8 45%, rgba(255,233,216,0.12) 100%)' },
     { id: 'chiaroscuro', label: 'Chiaroscuro', labelKey: 'look_lens_chiaroscuro', beautyMode: 'lensChiaroscuro', swatch: 'radial-gradient(circle at 50% 42%, #ffd9a0 0%, #6b4a2a 35%, #0b0b0b 88%)' },
+    // Close-up: the frame is blurred except a large oval over the head and
+    // neck. `hole` tells the painter to cut that ellipse out of the blur, so
+    // the subject stays sharp while everything around them goes soft.
+    { id: 'closeup', label: 'Close-up', labelKey: 'look_lens_close_up', beautyMode: 'lensCloseUp', hole: true, swatch: 'radial-gradient(ellipse 34% 30% at 50% 38%, #ffffff 0%, #f2f6ff 62%, #8b95a8 74%, #232936 100%)' },
 ];
+
+/**
+ * The close-up lens' sharp oval, as fractions of the frame. Generous on
+ * purpose: head plus neck, so a learner can move a little without their
+ * shoulder jumping into the blurred area.
+ */
+export const CLOSE_UP_HOLE = { cx: 0.5, cy: 0.38, rx: 0.36, ry: 0.32 };
+
+/** The same oval in canvas pixels (the frame is always the same 9:16 shape). */
+export function resolveCloseUpHole(canvasWidth, canvasHeight) {
+    return {
+        cx: CLOSE_UP_HOLE.cx * canvasWidth,
+        cy: CLOSE_UP_HOLE.cy * canvasHeight,
+        rx: CLOSE_UP_HOLE.rx * canvasWidth,
+        ry: CLOSE_UP_HOLE.ry * canvasHeight,
+    };
+}
 
 export const LENS_IDS = LENS_PRESETS.map((p) => p.id);
 
 /** Lens effects are opt-in too: the default is no effect at all. */
 export const DEFAULT_LENS_ID = 'none';
+
+/**
+ * Screen overlays: artwork that lies over the WHOLE frame, in front of the
+ * learner and in front of the props (rain in the air, confetti, grain). Its own
+ * category and its own rail box, because it is neither a colour grade, nor a
+ * lens treatment, nor something placed at one spot in the frame.
+ *
+ * Painted procedurally so it can move with the take: a still image would look
+ * like a photo pasted on a video. Deterministic per drop and per time, so a
+ * frame can be reproduced exactly (and a test can assert movement).
+ */
+export const SCREEN_PRESETS = [
+    { id: 'none', label: 'None', labelKey: 'look_screen_none', swatch: NONE_SWATCH },
+    { id: 'raindrops', label: 'Raindrops', labelKey: 'look_screen_raindrops', swatch: 'linear-gradient(150deg, #0f1722 0%, #24384d 100%), radial-gradient(circle at 30% 30%, #bfe3ff 0 6%, transparent 7%)' },
+];
+
+export const SCREEN_IDS = SCREEN_PRESETS.map((p) => p.id);
+
+/** Screen overlays are opt-in: the default leaves the frame untouched. */
+export const DEFAULT_SCREEN_ID = 'none';
 
 /**
  * Asset registry: a config names a SLUG, never a path, so art can be swapped by
@@ -104,7 +145,7 @@ export const SLOT_ANCHORS = {
     lower: { cx: 0.5, cy: 0.74 },
 };
 
-export const LOOK_DRAWERS = ['filter', 'lens', 'upper', 'face', 'lower'];
+export const LOOK_DRAWERS = ['filter', 'lens', 'screen', 'upper', 'face', 'lower'];
 
 /** Toggle a left-rail fold-out drawer: tapping the open drawer folds it back in. */
 export function toggleLookDrawer(currentDrawer, clickedDrawer) {
@@ -167,6 +208,15 @@ export function resolveLensPreset(id) {
     return LENS_PRESETS.find((p) => p.id === resolved);
 }
 
+export function resolveScreenId(id) {
+    return SCREEN_IDS.includes(id) ? id : DEFAULT_SCREEN_ID;
+}
+
+export function resolveScreenPreset(id) {
+    const resolved = resolveScreenId(id);
+    return SCREEN_PRESETS.find((p) => p.id === resolved);
+}
+
 /**
  * Both pickers (filters and lens effects) behave the same way: a radio
  * group with an explicit "None", where tapping the applied option removes it.
@@ -197,6 +247,11 @@ export function toggleLensId(currentId, clickedId) {
     return toggleChoiceId(LENS_IDS, DEFAULT_LENS_ID, resolveLensId(currentId), clickedId);
 }
 
+/** Same rule for the screen overlay, independently of both of the above. */
+export function toggleScreenId(currentId, clickedId) {
+    return toggleChoiceId(SCREEN_IDS, DEFAULT_SCREEN_ID, resolveScreenId(currentId), clickedId);
+}
+
 /** Only the friend-closed-response step gets the preview gate + look controls. */
 export function isPreviewGateStep(step) {
     return !!step && step.responseType === 'friendClosedResponse';
@@ -214,7 +269,7 @@ export function isSlugValidForSlot(slug, slot) {
 }
 
 export function emptySelection() {
-    return { filterId: DEFAULT_FILTER_ID, lensId: DEFAULT_LENS_ID, slots: { face: null, upper: null, lower: null } };
+    return { filterId: DEFAULT_FILTER_ID, lensId: DEFAULT_LENS_ID, screenId: DEFAULT_SCREEN_ID, slots: { face: null, upper: null, lower: null } };
 }
 
 export function emptyTuning() {
@@ -226,6 +281,7 @@ export function isLookActive(selection) {
     const safe = sanitizeSelection(selection);
     if (safe.filterId !== DEFAULT_FILTER_ID) return true;
     if (safe.lensId !== DEFAULT_LENS_ID) return true;
+    if (safe.screenId !== DEFAULT_SCREEN_ID) return true;
     return OVERLAY_SLOTS.some((slot) => !!safe.slots[slot]);
 }
 
@@ -265,6 +321,7 @@ export function sanitizeSelection(selection) {
     if (!selection || typeof selection !== 'object') return safe;
     safe.filterId = resolveFilterId(selection.filterId);
     safe.lensId = resolveLensId(selection.lensId);
+    safe.screenId = resolveScreenId(selection.screenId);
     const slots = selection.slots;
     if (slots && typeof slots === 'object') {
         for (const slot of OVERLAY_SLOTS) {
@@ -414,13 +471,81 @@ export function paintSlotOverlay({ ctx, image, slot, canvasWidth, canvasHeight, 
     }
 }
 
+// ---------------------------------------------------------------------------
+// Screen overlays. Deterministic: a drop's position is a pure function of its
+// index and the frame time, so the take animates without any per-frame state
+// and a test can assert that time moves the drops.
+// ---------------------------------------------------------------------------
+
+export const RAINDROP_COUNT = 26;
+
+/** A stable 0..1 number per seed (no Math.random: frames must be reproducible). */
+function hash01(seed) {
+    let x = (seed * 2654435761) >>> 0;
+    x = (x ^ (x >>> 15)) >>> 0;
+    x = Math.imul(x, 2246822519) >>> 0;
+    return x / 4294967296;
+}
+
+/** One drop's live geometry at a given time, in canvas pixels. */
+export function resolveRaindrop({ index, timeMs = 0, canvasWidth, canvasHeight }) {
+    const size = hash01(index * 3 + 3);
+    const travel = ((hash01(index * 3 + 2) + (timeMs / 1000) * (0.35 + size * 0.35)) % 1.2) - 0.1;
+    return {
+        // Falling down-and-left, so the field reads as arriving from the top
+        // right: the horizontal offset grows with the fall.
+        x: (hash01(index * 3 + 1) - travel * 0.16) * canvasWidth,
+        y: travel * canvasHeight,
+        radius: canvasWidth * (0.006 + size * 0.008),
+        tail: canvasHeight * (0.03 + size * 0.03),
+        alpha: 0.18 + size * 0.22,
+    };
+}
+
+/**
+ * Paint the chosen screen overlay over the whole frame. Returns the id painted
+ * ('none' when there is nothing to draw or the painter threw), so the adapter
+ * can log it.
+ */
+export function paintScreenOverlay({ ctx, canvasWidth, canvasHeight, screenId, timeMs = 0 }) {
+    const id = resolveScreenId(screenId);
+    if (!ctx || id === 'none') return 'none';
+    if (!(canvasWidth > 0) || !(canvasHeight > 0)) return 'none';
+    if (id !== 'raindrops') return 'none';
+    try {
+        ctx.save();
+        ctx.fillStyle = 'rgb(178, 220, 255)';
+        for (let i = 0; i < RAINDROP_COUNT; i++) {
+            const drop = resolveRaindrop({ index: i, timeMs, canvasWidth, canvasHeight });
+            ctx.globalAlpha = drop.alpha;
+            // The tear: a round head with a tapered tail pointing back up the
+            // direction of travel.
+            ctx.beginPath();
+            ctx.ellipse(drop.x, drop.y, drop.radius, drop.radius * 1.25, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(drop.x - drop.radius * 0.7, drop.y - drop.radius * 0.6);
+            ctx.lineTo(drop.x + drop.radius * 0.7, drop.y - drop.radius * 0.6);
+            ctx.lineTo(drop.x + drop.radius * 1.6, drop.y - drop.radius * 0.6 - drop.tail);
+            ctx.closePath();
+            ctx.fill();
+        }
+        ctx.restore();
+        return id;
+    } catch (e) {
+        return 'none';
+    }
+}
+
 /**
  * The whole look for one frame, in the fixed order that matters:
  *   1. beauty (soft-focus + light) under the colour grade,
  *   2. colour grade,
  *   3. the lens effect (soft focus / chiaroscuro) over the grade, under the
  *      props — it is the room's lighting and optics, not a tint on the face,
- *   4. overlays face → upper → lower (a lower prop never covers a face cover).
+ *   4. overlays face → upper → lower (a lower prop never covers a face cover),
+ *   5. the screen overlay (rain/atmosphere) over everything, animated from
+ *      `timeMs` so the take moves.
  *
  * `images` maps slug → decoded image; a slug whose image is still loading is
  * simply skipped for that frame.
@@ -435,8 +560,9 @@ export function paintLooks({
     tuning,
     images,
     paintBeauty,
+    timeMs = 0,
 }) {
-    if (!ctx) return { filter: 'none', lens: 'none', slots: [] };
+    if (!ctx) return { filter: 'none', lens: 'none', screen: 'none', slots: [] };
     const safe = sanitizeSelection(selection);
     const safeTuning = sanitizeTuning(tuning);
     const preset = resolveFilterPreset(safe.filterId);
@@ -469,6 +595,9 @@ export function paintLooks({
             canvasWidth,
             canvasHeight,
             mode: lensPreset.beautyMode,
+            // Close-up cuts its sharp oval out of the blur; every other lens
+            // treats the whole frame.
+            hole: lensPreset.hole ? resolveCloseUpHole(canvasWidth, canvasHeight) : null,
         });
         lensPainted = painted === 'none' ? 'none' : lensPreset.id;
     }
@@ -482,6 +611,16 @@ export function paintLooks({
             paintedSlots.push(slot);
         }
     }
-    return { filter: filterPainted, lens: lensPainted, slots: paintedSlots };
+    // Screen overlays go on last: rain is in the air, in front of the learner
+    // and in front of the props.
+    const screenPainted = paintScreenOverlay({
+        ctx,
+        canvasWidth,
+        canvasHeight,
+        screenId: safe.screenId,
+        timeMs,
+    });
+
+    return { filter: filterPainted, lens: lensPainted, screen: screenPainted, slots: paintedSlots };
 }
 

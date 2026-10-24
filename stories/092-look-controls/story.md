@@ -24,9 +24,11 @@ Nothing here tracks a face. "Face" and "Above face" are fixed anchor zones on th
 - **Filter presets** are Canvas2D blend-mode recipes (`saturation` for mono, `screen`/`multiply` tints for warm/cool/vintage, an `overlay` pass for vivid) plus the beauty levers from 091, so there is no GL context and no `ctx.filter` (which is a no-op on iOS). Preset ids: `none`, `natural`, `warm`, `cool`, `soft`, `mono`, `vintage`, `vivid`; default `none`, so a learner who picks nothing gets an untouched camera frame and the picker shows **None** selected. Filters are a radio group with an explicit off: one at a time, and tapping the applied filter clears it back to `none` (`toggleFilterId`).
 - **The picker must show which filter is applied, and only that one**: the applied chip gets the green ring, a tint and a check badge (`aria-pressed="true"`), while an unapplied chip stays flat. On the rail, **white = this drawer is open, green = something is applied**, so a folded-out drawer never reads as "a filter is selected".
 - **Lens effects are a third kind of control**, next to the colour filter and the prop slots: a whole-frame optical treatment (soft focus, chiaroscuro) rather than a prop placed in the frame. They get their **own rail box** (`Lens`) and their own selection key, so a filter and a lens effect can be applied together (Vintage + Chiaroscuro) and both coexist with the three prop slots. The category is named for the standard term: a camera *lens effect* (Snapchat/Samsung camera call this strip "Lens"; cinema calls soft focus a diffusion filter and chiaroscuro lighting — the umbrella is the lens/camera effect).
-  - `LENS_PRESETS`: `none`, `softfocus`, `chiaroscuro`; default `none`, same radio-with-off rule as filters (`toggleLensId`).
+  - `LENS_PRESETS`: `none`, `softfocus`, `chiaroscuro`, `closeup`; default `none`, same radio-with-off rule as filters (`toggleLensId`).
+  - **Close-up** keeps the subject sharp and blurs everything around them: the blur is the 091 soft-focus pass at full strength, clipped with the even-odd rule to the frame *minus* a large oval (`CLOSE_UP_HOLE`, centred 50% / 38%, radii 36% of width and 32% of height — head plus neck, no face tracking). The oval's own pixels are never overwritten, so no second full-size canvas and no `ctx.filter` are needed.
   - No face tracking: each is one canvas-wide pass centred on the assumed face zone (`SLOT_ANCHORS.face`, 50% / 42%), which is exact enough because the composite canvas is always the same 9:16 frame.
   - The two effects reuse the 091 painters through the injected `paintBeauty` callback (`BEAUTY_PRESETS.lensSoftFocus` = strong downscale bloom + fill light; `lensChiaroscuro` = lit centre + 0.78 vignette), so there is no `ctx.filter` and no new blur technique. They are painted **after the colour grade and under the props** (`paintLooks` step 3).
+- **Screen overlays are a fourth category** (`screen`): artwork that lies over the WHOLE frame, in front of the learner and in front of the props — not a prop at one spot, not a grade, not a lens treatment. Its own rail box (`Screen`) and its own selection key (`screenId`), so it composes with a filter, a lens and the three props at once. `SCREEN_PRESETS`: `none`, `raindrops`; default `none`, same radio-with-off rule (`toggleScreenId`). Raindrops are painted **procedurally and deterministically** from `(drop index, timeMs)` (`resolveRaindrop` / `paintScreenOverlay`), because a still image would look like a photo pasted on a video: a tear-shaped head with a tapered tail, light blue and semi-transparent, spread over the whole frame and drifting down-left so the field reads as arriving from the top right. `paintLooks` receives `timeMs` (the composite passes `performance.now()`) and paints the screen overlay **last of all**.
 - **A tapped option must not keep the native focus ring.** On iOS Safari a `<button>` keeps its focus ring (and its default button chrome) after a tap, so an option the learner had tapped and then abandoned still looked outlined — reported twice as "the white border stays on the previous option". Every picker button now carries `look-tap` (`.look-tap` in `app.css`: `appearance: none`, `-webkit-tap-highlight-color: transparent`, `:focus { outline: none }`, `:focus-visible` keeps a 2px green keyboard cue) and a pointer activation releases focus (`releaseFocusAfterPointerTap`, `event.detail > 0` only, so tab navigation keeps its focus).
 - **Three overlay slots** — `face`, `upper`, `lower` — each holding at most one asset slug plus its own user tuning (`dx`, `dy` as fractions of the canvas, `scale`). Anchor defaults stay clear of the top header blur and bottom mic band: `face` centred at 42% height, `upper` centred at 22% height, `lower` centred at 74% height. Drawing order is face → upper → lower so a lower prop never covers a face cover.
 - **Selection lives in the zustand store** (`lookSelection`, `lookTuning`, `lookActiveSlot`, `lookOpenDrawer`) and is read per frame by the recording composite, so a change repaints the live preview and is baked into the take because it is the same canvas.
@@ -113,6 +115,33 @@ Nothing here tracks a face. "Face" and "Above face" are fixed anchor zones on th
   - → `.look-tap` sets `-webkit-appearance: none`, `appearance: none` and `-webkit-tap-highlight-color: transparent`; `.look-tap:focus` sets `outline: none`; `.look-tap:focus-visible` still paints a 2px green keyboard cue
 - `releaseFocusAfterPointerTap` source + called in unit test
   - → releases focus only when `event.detail > 0` (pointer), so tab navigation keeps its focus
+
+### Task 5 - Close-up lens, screen overlays, and the Top icon
+
+- `LENS_PRESETS` / `resolveLensPreset('closeup')` + called in unit test
+  - → `closeup` exists with `beautyMode: 'lensCloseUp'` and `hole: true`; the other lenses have no `hole`
+- `resolveCloseUpHole(1080, 1920)` + called in unit test
+  - → the oval is `CLOSE_UP_HOLE` scaled to the canvas, centred at 50% / 38% with radii 36% × 32%
+- `paintSoftFocus({ …, hole })` + called in unit test
+  - → clips the frame plus a counter-clockwise ellipse with the `evenodd` rule (a hole) and still draws the blurred pass once; without a `hole` it clips nothing
+- `paintBeautyPass({ mode: 'lensCloseUp', hole })` + called in unit test
+  - → threads the hole to the soft-focus painter and reports `lensCloseUp`
+- `paintLooks` with `lensId: 'closeup'` vs `'softfocus'` + called in unit test
+  - → passes the resolved hole only for the close-up lens
+- `SCREEN_PRESETS` / `resolveScreenId` / `sanitizeSelection` / `isLookActive` + called in unit test
+  - → ids `['none', 'raindrops']`, default `none`, an unknown id sanitises to `none`, and a screen overlay alone counts as a look
+- `toggleScreenId(current, clicked)` + called in unit test
+  - → one overlay at a time, tapping the applied one clears it
+- `resolveRaindrop` + called in unit test
+  - → deterministic for the same `(index, timeMs)`, and both `x` and `y` change with `timeMs`
+- `paintScreenOverlay` + called in unit test
+  - → draws two shapes per drop (`RAINDROP_COUNT` ellipses and fills) and nothing for `none`
+- `paintLooks` with filter + lens + screen + called in unit test
+  - → `screen: 'raindrops'`, the rain is painted after the grade and the lens, and its fills are the last thing on the frame
+- `toggleLookScreen` on the store + called in unit test
+  - → independent of `toggleLookFilter` / `toggleLookLens`; a second tap clears only the screen overlay
+- `LookControls.jsx` source + called in unit test
+  - → the Top slot's icon is `bi-cloud-fill` (not `bi-magic`), and the rail has `filter`, `lens`, `screen` plus the three slot drawers
 
 ## Notes
 

@@ -4,8 +4,16 @@ import {
     resolveFilterPreset,
     resolveLensId,
     resolveLensPreset,
+    resolveScreenId,
+    resolveScreenPreset,
+    CLOSE_UP_HOLE,
+    resolveCloseUpHole,
+    resolveRaindrop,
+    paintScreenOverlay,
+    RAINDROP_COUNT,
     toggleFilterId,
     toggleLensId,
+    toggleScreenId,
     isLookActive,
     paintLooks,
     isPreviewGateStep,
@@ -23,6 +31,8 @@ import {
     computeDragOffset,
     DEFAULT_FILTER_ID,
     DEFAULT_LENS_ID,
+    DEFAULT_SCREEN_ID,
+    SCREEN_PRESETS,
     FILTER_IDS,
     FILTER_PRESETS,
     LENS_PRESETS,
@@ -110,7 +120,7 @@ describe('filters are opt-in — None is a real, selectable choice', () => {
             images: {},
             paintBeauty,
         });
-        expect(result).toEqual({ filter: 'none', lens: 'none', slots: [] });
+        expect(result).toEqual({ filter: 'none', lens: 'none', screen: 'none', slots: [] });
         expect(paintBeauty).not.toHaveBeenCalled();
     });
 
@@ -166,7 +176,7 @@ describe('toggleFilterId', () => {
 
 describe('lens effects — a category of their own, independent of the filter', () => {
     it('offers None, Soft focus and Chiaroscuro, and starts on None', () => {
-        expect(LENS_PRESETS.map((p) => p.id)).toEqual(['none', 'softfocus', 'chiaroscuro']);
+        expect(LENS_PRESETS.map((p) => p.id)).toEqual(['none', 'softfocus', 'chiaroscuro', 'closeup']);
         expect(DEFAULT_LENS_ID).toBe('none');
         expect(emptySelection().lensId).toBe('none');
         expect(resolveLensId('bogus')).toBe('none');
@@ -233,7 +243,141 @@ describe('lens effects — a category of their own, independent of the filter', 
             paintBeauty,
         });
         expect(modes).toEqual(['lensSoftFocus']);
-        expect(result).toEqual({ filter: 'none', lens: 'softfocus', slots: [] });
+        expect(result).toEqual({ filter: 'none', lens: 'softfocus', screen: 'none', slots: [] });
+    });
+});
+
+
+describe('close-up lens — sharp oval, blurred everywhere else', () => {
+    it('is one of the lens options and asks for a hole', () => {
+        expect(resolveLensPreset('closeup').beautyMode).toBe('lensCloseUp');
+        expect(resolveLensPreset('closeup').hole).toBe(true);
+        // the other lenses treat the whole frame
+        expect(resolveLensPreset('softfocus').hole).toBeUndefined();
+    });
+
+    it('places the oval over the assumed head-and-neck zone', () => {
+        const hole = resolveCloseUpHole(1080, 1920);
+        expect(hole.cx).toBeCloseTo(CLOSE_UP_HOLE.cx * 1080, 5);
+        expect(hole.cy).toBeCloseTo(CLOSE_UP_HOLE.cy * 1920, 5);
+        expect(hole.rx).toBeCloseTo(CLOSE_UP_HOLE.rx * 1080, 5);
+        expect(hole.ry).toBeCloseTo(CLOSE_UP_HOLE.ry * 1920, 5);
+        // big enough to be a head-and-neck oval, not a porthole
+        expect(hole.rx / 1080).toBeGreaterThan(0.3);
+        expect(hole.ry / 1920).toBeGreaterThan(0.25);
+    });
+
+    it('passes the oval to the painter only for the close-up lens', () => {
+        const calls = [];
+        const paintBeauty = vi.fn(({ mode, hole }) => { calls.push({ mode, hole }); return mode; });
+        const paint = (lensId) => paintLooks({
+            ctx: {},
+            source: {},
+            scratch: {},
+            canvasWidth: 1080,
+            canvasHeight: 1920,
+            selection: { filterId: 'none', lensId, screenId: 'none', slots: { face: null, upper: null, lower: null } },
+            tuning: emptyTuning(),
+            images: {},
+            paintBeauty,
+        });
+        paint('closeup');
+        expect(calls[0].mode).toBe('lensCloseUp');
+        expect(calls[0].hole).toEqual(resolveCloseUpHole(1080, 1920));
+        calls.length = 0;
+        paint('softfocus');
+        expect(calls[0].mode).toBe('lensSoftFocus');
+        expect(calls[0].hole).toBeNull();
+    });
+});
+
+describe('screen overlays — a category painted over the whole frame', () => {
+    it('offers None and Raindrops, and starts on None', () => {
+        expect(SCREEN_PRESETS.map((p) => p.id)).toEqual(['none', 'raindrops']);
+        expect(DEFAULT_SCREEN_ID).toBe('none');
+        expect(emptySelection().screenId).toBe('none');
+        expect(resolveScreenId('bogus')).toBe('none');
+        expect(resolveScreenPreset('raindrops').id).toBe('raindrops');
+    });
+
+    it('sanitises screenId and counts a screen overlay as a look on its own', () => {
+        expect(sanitizeSelection({ screenId: 'neon' }).screenId).toBe('none');
+        expect(sanitizeSelection({ screenId: 'raindrops' }).screenId).toBe('raindrops');
+        expect(isLookActive({ filterId: 'none', lensId: 'none', screenId: 'raindrops', slots: {} })).toBe(true);
+        expect(isLookActive(emptySelection())).toBe(false);
+    });
+
+    it('toggleScreenId is a radio group with an off', () => {
+        expect(toggleScreenId('none', 'raindrops')).toBe('raindrops');
+        expect(toggleScreenId('raindrops', 'raindrops')).toBe('none');
+        expect(toggleScreenId('none', 'none')).toBe('none');
+        expect(toggleScreenId('raindrops', 'bogus')).toBe('none');
+    });
+
+    it('raindrops are deterministic per frame and move with time', () => {
+        const args = { index: 3, canvasWidth: 1080, canvasHeight: 1920 };
+        const a = resolveRaindrop({ ...args, timeMs: 0 });
+        const b = resolveRaindrop({ ...args, timeMs: 0 });
+        const later = resolveRaindrop({ ...args, timeMs: 700 });
+        expect(a).toEqual(b);
+        expect(later.y).not.toBeCloseTo(a.y, 3);
+        expect(later.x).not.toBeCloseTo(a.x, 3);
+        // falling down and to the left (the field arrives from the top right)
+        const evenLater = resolveRaindrop({ ...args, timeMs: 1400 });
+        expect(evenLater.y).not.toBeCloseTo(later.y, 3);
+    });
+
+    it('paints two shapes per drop, and nothing at all for None', () => {
+        const makeCtx = () => {
+            const calls = { fills: 0, begins: 0, ellipses: 0 };
+            return {
+                calls,
+                save() {}, restore() {},
+                beginPath() { calls.begins += 1; },
+                moveTo() {}, lineTo() {}, closePath() {},
+                ellipse() { calls.ellipses += 1; },
+                fill() { calls.fills += 1; },
+                fillStyle: '', globalAlpha: 1,
+            };
+        };
+        const ctx = makeCtx();
+        expect(paintScreenOverlay({ ctx, canvasWidth: 1080, canvasHeight: 1920, screenId: 'raindrops', timeMs: 250 })).toBe('raindrops');
+        expect(ctx.calls.fills).toBe(RAINDROP_COUNT * 2);
+        expect(ctx.calls.ellipses).toBe(RAINDROP_COUNT);
+
+        const noneCtx = makeCtx();
+        expect(paintScreenOverlay({ ctx: noneCtx, canvasWidth: 1080, canvasHeight: 1920, screenId: 'none', timeMs: 250 })).toBe('none');
+        expect(noneCtx.calls.fills).toBe(0);
+    });
+
+    it('paintLooks paints it last and reports it', () => {
+        const order = [];
+        const ctx = {
+            save() { order.push('save'); }, restore() { order.push('restore'); },
+            beginPath() {}, moveTo() {}, lineTo() {}, closePath() {}, ellipse() {},
+            fill() { order.push('rain'); },
+            fillRect() { order.push('fillRect'); },
+            createRadialGradient: () => ({ addColorStop() {} }),
+            globalAlpha: 1, fillStyle: '', globalCompositeOperation: 'source-over',
+        };
+        const paintBeauty = vi.fn(({ mode }) => { order.push(`beauty:${mode}`); return mode; });
+        const result = paintLooks({
+            ctx,
+            source: {},
+            scratch: {},
+            canvasWidth: 1080,
+            canvasHeight: 1920,
+            selection: { filterId: 'warm', lensId: 'softfocus', screenId: 'raindrops', slots: { face: null, upper: null, lower: null } },
+            tuning: emptyTuning(),
+            images: {},
+            paintBeauty,
+            timeMs: 500,
+        });
+        expect(result.screen).toBe('raindrops');
+        // filter beauty → grade → lens → rain last of all
+        expect(order.indexOf('beauty:warm')).toBeLessThan(order.indexOf('fillRect'));
+        expect(order.indexOf('fillRect')).toBeLessThan(order.indexOf('beauty:lensSoftFocus'));
+        expect(order.filter((x) => x !== 'save' && x !== 'restore').slice(-1)[0]).toBe('rain');
     });
 });
 

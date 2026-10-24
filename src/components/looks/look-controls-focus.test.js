@@ -96,3 +96,24 @@ describe('look controls do not keep the native focus ring', () => {
         expect(body).toContain('event.currentTarget.blur()');
     });
 });
+
+describe('look control icons and categories', () => {
+    it('the Top slot shows something that sits above a head, not a magic wand', () => {
+        const source = read(COMPONENT);
+        const start = source.indexOf("slot: 'upper'");
+        expect(start).toBeGreaterThan(-1);
+        const line = source.slice(start, source.indexOf('},', start));
+        expect(line).toContain('bi-cloud-fill');
+        expect(line).not.toContain('bi-magic');
+    });
+
+    it('the rail carries the three categories plus the three slots', () => {
+        const source = read(COMPONENT);
+        for (const id of ['look-drawer-toggle-filter', 'look-drawer-toggle-lens', 'look-drawer-toggle-screen']) {
+            expect(source).toContain(id);
+        }
+        for (const slot of ['upper', 'face', 'lower']) {
+            expect(source).toContain('data-testid={`look-drawer-toggle-${slot}`}');
+        }
+    });
+});

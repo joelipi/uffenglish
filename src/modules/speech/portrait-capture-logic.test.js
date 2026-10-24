@@ -20,6 +20,7 @@ import {
     // Recording looks (stories/092): the lens effects reuse these painters.
     BEAUTY_PRESETS,
     paintBeautyPass,
+    paintSoftFocus,
 } from './portrait-capture-logic.js';
 
 describe('resolveCompositeDimensions', () => {
@@ -465,5 +466,78 @@ describe('lens effect presets (stories/092)', () => {
         const { ctx, scratch, calls } = makePaintSpies();
         expect(paintBeautyPass({ ctx, source: {}, scratch, canvasWidth: 720, canvasHeight: 1280, mode: 'none' })).toBe('none');
         expect(calls.draws + calls.fills + calls.gradients).toBe(0);
+    });
+});
+
+describe('close-up lens hole (stories/092)', () => {
+    function makeCtx() {
+        const calls = { clip: [], ellipse: 0, rect: 0, draws: 0 };
+        return {
+            calls,
+            save() {}, restore() {},
+            beginPath() {},
+            rect() { calls.rect += 1; },
+            ellipse() { calls.ellipse += 1; },
+            clip(rule) { calls.clip.push(rule); },
+            drawImage() { calls.draws += 1; },
+            imageSmoothingEnabled: true,
+            globalAlpha: 1,
+        };
+    }
+    const makeScratch = () => ({
+        width: 0,
+        height: 0,
+        getContext: () => ({ imageSmoothingEnabled: true, drawImage() {} }),
+    });
+
+    it('keeps the soft-focus preset for the other lenses', () => {
+        const preset = BEAUTY_PRESETS.lensCloseUp;
+        expect(preset.softFocus).toBeGreaterThan(BEAUTY_PRESETS.soft.softFocus);
+        expect(preset.fillLight).toBe(0);
+        expect(preset.vignette).toBe(0);
+    });
+
+    it('blurs only outside the oval, and leaves the frame whole when there is no hole', () => {
+        const holed = makeCtx();
+        expect(paintSoftFocus({
+            ctx: holed,
+            source: {},
+            scratch: makeScratch(),
+            canvasWidth: 1080,
+            canvasHeight: 1920,
+            strength: 0.95,
+            hole: { cx: 540, cy: 730, rx: 389, ry: 614 },
+        })).toBe(true);
+        expect(holed.calls.rect).toBe(1);
+        expect(holed.calls.ellipse).toBe(1);
+        // even-odd is what turns the ellipse into a hole
+        expect(holed.calls.clip).toEqual(['evenodd']);
+        expect(holed.calls.draws).toBe(1);
+
+        const whole = makeCtx();
+        expect(paintSoftFocus({
+            ctx: whole,
+            source: {},
+            scratch: makeScratch(),
+            canvasWidth: 1080,
+            canvasHeight: 1920,
+            strength: 0.3,
+        })).toBe(true);
+        expect(whole.calls.clip).toEqual([]);
+        expect(whole.calls.draws).toBe(1);
+    });
+
+    it('threads the hole through paintBeautyPass', () => {
+        const ctx = makeCtx();
+        expect(paintBeautyPass({
+            ctx,
+            source: {},
+            scratch: makeScratch(),
+            canvasWidth: 1080,
+            canvasHeight: 1920,
+            mode: 'lensCloseUp',
+            hole: { cx: 540, cy: 730, rx: 389, ry: 614 },
+        })).toBe('lensCloseUp');
+        expect(ctx.calls.clip).toEqual(['evenodd']);
     });
 });

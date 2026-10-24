@@ -4,13 +4,16 @@ import { appStore } from '../../modules/store/store.js';
 import {
     FILTER_PRESETS,
     LENS_PRESETS,
+    SCREEN_PRESETS,
     OVERLAY_LIBRARY,
     overlaySlugsForSlot,
     assetFileForSlug,
     resolveFilterPreset,
     resolveLensPreset,
+    resolveScreenPreset,
     DEFAULT_FILTER_ID,
     DEFAULT_LENS_ID,
+    DEFAULT_SCREEN_ID,
     NONE_SWATCH,
     MIN_SCALE,
     MAX_SCALE,
@@ -34,7 +37,8 @@ const UA_RESET = {
 };
 
 const SLOT_RAIL_META = [
-    { slot: 'upper', label: 'Top', icon: 'bi-magic' },
+    // A cloud (a thing that sits above a head), not a magic wand.
+    { slot: 'upper', label: 'Top', icon: 'bi-cloud-fill' },
     { slot: 'face', label: 'Face', icon: 'bi-emoji-smile' },
     { slot: 'lower', label: 'Bottom', icon: 'bi-layers' },
 ];
@@ -106,6 +110,18 @@ function LensStrip() {
             presets={LENS_PRESETS}
             selectedId={lensId}
             onPick={(id) => appStore.getState().toggleLookLens(id)}
+        />
+    );
+}
+
+function ScreenStrip() {
+    const screenId = useStore(appStore, (state) => state.lookSelection.screenId);
+    return (
+        <ChoiceStrip
+            testidPrefix="look-screen"
+            presets={SCREEN_PRESETS}
+            selectedId={screenId}
+            onPick={(id) => appStore.getState().toggleLookScreen(id)}
         />
     );
 }
@@ -186,6 +202,7 @@ export default function LookControls() {
     const openDrawer = useStore(appStore, (state) => state.lookOpenDrawer);
     const filterId = useStore(appStore, (state) => state.lookSelection.filterId);
     const lensId = useStore(appStore, (state) => state.lookSelection.lensId);
+    const screenId = useStore(appStore, (state) => state.lookSelection.screenId);
     const slots = useStore(appStore, (state) => state.lookSelection.slots);
     const activeSlot = useStore(appStore, (state) => state.lookActiveSlot);
 
@@ -197,6 +214,9 @@ export default function LookControls() {
     const currentLens = resolveLensPreset(lensId);
     const lensOpen = openDrawer === 'lens';
     const lensActive = lensId !== DEFAULT_LENS_ID;
+    const currentScreen = resolveScreenPreset(screenId);
+    const screenOpen = openDrawer === 'screen';
+    const screenActive = screenId !== DEFAULT_SCREEN_ID;
 
     return (
         <div style={styles.rail} data-testid="look-controls" onPointerDown={(e) => e.stopPropagation()}>
@@ -240,6 +260,27 @@ export default function LookControls() {
                     <span style={styles.railLabel}>Lens</span>
                 </button>
                 {lensOpen && <LensStrip />}
+            </div>
+
+            <div style={styles.railRow}>
+                <button
+                    type="button"
+                    className="look-tap"
+                    data-testid="look-drawer-toggle-screen"
+                    aria-expanded={screenOpen}
+                    onClick={(e) => {
+                        releaseFocusAfterPointerTap(e);
+                        appStore.getState().toggleLookOpenDrawer('screen');
+                    }}
+                    style={{
+                        ...styles.railBtn,
+                        ...(screenOpen ? styles.railBtnOpen : screenActive ? styles.railBtnActive : null),
+                    }}
+                >
+                    <span style={{ ...styles.railSwatch, background: currentScreen.swatch }} />
+                    <span style={styles.railLabel}>Screen</span>
+                </button>
+                {screenOpen && <ScreenStrip />}
             </div>
 
             {SLOT_RAIL_META.map(({ slot, label, icon }) => {

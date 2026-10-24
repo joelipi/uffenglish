@@ -453,3 +453,26 @@ describe('look lens effect (stories/092)', () => {
         expect(appStore.getState().lookSelection.filterId).toBe('vintage');
     });
 });
+
+describe('look screen overlay (stories/092)', () => {
+    beforeEach(() => appStore.setState({ lookSelection: { filterId: 'none', lensId: 'none', screenId: 'none', slots: { face: null, upper: null, lower: null } } }));
+
+    it('is independent of the filter and the lens', () => {
+        appStore.getState().toggleLookFilter('vintage');
+        appStore.getState().toggleLookLens('closeup');
+        appStore.getState().toggleLookScreen('raindrops');
+        const s = appStore.getState().lookSelection;
+        expect(s.filterId).toBe('vintage');
+        expect(s.lensId).toBe('closeup');
+        expect(s.screenId).toBe('raindrops');
+    });
+
+    it('clears on a second tap and leaves the other two alone', () => {
+        appStore.getState().toggleLookLens('closeup');
+        appStore.getState().toggleLookScreen('raindrops');
+        appStore.getState().toggleLookScreen('raindrops');
+        const s = appStore.getState().lookSelection;
+        expect(s.screenId).toBe('none');
+        expect(s.lensId).toBe('closeup');
+    });
+});
