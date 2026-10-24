@@ -5,6 +5,7 @@ import { describe, it, expect } from 'vitest';
 import {
     AUTOPLAY_ERROR_NAMES,
     PLAYBACK_START_RETRY_DELAYS_MS,
+    PLAYBACK_STALL_CHECK_MS,
     describePlaybackSample,
     describeStartState,
     describeTakeMedia,
@@ -13,9 +14,11 @@ import {
     retryDelayMs,
     setElementMuted,
     shouldAttemptStart,
+    shouldKickStalledPlayback,
     shouldPauseOffscreen,
     shouldRetryStart,
     shouldStartMuted,
+    shouldWaitForReadiness,
 } from './playback-start-logic.js';
 
 /** A media-element fake: only the members the start rules read or write. */
@@ -263,5 +266,46 @@ describe('describePlaybackSample', () => {
 
     it('is null-safe', () => {
         expect(describePlaybackSample(null)).toEqual({ decodedFrames: null, currentTime: null, videoWidth: null });
+    });
+});
+
+describe('shouldWaitForReadiness', () => {
+    it('waits at HAVE_NOTHING / HAVE_METADATA', () => {
+        expect(shouldWaitForReadiness(0)).toBe(true);
+        expect(shouldWaitForReadiness(1)).toBe(true);
+        expect(shouldWaitForReadiness(undefined)).toBe(true);
+    });
+
+    it('plays at HAVE_CURRENT_DATA or better', () => {
+        expect(shouldWaitForReadiness(2)).toBe(false);
+        expect(shouldWaitForReadiness(4)).toBe(false);
+    });
+});
+
+describe('shouldKickStalledPlayback', () => {
+    it('kicks a playing element whose clock never moved', () => {
+        expect(shouldKickStalledPlayback({
+            paused: false,
+            currentTime: 0.03,
+            elapsedSinceStartMs: PLAYBACK_STALL_CHECK_MS,
+        })).toBe(true);
+    });
+
+    it('leaves a clip that is actually advancing alone', () => {
+        expect(shouldKickStalledPlayback({
+            paused: false,
+            currentTime: 0.8,
+            elapsedSinceStartMs: PLAYBACK_STALL_CHECK_MS,
+        })).toBe(false);
+    });
+
+    it('never touches a paused element', () => {
+        expect(shouldKickStalledPlayback({ paused: true, currentTime: 0, elapsedSinceStartMs: 5000 })).toBe(false);
+    });
+
+    it('waits out the grace period and ignores unusable readings', () => {
+        expect(shouldKickStalledPlayback({ paused: false, currentTime: 0, elapsedSinceStartMs: 100 })).toBe(false);
+        expect(shouldKickStalledPlayback({ paused: false, currentTime: NaN, elapsedSinceStartMs: 5000 })).toBe(false);
+        expect(shouldKickStalledPlayback({})).toBe(false);
     });
 });

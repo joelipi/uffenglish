@@ -4,6 +4,9 @@ import { usePlaybackVideo } from '../hooks/usePlaybackVideo.js';
 import { useVideoSpeed } from '../hooks/useVideoSpeed.js';
 import { createAudioGuard } from '../modules/video/audio-guard.js';
 import {
+    PLAYBACK_READINESS_MAX_WAIT_MS,
+    PLAYBACK_READINESS_RETRY_MS,
+    PLAYBACK_STALL_CHECK_MS,
     describePlaybackSample,
     describeStartState,
     describeTakeMedia,
@@ -12,9 +15,11 @@ import {
     retryDelayMs,
     setElementMuted,
     shouldAttemptStart,
+    shouldKickStalledPlayback,
     shouldPauseOffscreen,
     shouldRetryStart,
     shouldStartMuted,
+    shouldWaitForReadiness,
 } from '../modules/video/playback-start-logic.js';
 import { takeDiagnostics } from '../modules/diagnostics/take-diagnostics.js';
 import VideoSpeedToggle from './VideoSpeedToggle.jsx';
@@ -52,6 +57,15 @@ export default function PlaybackVideo() {
     // take decoded frames (a presentation/recording problem) or decoded none
     // (an audio-only or undecodable file).
     const sampleTimerRef = useRef(null);
+    // A not-yet-ready element must not be asked to play (WebKit accepts the call
+    // and sits at HAVE_NOTHING, which is how a take ends up on a still frame
+    // with `paused:false`). This retries the SAME rung until it is ready.
+    const readinessTimerRef = useRef(null);
+    const waitingSinceRef = useRef(null);
+    // A started element whose clock never moves is kicked once.
+    const stallTimerRef = useRef(null);
+    const startedAtRef = useRef({ at: 0, time: 0 });
+    const stallKickedRef = useRef(false);
     // The start path nudges `load()` at most once per element+source: a second
     // load() aborts the resource selection in flight (iPadOS defers loading, so
     // the element can sit at HAVE_NOTHING with no `canplay` coming).
@@ -82,6 +96,29 @@ export default function PlaybackVideo() {
             clearTimeout(sampleTimerRef.current);
             sampleTimerRef.current = null;
         }
+    };
+
+    const clearReadinessTimer = () => {
+        if (readinessTimerRef.current !== null) {
+            clearTimeout(readinessTimerRef.current);
+            readinessTimerRef.current = null;
+        }
+    };
+
+    const clearStallTimer = () => {
+        if (stallTimerRef.current !== null) {
+            clearTimeout(stallTimerRef.current);
+            stallTimerRef.current = null;
+        }
+    };
+
+    /** Retry the same ladder rung once the element is ready (never mute for this). */
+    const scheduleReadinessRetry = (attempt) => {
+        clearReadinessTimer();
+        readinessTimerRef.current = setTimeout(() => {
+            readinessTimerRef.current = null;
+            attemptStart(attempt);
+        }, PLAYBACK_READINESS_RETRY_MS);
     };
 
     /**
@@ -153,6 +190,23 @@ export default function PlaybackVideo() {
         if (!video.paused) return;
         attemptRef.current = attempt;
 
+        // Wait for HAVE_CURRENT_DATA before asking to play.
+        if (shouldWaitForReadiness(video.readyState)) {
+            if (waitingSinceRef.current === null) waitingSinceRef.current = Date.now();
+            const waitedMs = Date.now() - waitingSinceRef.current;
+            ensureLoaded(video);
+            console.log('[Playback] waiting for readiness', { readyState: video.readyState, waitedMs });
+            takeDiagnostics.push('waiting for readiness', { readyState: video.readyState, waitedMs });
+            if (waitedMs >= PLAYBACK_READINESS_MAX_WAIT_MS) {
+                console.warn('[Playback] the take never became ready — the learner can tap it');
+                waitingSinceRef.current = null;
+                return;
+            }
+            scheduleReadinessRetry(attempt);
+            return;
+        }
+        waitingSinceRef.current = null;
+
         const muted = shouldStartMuted({ attempt, muteIntent: muteIntentRef.current });
         const applied = setElementMuted(video, muted);
         if (attempt === 0 && !muted) {
@@ -198,6 +252,28 @@ export default function PlaybackVideo() {
         hasStartedRef.current = true;
         attemptRef.current = 0;
         clearRetry();
+        startedAtRef.current = { at: Date.now(), time: videoRef.current ? videoRef.current.currentTime : 0 };
+
+        // A take can report `playing` and then never advance (stories/094). Kick
+        // it once if the clock has not moved after the grace period.
+        clearStallTimer();
+        stallTimerRef.current = setTimeout(() => {
+            stallTimerRef.current = null;
+            const el = videoRef.current;
+            if (!el || stallKickedRef.current) return;
+            const elapsedSinceStartMs = Date.now() - startedAtRef.current.at;
+            if (!shouldKickStalledPlayback({ paused: el.paused, currentTime: el.currentTime, elapsedSinceStartMs })) return;
+            stallKickedRef.current = true;
+            console.warn('[Playback] playback stalled at ' + Number(el.currentTime.toFixed(2)) + 's — re-issuing play()');
+            takeDiagnostics.push('playback stalled', {
+                currentTime: Number(el.currentTime.toFixed(2)),
+                elapsedMs: elapsedSinceStartMs,
+                readyState: el.readyState,
+            });
+            try { el.pause(); } catch (error) { /* ignore */ }
+            const { promise } = playSafely(el);
+            if (promise) promise.catch(() => {});
+        }, PLAYBACK_STALL_CHECK_MS);
 
         // A started take is not necessarily a moving picture. Sample what it
         // actually decoded a moment in, so an iPad report can tell an audio-only
@@ -311,6 +387,10 @@ export default function PlaybackVideo() {
         clearRetry();
         clearUnmuteTimer();
         clearSampleTimer();
+        clearReadinessTimer();
+        clearStallTimer();
+        waitingSinceRef.current = null;
+        stallKickedRef.current = false;
         hasStartedRef.current = false;
         attemptRef.current = 0;
         loadedElementRef.current = { element: null, key: null };
@@ -343,6 +423,8 @@ export default function PlaybackVideo() {
             clearRetry();
             clearUnmuteTimer();
             clearSampleTimer();
+            clearReadinessTimer();
+            clearStallTimer();
             if (video.src && video.src.startsWith('blob:')) {
                 URL.revokeObjectURL(video.src);
             }
@@ -388,6 +470,8 @@ export default function PlaybackVideo() {
         clearRetry();
         clearUnmuteTimer();
         clearSampleTimer();
+        clearReadinessTimer();
+        clearStallTimer();
         if (observerRef.current) {
             observerRef.current.disconnect();
             observerRef.current = null;

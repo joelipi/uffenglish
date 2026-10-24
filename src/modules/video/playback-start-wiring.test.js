@@ -205,3 +205,43 @@ describe('a started take that looks still names its own shape', () => {
         expect(cleanup).toContain('clearSampleTimer();');
     });
 });
+
+describe('a not-yet-ready take is not asked to play, and a stalled one is kicked', () => {
+    const attemptStart = () => sliceBetween(playbackRaw, 'const attemptStart = (attempt = 0) => {', '\n    };');
+
+    it('waits for HAVE_CURRENT_DATA before calling play()', () => {
+        const body = attemptStart();
+        expect(body).toContain('shouldWaitForReadiness(video.readyState)');
+        // The readiness branch must return BEFORE playSafely, or the element is
+        // asked to play at HAVE_NOTHING (the stalled-first-frame shape).
+        expect(body.indexOf('shouldWaitForReadiness(video.readyState)')).toBeLessThan(body.indexOf('playSafely(video)'));
+        expect(body).toContain('scheduleReadinessRetry(attempt);');
+        expect(body).toContain('PLAYBACK_READINESS_MAX_WAIT_MS');
+    });
+
+    it('retries the SAME rung while waiting (it must not fall back to muted)', () => {
+        const retry = sliceBetween(playbackRaw, 'const scheduleReadinessRetry = (attempt) => {', '\n    };');
+        expect(retry).toContain('attemptStart(attempt);');
+        expect(retry).toContain('PLAYBACK_READINESS_RETRY_MS');
+        expect(retry).not.toContain('attemptStart(attempt + 1)');
+    });
+
+    it('kicks a playing clip whose clock never moved, once', () => {
+        const body = sliceBetween(playbackRaw, 'const handleVideoPlaying = () => {', '\n    };');
+        expect(body).toContain('shouldKickStalledPlayback(');
+        expect(body).toContain('stallKickedRef.current = true;');
+        // A pause is what restarts the renderer; a bare play() is a no-op.
+        expect(body).toContain('el.pause()');
+        expect(body.indexOf('shouldKickStalledPlayback(')).toBeLessThan(body.indexOf('el.pause()'));
+    });
+
+    it('clears the readiness and stall timers with the others', () => {
+        const cleanup = sliceBetween(playbackRaw, 'useEffect(() => () => {', '\n    }, []);');
+        expect(cleanup).toContain('clearReadinessTimer();');
+        expect(cleanup).toContain('clearStallTimer();');
+        const blobEffect = sliceBetween(playbackRaw, '// Blob URL management', '// Clear trigger');
+        expect(blobEffect).toContain('clearReadinessTimer();');
+        expect(blobEffect).toContain('clearStallTimer();');
+        expect(blobEffect).toContain('stallKickedRef.current = false;');
+    });
+});

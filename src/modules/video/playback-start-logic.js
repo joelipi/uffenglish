@@ -253,3 +253,62 @@ export function describePlaybackSample(element) {
         videoWidth: typeof element.videoWidth === 'number' ? element.videoWidth : null,
     };
 }
+
+// --- A take that starts but never advances (stories/094) ---------------------
+//
+// The iPad field log shows the element reporting `paused:false` and
+// `readyState:4` while `currentTime` is still ~0 s more than a second after the
+// `playing` event — a stalled renderer, not a frozen recording (the file decodes
+// frames and the camera probe passes). Two rules cover it:
+//
+//   * do not ask a not-yet-ready element to play (WebKit can accept the call and
+//     then sit at HAVE_NOTHING forever, which is how a take ends up on a still
+//     frame with `paused:false`), and
+//   * if a started element's clock has not moved after a short grace period,
+//     kick it once by re-issuing playback.
+
+/** Retry interval while waiting for the element to become ready. */
+export const PLAYBACK_READINESS_RETRY_MS = 300;
+
+/** Give up waiting for readiness after this long (the learner can tap instead). */
+export const PLAYBACK_READINESS_MAX_WAIT_MS = 4000;
+
+/** How long after `playing` the clock is checked for movement. */
+export const PLAYBACK_STALL_CHECK_MS = 700;
+
+/** Less than this much progress means the renderer is stalled. */
+export const PLAYBACK_STALL_MIN_ADVANCE_S = 0.05;
+
+/**
+ * A media element is ready to start at HAVE_CURRENT_DATA (2) or better. Asking
+ * for playback earlier is what leaves WebKit at `paused:false` with a frozen
+ * first frame.
+ *
+ * @param {number} [readyState]
+ * @returns {boolean}
+ */
+export function shouldWaitForReadiness(readyState) {
+    if (!Number.isFinite(readyState)) return true;
+    return readyState < 2;
+}
+
+/**
+ * Should playback be kicked (pause + play) because the clock never moved?
+ *
+ * @param {{ paused?: boolean, currentTime?: number, elapsedSinceStartMs?: number,
+ *           checkAfterMs?: number, minAdvanceS?: number }} [input]
+ * @returns {boolean}
+ */
+export function shouldKickStalledPlayback({
+    paused,
+    currentTime,
+    elapsedSinceStartMs,
+    checkAfterMs = PLAYBACK_STALL_CHECK_MS,
+    minAdvanceS = PLAYBACK_STALL_MIN_ADVANCE_S,
+} = {}) {
+    if (paused !== false) return false;
+    if (!Number.isFinite(currentTime)) return false;
+    if (!Number.isFinite(elapsedSinceStartMs)) return false;
+    if (elapsedSinceStartMs < checkAfterMs) return false;
+    return currentTime < minAdvanceS;
+}
