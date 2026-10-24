@@ -28,6 +28,7 @@ import {
     selectRecordingMimeType,
     WHISPER_SAMPLE_RATE,
 } from './audio-resample-logic.js';
+import { takeDiagnostics } from '../diagnostics/take-diagnostics.js';
 import Strings from '../../data/strings.js';
 import { getAppLanguage } from '../bilingual/config-normalizer.js';
 import { trackEvent } from '../utils/posthog.js';
@@ -415,11 +416,13 @@ export async function startSpeechCamRecording(micStatusText, userData, { deferSt
         else console.log('[Recording] MediaRecorder mimeType selected:', mimeType);
 
         speechCamTakeIndex += 1;
-        console.log('[Recording] capture for take ' + speechCamTakeIndex, describeCaptureStream(speechCamStream, {
+        const captureDiagnostics = describeCaptureStream(speechCamStream, {
             take: speechCamTakeIndex,
             isComposite: !!compositeLiveness,
             mimeType: mimeType || null,
-        }));
+        });
+        console.log('[Recording] capture for take ' + speechCamTakeIndex, captureDiagnostics);
+        takeDiagnostics.push('capture take ' + speechCamTakeIndex, captureDiagnostics);
 
         speechCamChunks = [];
         speechCamRecorder = new MediaRecorder(speechCamStream, options);
@@ -543,10 +546,12 @@ export function stopSpeechCamRecording({ download = true, persist = false, meta 
                         const blob = new Blob(chunks, { type: mime });
                         blobToReturn = blob;
                         console.warn('[DBUG] blob created, size:', blob.size, 'playback:', playback);
-                        console.log('[Recording] take blob', describeRecordingBlob(blob, {
+                        const blobDiagnostics = describeRecordingBlob(blob, {
                             take: speechCamTakeIndex,
                             mimeType: mime,
-                        }));
+                        });
+                        console.log('[Recording] take blob', blobDiagnostics);
+                        takeDiagnostics.push('blob take ' + speechCamTakeIndex, blobDiagnostics);
 
                         if (playback && blob.size > 0) {
                             // The capture must be closed BEFORE the clip reaches the

@@ -127,8 +127,14 @@ describe('a take names its capture and its blob', () => {
     });
 
     it('logs the recorded blob with the same take number', () => {
-        const blobLog = sliceBetween(speechRaw, "console.log('[Recording] take blob'", '});');
-        expect(blobLog).toContain('describeRecordingBlob(blob');
-        expect(blobLog).toContain('take: speechCamTakeIndex');
+        const blobSlice = sliceBetween(
+            speechRaw,
+            'const blobDiagnostics = describeRecordingBlob(blob',
+            "takeDiagnostics.push('blob take '"
+        );
+        expect(blobSlice).toContain('take: speechCamTakeIndex');
+        // The same object goes to the console and to the on-screen panel.
+        expect(speechRaw).toContain("console.log('[Recording] take blob', blobDiagnostics);");
+        expect(speechRaw).toContain("takeDiagnostics.push('blob take ' + speechCamTakeIndex, blobDiagnostics);");
     });
 });

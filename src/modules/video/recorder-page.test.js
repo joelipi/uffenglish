@@ -1608,6 +1608,17 @@ describe('recorder auto-render — zero server changes', () => {
             'src/modules/video/recorder-page.test.js',
             'docs/learnings.md',
             'tests/playback-video-ipad-autoplay.spec.js',
+            // Story 094 follow-up: on-screen diagnostics (?diag=1) + capture logs.
+            'src/modules/diagnostics/take-diagnostics.js',
+            'src/modules/diagnostics/take-diagnostics.test.js',
+            'src/modules/diagnostics/take-diagnostics-wiring.test.js',
+            'src/modules/diagnostics/copy-diagnostics.webonly.js',
+            'src/components/widgets/TakeDiagnosticsOverlay.jsx',
+            'src/components/LessonContainer.jsx',
+            'src/modules/speech/speech.web.js',
+            'src/modules/speech/capture-release-logic.js',
+            'src/modules/speech/capture-release-logic.test.js',
+            'src/modules/speech/capture-release-wiring.test.js',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);

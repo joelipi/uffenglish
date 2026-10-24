@@ -42,6 +42,7 @@ import SimpleVideoPlayer from './SimpleVideoPlayer';
 
 import IncomingVideoWidget from './IncomingVideoWidget.jsx';
 import PointLossOverlay from './PointLossOverlay.jsx';
+import TakeDiagnosticsOverlay from './widgets/TakeDiagnosticsOverlay.jsx';
 import PlaybackVideo from './PlaybackVideo.jsx';
 import { loadNextStep as loadNextStepImpl, jumpToStep as jumpToStepImpl, replaySimpleVideo, handleTutorChatSubmit } from '../modules/lesson/lesson-progression.js';
 import { buildBranchChoiceView, isBranchingStep, resolveBranchLevel, getBranchHeadingKey } from '../modules/lesson/branch-choice-logic.js';
@@ -378,6 +379,7 @@ export default function LessonContainer() {
 
             <IncomingVideoWidget />
             <PointLossOverlay />
+            <TakeDiagnosticsOverlay />
         </>
     );
 }

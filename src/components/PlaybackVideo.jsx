@@ -16,6 +16,7 @@ import {
     shouldRetryStart,
     shouldStartMuted,
 } from '../modules/video/playback-start-logic.js';
+import { takeDiagnostics } from '../modules/diagnostics/take-diagnostics.js';
 import VideoSpeedToggle from './VideoSpeedToggle.jsx';
 
 // Intentional navigator sniff — guarded with typeof checks. In React Native
@@ -117,6 +118,7 @@ export default function PlaybackVideo() {
             if (promise) promise.catch(() => {});
             if (error) console.warn('[Playback] could not re-open audio:', error && error.message ? error.message : error);
             console.log('[Playback] unmuted after the muted start');
+            takeDiagnostics.push('unmuted after muted start');
         }, 100);
     };
 
@@ -164,7 +166,9 @@ export default function PlaybackVideo() {
 
         ensureLoaded(video);
         const { promise, error } = playSafely(video);
-        console.log('[Playback] start attempt ' + attempt + ' muted=' + muted, describeStartState(video));
+        const startState = describeStartState(video);
+        console.log('[Playback] start attempt ' + attempt + ' muted=' + muted, startState);
+        takeDiagnostics.push('start attempt ' + attempt + ' muted=' + muted, startState);
 
         if (error) {
             handleBlockedStart(attempt, error);
@@ -204,7 +208,9 @@ export default function PlaybackVideo() {
             sampleTimerRef.current = null;
             const el = videoRef.current;
             if (!el) return;
-            console.log('[Playback] playback sample', describePlaybackSample(el));
+            const sample = describePlaybackSample(el);
+            console.log('[Playback] playback sample', sample);
+            takeDiagnostics.push('playback sample', sample);
         }, 1200);
     };
 
@@ -254,6 +260,7 @@ export default function PlaybackVideo() {
 
         const media = describeTakeMedia(video, blob);
         console.log('[Playback] take media', media);
+        takeDiagnostics.push('take media', media);
         if (media.hasVideoTrack === false) {
             console.error('[Playback] the recorded take carries no video track — only audio will play', media);
         }
