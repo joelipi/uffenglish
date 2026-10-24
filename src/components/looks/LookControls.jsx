@@ -207,7 +207,10 @@ const styles = {
         height: 48,
         flexShrink: 0,
         borderRadius: 14,
-        border: '1.5px solid rgba(255,255,255,0.28)',
+        // No white chrome: on the picker the only outline anywhere is the green
+        // "this is applied" ring, otherwise a previous selection kept looking
+        // active (stories/092 review).
+        border: '1.5px solid transparent',
         background: 'rgba(15, 17, 24, 0.72)',
         color: '#fff',
         display: 'flex',
@@ -218,11 +221,10 @@ const styles = {
         padding: 4,
         boxShadow: '0 4px 12px rgba(0,0,0,0.45)',
     },
-    // White ring = this drawer is open. Green (below) = something is applied, so
-    // the two meanings never look alike.
+    // Open = a lifted fill, applied = the green ring. Two separate signals, so
+    // an open drawer never competes with a selection for the same border.
     railBtnOpen: {
-        borderColor: 'rgba(255,255,255,0.85)',
-        background: 'rgba(30, 34, 44, 0.9)',
+        background: 'rgba(58, 64, 78, 0.95)',
     },
     railBtnActive: {
         borderColor: '#4ade80',
@@ -231,7 +233,7 @@ const styles = {
         width: 20,
         height: 20,
         borderRadius: '50%',
-        border: '1px solid rgba(255,255,255,0.6)',
+        boxShadow: '0 0 0 1px rgba(0,0,0,0.45)',
         display: 'block',
     },
     railThumb: {
@@ -279,7 +281,9 @@ const styles = {
         padding: '4px 5px',
         borderRadius: 10,
         border: '1.5px solid transparent',
-        background: 'rgba(255,255,255,0.05)',
+        // Transparent until chosen: the applied chip is the only one with a
+        // surface and an outline (stories/092).
+        background: 'transparent',
         color: '#fff',
         scrollSnapAlign: 'start',
     },
@@ -310,7 +314,9 @@ const styles = {
         height: 30,
         borderRadius: 6,
         display: 'block',
-        border: '1px solid rgba(255,255,255,0.35)',
+        // A dark inset edge instead of a white ring: a light ring on every
+        // swatch read as "selected" on the chips that were not (stories/092).
+        boxShadow: '0 0 0 1px rgba(0,0,0,0.45)',
     },
     thumb: {
         width: 30,
