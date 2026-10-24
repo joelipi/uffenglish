@@ -194,3 +194,62 @@ export function describeStartState(element) {
         networkState: typeof element.networkState === 'number' ? element.networkState : null,
     };
 }
+
+/**
+ * What the take actually CONTAINS, as opposed to whether the start worked.
+ *
+ * A started take that still looks like a still frame has three shapes, and they
+ * need different fixes: an audio-only recording (`videoWidth === 0`), a
+ * recording whose video track carries one frozen frame (frames decode but the
+ * picture never moves), or a file the device decodes but does not present. The
+ * size/type of the recorded blob separates an encoder problem (video/mp4 from
+ * iPadOS) from a container problem, so log both together.
+ *
+ * @param {HTMLMediaElement|null|undefined} element
+ * @param {Blob|null|undefined} blob
+ * @returns {object}
+ */
+export function describeTakeMedia(element, blob) {
+    const videoWidth = typeof element?.videoWidth === 'number' ? element.videoWidth : null;
+    const duration = element && typeof element.duration === 'number' && Number.isFinite(element.duration)
+        ? Number(element.duration.toFixed(2))
+        : null;
+    return {
+        videoWidth,
+        videoHeight: typeof element?.videoHeight === 'number' ? element.videoHeight : null,
+        hasVideoTrack: videoWidth === null ? null : videoWidth > 0,
+        duration,
+        blobSize: typeof blob?.size === 'number' ? blob.size : null,
+        blobType: typeof blob?.type === 'string' ? blob.type : null,
+    };
+}
+
+/**
+ * How many frames the element has actually decoded, for the sample taken a
+ * moment after playback started. A started take that has decoded 0 frames is a
+ * decode/codec problem; one that decoded frames is a presentation problem (or a
+ * recording that captured a single frame).
+ *
+ * @param {HTMLMediaElement|null|undefined} element
+ * @returns {{decodedFrames: number|null, currentTime: number|null, videoWidth: number|null}}
+ */
+export function describePlaybackSample(element) {
+    if (!element) return { decodedFrames: null, currentTime: null, videoWidth: null };
+    let decodedFrames = null;
+    try {
+        if (typeof element.getVideoPlaybackQuality === 'function') {
+            const quality = element.getVideoPlaybackQuality();
+            if (quality && typeof quality.totalVideoFrames === 'number') decodedFrames = quality.totalVideoFrames;
+        }
+    } catch (error) {
+        decodedFrames = null;
+    }
+    if (decodedFrames === null && typeof element.webkitDecodedFrameCount === 'number') {
+        decodedFrames = element.webkitDecodedFrameCount;
+    }
+    return {
+        decodedFrames,
+        currentTime: typeof element.currentTime === 'number' ? Number(element.currentTime.toFixed(2)) : null,
+        videoWidth: typeof element.videoWidth === 'number' ? element.videoWidth : null,
+    };
+}

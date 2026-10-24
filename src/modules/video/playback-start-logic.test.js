@@ -5,7 +5,9 @@ import { describe, it, expect } from 'vitest';
 import {
     AUTOPLAY_ERROR_NAMES,
     PLAYBACK_START_RETRY_DELAYS_MS,
+    describePlaybackSample,
     describeStartState,
+    describeTakeMedia,
     playSafely,
     resolveTapAction,
     retryDelayMs,
@@ -199,5 +201,67 @@ describe('describeStartState', () => {
         expect(describeStartState(null)).toEqual({
             paused: null, readyState: null, muted: null, ended: null, networkState: null,
         });
+    });
+});
+
+describe('describeTakeMedia', () => {
+    it('reports a take that carries a video track', () => {
+        const element = makeElement({ videoWidth: 720, videoHeight: 1280, duration: 3.4567 });
+        const blob = { size: 240720, type: 'video/mp4' };
+        expect(describeTakeMedia(element, blob)).toEqual({
+            videoWidth: 720,
+            videoHeight: 1280,
+            hasVideoTrack: true,
+            duration: 3.46,
+            blobSize: 240720,
+            blobType: 'video/mp4',
+        });
+    });
+
+    it('flags an audio-only recording (the iPad MediaRecorder shape)', () => {
+        const element = makeElement({ videoWidth: 0, videoHeight: 0, duration: 4 });
+        const media = describeTakeMedia(element, { size: 40000, type: 'video/mp4' });
+        expect(media.hasVideoTrack).toBe(false);
+        expect(media.blobSize).toBe(40000);
+    });
+
+    it('is null-safe and ignores a non-finite duration', () => {
+        expect(describeTakeMedia(null, null)).toEqual({
+            videoWidth: null, videoHeight: null, hasVideoTrack: null, duration: null, blobSize: null, blobType: null,
+        });
+        expect(describeTakeMedia(makeElement({ duration: NaN }), null).duration).toBeNull();
+        expect(describeTakeMedia(makeElement({ duration: Infinity }), null).duration).toBeNull();
+    });
+});
+
+describe('describePlaybackSample', () => {
+    it('reads the decoded frame count from getVideoPlaybackQuality', () => {
+        const element = makeElement({
+            currentTime: 1.234,
+            videoWidth: 720,
+            getVideoPlaybackQuality: () => ({ totalVideoFrames: 42 }),
+        });
+        expect(describePlaybackSample(element)).toEqual({ decodedFrames: 42, currentTime: 1.23, videoWidth: 720 });
+    });
+
+    it('falls back to webkitDecodedFrameCount', () => {
+        const element = makeElement({ webkitDecodedFrameCount: 17 });
+        expect(describePlaybackSample(element).decodedFrames).toBe(17);
+    });
+
+    it('reports null frames when the browser offers no counter', () => {
+        expect(describePlaybackSample(makeElement()).decodedFrames).toBeNull();
+    });
+
+    it('survives a throwing quality call and still uses the webkit counter', () => {
+        const element = makeElement({
+            webkitDecodedFrameCount: 9,
+            getVideoPlaybackQuality: () => { throw new Error('unsupported'); },
+        });
+        expect(describePlaybackSample(element).decodedFrames).toBe(9);
+    });
+
+    it('is null-safe', () => {
+        expect(describePlaybackSample(null)).toEqual({ decodedFrames: null, currentTime: null, videoWidth: null });
     });
 });

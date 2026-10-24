@@ -180,3 +180,28 @@ describe('a tap on a paused take plays it', () => {
             .toBeLessThan(handler.indexOf('setElementMuted(video, next);'));
     });
 });
+
+describe('a started take that looks still names its own shape', () => {
+    it('logs what the recorded take contains when the metadata lands', () => {
+        const handler = sliceBetween(playbackRaw, 'const handleLoadedMetadata = () => {', '\n    };');
+        expect(handler).toContain('describeTakeMedia(video, blob)');
+        // An audio-only take must be an ERROR line, not a silent detail: it is
+        // the difference between "fix the encoder" and "fix the player".
+        expect(handler).toContain('media.hasVideoTrack === false');
+        expect(handler.indexOf('describeTakeMedia(video, blob)'))
+            .toBeLessThan(handler.indexOf('media.hasVideoTrack === false'));
+    });
+
+    it('samples the decoded frames a moment after playback started', () => {
+        const handler = sliceBetween(playbackRaw, 'const handleVideoPlaying = () => {', '\n    };');
+        expect(handler).toContain('describePlaybackSample(el)');
+        expect(handler).toContain('clearSampleTimer();');
+    });
+
+    it('clears the sample timer with the other timers on unmount and on a new clip', () => {
+        const blobEffect = sliceBetween(playbackRaw, '// Blob URL management', '// Clear trigger');
+        expect(blobEffect).toContain('clearSampleTimer();');
+        const cleanup = sliceBetween(playbackRaw, 'useEffect(() => () => {', '\n    }, []);');
+        expect(cleanup).toContain('clearSampleTimer();');
+    });
+});

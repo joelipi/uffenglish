@@ -4,7 +4,9 @@ import { usePlaybackVideo } from '../hooks/usePlaybackVideo.js';
 import { useVideoSpeed } from '../hooks/useVideoSpeed.js';
 import { createAudioGuard } from '../modules/video/audio-guard.js';
 import {
+    describePlaybackSample,
     describeStartState,
+    describeTakeMedia,
     playSafely,
     resolveTapAction,
     retryDelayMs,
@@ -45,6 +47,10 @@ export default function PlaybackVideo() {
     // player unmounts, so a stale timer cannot touch the next take.
     const retryTimerRef = useRef(null);
     const unmuteTimerRef = useRef(null);
+    // One delayed sample of the playing clip, so a report can say whether the
+    // take decoded frames (a presentation/recording problem) or decoded none
+    // (an audio-only or undecodable file).
+    const sampleTimerRef = useRef(null);
     // The start path nudges `load()` at most once per element+source: a second
     // load() aborts the resource selection in flight (iPadOS defers loading, so
     // the element can sit at HAVE_NOTHING with no `canplay` coming).
@@ -67,6 +73,13 @@ export default function PlaybackVideo() {
         if (unmuteTimerRef.current !== null) {
             clearTimeout(unmuteTimerRef.current);
             unmuteTimerRef.current = null;
+        }
+    };
+
+    const clearSampleTimer = () => {
+        if (sampleTimerRef.current !== null) {
+            clearTimeout(sampleTimerRef.current);
+            sampleTimerRef.current = null;
         }
     };
 
@@ -181,6 +194,18 @@ export default function PlaybackVideo() {
         hasStartedRef.current = true;
         attemptRef.current = 0;
         clearRetry();
+
+        // A started take is not necessarily a moving picture. Sample what it
+        // actually decoded a moment in, so an iPad report can tell an audio-only
+        // recording (videoWidth 0) from one that decodes no frames at all from
+        // one that decodes frames without presenting them.
+        clearSampleTimer();
+        sampleTimerRef.current = setTimeout(() => {
+            sampleTimerRef.current = null;
+            const el = videoRef.current;
+            if (!el) return;
+            console.log('[Playback] playback sample', describePlaybackSample(el));
+        }, 1200);
     };
 
     const handleVideoEnded = () => {
@@ -227,6 +252,12 @@ export default function PlaybackVideo() {
         const video = videoRef.current;
         if (!video) return;
 
+        const media = describeTakeMedia(video, blob);
+        console.log('[Playback] take media', media);
+        if (media.hasVideoTrack === false) {
+            console.error('[Playback] the recorded take carries no video track — only audio will play', media);
+        }
+
         if (observerRef.current) observerRef.current.disconnect();
         observerRef.current = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
@@ -272,6 +303,7 @@ export default function PlaybackVideo() {
         // from the previous clip may fire into this one.
         clearRetry();
         clearUnmuteTimer();
+        clearSampleTimer();
         hasStartedRef.current = false;
         attemptRef.current = 0;
         loadedElementRef.current = { element: null, key: null };
@@ -303,6 +335,7 @@ export default function PlaybackVideo() {
         return () => {
             clearRetry();
             clearUnmuteTimer();
+            clearSampleTimer();
             if (video.src && video.src.startsWith('blob:')) {
                 URL.revokeObjectURL(video.src);
             }
@@ -347,6 +380,7 @@ export default function PlaybackVideo() {
     useEffect(() => () => {
         clearRetry();
         clearUnmuteTimer();
+        clearSampleTimer();
         if (observerRef.current) {
             observerRef.current.disconnect();
             observerRef.current = null;
