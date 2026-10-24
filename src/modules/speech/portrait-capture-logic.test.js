@@ -499,8 +499,8 @@ describe('close-up lens hole (stories/092)', () => {
         expect(preset.fillLight).toBe(0);
         expect(preset.vignette).toBe(0);
         // the frost is what makes it read as a pane of glass, not a smear
-        expect(preset.frost).toBeGreaterThan(0.2);
-        expect(preset.frost).toBeLessThan(0.6);
+        expect(preset.frost).toBeGreaterThan(0.4);
+        expect(preset.frost).toBeLessThan(0.7);
     });
 
     it('blurs only outside the oval, and leaves the frame whole when there is no hole', () => {

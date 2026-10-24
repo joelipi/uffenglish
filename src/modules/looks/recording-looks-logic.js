@@ -72,11 +72,12 @@ export const LENS_PRESETS = [
 ];
 
 /**
- * The close-up lens' sharp oval, as fractions of the frame. Generous on
- * purpose: head plus neck, so a learner can move a little without their
- * shoulder jumping into the blurred area.
+ * The close-up lens' sharp oval, as fractions of the frame: wide enough for a
+ * head plus neck, but SQUAT and low — its top edge stays below the top band
+ * (0–15% of the frame, where the header blur and the logo are), so the sharp
+ * area never eats into that strip.
  */
-export const CLOSE_UP_HOLE = { cx: 0.5, cy: 0.38, rx: 0.36, ry: 0.32 };
+export const CLOSE_UP_HOLE = { cx: 0.5, cy: 0.4, rx: 0.37, ry: 0.24 };
 
 /** The same oval in canvas pixels (the frame is always the same 9:16 shape). */
 export function resolveCloseUpHole(canvasWidth, canvasHeight) {

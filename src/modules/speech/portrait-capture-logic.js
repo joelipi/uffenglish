@@ -197,7 +197,7 @@ export const BEAUTY_PRESETS = {
     // Close-up: a frosted pane around the sharp oval — the soft-focus pass at
     // full strength plus a white veil over it (both cut around the same
     // `hole`), so what is behind the glass is still there but indistinct.
-    lensCloseUp: { softFocus: 0.95, frost: 0.38, fillLight: 0, warmth: 0, vignette: 0 },
+    lensCloseUp: { softFocus: 0.95, frost: 0.55, fillLight: 0, warmth: 0, vignette: 0 },
 };
 
 /** Placement is a rule, not baked pixel math: top / bottom / full cover-fit. */

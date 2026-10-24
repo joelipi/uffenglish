@@ -256,15 +256,19 @@ describe('close-up lens — sharp oval, blurred everywhere else', () => {
         expect(resolveLensPreset('softfocus').hole).toBeUndefined();
     });
 
-    it('places the oval over the assumed head-and-neck zone', () => {
+    it('places a squat head-and-neck oval that stays clear of the top band', () => {
         const hole = resolveCloseUpHole(1080, 1920);
         expect(hole.cx).toBeCloseTo(CLOSE_UP_HOLE.cx * 1080, 5);
         expect(hole.cy).toBeCloseTo(CLOSE_UP_HOLE.cy * 1920, 5);
         expect(hole.rx).toBeCloseTo(CLOSE_UP_HOLE.rx * 1080, 5);
         expect(hole.ry).toBeCloseTo(CLOSE_UP_HOLE.ry * 1920, 5);
-        // big enough to be a head-and-neck oval, not a porthole
+        // wide enough for a head plus neck, not a porthole
         expect(hole.rx / 1080).toBeGreaterThan(0.3);
-        expect(hole.ry / 1920).toBeGreaterThan(0.25);
+        // …but SQUAT: it must not reach up into the top band (0–15% of the
+        // frame is the header blur and the logo)
+        expect(hole.cy - hole.ry).toBeGreaterThanOrEqual(0.15 * 1920);
+        expect(hole.ry / 1920).toBeLessThan(0.3);
+        expect(hole.cy + hole.ry).toBeLessThan(0.7 * 1920);
     });
 
     it('passes the oval to the painter only for the close-up lens', () => {
