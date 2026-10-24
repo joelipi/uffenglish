@@ -146,6 +146,15 @@ describe('the take is not paused before it has ever started', () => {
         expect(handler).toContain('shouldPauseOffscreen({ isIntersecting: entry.isIntersecting, hasStarted: hasStartedRef.current })');
         expect(handler.indexOf('shouldPauseOffscreen(')).toBeLessThan(handler.indexOf('video.pause();'));
     });
+
+    it('lets the observer go on unmount', () => {
+        const cleanup = sliceBetween(playbackRaw, 'useEffect(() => () => {', '\n    }, []);');
+        expect(cleanup).toContain('observerRef.current.disconnect();');
+        // Timers must be cleared in the same cleanup — a pending start into a
+        // gone element is the other half of the same leak.
+        expect(cleanup).toContain('clearRetry();');
+        expect(cleanup).toContain('clearUnmuteTimer();');
+    });
 });
 
 describe('a tap on a paused take plays it', () => {

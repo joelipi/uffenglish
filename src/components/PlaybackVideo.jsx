@@ -341,10 +341,16 @@ export default function PlaybackVideo() {
         return unsub;
     }, []);
 
-    // Unmount: no pending start may fire into a gone element.
+    // Unmount: no pending start may fire into a gone element, and the viewport
+    // observer must let go of it (it would otherwise keep observing a detached
+    // video element for the life of the page).
     useEffect(() => () => {
         clearRetry();
         clearUnmuteTimer();
+        if (observerRef.current) {
+            observerRef.current.disconnect();
+            observerRef.current = null;
+        }
     }, []);
 
     if (!blob) return null;
