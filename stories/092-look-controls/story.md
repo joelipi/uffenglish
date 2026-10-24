@@ -22,15 +22,15 @@ Nothing here tracks a face. "Face" and "Above face" are fixed anchor zones on th
 
 - **Pure module** `src/modules/looks/recording-looks-logic.js` owns every rule: the filter preset table, the overlay library (slug → slot + file), the three slot ids, the anchor defaults, the selection sanitiser, the step-config reader, and the merge that applies a step's config once without carrying it forward.
 - **Filter presets** are Canvas2D blend-mode recipes (`saturation` for mono, `screen`/`multiply` tints for warm/cool/vintage, an `overlay` pass for vivid) plus the beauty levers from 091, so there is no GL context and no `ctx.filter` (which is a no-op on iOS). Preset ids: `natural`, `warm`, `cool`, `soft`, `mono`, `vintage`, `vivid`; default `natural`.
-- **Three overlay slots** — `face`, `upper`, `lower` — each holding at most one asset slug plus its own user tuning (`dx`, `dy` as fractions of the canvas, `scale`). Anchor defaults: `face` centred at 38% height, `upper` centred at 12% height, `lower` centred at 82% height. Drawing order is face → upper → lower so a lower prop never covers a face cover.
-- **Selection lives in the zustand store** (`lookFilterId`, `lookSlots`, `lookTuning`, `lookActiveSlot`) and is read per frame by the recording composite, so a change repaints the live preview and is baked into the take because it is the same canvas.
+- **Three overlay slots** — `face`, `upper`, `lower` — each holding at most one asset slug plus its own user tuning (`dx`, `dy` as fractions of the canvas, `scale`). Anchor defaults stay clear of the top header blur and bottom mic band: `face` centred at 42% height, `upper` centred at 22% height, `lower` centred at 74% height. Drawing order is face → upper → lower so a lower prop never covers a face cover.
+- **Selection lives in the zustand store** (`lookSelection`, `lookTuning`, `lookActiveSlot`, `lookOpenDrawer`) and is read per frame by the recording composite, so a change repaints the live preview and is baked into the take because it is the same canvas.
 - **Config** per step:
   ```json
   "overlays": { "face": { "asset": "smiley" }, "upper": { "asset": "witchhat" }, "lower": { "asset": "cauldron" } }
   ```
   Assets are slugs from the registry, never paths. A step's config overlays are applied when the step's preview first opens and are **not** re-applied on later steps; the learner's own later choices persist for the rest of the lesson.
-- **Flow gate**: after the stream is ready, a `friendClosedResponse` step sets `awaitingRecordingStart` and awaits a gate that the preview screen's microphone button resolves; every other step keeps the existing 3-2-1 loop.
-- **UI** (render-only components) `src/components/looks/LookControls.jsx` (filter strip + three overlay rows + size slider) and the drag layer in the preview wrapper; both live inside the existing full-screen preview so the phrase overlay and warning keep working.
+- **Two-step flow**: on `friendClosedResponse` steps, the decision button in `ResponseDecisionButtons` / `DecisionButtons` shows the `continue` label and rightward chevron icon (`bi-chevron-right`). Tapping it acquires the camera stream, enters `recording/answering` with `awaitingRecordingStart: true` and `isMicActive: false`, and returns immediately so the bottom `#micBtn` (`MicrophoneToggle`) is ready. Tapping `#micBtn` clears `awaitingRecordingStart`, skips the 3-2-1 countdown, and starts recording immediately; tapping `#micBtn` again stops recording as usual.
+- **UI** (render-only components) `src/components/looks/LookControls.jsx` renders a compact vertical rail along the left edge (`top: 18%`, clear of the top blur, center face, subtitles, and bottom mic button) where each category (`Filter`, `Top`, `Face`, `Bottom`) folds out horizontally when tapped. Dragging on the mirrored `#webcam-preview` uses `computeDragOffset` (inverting horizontal `dx` for `scaleX(-1)`).
 
 ## Tasks
 

@@ -167,9 +167,10 @@ export default function IntroChoices() {
                     className="btn call-btn btn-row-primary"
                     id="continueToPreviewButton"
                     data-testid="continue-to-preview"
+                    aria-label="Continue"
                     onClick={handleVideoClick}
                 >
-                    Continue <i className="bi bi-chevron-right ms-1"></i>
+                    <i className="bi bi-chevron-right"></i>
                 </button>
             </div>
         );

@@ -286,6 +286,41 @@ describe('speech orchestrator — 3-2-1 pre-roll', () => {
             'tapStart:null',
         ]);
     });
+
+    it('friendClosedResponse two-step flow: first tap opens preview (awaitingRecordingStart=true, mic inactive), second tap starts recording with no 3-2-1 countdown, third tap stops', async () => {
+        const { orchestrator, deps } = makeRecordingOrchestrator();
+        appStore.getState().setAwaitingRecordingStart(false);
+        appStore.getState().setMicActive(false);
+
+        const params = {
+            ...baseParams({ onRecordingStart: vi.fn() }),
+            step: { cue: 'I like tea', responseType: 'friendClosedResponse' },
+        };
+
+        // Tap 1 (Continue): opens preview, does not start recording or block transitioning.
+        await orchestrator.toggleSpeechRecognition(params);
+        expect(appStore.getState().awaitingRecordingStart).toBe(true);
+        expect(appStore.getState().isMicActive).toBe(false);
+        expect(orchestrator.listeningState.active).toBe(false);
+        expect(orchestrator.listeningState.transitioning).toBe(false);
+        expect(deps.startDeferredSpeechCamRecording).not.toHaveBeenCalled();
+
+        // Tap 2 (#micBtn on preview): starts recording immediately without a 3-2-1 countdown.
+        await orchestrator.toggleSpeechRecognition(params);
+        expect(appStore.getState().awaitingRecordingStart).toBe(false);
+        expect(appStore.getState().isMicActive).toBe(true);
+        expect(orchestrator.listeningState.active).toBe(true);
+        expect(orchestrator.listeningState.transitioning).toBe(false);
+        expect(deps.startDeferredSpeechCamRecording).toHaveBeenCalledTimes(1);
+        expect(deps.startLocalAudioTap).toHaveBeenCalledTimes(1);
+
+        // Tap 3 (#micBtn to stop): stops recording and transcribes.
+        const stopPromise = orchestrator.toggleSpeechRecognition(params);
+        await vi.advanceTimersByTimeAsync(300);
+        await stopPromise;
+        expect(orchestrator.listeningState.active).toBe(false);
+        expect(deps.stopSpeechCamRecording).toHaveBeenCalledTimes(1);
+    });
 });
 
 // ────────────────────────────────────────────────────────────────────────────

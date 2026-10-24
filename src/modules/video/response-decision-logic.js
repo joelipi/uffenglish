@@ -17,7 +17,25 @@ export function getResponseOverlayTextKey(responseType) {
 }
 
 export function getResponseAnswerLabelKey(responseType) {
+    if (responseType === 'friendClosedResponse') return 'continue';
     return isClosedResponseType(responseType) ? 'video_repeat_now' : 'video_respond_now';
+}
+
+export function getResponseAnswerIconClass(responseType) {
+    return responseType === 'friendClosedResponse' ? 'bi bi-chevron-right' : 'bi bi-mic-fill';
+}
+
+export function getInteractiveDecisionLabelKey(appPhase) {
+    if (appPhase === 'interactiveVideo-decisionTime-friendClosedResponse') return 'continue';
+    if (appPhase === 'interactiveVideo-decisionTime-closedResponse') return 'video_repeat_now';
+    return 'video_respond_now';
+}
+
+export function getInteractiveDecisionIconClass(appPhase, isMicActive) {
+    if (appPhase === 'interactiveVideo-decisionTime-friendClosedResponse' && !isMicActive) {
+        return 'bi bi-chevron-right';
+    }
+    return isMicActive ? 'bi bi-mic-fill' : 'bi bi-mic-mute-fill';
 }
 
 /**

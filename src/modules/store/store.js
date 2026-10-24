@@ -12,6 +12,8 @@ import {
     sanitizeTuning,
     emptyTuning,
     applyStepOverlays,
+    toggleLookDrawer,
+    OVERLAY_SLOTS,
 } from '../looks/recording-looks-logic.js';
 
 // ── Module-level mutable refs (not reactive) ──
@@ -128,6 +130,7 @@ export const appStore = createStore(
                 lower: { dx: 0, dy: 0, scale: 1 },
             },
             lookActiveSlot: 'face',
+            lookOpenDrawer: null,
             // True only on a friendClosedResponse preview screen: the camera is
             // live and the recorder waits for the learner's mic tap (no 3-2-1).
             awaitingRecordingStart: false,
@@ -275,10 +278,21 @@ export const appStore = createStore(
             }),
             resetLookTuning: () => set({ lookTuning: emptyTuning() }),
             setLookActiveSlot: (slot) => set({ lookActiveSlot: slot }),
+            setLookOpenDrawer: (drawer) => set({ lookOpenDrawer: drawer }),
+            toggleLookOpenDrawer: (drawer) => set((state) => {
+                const nextDrawer = toggleLookDrawer(state.lookOpenDrawer, drawer);
+                return {
+                    lookOpenDrawer: nextDrawer,
+                    lookActiveSlot: OVERLAY_SLOTS.includes(drawer) ? drawer : state.lookActiveSlot,
+                };
+            }),
             applyStepLookOverlays: (stepOverlays) => set((state) => ({
                 lookSelection: applyStepOverlays(state.lookSelection, stepOverlays),
             })),
-            setAwaitingRecordingStart: (val) => set({ awaitingRecordingStart: val }),
+            setAwaitingRecordingStart: (val) => set((state) => ({
+                awaitingRecordingStart: val,
+                lookOpenDrawer: val ? state.lookOpenDrawer : null,
+            })),
             setTextMode: (val) => set({ isTextMode: val }),
             setPlaybackMuted: (val) => set({ isPlaybackMuted: val }),
             setCameraOff: (val) => set({ isCameraOff: val }),
@@ -657,6 +671,7 @@ export const appStore = createStore(
                 lookSelection: { filterId: 'natural', slots: { face: null, upper: null, lower: null } },
                 lookTuning: { face: { dx: 0, dy: 0, scale: 1 }, upper: { dx: 0, dy: 0, scale: 1 }, lower: { dx: 0, dy: 0, scale: 1 } },
                 lookActiveSlot: 'face',
+                lookOpenDrawer: null,
                 awaitingRecordingStart: false,
             }),
 

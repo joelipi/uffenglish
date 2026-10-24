@@ -3,6 +3,7 @@ import {
     isClosedResponseType,
     getResponseOverlayTextKey,
     getResponseAnswerLabelKey,
+    getResponseAnswerIconClass,
     getSimpleVideoOverlayTextKey,
 } from './response-decision-logic.js';
 import { BRANCH_OVERLAY_PHASE, BRANCH_OVERLAY_TEXT_KEY, BRANCH_DEEP_OVERLAY_TEXT_KEY } from '../lesson/branch-choice-logic.js';
@@ -38,14 +39,22 @@ describe('response-decision-logic', () => {
     });
 
     describe('getResponseAnswerLabelKey', () => {
-        it('returns repeat-now for closed types', () => {
+        it('returns repeat-now for closedResponse and continue for friendClosedResponse', () => {
             expect(getResponseAnswerLabelKey('closedResponse')).toBe('video_repeat_now');
-            expect(getResponseAnswerLabelKey('friendClosedResponse')).toBe('video_repeat_now');
+            expect(getResponseAnswerLabelKey('friendClosedResponse')).toBe('continue');
         });
 
         it('returns respond-now for open and unknown types', () => {
             expect(getResponseAnswerLabelKey('openResponse')).toBe('video_respond_now');
             expect(getResponseAnswerLabelKey(undefined)).toBe('video_respond_now');
+        });
+    });
+
+    describe('getResponseAnswerIconClass', () => {
+        it('uses the rightward chevron on friendClosedResponse and the mic icon elsewhere', () => {
+            expect(getResponseAnswerIconClass('friendClosedResponse')).toBe('bi bi-chevron-right');
+            expect(getResponseAnswerIconClass('closedResponse')).toBe('bi bi-mic-fill');
+            expect(getResponseAnswerIconClass('openResponse')).toBe('bi bi-mic-fill');
         });
     });
 

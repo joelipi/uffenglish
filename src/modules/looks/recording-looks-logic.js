@@ -55,12 +55,50 @@ export const OVERLAY_LIBRARY = {
 
 export const OVERLAY_SLUGS = Object.keys(OVERLAY_LIBRARY);
 
-/** Anchor defaults as fractions of the canvas (centre of the asset). */
+/**
+ * Anchor defaults as fractions of the canvas (centre of the asset).
+ * Chosen to stay clear of the top header blur (~0–15% of frame height) and the
+ * bottom microphone control band (~88–100% of frame height).
+ */
 export const SLOT_ANCHORS = {
-    face: { cx: 0.5, cy: 0.38 },
-    upper: { cx: 0.5, cy: 0.12 },
-    lower: { cx: 0.5, cy: 0.82 },
+    face: { cx: 0.5, cy: 0.42 },
+    upper: { cx: 0.5, cy: 0.22 },
+    lower: { cx: 0.5, cy: 0.74 },
 };
+
+export const LOOK_DRAWERS = ['filter', 'upper', 'face', 'lower'];
+
+/** Toggle a left-rail fold-out drawer: tapping the open drawer folds it back in. */
+export function toggleLookDrawer(currentDrawer, clickedDrawer) {
+    if (!LOOK_DRAWERS.includes(clickedDrawer)) return null;
+    return currentDrawer === clickedDrawer ? null : clickedDrawer;
+}
+
+/**
+ * Compute updated `{ dx, dy }` tuning from a pointer drag on the preview.
+ * `#webcam-preview` is CSS-mirrored (`transform: scaleX(-1)`), so moving the
+ * pointer right on screen corresponds to negative `dx` in un-mirrored canvas
+ * coordinates.
+ */
+export function computeDragOffset({
+    startTuning,
+    startX,
+    startY,
+    clientX,
+    clientY,
+    width,
+    height,
+    mirrored = true,
+}) {
+    if (!startTuning || !(width > 0) || !(height > 0)) return null;
+    const rawDx = (clientX - startX) / width;
+    const rawDy = (clientY - startY) / height;
+    const signedDx = mirrored ? -rawDx : rawDx;
+    return {
+        dx: clamp((Number(startTuning.dx) || 0) + signedDx, -1, 1),
+        dy: clamp((Number(startTuning.dy) || 0) + rawDy, -1, 1),
+    };
+}
 
 /** Base width of a slot's asset as a fraction of the canvas width. */
 export const SLOT_BASE_WIDTH = {

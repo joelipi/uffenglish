@@ -5,7 +5,7 @@ import { getBilingual } from '../../data/strings.js';
 import { useNativeLanguage } from '../../hooks/use-native-language.js';
 import { getRecordingPhraseOverlay } from '../../modules/video/recording-subtitle-logic.js';
 import { syncWebcamPreviewElement } from '../../modules/speech/portrait-capture-logic.js';
-import { isPreviewGateStep } from '../../modules/looks/recording-looks-logic.js';
+import { isPreviewGateStep, computeDragOffset } from '../../modules/looks/recording-looks-logic.js';
 import LookControls from '../looks/LookControls.jsx';
 
 export default function WebcamPreview() {
@@ -53,20 +53,29 @@ export default function WebcamPreview() {
     const dragRef = useRef(null);
     const handlePointerDown = (e) => {
         if (!lookControlsVisible) return;
-        const slot = appStore.getState().lookActiveSlot;
-        const slug = appStore.getState().lookSelection.slots[slot];
+        const state = appStore.getState();
+        if (state.lookOpenDrawer) state.setLookOpenDrawer(null);
+        const slot = state.lookActiveSlot;
+        const slug = state.lookSelection.slots[slot];
         if (!slug) return;
-        dragRef.current = { slot, x: e.clientX, y: e.clientY, tuning: { ...appStore.getState().lookTuning[slot] } };
+        dragRef.current = { slot, x: e.clientX, y: e.clientY, tuning: { ...state.lookTuning[slot] } };
         e.currentTarget.setPointerCapture?.(e.pointerId);
     };
     const handlePointerMove = (e) => {
         const drag = dragRef.current;
         if (!drag) return;
         const rect = wrapperRef.current?.getBoundingClientRect();
-        if (!rect || rect.width === 0 || rect.height === 0) return;
-        const dx = drag.tuning.dx + (e.clientX - drag.x) / rect.width;
-        const dy = drag.tuning.dy + (e.clientY - drag.y) / rect.height;
-        appStore.getState().setLookTuning(drag.slot, { dx, dy });
+        const offset = computeDragOffset({
+            startTuning: drag.tuning,
+            startX: drag.x,
+            startY: drag.y,
+            clientX: e.clientX,
+            clientY: e.clientY,
+            width: rect?.width || 0,
+            height: rect?.height || 0,
+            mirrored: true,
+        });
+        if (offset) appStore.getState().setLookTuning(drag.slot, offset);
     };
     const handlePointerUp = () => { dragRef.current = null; };
 

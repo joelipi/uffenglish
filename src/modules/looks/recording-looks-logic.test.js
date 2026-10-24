@@ -12,6 +12,8 @@ import {
     isSlugValidForSlot,
     overlaySlugsForSlot,
     emptySelection,
+    toggleLookDrawer,
+    computeDragOffset,
     DEFAULT_FILTER_ID,
     FILTER_IDS,
     SLOT_ANCHORS,
@@ -125,11 +127,11 @@ describe('applyStepOverlays', () => {
 
 describe('resolveSlotAnchor', () => {
     it('returns the documented default centre per slot', () => {
-        expect(resolveSlotAnchor('face', 1000, 2000)).toEqual({ cx: 500, cy: 760 });
-        expect(resolveSlotAnchor('upper', 1000, 2000)).toEqual({ cx: 500, cy: 240 });
-        expect(resolveSlotAnchor('lower', 1000, 2000)).toEqual({ cx: 500, cy: 1640 });
+        expect(resolveSlotAnchor('face', 1000, 2000)).toEqual({ cx: 500, cy: 840 });
+        expect(resolveSlotAnchor('upper', 1000, 2000)).toEqual({ cx: 500, cy: 440 });
+        expect(resolveSlotAnchor('lower', 1000, 2000)).toEqual({ cx: 500, cy: 1480 });
         // documented fractions, not magic numbers
-        expect(SLOT_ANCHORS.face.cy).toBe(0.38);
+        expect(SLOT_ANCHORS.face.cy).toBe(0.42);
     });
 });
 
@@ -141,7 +143,7 @@ describe('resolveSlotDrawRect', () => {
         expect(rect.dw / rect.dh).toBeCloseTo(720 / 420, 2);
         // centred on the upper anchor
         expect(rect.dx + rect.dw / 2).toBeCloseTo(360, 0);
-        expect(rect.dy + rect.dh / 2).toBeCloseTo(0.12 * 1280, 0);
+        expect(rect.dy + rect.dh / 2).toBeCloseTo(0.22 * 1280, 0);
     });
 
     it('scale grows the asset and keeps the aspect ratio', () => {
@@ -169,5 +171,31 @@ describe('resolveSlotDrawRect', () => {
     it('missing dimensions → null', () => {
         expect(resolveSlotDrawRect({ slot: 'face', imageWidth: 0, imageHeight: 420, canvasWidth: 720, canvasHeight: 1280 })).toBeNull();
         expect(resolveSlotDrawRect({ slot: 'face', imageWidth: 720, imageHeight: 420, canvasWidth: 0, canvasHeight: 1280 })).toBeNull();
+    });
+});
+
+describe('toggleLookDrawer', () => {
+    it('opens a closed drawer and folds an open drawer back in when tapped again', () => {
+        expect(toggleLookDrawer(null, 'filter')).toBe('filter');
+        expect(toggleLookDrawer('filter', 'filter')).toBeNull();
+        expect(toggleLookDrawer('filter', 'face')).toBe('face');
+        expect(toggleLookDrawer('face', 'unknown')).toBeNull();
+    });
+});
+
+describe('computeDragOffset', () => {
+    it('inverts horizontal delta when the preview video is CSS-mirrored', () => {
+        const res = computeDragOffset({
+            startTuning: { dx: 0, dy: 0, scale: 1 },
+            startX: 100,
+            startY: 200,
+            clientX: 150,
+            clientY: 250,
+            width: 500,
+            height: 1000,
+            mirrored: true,
+        });
+        expect(res.dx).toBeCloseTo(-0.1, 5);
+        expect(res.dy).toBeCloseTo(0.05, 5);
     });
 });
