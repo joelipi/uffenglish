@@ -1,0 +1,353 @@
+// Recording looks: filters, overlay slots, and per-step overlay defaults.
+//
+// Pure module — no React, no DOM, no browser globals — so every rule here is
+// unit-tested and the browser adapter (speech.web.js) stays thin.
+//
+// Nothing in here tracks a face. "face" and "upper" are fixed anchor ZONES on
+// the canvas; the learner frames their own head behind them.
+//
+// See stories/092-look-controls.
+
+export const OVERLAY_SLOTS = ['face', 'upper', 'lower'];
+
+// Draw order: a lower prop must never paint over a face cover.
+export const SLOT_DRAW_ORDER = ['face', 'upper', 'lower'];
+
+export const DEFAULT_FILTER_ID = 'natural';
+
+/**
+ * Every filter is a Canvas2D recipe: an optional beauty mode (the 091 levers)
+ * plus a list of blend-mode passes. No WebGL, and never `ctx.filter` — that is a
+ * silent no-op in iOS WebKit, which is why the grades are blend modes.
+ *
+ * `swatch` is the CSS used by the picker thumbnail.
+ */
+export const FILTER_PRESETS = [
+    { id: 'natural', label: 'Natural', labelKey: 'look_filter_natural', beauty: 'glow', ops: [], swatch: 'linear-gradient(135deg,#ffe9d6,#ffffff)' },
+    { id: 'warm', label: 'Warm', labelKey: 'look_filter_warm', beauty: 'warm', ops: [{ op: 'screen', color: 'rgb(255,176,104)', alpha: 0.16 }, { op: 'multiply', color: 'rgb(255,236,214)', alpha: 0.10 }], swatch: 'linear-gradient(135deg,#ffb15c,#ffe9c9)' },
+    { id: 'cool', label: 'Cool', labelKey: 'look_filter_cool', beauty: 'none', ops: [{ op: 'screen', color: 'rgb(120,170,255)', alpha: 0.14 }, { op: 'multiply', color: 'rgb(236,244,255)', alpha: 0.10 }], swatch: 'linear-gradient(135deg,#7aa8ff,#dbe9ff)' },
+    { id: 'soft', label: 'Soft', labelKey: 'look_filter_soft', beauty: 'soft', ops: [{ op: 'screen', color: 'rgb(255,244,240)', alpha: 0.08 }], swatch: 'linear-gradient(135deg,#ffd8d8,#fff6f2)' },
+    { id: 'mono', label: 'Mono', labelKey: 'look_filter_mono', beauty: 'none', ops: [{ op: 'saturation', color: 'rgb(128,128,128)', alpha: 1 }], swatch: 'linear-gradient(135deg,#3a3a3a,#e8e8e8)' },
+    { id: 'vintage', label: 'Vintage', labelKey: 'look_filter_vintage', beauty: 'soft', ops: [{ op: 'multiply', color: 'rgb(238,206,170)', alpha: 0.30 }, { op: 'screen', color: 'rgb(255,224,180)', alpha: 0.10 }], swatch: 'linear-gradient(135deg,#b98f5f,#f0dcbb)' },
+    { id: 'vivid', label: 'Vivid', labelKey: 'look_filter_vivid', beauty: 'none', ops: [{ op: 'saturation', color: 'rgb(255,64,64)', alpha: 0.45 }, { op: 'overlay', color: 'rgb(128,128,128)', alpha: 0.12 }], swatch: 'linear-gradient(135deg,#ff4d4d,#ffe14d)' },
+];
+
+export const FILTER_IDS = FILTER_PRESETS.map((p) => p.id);
+
+/**
+ * Asset registry: a config names a SLUG, never a path, so art can be swapped by
+ * filename without touching a lesson config. `slot` is where it belongs in the
+ * picker; `anchor` is its default position.
+ */
+export const OVERLAY_LIBRARY = {
+    // Face covers — opaque enough to hide the face if the learner wants that.
+    smiley: { slot: 'face', file: '/overlays/face/smiley.png', anchor: 'face', label: 'Smiley', labelKey: 'look_overlay_smiley' },
+    blank: { slot: 'face', file: '/overlays/face/blank.png', anchor: 'face', label: 'Blank', labelKey: 'look_overlay_blank' },
+    pixel: { slot: 'face', file: '/overlays/face/pixel.png', anchor: 'face', label: 'Pixel', labelKey: 'look_overlay_pixel' },
+    // Above-the-face props.
+    witchhat: { slot: 'upper', file: '/overlays/props/witchhat.png', anchor: 'upper', label: 'Witch hat', labelKey: 'look_overlay_witchhat' },
+    crown: { slot: 'upper', file: '/overlays/props/crown.png', anchor: 'upper', label: 'Crown', labelKey: 'look_overlay_crown' },
+    // Lower / scene props.
+    cauldron: { slot: 'lower', file: '/overlays/props/cauldron.png', anchor: 'lower', label: 'Cauldron', labelKey: 'look_overlay_cauldron' },
+    desk: { slot: 'lower', file: '/overlays/props/desk.png', anchor: 'lower', label: 'Desk', labelKey: 'look_overlay_desk' },
+    frame: { slot: 'lower', file: '/overlays/props/frame.png', anchor: 'lower', label: 'Frame', labelKey: 'look_overlay_frame' },
+};
+
+export const OVERLAY_SLUGS = Object.keys(OVERLAY_LIBRARY);
+
+/** Anchor defaults as fractions of the canvas (centre of the asset). */
+export const SLOT_ANCHORS = {
+    face: { cx: 0.5, cy: 0.38 },
+    upper: { cx: 0.5, cy: 0.12 },
+    lower: { cx: 0.5, cy: 0.82 },
+};
+
+/** Base width of a slot's asset as a fraction of the canvas width. */
+export const SLOT_BASE_WIDTH = {
+    face: 0.62,
+    upper: 0.5,
+    lower: 0.9,
+};
+
+export const DEFAULT_TUNING = { dx: 0, dy: 0, scale: 1 };
+export const MIN_SCALE = 0.4;
+export const MAX_SCALE = 2.2;
+
+export function resolveFilterId(id) {
+    return FILTER_IDS.includes(id) ? id : DEFAULT_FILTER_ID;
+}
+
+export function resolveFilterPreset(id) {
+    const resolved = resolveFilterId(id);
+    return FILTER_PRESETS.find((p) => p.id === resolved);
+}
+
+/** Only the friend-closed-response step gets the preview gate + look controls. */
+export function isPreviewGateStep(step) {
+    return !!step && step.responseType === 'friendClosedResponse';
+}
+
+export function overlaySlugsForSlot(slot) {
+    return OVERLAY_SLUGS.filter((slug) => OVERLAY_LIBRARY[slug].slot === slot);
+}
+
+/** A slug is usable only in its own slot — `cauldron` can never become a face cover. */
+export function isSlugValidForSlot(slug, slot) {
+    if (slug === null || slug === undefined) return true;
+    const entry = OVERLAY_LIBRARY[slug];
+    return !!entry && entry.slot === slot;
+}
+
+export function emptySelection() {
+    return { filterId: DEFAULT_FILTER_ID, slots: { face: null, upper: null, lower: null } };
+}
+
+export function emptyTuning() {
+    return { face: { ...DEFAULT_TUNING }, upper: { ...DEFAULT_TUNING }, lower: { ...DEFAULT_TUNING } };
+}
+
+/** True when the learner's look differs from a plain camera frame. */
+export function isLookActive(selection) {
+    const safe = sanitizeSelection(selection);
+    if (safe.filterId !== DEFAULT_FILTER_ID) return true;
+    return OVERLAY_SLOTS.some((slot) => !!safe.slots[slot]);
+}
+
+/**
+ * Apply a step's config overlays exactly once, the first time that step's preview
+ * opens. A re-record of the same step must NOT re-apply them (it would undo the
+ * learner's own choices and dragging); a different step is its own key.
+ */
+let appliedStepKey = null;
+
+export function applyStepLookOverlaysOnce({ stepKey, stepOverlays, store }) {
+    if (!store || !stepKey) return false;
+    if (appliedStepKey === stepKey) return false;
+    appliedStepKey = stepKey;
+    const declared = parseStepOverlays(stepOverlays);
+    const hasAny = OVERLAY_SLOTS.some((slot) => !!declared[slot]);
+    if (hasAny) store.getState().applyStepLookOverlays(declared);
+    return hasAny;
+}
+
+export function resetAppliedStepOverlays() {
+    appliedStepKey = null;
+}
+
+function clamp(value, min, max) {
+    if (!Number.isFinite(value)) return min;
+    return Math.min(max, Math.max(min, value));
+}
+
+/**
+ * Coerce anything (store state, a stale config, undefined) into a usable
+ * selection: an unknown filter becomes `natural`, an invalid slug is dropped,
+ * and the slot map always has all three keys.
+ */
+export function sanitizeSelection(selection) {
+    const safe = emptySelection();
+    if (!selection || typeof selection !== 'object') return safe;
+    safe.filterId = resolveFilterId(selection.filterId);
+    const slots = selection.slots;
+    if (slots && typeof slots === 'object') {
+        for (const slot of OVERLAY_SLOTS) {
+            const slug = slots[slot];
+            safe.slots[slot] = isSlugValidForSlot(slug, slot) && slug ? slug : null;
+        }
+    }
+    return safe;
+}
+
+export function sanitizeTuning(tuning) {
+    const safe = emptyTuning();
+    if (!tuning || typeof tuning !== 'object') return safe;
+    for (const slot of OVERLAY_SLOTS) {
+        const entry = tuning[slot];
+        if (!entry || typeof entry !== 'object') continue;
+        safe[slot] = {
+            dx: clamp(Number(entry.dx), -1, 1),
+            dy: clamp(Number(entry.dy), -1, 1),
+            scale: clamp(Number(entry.scale), MIN_SCALE, MAX_SCALE),
+        };
+    }
+    return safe;
+}
+
+/**
+ * Read a step's `overlays` config. Accepts the documented object shape
+ * (`{ face: { asset: 'smiley' }, upper: {...}, lower: {...} }`) and tolerates a
+ * bare slug string per slot. Unknown slugs are dropped, never carried forward.
+ */
+export function parseStepOverlays(stepOverlays) {
+    const result = { face: null, upper: null, lower: null };
+    if (!stepOverlays || typeof stepOverlays !== 'object') return result;
+    for (const slot of OVERLAY_SLOTS) {
+        const raw = stepOverlays[slot];
+        const slug = typeof raw === 'string' ? raw : raw && typeof raw === 'object' ? raw.asset : null;
+        if (slug && isSlugValidForSlot(slug, slot)) result[slot] = slug;
+    }
+    return result;
+}
+
+/**
+ * Apply a step's config overlays ONCE, on that step: declared slots are filled,
+ * every other slot keeps whatever the learner already chose. Config values are
+ * never returned for a later step (the caller only passes the current step).
+ */
+export function applyStepOverlays(selection, stepOverlays) {
+    const safe = sanitizeSelection(selection);
+    const declared = parseStepOverlays(stepOverlays);
+    for (const slot of OVERLAY_SLOTS) {
+        if (declared[slot]) safe.slots[slot] = declared[slot];
+    }
+    return safe;
+}
+
+/** Centre point of a slot's default position, in canvas pixels. */
+export function resolveSlotAnchor(slot, canvasWidth, canvasHeight) {
+    const anchor = SLOT_ANCHORS[slot] || SLOT_ANCHORS.face;
+    return { cx: anchor.cx * canvasWidth, cy: anchor.cy * canvasHeight };
+}
+
+/**
+ * Where a slot's asset is drawn: anchored, tuned by the learner (dx/dy are
+ * fractions of the canvas), aspect preserved, and clamped inside the canvas so a
+ * prop can never be dragged off-frame into nothing.
+ */
+export function resolveSlotDrawRect({ slot, imageWidth, imageHeight, canvasWidth, canvasHeight, tuning }) {
+    if (!Number.isFinite(imageWidth) || imageWidth <= 0) return null;
+    if (!Number.isFinite(imageHeight) || imageHeight <= 0) return null;
+    if (!Number.isFinite(canvasWidth) || canvasWidth <= 0) return null;
+    if (!Number.isFinite(canvasHeight) || canvasHeight <= 0) return null;
+    const t = tuning && typeof tuning === 'object' ? tuning : DEFAULT_TUNING;
+    const scale = clamp(Number(t.scale), MIN_SCALE, MAX_SCALE) || 1;
+    const baseWidth = (SLOT_BASE_WIDTH[slot] || 0.6) * canvasWidth;
+    const dw = baseWidth * scale;
+    const dh = dw * (imageHeight / imageWidth);
+    const anchor = resolveSlotAnchor(slot, canvasWidth, canvasHeight);
+    const dxToCentre = clamp(Number(t.dx), -1, 1) * canvasWidth;
+    const dyToCentre = clamp(Number(t.dy), -1, 1) * canvasHeight;
+    const cx = anchor.cx + dxToCentre;
+    const cy = anchor.cy + dyToCentre;
+    // Keep at least a third of the asset on screen on each axis.
+    const minX = -dw * 0.66;
+    const maxX = canvasWidth - dw * 0.33;
+    const minY = -dh * 0.66;
+    const maxY = canvasHeight - dh * 0.33;
+    return {
+        dx: Math.round(clamp(cx - dw / 2, minX, maxX)),
+        dy: Math.round(clamp(cy - dh / 2, minY, maxY)),
+        dw: Math.round(dw),
+        dh: Math.round(dh),
+    };
+}
+
+/** Human-facing file name for a slug (used by pickers and logs). */
+export function assetFileForSlug(slug) {
+    const entry = OVERLAY_LIBRARY[slug];
+    return entry ? entry.file : null;
+}
+
+// ---------------------------------------------------------------------------
+// Painting. Still pure: the caller hands in the 2d context, a scratch canvas and
+// an already-decoded image per slug. No DOM, no globals.
+// ---------------------------------------------------------------------------
+
+/** The colour grade for a preset: a sequence of blend-mode fills. */
+export function paintFilterGrade({ ctx, canvasWidth, canvasHeight, presetId }) {
+    if (!ctx) return 'none';
+    const preset = resolveFilterPreset(presetId);
+    if (!preset || preset.ops.length === 0) return 'none';
+    try {
+        for (const pass of preset.ops) {
+            ctx.save();
+            ctx.globalCompositeOperation = pass.op;
+            ctx.globalAlpha = Math.min(1, Math.max(0, pass.alpha));
+            ctx.fillStyle = pass.color;
+            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+            ctx.restore();
+        }
+        return preset.id;
+    } catch (e) {
+        return 'none';
+    }
+}
+
+function isImageReady(image) {
+    return !!image && image.complete !== false && Number(image.naturalWidth) > 0;
+}
+
+/** One slot's asset, positioned by the anchor + the learner's tuning. */
+export function paintSlotOverlay({ ctx, image, slot, canvasWidth, canvasHeight, tuning }) {
+    if (!ctx || !isImageReady(image)) return false;
+    const rect = resolveSlotDrawRect({
+        slot,
+        imageWidth: image.naturalWidth,
+        imageHeight: image.naturalHeight,
+        canvasWidth,
+        canvasHeight,
+        tuning,
+    });
+    if (!rect) return false;
+    try {
+        ctx.drawImage(image, rect.dx, rect.dy, rect.dw, rect.dh);
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
+/**
+ * The whole look for one frame, in the fixed order that matters:
+ *   1. beauty (soft-focus + light) under the colour grade,
+ *   2. colour grade,
+ *   3. overlays face → upper → lower (a lower prop never covers a face cover).
+ *
+ * `images` maps slug → decoded image; a slug whose image is still loading is
+ * simply skipped for that frame.
+ */
+export function paintLooks({
+    ctx,
+    source,
+    scratch,
+    canvasWidth,
+    canvasHeight,
+    selection,
+    tuning,
+    images,
+    paintBeauty,
+}) {
+    if (!ctx) return { filter: 'none', slots: [] };
+    const safe = sanitizeSelection(selection);
+    const safeTuning = sanitizeTuning(tuning);
+    const preset = resolveFilterPreset(safe.filterId);
+
+    let filterPainted = 'none';
+    if (preset && preset.beauty && preset.beauty !== 'none' && typeof paintBeauty === 'function') {
+        paintBeauty({
+            ctx,
+            source,
+            scratch,
+            canvasWidth,
+            canvasHeight,
+            mode: preset.beauty,
+        });
+    }
+    if (preset && preset.ops.length > 0) {
+        filterPainted = paintFilterGrade({ ctx, canvasWidth, canvasHeight, presetId: preset.id });
+    } else if (preset) {
+        filterPainted = preset.id;
+    }
+
+    const paintedSlots = [];
+    for (const slot of SLOT_DRAW_ORDER) {
+        const slug = safe.slots[slot];
+        if (!slug) continue;
+        const image = images ? images[slug] : null;
+        if (paintSlotOverlay({ ctx, image, slot, canvasWidth, canvasHeight, tuning: safeTuning[slot] })) {
+            paintedSlots.push(slot);
+        }
+    }
+    return { filter: filterPainted, slots: paintedSlots };
+}
+

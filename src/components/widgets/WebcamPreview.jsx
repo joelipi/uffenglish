@@ -5,6 +5,8 @@ import { getBilingual } from '../../data/strings.js';
 import { useNativeLanguage } from '../../hooks/use-native-language.js';
 import { getRecordingPhraseOverlay } from '../../modules/video/recording-subtitle-logic.js';
 import { syncWebcamPreviewElement } from '../../modules/speech/portrait-capture-logic.js';
+import { isPreviewGateStep } from '../../modules/looks/recording-looks-logic.js';
+import LookControls from '../looks/LookControls.jsx';
 
 export default function WebcamPreview() {
     // Subscribe to the key counter (bumped by setWebcamStream) for reactivity,
@@ -44,6 +46,30 @@ export default function WebcamPreview() {
         ? getBilingual('speak_slowly_and_carefully', lang)
         : null;
 
+    // Look controls + drag-to-position (stories/092). Only on the preview screen
+    // of a friendClosedResponse step, and only before the take starts.
+    const awaitingStart = useStore(appStore, (state) => state.awaitingRecordingStart);
+    const lookControlsVisible = awaitingStart && isPreviewGateStep(currentStep);
+    const dragRef = useRef(null);
+    const handlePointerDown = (e) => {
+        if (!lookControlsVisible) return;
+        const slot = appStore.getState().lookActiveSlot;
+        const slug = appStore.getState().lookSelection.slots[slot];
+        if (!slug) return;
+        dragRef.current = { slot, x: e.clientX, y: e.clientY, tuning: { ...appStore.getState().lookTuning[slot] } };
+        e.currentTarget.setPointerCapture?.(e.pointerId);
+    };
+    const handlePointerMove = (e) => {
+        const drag = dragRef.current;
+        if (!drag) return;
+        const rect = wrapperRef.current?.getBoundingClientRect();
+        if (!rect || rect.width === 0 || rect.height === 0) return;
+        const dx = drag.tuning.dx + (e.clientX - drag.x) / rect.width;
+        const dy = drag.tuning.dy + (e.clientY - drag.y) / rect.height;
+        appStore.getState().setLookTuning(drag.slot, { dx, dy });
+    };
+    const handlePointerUp = () => { dragRef.current = null; };
+
     useEffect(() => {
         if (fullScreen) {
             setTakeover(true);
@@ -69,7 +95,18 @@ export default function WebcamPreview() {
 
     return (
         <div ref={wrapperRef} id="pip-wrapper" className={className} style={{ position: 'relative' }}>
-            <video ref={videoRef} id="webcam-preview" autoPlay muted playsInline></video>
+            <video
+                ref={videoRef}
+                id="webcam-preview"
+                autoPlay
+                muted
+                playsInline
+                onPointerDown={handlePointerDown}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerUp}
+                onPointerCancel={handlePointerUp}
+                style={lookControlsVisible ? { touchAction: 'none' } : undefined}
+            ></video>
             {recordingCountdown !== null && (
                 <div
                     data-testid="recording-countdown-overlay"
@@ -114,6 +151,7 @@ export default function WebcamPreview() {
                     <div className="recording-phrase-text">{phraseText}</div>
                 </div>
             )}
+            {lookControlsVisible && <LookControls />}
         </div>
     );
 }

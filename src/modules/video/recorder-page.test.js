@@ -1014,17 +1014,40 @@ describe('recorder auto-render — zero server changes', () => {
             '.github/workflows/source-to-csv.yml',
             'scripts/source-to-csv-workflow.test.js',
             'src/modules/video/recorder-page.test.js',
-            // Story 091 (recording looks): the tracker-free beauty pass +
-            // stationary prop overlays, their placeholder art, and the precache
-            // exclusion that keeps the art off a learner who never picks one.
+            // Story 091/092 (recording looks): the tracker-free beauty pass +
+            // overlay slots, their placeholder art (face covers + props), and the
+            // precache exclusion that keeps the art off a learner who never picks
+            // one.
             'stories/091-recording-overlays/story.md',
+            'stories/092-look-controls/story.md',
             'src/modules/speech/portrait-capture-logic.js',
             'src/modules/speech/portrait-capture-logic.test.js',
             'src/modules/speech/speech.web.js',
+            'src/modules/speech/speech-orchestrator.js',
+            'src/modules/speech/speech-orchestrator.test.js',
+            'src/modules/looks/recording-looks-logic.js',
+            'src/modules/looks/recording-looks-logic.test.js',
+            'src/modules/looks/preview-gate.js',
+            'src/components/looks/LookControls.jsx',
+            'src/components/widgets/WebcamPreview.jsx',
+            'src/components/widgets/IntroChoices.jsx',
+            'src/components/widgets/MicStatusText.jsx',
+            'src/modules/store/store.js',
+            'src/modules/store/store.test.js',
             'scripts/generate-overlay-art.py',
+            // Retired by the 092 folder layout (deleted paths still appear in the
+            // diff, so they stay listed here).
             'public/overlays/hat.png',
             'public/overlays/desk.png',
             'public/overlays/frame.png',
+            'public/overlays/face/smiley.png',
+            'public/overlays/face/blank.png',
+            'public/overlays/face/pixel.png',
+            'public/overlays/props/witchhat.png',
+            'public/overlays/props/crown.png',
+            'public/overlays/props/cauldron.png',
+            'public/overlays/props/desk.png',
+            'public/overlays/props/frame.png',
             'vite.config.js',
             'scripts/translate-master-csv.mjs',
             'scripts/sync-srt-workflow.test.js',

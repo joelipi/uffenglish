@@ -7,6 +7,12 @@ import { createStore } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { applyGuestLanguagePreference } from '../user/guest-modal-logic.js';
 import { BRANCH_OVERLAY_PHASE } from '../lesson/branch-choice-logic.js';
+import {
+    sanitizeSelection,
+    sanitizeTuning,
+    emptyTuning,
+    applyStepOverlays,
+} from '../looks/recording-looks-logic.js';
 
 // ── Module-level mutable refs (not reactive) ──
 // These hold instances that don't belong in Zustand's reactive state.
@@ -111,6 +117,20 @@ export const appStore = createStore(
             pauseAllVideosTrigger: 0,
             pendingVideoPlayType: null,  // 'interactive' | 'simple' | 'success' | null
             recordingCountdown: null,    // null | 3 | 2 | 1 — 3-2-1 pre-roll overlay; 'mic' is NOT a value
+            // Recording looks (stories/092). `lookSelection` is the learner's
+            // filter + the three overlay slots; `lookTuning` is where they
+            // dragged each slot and how big they made it. Both live in memory for
+            // the lesson session only.
+            lookSelection: { filterId: 'natural', slots: { face: null, upper: null, lower: null } },
+            lookTuning: {
+                face: { dx: 0, dy: 0, scale: 1 },
+                upper: { dx: 0, dy: 0, scale: 1 },
+                lower: { dx: 0, dy: 0, scale: 1 },
+            },
+            lookActiveSlot: 'face',
+            // True only on a friendClosedResponse preview screen: the camera is
+            // live and the recorder waits for the learner's mic tap (no 3-2-1).
+            awaitingRecordingStart: false,
 
 // --- Session-scoped State (not persisted, reset per lesson) ---
             isAudioEnabled: false,
@@ -235,6 +255,30 @@ export const appStore = createStore(
             setWhisperEngineFailed: (val) => set({ isWhisperEngineFailed: val }),
             setMicActive: (val) => set({ isMicActive: val }),
             setRecordingCountdown: (val) => set({ recordingCountdown: val }),
+            // --- Recording looks (stories/092) ---
+            // Values are normalised here so the renderer can trust the store; the
+            // rules themselves live in modules/looks/recording-looks-logic.js.
+            setLookSelection: (selection) => set({ lookSelection: sanitizeSelection(selection) }),
+            setLookFilter: (filterId) => set((state) => ({
+                lookSelection: sanitizeSelection({ ...state.lookSelection, filterId }),
+            })),
+            setLookSlot: (slot, slug) => set((state) => {
+                const slots = { ...state.lookSelection.slots, [slot]: slug };
+                return {
+                    lookSelection: sanitizeSelection({ ...state.lookSelection, slots }),
+                    lookActiveSlot: slug ? slot : state.lookActiveSlot,
+                };
+            }),
+            setLookTuning: (slot, patch) => set((state) => {
+                const next = { ...state.lookTuning, [slot]: { ...state.lookTuning[slot], ...patch } };
+                return { lookTuning: sanitizeTuning(next) };
+            }),
+            resetLookTuning: () => set({ lookTuning: emptyTuning() }),
+            setLookActiveSlot: (slot) => set({ lookActiveSlot: slot }),
+            applyStepLookOverlays: (stepOverlays) => set((state) => ({
+                lookSelection: applyStepOverlays(state.lookSelection, stepOverlays),
+            })),
+            setAwaitingRecordingStart: (val) => set({ awaitingRecordingStart: val }),
             setTextMode: (val) => set({ isTextMode: val }),
             setPlaybackMuted: (val) => set({ isPlaybackMuted: val }),
             setCameraOff: (val) => set({ isCameraOff: val }),
@@ -607,6 +651,13 @@ export const appStore = createStore(
                 successCanvasVisible: false,
                 afterVideoActive: null,
                 clipsPublishing: false,
+                // A new lesson starts with no look of its own: the learner's
+                // filter/overlay picks do not leak between lessons, and neither
+                // does the previous step's config overlays.
+                lookSelection: { filterId: 'natural', slots: { face: null, upper: null, lower: null } },
+                lookTuning: { face: { dx: 0, dy: 0, scale: 1 }, upper: { dx: 0, dy: 0, scale: 1 }, lower: { dx: 0, dy: 0, scale: 1 } },
+                lookActiveSlot: 'face',
+                awaitingRecordingStart: false,
             }),
 
             // --- Input UI Actions (Replaces renderSpeechInputUI/renderTextInputUI) ---

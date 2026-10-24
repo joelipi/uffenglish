@@ -1317,7 +1317,37 @@ export function withCarriedTags(config, previous) {
         if (key === 'courseName' && carryTags) out.tags = [...previousTags];
     }
     if (carryTags && !('tags' in out)) out.tags = [...previousTags];
+    // Recording looks (stories/092): steps may carry hand-authored `overlays`
+    // (face/upper/lower defaults). The sheet has no column for them, so they are
+    // carried across a regeneration or the config bot silently drops them.
+    out.lessons = carryStepOverlays(config.lessons, previous && previous.lessons);
     return out;
+}
+
+/**
+ * Copy a step's `overlays` from the previous config into the freshly generated
+ * one, positionally within each lesson (the generator emits the same step order).
+ * A generated step that already declares overlays wins — the sheet stays the
+ * source of truth if it ever grows the column.
+ */
+function carryStepOverlays(generatedLessons, previousLessons) {
+    if (!Array.isArray(generatedLessons)) return generatedLessons;
+    if (!Array.isArray(previousLessons)) return generatedLessons;
+    const byId = new Map();
+    for (const lesson of previousLessons) {
+        if (lesson && lesson.lessonId) byId.set(lesson.lessonId, lesson);
+    }
+    return generatedLessons.map((lesson) => {
+        const previous = lesson && lesson.lessonId ? byId.get(lesson.lessonId) : null;
+        if (!previous || !Array.isArray(previous.steps) || !Array.isArray(lesson.steps)) return lesson;
+        const steps = lesson.steps.map((step, index) => {
+            if (!step || (step.overlays && Object.keys(step.overlays).length > 0)) return step;
+            const carried = previous.steps[index] && previous.steps[index].overlays;
+            if (!carried || typeof carried !== 'object' || Object.keys(carried).length === 0) return step;
+            return { ...step, overlays: carried };
+        });
+        return { ...lesson, steps };
+    });
 }
 
 // The previous file's translations that the generated name does not have.

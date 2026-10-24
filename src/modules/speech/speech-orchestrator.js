@@ -5,6 +5,8 @@ import { appStore } from '../store/store.js';
 import Strings from '../../data/strings.js';
 import { getAppLanguage } from '../bilingual/config-normalizer.js';
 import { decideRerecordAction, RERECORD_DECISIONS } from './rerecord-logic.js';
+import { isPreviewGateStep, applyStepLookOverlaysOnce } from '../looks/recording-looks-logic.js';
+import { waitForPreviewStart, resetPreviewGate } from '../looks/preview-gate.js';
 
 function computeWaveformPeaks(audioData, numPeaks = 120) {
     const blockSize = Math.max(1, Math.floor(audioData.length / numPeaks));
@@ -353,9 +355,33 @@ export function createSpeechOrchestrator({
                     // mic+Speak overlay (MicStatusText `speak-now`) is suppressed
                     // while `recordingCountdown` is set, so it only appears once
                     // the last number has left the screen.
-                    for (const n of [3, 2, 1]) {
-                        appStore.getState().setRecordingCountdown(n);
-                        await new Promise((r) => setTimeout(r, 1000));
+                    //
+                    // The friend-closed-response step is the exception
+                    // (stories/092): its Continue button already opened this
+                    // full-screen preview, so the learner gets unlimited time to
+                    // pick a filter/overlays and frame themselves, and the take
+                    // starts on their microphone tap instead of a countdown.
+                    if (isPreviewGateStep(step)) {
+                        resetPreviewGate();
+                        // A step's config overlays are its DEFAULT look; they are
+                        // applied once for that step and never carried forward.
+                        const lesson = appStore.getState().configData?.lessons?.[appStore.getState().currentLessonIndex];
+                        const stepKey = `${lesson?.lessonId || 'lesson'}:${appStore.getState().currentStepIndex}`;
+                        applyStepLookOverlaysOnce({
+                            stepKey,
+                            stepOverlays: step.overlays,
+                            store: appStore,
+                        });
+                        appStore.getState().setAwaitingRecordingStart(true);
+                        console.log('[Look] preview open — waiting for the microphone tap');
+                        await waitForPreviewStart();
+                        appStore.getState().setAwaitingRecordingStart(false);
+                        console.log('[Look] microphone tapped — starting the take immediately');
+                    } else {
+                        for (const n of [3, 2, 1]) {
+                            appStore.getState().setRecordingCountdown(n);
+                            await new Promise((r) => setTimeout(r, 1000));
+                        }
                     }
                     appStore.getState().setRecordingCountdown(null);
 

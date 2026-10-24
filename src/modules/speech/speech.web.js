@@ -15,14 +15,17 @@ import {
     createFreezeReporter,
     resolveCompositeWatchdog,
     COMPOSITE_WATCHDOG_MS,
-    // Recording looks (stories/091): `?beauty=` + `?overlay=`, no tracking.
-    resolveBeautyModeFromSearch,
-    resolveOverlayModeFromSearch,
-    shouldCompositeForLook,
+    // Recording looks (stories/091 + 092): filter presets + three overlay slots.
     paintBeautyPass,
-    paintStationaryOverlay,
-    OVERLAY_PLACEMENTS,
+    shouldCompositeForLook,
 } from './portrait-capture-logic.js';
+import {
+    paintLooks,
+    assetFileForSlug,
+    OVERLAY_SLOTS,
+    isLookActive,
+    isPreviewGateStep,
+} from '../looks/recording-looks-logic.js';
 import {
     shouldReleaseCaptureBeforePlayback,
     waitForAudioRouteSettle,
@@ -83,42 +86,54 @@ let compositeLastSourceTime = 0;
 let compositeCanvasEl = null;
 
 // ---------------------------------------------------------------------------
-// Recording looks — `?beauty=soft|glow|warm` and `?overlay=hat|desk|frame`.
+// Recording looks (stories/091 + 092).
 //
-// Tracker-free by design (stories/091): a lighting/soft-focus recipe plus a
-// stationary prop the learner frames themselves. Both are Canvas2D paint over the
-// frame the MediaRecorder already captures, so there is no model, no WebGL
-// context and no per-frame inference in the recording path. With no flag the app
-// behaves exactly as before.
+// Tracker-free by design: a filter is a Canvas2D lighting/soft-focus + blend-mode
+// recipe and an overlay is a stationary PNG the learner frames themselves and can
+// drag. Everything is painted into the canvas the MediaRecorder already captures,
+// so there is no model, no WebGL context and no per-frame inference in the
+// recording path.
+//
+// The SELECTION lives in the store (the preview screen's controls write it), so a
+// change repaints the live preview and lands in the take because it is the same
+// canvas.
 // ---------------------------------------------------------------------------
-let recordingBeautyMode = 'none';
-let recordingOverlayMode = 'none';
-let overlayImage = null;
-let overlayImageName = null;
 // Scratch canvas for the soft-focus downscale/upscale blend.
 let lookScratchCanvas = null;
 
-function readLookModesFromUrl() {
-    if (typeof window === 'undefined' || !window.location) return { beauty: 'none', overlay: 'none' };
-    return {
-        beauty: resolveBeautyModeFromSearch(window.location.search),
-        overlay: resolveOverlayModeFromSearch(window.location.search),
-    };
+// Decoded overlay images, keyed by slug. Loaded on demand and dropped with the
+// composite so a phone does not hold five full-size PNGs through Whisper.
+const lookImages = new Map();
+
+function getLookImage(slug) {
+    const file = assetFileForSlug(slug);
+    if (!file) return null;
+    let image = lookImages.get(slug);
+    if (!image) {
+        image = new Image();
+        image.src = file;
+        lookImages.set(slug, image);
+    }
+    return image;
 }
 
-/** Load a prop PNG once; a slow/failed load is a silent no-op in the painter. */
-function loadOverlayImage(name) {
-    if (overlayImageName === name && overlayImage) return overlayImage;
-    const img = new Image();
-    img.src = `/overlays/${name}.png`;
-    overlayImage = img;
-    overlayImageName = name;
-    return img;
+/** slug → image, for whichever slots the current selection uses. */
+function getLookImages(selection) {
+    const map = {};
+    const slots = selection && selection.slots ? selection.slots : {};
+    for (const slot of OVERLAY_SLOTS) {
+        const slug = slots[slot];
+        if (slug) map[slug] = getLookImage(slug);
+    }
+    return map;
+}
+
+function primeLookImages(selection) {
+    getLookImages(selection);
 }
 
 function clearLookState() {
-    overlayImage = null;
-    overlayImageName = null;
+    lookImages.clear();
     lookScratchCanvas = null;
 }
 
@@ -208,15 +223,16 @@ function createPortraitCaptureStream(rawStream) {
     video.srcObject = rawStream;
     video.play().catch((e) => console.warn('[Speech] portrait-capture playback failed:', e));
 
-    // Start the prop download immediately; the painter draws nothing until it is
-    // decodable, so a slow asset costs a few unframed frames, never a black take.
-    if (recordingOverlayMode !== 'none') loadOverlayImage(recordingOverlayMode);
+    // Prime the assets for whatever the learner already has selected; the painter
+    // draws nothing until an image is decodable, so a slow asset costs a few
+    // unframed frames, never a black take.
+    primeLookImages(appStore.getState().lookSelection);
 
     compositeLiveness = createLivenessCounter();
     compositeLastSourceTime = 0;
 
-    // One frame: crop the camera in, apply the look (beauty then prop), so the
-    // preview and the recorded blob always agree.
+    // One frame: crop the camera in, then paint the look (filter, then the three
+    // overlay slots), so the preview and the recorded blob always agree.
     function paintFrame() {
         const rect = compositeCropRect({
             videoWidth: video.videoWidth,
@@ -226,29 +242,19 @@ function createPortraitCaptureStream(rawStream) {
         });
         const painted = paintCompositeFrame({ ctx, video, rect, canvasWidth: canvas.width, canvasHeight: canvas.height });
         if (!painted) return false;
-        if (recordingBeautyMode !== 'none') {
-            if (!lookScratchCanvas) lookScratchCanvas = document.createElement('canvas');
-            paintBeautyPass({
-                ctx,
-                source: canvas,
-                scratch: lookScratchCanvas,
-                canvasWidth: canvas.width,
-                canvasHeight: canvas.height,
-                mode: recordingBeautyMode,
-            });
-        }
-        if (recordingOverlayMode !== 'none' && overlayImage
-            && overlayImage.complete && overlayImage.naturalWidth > 0) {
-            paintStationaryOverlay({
-                ctx,
-                image: overlayImage,
-                imageWidth: overlayImage.naturalWidth,
-                imageHeight: overlayImage.naturalHeight,
-                canvasWidth: canvas.width,
-                canvasHeight: canvas.height,
-                placement: OVERLAY_PLACEMENTS[recordingOverlayMode],
-            });
-        }
+        const state = appStore.getState();
+        if (!lookScratchCanvas) lookScratchCanvas = document.createElement('canvas');
+        paintLooks({
+            ctx,
+            source: canvas,
+            scratch: lookScratchCanvas,
+            canvasWidth: canvas.width,
+            canvasHeight: canvas.height,
+            selection: state.lookSelection,
+            tuning: state.lookTuning,
+            images: getLookImages(state.lookSelection),
+            paintBeauty: paintBeautyPass,
+        });
         return true;
     }
 
@@ -413,14 +419,6 @@ async function createPlaceholderStream() {
 }
 
 async function ensureSpeechCamStream() {
-    // Resolve the look flags once per acquisition (the URL does not change while
-    // a take runs). Both `none` keep today's behaviour byte-for-byte.
-    const looks = readLookModesFromUrl();
-    recordingBeautyMode = looks.beauty;
-    recordingOverlayMode = looks.overlay;
-    if (recordingBeautyMode !== 'none' || recordingOverlayMode !== 'none') {
-        console.log('[Look] recording look active:', { beauty: recordingBeautyMode, overlay: recordingOverlayMode });
-    }
     const wantsPlaceholder = !!appStore.getState().isCameraOff;
     if (speechCamStream) {
         if (isPlaceholderStream === wantsPlaceholder) return speechCamStream;
@@ -433,12 +431,12 @@ async function ensureSpeechCamStream() {
         const rawStream = await navigator.mediaDevices.getUserMedia(getMediaConstraints());
         // Every platform except iOS wraps the camera in a 9:16 canvas so the
         // preview and recording are always Reels-size. iOS keeps the raw camera
-        // stream unchanged (its MediaRecorder path is fragile).
-        const useComposite = shouldUsePortraitCapture({
-            isIOS: isIOS(),
-            beautyMode: recordingBeautyMode,
-            overlayMode: recordingOverlayMode,
-        });
+        // stream unchanged (its MediaRecorder path is fragile) — unless this step
+        // shows the look preview, which can only work through the canvas.
+        const state = appStore.getState();
+        const step = state.configData?.lessons?.[state.currentLessonIndex]?.steps?.[state.currentStepIndex];
+        const lookActive = isPreviewGateStep(step) || isLookActive(state.lookSelection);
+        const useComposite = shouldUsePortraitCapture({ isIOS: isIOS(), lookActive });
         speechCamStream = useComposite && canvasCaptureSupported
             ? createPortraitCaptureStream(rawStream)
             : rawStream;

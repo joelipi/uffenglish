@@ -79,8 +79,9 @@ describe('portrait capture (9:16)', () => {
         const body = functionBody(WEB, 'async function ensureSpeechCamStream()');
         expect(body).not.toBe('');
         expect(body).toMatch(/shouldUsePortraitCapture\(\{/);
-        expect(body).toMatch(/beautyMode: recordingBeautyMode/);
-        expect(body).toMatch(/overlayMode: recordingOverlayMode/);
+        // The look opt-in (stories/092): the preview step, or an explicit look.
+        expect(body).toMatch(/lookActive/);
+        expect(body).toMatch(/isPreviewGateStep\(step\)/);
         expect(body).toMatch(/createPortraitCaptureStream\(rawStream\)/);
         // iOS (false branch) keeps the raw stream.
         expect(body).toMatch(/:\s*rawStream/);

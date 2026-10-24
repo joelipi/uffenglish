@@ -227,8 +227,8 @@ export function resolveOverlayModeFromSearch(search) {
  * working) — but a look can only be baked into the take through the composite
  * canvas, so an active look opts iOS into it. No look → today's rule, exactly.
  */
-export function shouldCompositeForLook({ isIOS = false, beautyMode = 'none', overlayMode = 'none' } = {}) {
-    if (beautyMode !== 'none' || overlayMode !== 'none') return true;
+export function shouldCompositeForLook({ isIOS = false, lookActive = false, beautyMode = 'none', overlayMode = 'none' } = {}) {
+    if (lookActive || beautyMode !== 'none' || overlayMode !== 'none') return true;
     return !isIOS;
 }
 

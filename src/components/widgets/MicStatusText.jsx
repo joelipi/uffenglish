@@ -1,6 +1,7 @@
 import React from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store/store.js';
+import { startRecordingFromPreview } from '../../modules/looks/preview-gate.js';
 
 function renderIcon(type) {
     switch (type) {
@@ -70,8 +71,28 @@ export default function SystemMessageOverlay() {
     // During the 3-2-1 pre-roll the countdown owns the screen; the speak-now
     // mic + localized "SPEAK." overlay is held back until it reaches null.
     const recordingCountdown = useStore(appStore, (state) => state.recordingCountdown);
+    // On the friendClosedResponse preview screen (stories/092) the take starts on
+    // the learner's tap, so the same mic becomes the start button.
+    const awaitingStart = useStore(appStore, (state) => state.awaitingRecordingStart);
 
     if (recordingCountdown !== null) return null;
+
+    if (awaitingStart) {
+        return (
+            <div id="react-root-micstatus" className="d-flex flex-column justify-content-center align-items-center gap-2">
+                <button
+                    type="button"
+                    id="startRecordingButton"
+                    data-testid="start-recording-button"
+                    aria-label="Start recording"
+                    onClick={startRecordingFromPreview}
+                >
+                    <i className="bi bi-mic-fill" style={{ color: '#4ade80', fontSize: '72px' }} />
+                </button>
+                <div id="micStatusText" className="text-center small text-white-50">Tap the mic when you are ready</div>
+            </div>
+        );
+    }
 
     if (systemMessage) {
         const { type, text, bilingual } = systemMessage;

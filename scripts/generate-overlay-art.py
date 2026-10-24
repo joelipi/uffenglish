@@ -1,21 +1,23 @@
 #!/usr/bin/env python3
-"""Generate placeholder prop art for the recording-look spike (stories/091).
+"""Generate placeholder overlay art for the look controls (stories/092).
 
-Deliberately crude on purpose: these exist so the owner can see a prop sitting at
-a fixed position while they frame their own face. Original shapes, no third-party
-art, no licence questions. PNG only (the repo forbids committed jpg/mp4 under
-public/).
+Crude on purpose: these exist so the flow and the slot positions can be tested.
+Original shapes, no third-party art, no licence questions. PNG only (the repo
+forbids committed jpg/jpeg/mp4 under public/).
+
+Layout matches the registry in src/modules/looks/recording-looks-logic.js:
+  public/overlays/face/<slug>.png   — covers the face zone
+  public/overlays/props/<slug>.png  — above the face / lower scene
 """
 import struct
 import zlib
-import math
 import os
+import math
 
-OUT = os.path.join(os.path.dirname(__file__), '..', 'public', 'overlays')
+ROOT = os.path.join(os.path.dirname(__file__), '..', 'public', 'overlays')
 
 
 def png(path, width, height, pixels):
-    """pixels: list of rows, each row a list of (r, g, b, a) tuples."""
     raw = bytearray()
     for row in pixels:
         raw.append(0)
@@ -29,53 +31,55 @@ def png(path, width, height, pixels):
     header = struct.pack('>IIBBBBB', width, height, 8, 6, 0, 0, 0)
     data = (b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', header)
             + chunk(b'IDAT', zlib.compress(bytes(raw), 9)) + chunk(b'IEND', b''))
+    os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, 'wb') as fh:
         fh.write(data)
-    print(f'{os.path.basename(path)} {width}x{height} {len(data)} bytes')
+    print(f'{os.path.relpath(path, ROOT)} {width}x{height} {len(data)}B')
 
 
-def blank(width, height):
-    return [[(0, 0, 0, 0) for _ in range(width)] for _ in range(height)]
+def blank(w, h):
+    return [[(0, 0, 0, 0) for _ in range(w)] for _ in range(h)]
 
 
 def blend(px, x, y, color, alpha=1.0):
-    if 0 <= y < len(px) and 0 <= x < len(px[0]):
-        r, g, b, a = px[y][x]
-        sr, sg, sb, sa = color
-        sa = sa * alpha / 255.0
-        if sa <= 0:
-            return
-        na = sa + a / 255.0 * (1 - sa)
-        if na <= 0:
-            return
-        nr = (sr * sa + r * (a / 255.0) * (1 - sa)) / na
-        ng = (sg * sa + g * (a / 255.0) * (1 - sa)) / na
-        nb = (sb * sa + b * (a / 255.0) * (1 - sa)) / na
-        px[y][x] = (int(nr), int(ng), int(nb), int(na * 255))
+    if not (0 <= y < len(px) and 0 <= x < len(px[0])):
+        return
+    r, g, b, a = px[y][x]
+    sr, sg, sb, sa = color
+    sa = sa * alpha / 255.0
+    if sa <= 0:
+        return
+    na = sa + a / 255.0 * (1 - sa)
+    if na <= 0:
+        return
+    nr = (sr * sa + r * (a / 255.0) * (1 - sa)) / na
+    ng = (sg * sa + g * (a / 255.0) * (1 - sa)) / na
+    nb = (sb * sa + b * (a / 255.0) * (1 - sa)) / na
+    px[y][x] = (int(nr), int(ng), int(nb), int(na * 255))
 
 
-def fill_rect(px, x0, y0, x1, y1, color):
+def rect(px, x0, y0, x1, y1, color):
     for y in range(max(0, y0), min(len(px), y1)):
         for x in range(max(0, x0), min(len(px[0]), x1)):
             blend(px, x, y, color)
 
 
-def fill_ellipse(px, cx, cy, rx, ry, color):
+def ellipse(px, cx, cy, rx, ry, color):
     for y in range(int(cy - ry) - 1, int(cy + ry) + 2):
         for x in range(int(cx - rx) - 1, int(cx + rx) + 2):
-            dx = (x - cx) / rx if rx else 0
-            dy = (y - cy) / ry if ry else 0
+            dx = (x - cx) / rx if rx else 9
+            dy = (y - cy) / ry if ry else 9
             if dx * dx + dy * dy <= 1.0:
                 blend(px, x, y, color)
 
 
-def fill_polygon(px, points, color):
-    ys = [p[1] for p in points]
+def poly(px, pts, color):
+    ys = [p[1] for p in pts]
     for y in range(int(min(ys)), int(max(ys)) + 1):
         xs = []
-        for i in range(len(points)):
-            x1, y1 = points[i]
-            x2, y2 = points[(i + 1) % len(points)]
+        for i in range(len(pts)):
+            x1, y1 = pts[i]
+            x2, y2 = pts[(i + 1) % len(pts)]
             if (y1 <= y < y2) or (y2 <= y < y1):
                 xs.append(x1 + (y - y1) * (x2 - x1) / (y2 - y1))
         xs.sort()
@@ -84,70 +88,128 @@ def fill_polygon(px, points, color):
                 blend(px, x, y, color)
 
 
-def make_hat():
-    """A wizard-ish party hat hanging from the top edge, centred."""
-    W, H = 720, 420
+# ── Face covers (square-ish, drawn over the face zone) ──────────────────────
+
+def smiley():
+    W = H = 512
+    px = blank(W, H)
+    yellow = (250, 204, 21, 255)
+    dark = (40, 30, 10, 255)
+    ellipse(px, 256, 256, 246, 246, yellow)
+    ellipse(px, 180, 200, 34, 52, dark)
+    ellipse(px, 332, 200, 34, 52, dark)
+    for i in range(9):  # smile arc
+        t = (i / 8.0) * math.pi
+        ellipse(px, 256 - 140 * math.cos(t), 300 + 78 * math.sin(t), 20, 20, dark)
+    png(os.path.join(ROOT, 'face', 'smiley.png'), W, H, px)
+
+
+def blank_face():
+    W = H = 512
+    px = blank(W, H)
+    ellipse(px, 256, 256, 250, 250, (24, 24, 30, 255))
+    png(os.path.join(ROOT, 'face', 'blank.png'), W, H, px)
+
+
+def pixel_face():
+    W = H = 512
+    px = blank(W, H)
+    cell = 32
+    tones = [(120, 90, 160), (90, 60, 130), (150, 120, 190), (60, 40, 100)]
+    for gy in range(0, H, cell):
+        for gx in range(0, W, cell):
+            # deterministic checker of tones
+            idx = (gx // cell * 7 + gy // cell * 13) % len(tones)
+            rect(px, gx, gy, gx + cell, gy + cell, (*tones[idx], 255))
+    # knock the corners back to a rounded blob
+    for gy in range(0, H, cell):
+        for gx in range(0, W, cell):
+            dx = (gx + cell / 2 - 256) / 256
+            dy = (gy + cell / 2 - 256) / 256
+            if dx * dx + dy * dy > 1.0:
+                for y in range(gy, min(gy + cell, H)):
+                    for x in range(gx, min(gx + cell, W)):
+                        px[y][x] = (0, 0, 0, 0)
+    png(os.path.join(ROOT, 'face', 'pixel.png'), W, H, px)
+
+
+# ── Upper props (sit above the face zone) ───────────────────────────────────
+
+def witchhat():
+    W, H = 560, 360
     px = blank(W, H)
     purple = (124, 58, 237, 255)
     dark = (76, 29, 149, 255)
     gold = (250, 204, 21, 255)
-    # Cone: tip at the very top centre, flaring to the brim.
-    fill_polygon(px, [(360, 4), (470, 250), (250, 250)], purple)
-    # Shading down one side.
-    fill_polygon(px, [(360, 4), (470, 250), (360, 250)], dark)
-    # Brim.
-    fill_ellipse(px, 360, 262, 140, 34, dark)
-    fill_ellipse(px, 360, 254, 140, 30, purple)
-    # Stars.
-    for (sx, sy, r) in ((330, 120, 15), (390, 175, 11), (300, 195, 9)):
-        fill_polygon(px, [(sx, sy - r), (sx + r * 0.3, sy - r * 0.3),
-                          (sx + r, sy), (sx + r * 0.3, sy + r * 0.3),
-                          (sx, sy + r), (sx - r * 0.3, sy + r * 0.3),
-                          (sx - r, sy), (sx - r * 0.3, sy - r * 0.3)], gold)
-    png(os.path.join(OUT, 'hat.png'), W, H, px)
+    poly(px, [(280, 10), (400, 268), (160, 268)], purple)
+    poly(px, [(280, 10), (400, 268), (280, 268)], dark)
+    ellipse(px, 280, 286, 190, 40, dark)
+    ellipse(px, 280, 272, 190, 34, purple)
+    for (sx, sy, r) in ((250, 140, 18), (315, 205, 13), (215, 220, 10)):
+        poly(px, [(sx, sy - r), (sx + r * 0.32, sy - r * 0.32), (sx + r, sy),
+                  (sx + r * 0.32, sy + r * 0.32), (sx, sy + r),
+                  (sx - r * 0.32, sy + r * 0.32), (sx - r, sy),
+                  (sx - r * 0.32, sy - r * 0.32)], gold)
+    png(os.path.join(ROOT, 'props', 'witchhat.png'), W, H, px)
 
 
-def make_desk():
-    """A desk / table edge across the bottom of the frame."""
+def crown():
+    W, H = 560, 300
+    px = blank(W, H)
+    gold = (240, 190, 40, 255)
+    dark = (170, 120, 20, 255)
+    poly(px, [(60, 250), (100, 60), (190, 160), (280, 40), (370, 160), (460, 60), (500, 250)], gold)
+    rect(px, 60, 236, 500, 272, dark)
+    ellipse(px, 280, 120, 24, 24, (220, 60, 60, 255))
+    png(os.path.join(ROOT, 'props', 'crown.png'), W, H, px)
+
+
+# ── Lower props (bottom of the frame) ───────────────────────────────────────
+
+def cauldron():
+    W, H = 720, 320
+    px = blank(W, H)
+    iron = (46, 46, 56, 255)
+    rim = (72, 72, 86, 255)
+    brew = (90, 220, 120, 255)
+    ellipse(px, 360, 150, 250, 60, rim)
+    ellipse(px, 360, 150, 220, 46, brew)
+    ellipse(px, 360, 190, 250, 130, iron)
+    rect(px, 110, 60, 610, 150, iron)
+    for i in range(6):  # bubbles
+        ellipse(px, 250 + i * 45, 120 - (i % 3) * 18, 12, 12, (150, 255, 180, 255))
+    png(os.path.join(ROOT, 'props', 'cauldron.png'), W, H, px)
+
+
+def desk():
     W, H = 720, 300
     px = blank(W, H)
     wood = (124, 84, 51, 255)
     wood_dark = (86, 57, 34, 255)
     wood_top = (156, 110, 70, 255)
-    # Top surface (a slight perspective trapezoid), then the front face.
-    fill_polygon(px, [(0, 40), (720, 40), (720, 300), (0, 300)], wood)
-    fill_polygon(px, [(0, 40), (720, 40), (720, 60), (0, 60)], wood_top)
-    for y in range(60, 300, 46):
-        fill_rect(px, 0, y, 720, y + 3, wood_dark)
-    # A mug, because an empty desk reads as a bug.
-    fill_rect(px, 540, 0, 610, 40, (232, 232, 236, 255))
-    fill_ellipse(px, 575, 2, 35, 10, (210, 210, 216, 255))
-    for i in range(8):
-        fill_ellipse(px, 545 + i * 9, 40 + (i % 2) * 2, 5, 4, (232, 232, 236, 255))
-    png(os.path.join(OUT, 'desk.png'), W, H, px)
+    poly(px, [(0, 40), (720, 40), (720, 300), (0, 300)], wood)
+    poly(px, [(0, 40), (720, 40), (720, 62), (0, 62)], wood_top)
+    for y in range(62, 300, 46):
+        rect(px, 0, y, 720, y + 3, wood_dark)
+    png(os.path.join(ROOT, 'props', 'desk.png'), W, H, px)
 
 
-def make_frame():
-    """A soft border that hides the edges of the room."""
+def frame():
     W, H = 720, 1280
     px = blank(W, H)
-    edge = (18, 20, 34, 235)
+    edge = (18, 20, 34, 230)
     glow = (60, 70, 120, 90)
-    band = 92
+    band = 96
     for y in range(H):
         for x in range(W):
             d = min(x, y, W - 1 - x, H - 1 - y)
             if d < band:
-                t = 1.0 - (d / band)
-                blend(px, x, y, edge, min(1.0, t * 1.6))
+                blend(px, x, y, edge, min(1.0, (1.0 - d / band) * 1.7))
             elif d < band * 1.9:
-                t = 1.0 - ((d - band) / (band * 0.9))
-                blend(px, x, y, glow, t * 0.5)
-    png(os.path.join(OUT, 'frame.png'), W, H, px)
+                blend(px, x, y, glow, (1.0 - (d - band) / (band * 0.9)) * 0.5)
+    png(os.path.join(ROOT, 'props', 'frame.png'), W, H, px)
 
 
 if __name__ == '__main__':
-    os.makedirs(OUT, exist_ok=True)
-    make_hat()
-    make_desk()
-    make_frame()
+    for fn in (smiley, blank_face, pixel_face, witchhat, crown, cauldron, desk, frame):
+        fn()
