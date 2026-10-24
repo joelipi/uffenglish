@@ -9,8 +9,10 @@ import {
     CLOSE_UP_HOLE,
     resolveCloseUpHole,
     resolveRaindrop,
+    resolveSnowflake,
     paintScreenOverlay,
     RAINDROP_COUNT,
+    SNOWFLAKE_COUNT,
     toggleFilterId,
     toggleLensId,
     toggleScreenId,
@@ -300,8 +302,8 @@ describe('close-up lens — sharp oval, blurred everywhere else', () => {
 });
 
 describe('screen overlays — a category painted over the whole frame', () => {
-    it('offers None and Raindrops, and starts on None', () => {
-        expect(SCREEN_PRESETS.map((p) => p.id)).toEqual(['none', 'raindrops']);
+    it('offers None, Raindrops and Snowfall, and starts on None', () => {
+        expect(SCREEN_PRESETS.map((p) => p.id)).toEqual(['none', 'raindrops', 'snowfall']);
         expect(DEFAULT_SCREEN_ID).toBe('none');
         expect(emptySelection().screenId).toBe('none');
         expect(resolveScreenId('bogus')).toBe('none');
@@ -386,6 +388,76 @@ describe('screen overlays — a category painted over the whole frame', () => {
         expect(order.indexOf('beauty:warm')).toBeLessThan(order.indexOf('fillRect'));
         expect(order.indexOf('fillRect')).toBeLessThan(order.indexOf('beauty:lensSoftFocus'));
         expect(order.filter((x) => x !== 'save' && x !== 'restore').slice(-1)[0]).toBe('rain');
+    });
+});
+
+
+describe('snowfall — small white dots falling straight down with a wobble', () => {
+    const base = { canvasWidth: 1080, canvasHeight: 1920 };
+
+    it('falls down over time rather than staying put', () => {
+        const a = resolveSnowflake({ index: 2, ...base, timeMs: 0 });
+        const b = resolveSnowflake({ index: 2, ...base, timeMs: 900 });
+        const same = resolveSnowflake({ index: 2, ...base, timeMs: 0 });
+        expect(a).toEqual(same);
+        // y wraps, so compare against a short step well inside one fall
+        expect(resolveSnowflake({ index: 2, ...base, timeMs: 200 }).y).toBeGreaterThan(a.y - 1);
+        expect(b.y).not.toBe(a.y);
+    });
+
+    it('sways side to side around its column instead of running diagonally', () => {
+        const xs = [0, 250, 500, 750, 1000, 1250, 1500].map((timeMs) => resolveSnowflake({ index: 5, ...base, timeMs }).x);
+        const min = Math.min(...xs);
+        const max = Math.max(...xs);
+        // real wobble…
+        expect(max - min).toBeGreaterThan(base.canvasWidth * 0.01);
+        // …but it never drifts away down-range like the diagonal rain does
+        expect(max - min).toBeLessThan(base.canvasWidth * 0.12);
+        // and it stays on screen
+        for (const x of xs) {
+            expect(x).toBeGreaterThanOrEqual(0);
+            expect(x).toBeLessThanOrEqual(base.canvasWidth);
+        }
+    });
+
+    it('draws small, translucent flakes', () => {
+        for (let i = 0; i < 8; i++) {
+            const flake = resolveSnowflake({ index: i, ...base, timeMs: 300 });
+            expect(flake.radius).toBeGreaterThan(0);
+            expect(flake.radius).toBeLessThan(base.canvasWidth * 0.012);
+            expect(flake.alpha).toBeGreaterThan(0.25);
+            expect(flake.alpha).toBeLessThan(0.8);
+        }
+    });
+
+    it('paints one circle per flake and nothing for None or Raindrops', () => {
+        const makeCtx = () => {
+            const calls = { arcs: 0, fills: 0 };
+            return {
+                calls,
+                save() {}, restore() {},
+                beginPath() {},
+                arc() { calls.arcs += 1; },
+                fill() { calls.fills += 1; },
+                ellipse() { throw new Error('snow should not draw ellipses'); },
+                fillStyle: '', globalAlpha: 1,
+            };
+        };
+        const ctx = makeCtx();
+        expect(paintScreenOverlay({ ctx, canvasWidth: 1080, canvasHeight: 1920, screenId: 'snowfall', timeMs: 400 })).toBe('snowfall');
+        expect(ctx.calls.arcs).toBe(SNOWFLAKE_COUNT);
+        expect(ctx.calls.fills).toBe(SNOWFLAKE_COUNT);
+
+        const none = makeCtx();
+        expect(paintScreenOverlay({ ctx: none, canvasWidth: 1080, canvasHeight: 1920, screenId: 'none', timeMs: 400 })).toBe('none');
+        expect(none.calls.fills).toBe(0);
+    });
+
+    it('is an independent third screen choice', () => {
+        expect(toggleScreenId('none', 'snowfall')).toBe('snowfall');
+        expect(toggleScreenId('raindrops', 'snowfall')).toBe('snowfall');
+        expect(toggleScreenId('snowfall', 'snowfall')).toBe('none');
+        expect(isLookActive({ filterId: 'none', lensId: 'none', screenId: 'snowfall', slots: {} })).toBe(true);
     });
 });
 

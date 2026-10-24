@@ -107,6 +107,7 @@ export const DEFAULT_LENS_ID = 'none';
 export const SCREEN_PRESETS = [
     { id: 'none', label: 'None', labelKey: 'look_screen_none', swatch: NONE_SWATCH },
     { id: 'raindrops', label: 'Raindrops', labelKey: 'look_screen_raindrops', swatch: 'linear-gradient(150deg, #0f1722 0%, #24384d 100%), radial-gradient(circle at 30% 30%, #bfe3ff 0 6%, transparent 7%)' },
+    { id: 'snowfall', label: 'Snowfall', labelKey: 'look_screen_snowfall', swatch: 'radial-gradient(circle at 28% 22%, #ffffff 0 5%, transparent 6%), radial-gradient(circle at 64% 44%, #ffffff 0 4%, transparent 5%), radial-gradient(circle at 42% 72%, #ffffff 0 4%, transparent 5%), linear-gradient(165deg, #1d2430 0%, #46536a 100%)' },
 ];
 
 export const SCREEN_IDS = SCREEN_PRESETS.map((p) => p.id);
@@ -503,6 +504,32 @@ export function resolveRaindrop({ index, timeMs = 0, canvasWidth, canvasHeight }
     };
 }
 
+export const SNOWFLAKE_COUNT = 44;
+
+/**
+ * One snowflake at a given time: a small white dot that falls straight down
+ * while swaying side to side — the cheap-cartoon wobble, not a diagonal. Same
+ * determinism rule as the raindrops: a pure function of (index, timeMs).
+ */
+export function resolveSnowflake({ index, timeMs = 0, canvasWidth, canvasHeight }) {
+    const t = timeMs / 1000;
+    const size = hash01(index * 5 + 3);
+    // Slow: a flake takes roughly 8–17 s to cross the frame.
+    const speed = 0.06 + size * 0.1;
+    const travel = ((hash01(index * 5 + 2) + t * speed) % 1.1);
+    const wobblePhase = hash01(index * 5 + 4) * Math.PI * 2;
+    const wobbleRate = 0.6 + hash01(index * 5 + 5) * 0.9;
+    const wobble = Math.sin(t * wobbleRate + wobblePhase) * canvasWidth * (0.015 + size * 0.02);
+    const baseX = (0.04 + hash01(index * 5 + 1) * 0.92) * canvasWidth;
+    return {
+        // Straight down, with a sway that never leaves the frame.
+        x: clamp(baseX + wobble, 0, canvasWidth),
+        y: travel * canvasHeight,
+        radius: canvasWidth * (0.004 + size * 0.006),
+        alpha: 0.35 + size * 0.3,
+    };
+}
+
 /**
  * Paint the chosen screen overlay over the whole frame. Returns the id painted
  * ('none' when there is nothing to draw or the painter threw), so the adapter
@@ -512,6 +539,23 @@ export function paintScreenOverlay({ ctx, canvasWidth, canvasHeight, screenId, t
     const id = resolveScreenId(screenId);
     if (!ctx || id === 'none') return 'none';
     if (!(canvasWidth > 0) || !(canvasHeight > 0)) return 'none';
+    if (id === 'snowfall') {
+        try {
+            ctx.save();
+            ctx.fillStyle = 'rgb(255, 255, 255)';
+            for (let i = 0; i < SNOWFLAKE_COUNT; i++) {
+                const flake = resolveSnowflake({ index: i, timeMs, canvasWidth, canvasHeight });
+                ctx.globalAlpha = flake.alpha;
+                ctx.beginPath();
+                ctx.arc(flake.x, flake.y, flake.radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.restore();
+            return id;
+        } catch (e) {
+            return 'none';
+        }
+    }
     if (id !== 'raindrops') return 'none';
     try {
         ctx.save();
