@@ -138,3 +138,54 @@ describe('a take names its capture and its blob', () => {
         expect(speechRaw).toContain("takeDiagnostics.push('blob take ' + speechCamTakeIndex, blobDiagnostics);");
     });
 });
+
+// stories/094: the SECOND take on iPad is a still image because the re-acquired
+// camera delivers a frozen feed. The raw camera path has no composite liveness
+// counter, so it is probed before the recorder is created.
+describe('the raw camera is probed for moving frames before a take', () => {
+    const startFn = sliceBetween(
+        speechRaw,
+        'export async function startSpeechCamRecording(',
+        'export async function startDeferredSpeechCamRecording('
+    );
+    const ensureFn = sliceBetween(
+        speechRaw,
+        'async function ensureSpeechCamStream() {',
+        'export async function warmUpSpeechCamStream()'
+    );
+
+    it('waits for the camera to settle before re-acquiring it', () => {
+        expect(ensureFn).toContain('resolveCaptureReacquireDelay(');
+        // The wait must come BEFORE getUserMedia, or it cannot help.
+        expect(ensureFn.indexOf('resolveCaptureReacquireDelay('))
+            .toBeLessThan(ensureFn.indexOf('navigator.mediaDevices.getUserMedia('));
+        // ...and it must actually happen: computing the delay and ignoring it is
+        // the shape that passes a presence-only guard.
+        expect(ensureFn).toContain('await new Promise((resolve) => setTimeout(resolve, reacquireDelayMs));');
+        const stopFn = sliceBetween(speechRaw, 'export function safelyStopStream() {', 'export function releaseSpeechCamStream()');
+        expect(stopFn).toContain('lastCaptureReleaseAtMs = Date.now();');
+    });
+
+    it('probes the camera only where there is no composite liveness counter', () => {
+        expect(startFn).toContain('!compositeLiveness');
+        expect(startFn).toContain('probeCameraFrames(speechCamStream)');
+        // The probe is pointless for the placeholder stream (a canvas drawn once a second).
+        expect(startFn).toContain('!isPlaceholderStream');
+    });
+
+    it('probes before the recorder exists, and re-acquires once when frozen', () => {
+        const probe = startFn.indexOf('probeCameraFrames(speechCamStream)');
+        const recorder = startFn.indexOf('new MediaRecorder(');
+        expect(probe).toBeGreaterThan(-1);
+        expect(recorder).toBeGreaterThan(-1);
+        expect(probe).toBeLessThan(recorder);
+        expect(startFn).toContain('shouldReacquireCapture({');
+        expect(startFn.indexOf('shouldReacquireCapture({')).toBeLessThan(startFn.lastIndexOf('probeCameraFrames(speechCamStream)'));
+    });
+
+    it('reports the frozen camera to telemetry and to the on-screen panel', () => {
+        expect(startFn).toContain("trackEvent('camera_frozen'");
+        expect(startFn).toContain("takeDiagnostics.push('camera probe'");
+        expect(startFn).toContain("takeDiagnostics.push('camera probe retry'");
+    });
+});

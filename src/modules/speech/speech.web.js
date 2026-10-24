@@ -17,8 +17,14 @@ import {
     COMPOSITE_WATCHDOG_MS,
 } from './portrait-capture-logic.js';
 import {
+    CAMERA_FRAME_PROBE_SAMPLE_MS,
+    CAMERA_FRAME_PROBE_TIMEOUT_MS,
+    CAPTURE_REACQUIRE_SETTLE_MS,
     describeCaptureStream,
     describeRecordingBlob,
+    isCameraFrameAdvanced,
+    resolveCaptureReacquireDelay,
+    shouldReacquireCapture,
     shouldReleaseCaptureBeforePlayback,
     waitForAudioRouteSettle,
 } from './capture-release-logic.js';
@@ -68,6 +74,10 @@ let isPlaceholderStream = false;
 // (working) take or a later re-record — the re-record is the take that differs on
 // iPadOS, and "which take is this?" is the first question every report needs.
 let speechCamTakeIndex = 0;
+// When the previous capture was stopped. A re-record on iPadOS re-acquires the
+// camera, and doing it too soon hands back a stream whose frames never change
+// (the "second take is a still image" report, stories/094).
+let lastCaptureReleaseAtMs = 0;
 
 // Desktop portrait-capture state (see createPortraitCaptureStream). The raw
 // 16:9 camera stream is kept alive behind a hidden <video> that feeds the 9:16
@@ -109,6 +119,7 @@ export function safelyStopStream() {
     if (speechCamStream) {
         speechCamStream.getTracks().forEach(t => t.stop());
         speechCamStream = null;
+        lastCaptureReleaseAtMs = Date.now();
     }
     teardownPortraitCapture();
     isPlaceholderStream = false;
@@ -341,6 +352,66 @@ async function createPlaceholderStream() {
     return mixedStream;
 }
 
+/**
+ * Sample the camera for MOVING frames before a take starts (stories/094).
+ *
+ * A MediaRecorder that is handed a frozen video track produces a valid file — the
+ * frames decode and the duration counts — whose picture never changes, which is
+ * exactly the iPad "the playback video is just a still image" report. The
+ * composite path has `compositeLiveness`; the raw camera path (iOS) had nothing,
+ * so this attaches the stream to a hidden <video> and watches its clock move.
+ *
+ * Resolves `{ framesAdvanced, videoWidth, elapsedMs }` and always removes the
+ * element it added.
+ */
+async function probeCameraFrames(stream, { timeoutMs = CAMERA_FRAME_PROBE_TIMEOUT_MS, sampleMs = CAMERA_FRAME_PROBE_SAMPLE_MS } = {}) {
+    if (!stream || typeof document === 'undefined') return { framesAdvanced: false, videoWidth: 0, elapsedMs: 0 };
+    const video = document.createElement('video');
+    video.muted = true;
+    video.playsInline = true;
+    video.setAttribute('playsinline', '');
+    video.setAttribute('webkit-playsinline', '');
+    video.style.cssText = 'position:fixed;top:0;left:0;width:2px;height:2px;opacity:0.01;pointer-events:none;';
+    document.body.appendChild(video);
+    const startedAt = performance.now();
+    try {
+        video.srcObject = stream;
+        const playResult = video.play();
+        if (playResult && typeof playResult.catch === 'function') playResult.catch(() => {});
+    } catch (error) {
+        console.warn('[Recording] camera probe could not start:', error && error.message ? error.message : error);
+        if (video.parentNode) video.parentNode.removeChild(video);
+        return { framesAdvanced: false, videoWidth: 0, elapsedMs: 0 };
+    }
+    return new Promise((resolve) => {
+        let firstSample = null;
+        let settled = false;
+        const finish = (framesAdvanced, elapsedMs, videoWidth) => {
+            if (settled) return;
+            settled = true;
+            clearInterval(timer);
+            try { video.pause(); } catch (error) { /* ignore */ }
+            video.srcObject = null;
+            if (video.parentNode) video.parentNode.removeChild(video);
+            resolve({ framesAdvanced, videoWidth, elapsedMs: Math.round(elapsedMs) });
+        };
+        const timer = setInterval(() => {
+            const elapsedMs = performance.now() - startedAt;
+            const videoWidth = video.videoWidth;
+            if (firstSample === null) {
+                if (videoWidth > 0) firstSample = video.currentTime;
+                if (elapsedMs >= timeoutMs) finish(false, elapsedMs, videoWidth);
+                return;
+            }
+            if (isCameraFrameAdvanced({ firstCurrentTime: firstSample, secondCurrentTime: video.currentTime })) {
+                finish(true, elapsedMs, videoWidth);
+                return;
+            }
+            if (elapsedMs >= timeoutMs) finish(false, elapsedMs, videoWidth);
+        }, sampleMs);
+    });
+}
+
 async function ensureSpeechCamStream() {
     const wantsPlaceholder = !!appStore.getState().isCameraOff;
     if (speechCamStream) {
@@ -351,6 +422,17 @@ async function ensureSpeechCamStream() {
         speechCamStream = await createPlaceholderStream();
         isPlaceholderStream = true;
     } else {
+        // A capture that was just released needs a moment before the camera can
+        // deliver frames again; re-acquiring immediately is what produced a
+        // live-but-static video track on iPadOS (stories/094).
+        const reacquireDelayMs = resolveCaptureReacquireDelay({
+            releasedAtMs: lastCaptureReleaseAtMs,
+            nowMs: Date.now(),
+        });
+        if (reacquireDelayMs > 0) {
+            console.log('[Recording] waiting ' + Math.round(reacquireDelayMs) + 'ms for the camera to settle before re-acquiring');
+            await new Promise((resolve) => setTimeout(resolve, reacquireDelayMs));
+        }
         const rawStream = await navigator.mediaDevices.getUserMedia(getMediaConstraints());
         // Every platform except iOS wraps the camera in a 9:16 canvas so the
         // preview and recording are always Reels-size. iOS keeps the raw camera
@@ -402,6 +484,40 @@ export async function startSpeechCamRecording(micStatusText, userData, { deferSt
 
         await ensureSpeechCamStream();
         setWebcamStream(speechCamStream);
+        await ensureSpeechCamStream();
+        setWebcamStream(speechCamStream);
+
+        // iOS records the RAW camera, so the composite liveness gate does not
+        // cover it. A re-record re-acquires the camera, and iPadOS can hand back
+        // a live-but-static track that yields a still-image take (stories/094).
+        // Probe for moving frames before the recorder is created, and re-acquire
+        // once when the camera is dead.
+        if (!compositeLiveness && !isPlaceholderStream) {
+            let cameraProbe = await probeCameraFrames(speechCamStream);
+            console.log('[Recording] camera probe', cameraProbe);
+            takeDiagnostics.push('camera probe', cameraProbe);
+            if (!cameraProbe.framesAdvanced) {
+                console.warn('[Recording] camera delivered no moving frames before the take');
+                try {
+                    trackEvent('camera_frozen', { phase: 'pre_record', videoWidth: cameraProbe.videoWidth, elapsedMs: cameraProbe.elapsedMs });
+                } catch (error) { /* telemetry is best effort */ }
+                if (shouldReacquireCapture({ attempt: 0, framesAdvanced: cameraProbe.framesAdvanced })) {
+                    console.log('[Recording] re-acquiring the camera before the take');
+                    safelyStopStream();
+                    await ensureSpeechCamStream();
+                    setWebcamStream(speechCamStream);
+                    cameraProbe = await probeCameraFrames(speechCamStream);
+                    console.log('[Recording] camera probe after re-acquire', cameraProbe);
+                    takeDiagnostics.push('camera probe retry', cameraProbe);
+                }
+                if (!cameraProbe.framesAdvanced) {
+                    console.error('[Recording] camera still delivered no moving frames — the take will be frozen');
+                    try {
+                        trackEvent('camera_frozen', { phase: 'pre_record_after_retry', videoWidth: cameraProbe.videoWidth, elapsedMs: cameraProbe.elapsedMs });
+                    } catch (error) { /* telemetry is best effort */ }
+                }
+            }
+        }
 
         const mimeType = selectRecordingMimeType({
             isWindows,

@@ -5,9 +5,13 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import {
+    CAPTURE_REACQUIRE_SETTLE_MS,
     CAPTURE_RELEASE_SETTLE_MS,
     describeCaptureStream,
     describeRecordingBlob,
+    isCameraFrameAdvanced,
+    resolveCaptureReacquireDelay,
+    shouldReacquireCapture,
     shouldReleaseCaptureBeforePlayback,
     waitForAudioRouteSettle,
 } from './capture-release-logic.js';
@@ -143,5 +147,51 @@ describe('describeRecordingBlob', () => {
 
     it('is null-safe', () => {
         expect(describeRecordingBlob(null)).toEqual({ take: null, mimeType: null, size: null, type: null });
+    });
+});
+
+describe('the camera is probed for MOVING frames before a take', () => {
+    it('treats a camera whose clock advanced as ready', () => {
+        expect(isCameraFrameAdvanced({ firstCurrentTime: 0, secondCurrentTime: 0.5 })).toBe(true);
+    });
+
+    it('treats a camera whose clock stood still as frozen (the still-image take)', () => {
+        expect(isCameraFrameAdvanced({ firstCurrentTime: 0, secondCurrentTime: 0 })).toBe(false);
+        expect(isCameraFrameAdvanced({ firstCurrentTime: 1, secondCurrentTime: 1.01 })).toBe(false);
+    });
+
+    it('treats a missing reading as frozen rather than ready', () => {
+        expect(isCameraFrameAdvanced({ firstCurrentTime: NaN, secondCurrentTime: 1 })).toBe(false);
+        expect(isCameraFrameAdvanced({})).toBe(false);
+    });
+
+    it('re-acquires a frozen camera once, and never a working one', () => {
+        expect(shouldReacquireCapture({ attempt: 0, framesAdvanced: false })).toBe(true);
+        expect(shouldReacquireCapture({ attempt: 1, framesAdvanced: false })).toBe(false);
+        expect(shouldReacquireCapture({ attempt: 0, framesAdvanced: true })).toBe(false);
+    });
+});
+
+describe('resolveCaptureReacquireDelay', () => {
+    it('waits out the rest of the settle after a capture was released', () => {
+        expect(resolveCaptureReacquireDelay({ releasedAtMs: 1000, nowMs: 1200 })).toBe(300);
+    });
+
+    it('does not wait when the settle already passed', () => {
+        expect(resolveCaptureReacquireDelay({ releasedAtMs: 1000, nowMs: 2000 })).toBe(0);
+    });
+
+    it('does not wait when nothing was released (the first take)', () => {
+        expect(resolveCaptureReacquireDelay({ releasedAtMs: 0, nowMs: 2000 })).toBe(0);
+        expect(resolveCaptureReacquireDelay({})).toBe(0);
+    });
+
+    it('waits the full settle when the clock went backwards', () => {
+        expect(resolveCaptureReacquireDelay({ releasedAtMs: 2000, nowMs: 1000 })).toBe(CAPTURE_REACQUIRE_SETTLE_MS);
+    });
+
+    it('honours a custom settle and rejects a non-positive one', () => {
+        expect(resolveCaptureReacquireDelay({ releasedAtMs: 1000, nowMs: 1000, settleMs: 50 })).toBe(50);
+        expect(resolveCaptureReacquireDelay({ releasedAtMs: 1000, nowMs: 1000, settleMs: 0 })).toBe(0);
     });
 });

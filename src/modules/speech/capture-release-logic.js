@@ -127,3 +127,86 @@ export function describeRecordingBlob(blob, { take = null, mimeType = null } = {
         type: typeof blob?.type === 'string' ? blob.type : null,
     };
 }
+
+// --- Re-acquiring the camera for a re-record (stories/094) -------------------
+//
+// On iPadOS a re-record releases the previous capture and re-acquires the camera.
+// The re-acquired stream can report a live, unmuted 30 fps track while delivering
+// the SAME image for the whole take: MediaRecorder then encodes a valid file
+// (frames decode, duration counts) whose picture never moves — the field symptom
+// "the playback video is just a still image" on the SECOND take only.
+//
+// The composite path already has a liveness counter; iOS records the raw camera
+// and had none. These rules decide when to wait after a release, how long to
+// sample the camera before starting the take, and when a frozen camera is worth
+// re-acquiring once.
+
+/** How long the camera needs after its previous capture was stopped. */
+export const CAPTURE_REACQUIRE_SETTLE_MS = 500;
+
+/** How long the camera gets to deliver MOVING frames before the take starts. */
+export const CAMERA_FRAME_PROBE_TIMEOUT_MS = 900;
+
+/** How often the probe samples the camera's clock. */
+export const CAMERA_FRAME_PROBE_SAMPLE_MS = 200;
+
+/** One re-acquire is allowed: a second dead camera is the device, not a race. */
+export const MAX_CAPTURE_PROBE_ATTEMPTS = 2;
+
+/** A camera clock that moves less than this during the probe is frozen. */
+export const CAMERA_FRAME_MIN_ADVANCE_S = 0.03;
+
+/**
+ * Did the camera's clock move between two samples?
+ *
+ * @param {{ firstCurrentTime?: number, secondCurrentTime?: number, minDeltaS?: number }} [input]
+ * @returns {boolean}
+ */
+export function isCameraFrameAdvanced({
+    firstCurrentTime,
+    secondCurrentTime,
+    minDeltaS = CAMERA_FRAME_MIN_ADVANCE_S,
+} = {}) {
+    if (!Number.isFinite(firstCurrentTime) || !Number.isFinite(secondCurrentTime)) return false;
+    return secondCurrentTime - firstCurrentTime >= minDeltaS;
+}
+
+/**
+ * Re-acquire the camera once when it delivered no moving frames. A camera that
+ * is frozen because its previous capture is still shutting down recovers on the
+ * retry; a device that is genuinely stuck does not, and the second attempt is
+ * reported instead of retried forever.
+ *
+ * @param {{ attempt?: number, framesAdvanced?: boolean, attempts?: number }} [input]
+ * @returns {boolean}
+ */
+export function shouldReacquireCapture({
+    attempt = 0,
+    framesAdvanced = false,
+    attempts = MAX_CAPTURE_PROBE_ATTEMPTS,
+} = {}) {
+    if (framesAdvanced === true) return false;
+    if (!Number.isInteger(attempt) || attempt < 0) return false;
+    return attempt + 1 < attempts;
+}
+
+/**
+ * How long to wait before re-acquiring the camera, given when the previous
+ * capture was stopped. 0 when nothing was released or the settle already passed.
+ *
+ * @param {{ releasedAtMs?: number, nowMs?: number, settleMs?: number }} [input]
+ * @returns {number}
+ */
+export function resolveCaptureReacquireDelay({
+    releasedAtMs,
+    nowMs,
+    settleMs = CAPTURE_REACQUIRE_SETTLE_MS,
+} = {}) {
+    if (!Number.isFinite(releasedAtMs) || releasedAtMs <= 0) return 0;
+    if (!Number.isFinite(nowMs)) return 0;
+    if (!(settleMs > 0)) return 0;
+    const elapsedMs = nowMs - releasedAtMs;
+    if (elapsedMs < 0) return settleMs;
+    if (elapsedMs >= settleMs) return 0;
+    return settleMs - elapsedMs;
+}
