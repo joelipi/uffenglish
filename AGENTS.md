@@ -121,6 +121,16 @@ Modal loads a function's **defining module** inside that function's container to
 
 **A render can be driven headlessly (no recorder).** `POST {"jobId","files"}` to the deployed trigger URL with the `Modal-Key`/`Modal-Secret` proxy headers spawns the orchestrator and returns the `jobId`; then poll the private marker `uff-private/raw/status/<jobId>.json` (wrangler with `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID`) until `status:"done"`, and confirm `published` plus a `200` from `r2.ultrafastfluency.com/assets/videos/<slug>.mp4`. The proxy token authorizes *calling* the trigger but cannot `modal deploy` (that needs an account token).
 
+## Verify the bundle before a manual `wrangler pages deploy`
+
+A manual preview deploy is `npm run build && npx wrangler pages deploy dist --project-name=uffenglish --branch=<branch> --commit-dirty=true`. Before uploading, assert the bundle carries the **absolute** CDN base:
+
+```
+grep -c 'r2.ultrafastfluency.com/assets/videos/' dist/assets/main-*.js   # must be >= 1
+```
+
+When it is `0` the `dist` is a dev-flavoured build (`import.meta.env.DEV` left true), so `getPermanentVideoUrl` returns the relative `/assets/videos/<slug>.mp4` instead of the R2 URL. Every video request then goes to the Pages host, Pages answers it with the SPA shell (`200` `text/html`), and every `<video>` reports `MEDIA_ELEMENT_ERROR` code 4 — the whole lesson looks broken (intro, teacher clips, posters) while the source is perfectly fine. That is what a preview deploy of `092` did after `npm run build` ran **concurrently with `npx vitest run`** in the same worktree; `rm -rf dist && npm run build` on its own produced the correct bundle again. So: never run the build and the test suite at the same time, and run the `grep` above before every manual deploy. Diagnose this at the network layer — a `<video>` whose response has `content-type: text/html` is a URL-resolution bug, not a codec or CORS problem.
+
 ## Non-secret Pages variables belong in `wrangler.toml` `[vars]`
 
 `wrangler pages deploy` (`.github/workflows/deploy.yml`) applies `[vars]` from `wrangler.toml` and **drops dashboard plain-text variables not listed there** (dashboard *secrets* survive). So any non-secret Pages variable a Function reads — e.g. `MODAL_RENDER_URL` in `functions/api/pipeline/render.js` — must be in `wrangler.toml`'s `[vars]`, not only in the dashboard, or a deploy silently unsets it and the Function returns `500 "Modal env unset"`. Secrets (`OPERATOR_KEY`, `MODAL_PROXY_TOKEN_ID`/`_SECRET`) stay in the dashboard.
