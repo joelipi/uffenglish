@@ -122,6 +122,33 @@ describe('after-video-player.web.js', () => {
         expect(m.getActiveAfterVideoBase()).toBe('aftersuccess');
     });
 
+    it('retries a refused muted start and starts the loop without a tap (iPad)', async () => {
+        // iPadOS can refuse even the muted play of a ready element. A bare
+        // play() gave up there, the loop never drew, and only a tap started it
+        // (stories/094). The ladder retries and then starts the buffer/draw.
+        let calls = 0;
+        window.HTMLMediaElement.prototype.play = vi.fn(async function () {
+            calls += 1;
+            if (calls === 1) throw new DOMException('blocked for test', 'NotAllowedError');
+            return undefined;
+        });
+        const canvas = makeCanvas();
+        const audioContext = makeFakeAudioContext();
+        const started = m.startAfterVideoLoop({
+            displayCanvas: canvas,
+            base: 'aftersuccess',
+            guestLang: 'es',
+            profileLang: null,
+            audioContext,
+        });
+        await Promise.resolve();
+        fireCanPlay();
+        await expect(started).resolves.toBe('aftersuccess');
+        expect(calls).toBeGreaterThanOrEqual(2);
+        expect(fakeSources).toHaveLength(1);
+        expect(appStore.getState().afterVideoActive).toBe('aftersuccess');
+    });
+
     it('falls through candidates in order and throws when all fail', async () => {
         fetchImpl = async (url) => {
             fetchedUrls.push(String(url));

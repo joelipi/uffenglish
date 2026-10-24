@@ -19,6 +19,13 @@
 // (toggleAfterVideo) or teardown (stopAfterVideoLoop / swap).
 import { buildAfterVideoUrls } from './after-video-logic.js';
 import { VideoRenderPlanner } from './video-processor-logic.js';
+import { takeDiagnostics } from '../diagnostics/take-diagnostics.js';
+import {
+    playSafely,
+    retryDelayMs,
+    setElementMuted,
+    shouldRetryStart,
+} from './playback-start-logic.js';
 import { appStore } from '../store/store.js';
 
 // The single active loop. Module-level by necessity: the loop is started by
@@ -57,6 +64,10 @@ const CANDIDATE_TIMEOUT_MS = 10000;
 function createTailVideo() {
     const video = document.createElement('video');
     video.muted = true;
+    // Safari's muted-inline-autoplay allowance reads the ATTRIBUTE; a property
+    // write alone is refused on iPad (stories/094). defaultMuted keeps them in step.
+    video.defaultMuted = true;
+    video.setAttribute('muted', '');
     video.loop = true;
     video.playsInline = true;
     video.crossOrigin = 'anonymous';
@@ -185,12 +196,52 @@ function drawLoop() {
     }
 }
 
+/** How many times a refused muted start is retried before the blob fallback. */
+export const AFTER_VIDEO_PLAY_MAX_ATTEMPTS = 3;
+
+/**
+ * Start the muted tail element, with the same ladder as the recorded take
+ * (stories/094): iPadOS can refuse even a muted start when the element was not
+ * ready or the muted ATTRIBUTE was missing, and a raw `play()` gave no retry —
+ * the loop then never drew, and only a tap (a real gesture) started it.
+ */
+function startMutedPlayback(loop) {
+    return new Promise((resolve, reject) => {
+        let attempt = 0;
+        const handleRefused = (error) => {
+            const name = error && error.name ? error.name : null;
+            console.warn('[AfterVideo] play attempt ' + attempt + ' refused:', name || error);
+            takeDiagnostics.push('after-video play refused', { attempt, name });
+            if (!shouldRetryStart({ attempt, errorName: name }) || attempt + 1 >= AFTER_VIDEO_PLAY_MAX_ATTEMPTS) {
+                reject(error instanceof Error ? error : new Error('[AfterVideo] muted playback refused'));
+                return;
+            }
+            const delay = retryDelayMs(attempt);
+            attempt += 1;
+            setTimeout(() => {
+                if (activeLoop !== loop) { resolve(); return; }
+                tryStart();
+            }, delay === null ? 250 : delay);
+        };
+        const tryStart = () => {
+            if (activeLoop !== loop) { resolve(); return; }
+            setElementMuted(loop.video, true);
+            const state = { attempt, readyState: loop.video.readyState };
+            console.log('[AfterVideo] play attempt', state);
+            takeDiagnostics.push('after-video play attempt', state);
+            const { promise, error } = playSafely(loop.video);
+            if (error) { handleRefused(error); return; }
+            if (!promise) { resolve(); return; }
+            promise.then(() => resolve()).catch(handleRefused);
+        };
+        tryStart();
+    });
+}
+
 function beginPlayback(loop) {
     loop.paused = false;
     loop.lastTime = null;
-    const play = loop.video.play();
-    const started = (play && typeof play.then === 'function' ? play : Promise.resolve());
-    return started.then(() => {
+    return startMutedPlayback(loop).then(() => {
         if (activeLoop !== loop) return;
         loop.source = startBufferSource(loop, loop.video.currentTime || 0);
         if (typeof requestAnimationFrame === 'function') {

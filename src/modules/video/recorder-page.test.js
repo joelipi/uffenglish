@@ -1639,6 +1639,10 @@ describe('recorder auto-render — zero server changes', () => {
             'src/modules/lesson/lesson-progression.test.js',
             'src/modules/store/store.js',
             'src/modules/store/store.test.js',
+            // Story 094 follow-up: the after-video loop starts itself on iPad.
+            'src/modules/video/after-video-player.web.js',
+            'src/modules/video/after-video-player.test.js',
+            'src/modules/video/after-video-wiring.test.js',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);

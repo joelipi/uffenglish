@@ -323,3 +323,47 @@ describe('success-surface tail gating', () => {
         expect(raw).toContain('stopAfterVideoLoop');
     });
 });
+
+// stories/094: the success screen's after-video loop needed a tap on iPad.
+// The muted tail element was started with a bare `play()` and carried the mute
+// only as a property, so a refusal had no retry and nothing drew until a gesture.
+describe('the after-video loop starts itself on iPad', () => {
+    const playerRaw = readFileSync(path.join(ROOT, 'src/modules/video/after-video-player.web.js'), 'utf8');
+
+    it('carries the muted ATTRIBUTE, not just the property', () => {
+        const tail = sliceBetween(playerRaw, 'function createTailVideo() {', 'return video;');
+        expect(tail).toContain('video.muted = true;');
+        expect(tail).toContain("video.setAttribute('muted', '')");
+        expect(tail.indexOf('video.muted = true;'))
+            .toBeLessThan(tail.indexOf("video.setAttribute('muted', '')"));
+    });
+
+    it('starts the element through playSafely and never calls .play() bare', () => {
+        const stripped = stripComments(playerRaw);
+        expect(stripped).not.toContain('loop.video.play()');
+        const start = sliceBetween(playerRaw, 'function startMutedPlayback(loop) {', 'function beginPlayback(loop) {');
+        expect(start).toContain('playSafely(loop.video)');
+        expect(start).toContain('setElementMuted(loop.video, true)');
+    });
+
+    it('retries a refusal through the shared gate, then gives up for the blob fallback', () => {
+        const start = sliceBetween(playerRaw, 'function startMutedPlayback(loop) {', 'function beginPlayback(loop) {');
+        expect(start).toContain('shouldRetryStart({ attempt, errorName: name })');
+        expect(start).toContain('retryDelayMs(attempt)');
+        expect(start).toContain('AFTER_VIDEO_PLAY_MAX_ATTEMPTS');
+        // Giving up must reject (the processor then falls back to the blob).
+        expect(start).toContain('reject(error instanceof Error');
+    });
+
+    it('reports the attempts to the console and the ?diag panel', () => {
+        const start = sliceBetween(playerRaw, 'function startMutedPlayback(loop) {', 'function beginPlayback(loop) {');
+        expect(start).toContain("takeDiagnostics.push('after-video play attempt'");
+        expect(start).toContain("takeDiagnostics.push('after-video play refused'");
+    });
+
+    it('keeps the audio buffer + draw loop AFTER the element is really playing', () => {
+        const begin = sliceBetween(playerRaw, 'function beginPlayback(loop) {', '// Builds (but does not activate)');
+        expect(begin).toContain('startMutedPlayback(loop).then(');
+        expect(begin.indexOf('startMutedPlayback(loop)')).toBeLessThan(begin.indexOf('startBufferSource('));
+    });
+});
