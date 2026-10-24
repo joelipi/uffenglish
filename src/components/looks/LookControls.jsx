@@ -302,6 +302,12 @@ const styles = {
         gap: 2,
         padding: 4,
         boxShadow: '0 4px 12px rgba(0,0,0,0.45)',
+        // Whatever the UA thinks a <button> looks like (iOS draws a white
+        // rounded bezel), none of it survives: the picker's only border is the
+        // green "applied" ring (stories/092).
+        WebkitAppearance: 'none',
+        appearance: 'none',
+        WebkitTapHighlightColor: 'transparent',
     },
     // Open = a lifted fill, applied = the green ring. Two separate signals, so
     // an open drawer never competes with a selection for the same border.
@@ -368,6 +374,12 @@ const styles = {
         background: 'transparent',
         color: '#fff',
         scrollSnapAlign: 'start',
+        // Whatever the UA thinks a <button> looks like (iOS draws a white
+        // rounded bezel), none of it survives: the picker's only border is the
+        // green "applied" ring (stories/092).
+        WebkitAppearance: 'none',
+        appearance: 'none',
+        WebkitTapHighlightColor: 'transparent',
     },
     chipSelected: {
         borderColor: '#4ade80',
@@ -433,5 +445,7 @@ const styles = {
         borderRadius: 6,
         fontSize: 10,
         padding: '2px 6px',
+        WebkitAppearance: 'none',
+        appearance: 'none',
     },
 };

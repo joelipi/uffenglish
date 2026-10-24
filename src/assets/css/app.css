@@ -1043,7 +1043,8 @@ body { margin: 0; font-family: var(--font-body); font-size: 1rem; font-weight: 4
    pointer tap does not match `:focus-visible`, and the tap handler also
    releases focus, so this ring cannot linger on a chip that was just selected. */
 .look-tap:focus-visible {
-    outline: 2px solid #4ade80;
+    /* `!important` so the keyboard cue survives any inline reset. */
+    outline: 2px solid #4ade80 !important;
     outline-offset: 2px;
 }
 
