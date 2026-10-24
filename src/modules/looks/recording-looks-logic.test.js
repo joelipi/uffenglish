@@ -1,7 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
     resolveFilterId,
     resolveFilterPreset,
+    toggleFilterId,
+    isLookActive,
+    paintLooks,
     isPreviewGateStep,
     parseStepOverlays,
     applyStepOverlays,
@@ -12,15 +15,18 @@ import {
     isSlugValidForSlot,
     overlaySlugsForSlot,
     emptySelection,
+    emptyTuning,
     toggleLookDrawer,
     computeDragOffset,
     DEFAULT_FILTER_ID,
     FILTER_IDS,
+    FILTER_PRESETS,
     SLOT_ANCHORS,
 } from './recording-looks-logic.js';
 
 describe('resolveFilterId', () => {
-    it('empty / unknown → natural', () => {
+    it('empty / unknown → the no-filter default', () => {
+        expect(DEFAULT_FILTER_ID).toBe('none');
         expect(resolveFilterId('')).toBe(DEFAULT_FILTER_ID);
         expect(resolveFilterId('neon')).toBe(DEFAULT_FILTER_ID);
         expect(resolveFilterId(undefined)).toBe(DEFAULT_FILTER_ID);
@@ -65,7 +71,7 @@ describe('overlay library', () => {
 describe('sanitizeSelection', () => {
     it('unknown filter + unknown slugs fall back safely', () => {
         const safe = sanitizeSelection({ filterId: 'neon', slots: { face: 'nope', upper: 'witchhat', lower: 'cauldron' } });
-        expect(safe.filterId).toBe('natural');
+        expect(safe.filterId).toBe(DEFAULT_FILTER_ID);
         expect(safe.slots.face).toBeNull();
         expect(safe.slots.upper).toBe('witchhat');
     });
@@ -76,6 +82,80 @@ describe('sanitizeSelection', () => {
     it('null / undefined never throws', () => {
         expect(sanitizeSelection(null)).toEqual(emptySelection());
         expect(sanitizeSelection(undefined)).toEqual(emptySelection());
+    });
+});
+
+describe('filters are opt-in — None is a real, selectable choice', () => {
+    it('the picker starts on None, with no look applied', () => {
+        expect(FILTER_PRESETS[0].id).toBe('none');
+        expect(emptySelection().filterId).toBe('none');
+        expect(isLookActive(emptySelection())).toBe(false);
+    });
+
+    it('None applies no beauty pass and no colour grade', () => {
+        const paintBeauty = vi.fn();
+        const result = paintLooks({
+            ctx: {},
+            source: {},
+            scratch: {},
+            canvasWidth: 720,
+            canvasHeight: 1280,
+            selection: emptySelection(),
+            tuning: emptyTuning(),
+            images: {},
+            paintBeauty,
+        });
+        expect(result).toEqual({ filter: 'none', slots: [] });
+        expect(paintBeauty).not.toHaveBeenCalled();
+    });
+
+    it('a chosen filter paints its grade and makes the look active', () => {
+        const paintBeauty = vi.fn();
+        const painted = [];
+        const ctx = {
+            save() {}, restore() {},
+            fillRect: (...args) => painted.push(args.length),
+            globalCompositeOperation: 'source-over',
+            globalAlpha: 1,
+            fillStyle: '',
+        };
+        const result = paintLooks({
+            ctx,
+            source: {},
+            scratch: {},
+            canvasWidth: 720,
+            canvasHeight: 1280,
+            selection: { filterId: 'warm', slots: { face: null, upper: null, lower: null } },
+            tuning: emptyTuning(),
+            images: {},
+            paintBeauty,
+        });
+        expect(result.filter).toBe('warm');
+        expect(paintBeauty).toHaveBeenCalledTimes(1);
+        expect(paintBeauty.mock.calls[0][0].mode).toBe('warm');
+        // warm has two blend-mode passes over the frame
+        expect(painted.length).toBe(2);
+        expect(isLookActive({ filterId: 'warm', slots: {} })).toBe(true);
+        expect(isLookActive({ filterId: 'natural', slots: {} })).toBe(true);
+        expect(isLookActive({ filterId: 'none', slots: { face: 'smiley' } })).toBe(true);
+    });
+});
+
+describe('toggleFilterId', () => {
+    it('keeps exactly one filter applied', () => {
+        expect(toggleFilterId('none', 'warm')).toBe('warm');
+        expect(toggleFilterId('warm', 'mono')).toBe('mono');
+    });
+
+    it('tapping the applied filter removes it — the unselect path', () => {
+        expect(toggleFilterId('warm', 'warm')).toBe('none');
+        expect(toggleFilterId('natural', 'natural')).toBe('none');
+    });
+
+    it('None always clears, and an unknown id never applies anything', () => {
+        expect(toggleFilterId('warm', 'none')).toBe('none');
+        expect(toggleFilterId('none', 'none')).toBe('none');
+        expect(toggleFilterId('warm', 'neon')).toBe('none');
     });
 });
 

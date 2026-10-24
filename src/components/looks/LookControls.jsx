@@ -7,6 +7,8 @@ import {
     overlaySlugsForSlot,
     assetFileForSlug,
     resolveFilterPreset,
+    DEFAULT_FILTER_ID,
+    NONE_SWATCH,
     MIN_SCALE,
     MAX_SCALE,
 } from '../../modules/looks/recording-looks-logic.js';
@@ -36,14 +38,19 @@ function FilterStrip() {
                         type="button"
                         data-testid={`look-filter-${preset.id}`}
                         aria-pressed={selected}
-                        onClick={() => appStore.getState().setLookFilter(preset.id)}
+                        onClick={() => appStore.getState().toggleLookFilter(preset.id)}
                         style={{
                             ...styles.chip,
                             ...(selected ? styles.chipSelected : null),
                         }}
                     >
-                        <span style={{ ...styles.swatch, background: preset.swatch }} />
-                        <span style={styles.chipLabel}>{preset.label}</span>
+                        <span style={styles.swatchWrap}>
+                            <span style={{ ...styles.swatch, background: preset.swatch }} />
+                            {selected && <i className="bi bi-check-circle-fill" style={styles.chipCheck}></i>}
+                        </span>
+                        <span style={{ ...styles.chipLabel, ...(selected ? styles.chipLabelSelected : null) }}>
+                            {preset.label}
+                        </span>
                     </button>
                 );
             })}
@@ -66,7 +73,7 @@ function OverlayFoldout({ slot }) {
                     onClick={() => appStore.getState().setLookSlot(slot, null)}
                     style={{ ...styles.chip, ...(!slugForSlot ? styles.chipSelected : null) }}
                 >
-                    <span style={{ ...styles.swatch, background: 'repeating-linear-gradient(45deg,#333,#333 5px,#444 5px,#444 10px)' }} />
+                    <span style={{ ...styles.swatch, background: NONE_SWATCH }} />
                     <span style={styles.chipLabel}>None</span>
                 </button>
                 {slugs.map((slug) => {
@@ -126,6 +133,7 @@ export default function LookControls() {
 
     const currentPreset = resolveFilterPreset(filterId);
     const filterOpen = openDrawer === 'filter';
+    const filterActive = filterId !== DEFAULT_FILTER_ID;
 
     return (
         <div style={styles.rail} data-testid="look-controls" onPointerDown={(e) => e.stopPropagation()}>
@@ -137,7 +145,7 @@ export default function LookControls() {
                     onClick={() => appStore.getState().toggleLookOpenDrawer('filter')}
                     style={{
                         ...styles.railBtn,
-                        ...(filterOpen ? styles.railBtnOpen : null),
+                        ...(filterOpen ? styles.railBtnOpen : filterActive ? styles.railBtnActive : null),
                     }}
                 >
                     <span style={{ ...styles.railSwatch, background: currentPreset.swatch }} />
@@ -210,12 +218,14 @@ const styles = {
         padding: 4,
         boxShadow: '0 4px 12px rgba(0,0,0,0.45)',
     },
+    // White ring = this drawer is open. Green (below) = something is applied, so
+    // the two meanings never look alike.
     railBtnOpen: {
-        borderColor: '#4ade80',
-        background: 'rgba(20, 40, 28, 0.88)',
+        borderColor: 'rgba(255,255,255,0.85)',
+        background: 'rgba(30, 34, 44, 0.9)',
     },
     railBtnActive: {
-        borderColor: 'rgba(74, 222, 128, 0.65)',
+        borderColor: '#4ade80',
     },
     railSwatch: {
         width: 20,
@@ -264,24 +274,43 @@ const styles = {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: 2,
+        gap: 3,
         minWidth: 48,
         padding: '4px 5px',
         borderRadius: 10,
         border: '1.5px solid transparent',
-        background: 'rgba(255,255,255,0.08)',
+        background: 'rgba(255,255,255,0.05)',
         color: '#fff',
         scrollSnapAlign: 'start',
     },
     chipSelected: {
         borderColor: '#4ade80',
         background: 'rgba(74,222,128,0.22)',
+        boxShadow: '0 0 10px rgba(74,222,128,0.45)',
+    },
+    swatchWrap: {
+        position: 'relative',
+        display: 'block',
+        lineHeight: 0,
+    },
+    // The tick is what makes the single applied filter unmistakable, so an
+    // unselected chip can stay flat instead of needing a box of its own.
+    chipCheck: {
+        position: 'absolute',
+        right: -5,
+        bottom: -3,
+        fontSize: 13,
+        lineHeight: 1,
+        color: '#4ade80',
+        background: '#0f1118',
+        borderRadius: '50%',
     },
     swatch: {
         width: 30,
         height: 30,
         borderRadius: 6,
         display: 'block',
+        border: '1px solid rgba(255,255,255,0.35)',
     },
     thumb: {
         width: 30,
@@ -294,6 +323,10 @@ const styles = {
         fontSize: 9,
         lineHeight: 1.1,
         whiteSpace: 'nowrap',
+    },
+    chipLabelSelected: {
+        color: '#bbf7d0',
+        fontWeight: 600,
     },
     sliderRow: {
         display: 'flex',

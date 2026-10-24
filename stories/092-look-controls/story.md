@@ -21,7 +21,8 @@ Nothing here tracks a face. "Face" and "Above face" are fixed anchor zones on th
 ## Implementation approach
 
 - **Pure module** `src/modules/looks/recording-looks-logic.js` owns every rule: the filter preset table, the overlay library (slug → slot + file), the three slot ids, the anchor defaults, the selection sanitiser, the step-config reader, and the merge that applies a step's config once without carrying it forward.
-- **Filter presets** are Canvas2D blend-mode recipes (`saturation` for mono, `screen`/`multiply` tints for warm/cool/vintage, an `overlay` pass for vivid) plus the beauty levers from 091, so there is no GL context and no `ctx.filter` (which is a no-op on iOS). Preset ids: `natural`, `warm`, `cool`, `soft`, `mono`, `vintage`, `vivid`; default `natural`.
+- **Filter presets** are Canvas2D blend-mode recipes (`saturation` for mono, `screen`/`multiply` tints for warm/cool/vintage, an `overlay` pass for vivid) plus the beauty levers from 091, so there is no GL context and no `ctx.filter` (which is a no-op on iOS). Preset ids: `none`, `natural`, `warm`, `cool`, `soft`, `mono`, `vintage`, `vivid`; default `none`, so a learner who picks nothing gets an untouched camera frame and the picker shows **None** selected. Filters are a radio group with an explicit off: one at a time, and tapping the applied filter clears it back to `none` (`toggleFilterId`).
+- **The picker must show which filter is applied, and only that one**: the applied chip gets the green ring, a tint and a check badge (`aria-pressed="true"`), while an unapplied chip stays flat. On the rail, **white = this drawer is open, green = something is applied**, so a folded-out drawer never reads as "a filter is selected".
 - **Three overlay slots** — `face`, `upper`, `lower` — each holding at most one asset slug plus its own user tuning (`dx`, `dy` as fractions of the canvas, `scale`). Anchor defaults stay clear of the top header blur and bottom mic band: `face` centred at 42% height, `upper` centred at 22% height, `lower` centred at 74% height. Drawing order is face → upper → lower so a lower prop never covers a face cover.
 - **Selection lives in the zustand store** (`lookSelection`, `lookTuning`, `lookActiveSlot`, `lookOpenDrawer`) and is read per frame by the recording composite, so a change repaints the live preview and is baked into the take because it is the same canvas.
 - **Config** per step:
@@ -39,13 +40,19 @@ Nothing here tracks a face. "Face" and "Above face" are fixed anchor zones on th
 ### Task 1 - Look rules (pure module)
 
 - `resolveFilterId('')`, `resolveFilterId('neon')` + called in unit test
-  - → returns `'natural'`
+  - → returns the no-filter default `'none'`
 - `resolveFilterId('mono')` + called in unit test
   - → returns `'mono'`
+- `toggleFilterId(currentId, clickedId)` + called in unit test
+  - → choosing another filter replaces it (one at a time); tapping the applied filter returns `'none'`; `'none'` always returns `'none'`
+- `isLookActive(selection)` + called in unit test
+  - → `false` for `none` (and for `none` + slots), `true` for any chosen filter
+- `paintLooks(...)` with the `none` selection + called in unit test
+  - → paints no beauty pass and no colour grade
 - `isPreviewGateStep({ responseType: 'friendClosedResponse' })` and `({ responseType: 'openResponse' })` + called in unit test
   - → `true` and `false` respectively
 - `sanitizeSelection` with an unknown filter id and unknown slugs + called in unit test
-  - → falls back to `natural` and `null` per slot, never throws
+  - → falls back to `none` and `null` per slot, never throws
 - `parseStepOverlays` with the three documented keys + called in unit test
   - → returns `{ face: 'smiley', upper: 'witchhat', lower: 'cauldron' }`
 - `parseStepOverlays` with an unknown slug, a missing object, or a non-object + called in unit test
@@ -58,6 +65,13 @@ Nothing here tracks a face. "Face" and "Above face" are fixed anchor zones on th
   - → applies the tuning on top of the anchor, keeps the asset's aspect ratio, and stays inside the canvas
 - `resolveSlotDrawRect` with no tuning + called in unit test
   - → equals the anchor default at scale 1
+
+### Task 2 - Filter selection in the store
+
+- `toggleLookFilter('warm')` on a fresh store, then `toggleLookFilter('mono')` + called in unit test
+  - → `lookSelection.filterId` is `'warm'` then `'mono'` (one at a time, starting from `none`)
+- `toggleLookFilter('warm')` twice + called in unit test
+  - → the second tap returns the selection to `'none'` and leaves the overlay slots untouched
 
 ## Notes
 

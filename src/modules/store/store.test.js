@@ -401,3 +401,34 @@ describe('clips publishing flag', () => {
         expect(appStore.getState().clipsPublishing).toBe(false);
     });
 });
+
+describe('look filter selection (stories/092)', () => {
+    beforeEach(() => appStore.setState({ lookSelection: { filterId: 'none', slots: { face: null, upper: null, lower: null } } }));
+
+    it('starts on None so an untouched camera means no filter', () => {
+        expect(appStore.getState().lookSelection.filterId).toBe('none');
+    });
+
+    it('applies one filter at a time', () => {
+        appStore.getState().toggleLookFilter('warm');
+        expect(appStore.getState().lookSelection.filterId).toBe('warm');
+        appStore.getState().toggleLookFilter('mono');
+        expect(appStore.getState().lookSelection.filterId).toBe('mono');
+    });
+
+    it('tapping the applied filter unselects it back to None', () => {
+        appStore.getState().toggleLookFilter('warm');
+        appStore.getState().toggleLookFilter('warm');
+        expect(appStore.getState().lookSelection.filterId).toBe('none');
+    });
+
+    it('keeps the overlay slots when the filter changes', () => {
+        appStore.getState().setLookSlot('face', 'smiley');
+        appStore.getState().toggleLookFilter('cool');
+        expect(appStore.getState().lookSelection.filterId).toBe('cool');
+        expect(appStore.getState().lookSelection.slots.face).toBe('smiley');
+        appStore.getState().toggleLookFilter('cool');
+        expect(appStore.getState().lookSelection.filterId).toBe('none');
+        expect(appStore.getState().lookSelection.slots.face).toBe('smiley');
+    });
+});

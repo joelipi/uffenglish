@@ -11,8 +11,10 @@ import {
     sanitizeSelection,
     sanitizeTuning,
     emptyTuning,
+    emptySelection,
     applyStepOverlays,
     toggleLookDrawer,
+    toggleFilterId,
     OVERLAY_SLOTS,
 } from '../looks/recording-looks-logic.js';
 
@@ -127,7 +129,7 @@ export const appStore = createStore(
             // filter + the three overlay slots; `lookTuning` is where they
             // dragged each slot and how big they made it. Both live in memory for
             // the lesson session only.
-            lookSelection: { filterId: 'natural', slots: { face: null, upper: null, lower: null } },
+            lookSelection: emptySelection(),
             lookTuning: {
                 face: { dx: 0, dy: 0, scale: 1 },
                 upper: { dx: 0, dy: 0, scale: 1 },
@@ -266,8 +268,13 @@ export const appStore = createStore(
             // Values are normalised here so the renderer can trust the store; the
             // rules themselves live in modules/looks/recording-looks-logic.js.
             setLookSelection: (selection) => set({ lookSelection: sanitizeSelection(selection) }),
-            setLookFilter: (filterId) => set((state) => ({
-                lookSelection: sanitizeSelection({ ...state.lookSelection, filterId }),
+            // One filter at a time, and tapping the applied one clears it back to
+            // `none` (the rule lives in recording-looks-logic.js).
+            toggleLookFilter: (filterId) => set((state) => ({
+                lookSelection: sanitizeSelection({
+                    ...state.lookSelection,
+                    filterId: toggleFilterId(state.lookSelection.filterId, filterId),
+                }),
             })),
             setLookSlot: (slot, slug) => set((state) => {
                 const slots = { ...state.lookSelection.slots, [slot]: slug };
@@ -672,7 +679,7 @@ export const appStore = createStore(
                 // A new lesson starts with no look of its own: the learner's
                 // filter/overlay picks do not leak between lessons, and neither
                 // does the previous step's config overlays.
-                lookSelection: { filterId: 'natural', slots: { face: null, upper: null, lower: null } },
+                lookSelection: emptySelection(),
                 lookTuning: { face: { dx: 0, dy: 0, scale: 1 }, upper: { dx: 0, dy: 0, scale: 1 }, lower: { dx: 0, dy: 0, scale: 1 } },
                 lookActiveSlot: 'face',
                 lookOpenDrawer: null,

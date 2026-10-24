@@ -13,7 +13,17 @@ export const OVERLAY_SLOTS = ['face', 'upper', 'lower'];
 // Draw order: a lower prop must never paint over a face cover.
 export const SLOT_DRAW_ORDER = ['face', 'upper', 'lower'];
 
-export const DEFAULT_FILTER_ID = 'natural';
+/**
+ * The "nothing applied" swatch, shared with the overlay pickers' None chip so
+ * one visual idiom means "off" everywhere.
+ */
+export const NONE_SWATCH = 'repeating-linear-gradient(45deg,#333,#333 5px,#444 5px,#444 10px)';
+
+/**
+ * Filters are opt-in: the default is `none`, so a learner who picks nothing
+ * gets an untouched camera frame and the picker shows nothing selected.
+ */
+export const DEFAULT_FILTER_ID = 'none';
 
 /**
  * Every filter is a Canvas2D recipe: an optional beauty mode (the 091 levers)
@@ -23,6 +33,7 @@ export const DEFAULT_FILTER_ID = 'natural';
  * `swatch` is the CSS used by the picker thumbnail.
  */
 export const FILTER_PRESETS = [
+    { id: 'none', label: 'None', labelKey: 'look_filter_none', beauty: 'none', ops: [], swatch: NONE_SWATCH },
     { id: 'natural', label: 'Natural', labelKey: 'look_filter_natural', beauty: 'glow', ops: [], swatch: 'linear-gradient(135deg,#ffe9d6,#ffffff)' },
     { id: 'warm', label: 'Warm', labelKey: 'look_filter_warm', beauty: 'warm', ops: [{ op: 'screen', color: 'rgb(255,176,104)', alpha: 0.16 }, { op: 'multiply', color: 'rgb(255,236,214)', alpha: 0.10 }], swatch: 'linear-gradient(135deg,#ffb15c,#ffe9c9)' },
     { id: 'cool', label: 'Cool', labelKey: 'look_filter_cool', beauty: 'none', ops: [{ op: 'screen', color: 'rgb(120,170,255)', alpha: 0.14 }, { op: 'multiply', color: 'rgb(236,244,255)', alpha: 0.10 }], swatch: 'linear-gradient(135deg,#7aa8ff,#dbe9ff)' },
@@ -118,6 +129,18 @@ export function resolveFilterId(id) {
 export function resolveFilterPreset(id) {
     const resolved = resolveFilterId(id);
     return FILTER_PRESETS.find((p) => p.id === resolved);
+}
+
+/**
+ * Filter chips behave like a radio group with an explicit "None": exactly one
+ * filter is applied at a time, tapping the applied filter removes it, and
+ * tapping None always clears it. Without the toggle-off, a learner could never
+ * get back to an untouched camera frame (stories/092 review).
+ */
+export function toggleFilterId(currentId, clickedId) {
+    const clicked = resolveFilterId(clickedId);
+    if (clicked === DEFAULT_FILTER_ID) return DEFAULT_FILTER_ID;
+    return clicked === resolveFilterId(currentId) ? DEFAULT_FILTER_ID : clicked;
 }
 
 /** Only the friend-closed-response step gets the preview gate + look controls. */
