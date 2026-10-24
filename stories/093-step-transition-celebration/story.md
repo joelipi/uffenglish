@@ -106,22 +106,41 @@ importable under jsdom (which has neither `Path2D` nor `DOMMatrix`).
 No React, no DOM, no store; randomness is injected (defaulting to `Math.random`, evaluated
 per call) so every rule is unit-testable:
 
-- `CELEBRATION_PALETTES` — `{ ocean, sunset, classic, mint }`, each an array of 4–7 CSS
-  colour strings (`classic` is the library's own default list so a fire can look like the
-  familiar confetti).
-- `CELEBRATION_VARIANTS` — an array of `{ id, bursts: [{ options, customShapes, delayMs }] }`,
-  where `options.shapes` holds built-in shape strings and `customShapes` holds
-  `CELEBRATION_PATHS` keys (the runner merges the two into one `shapes` array):
+- `CELEBRATION_PALETTES` — `{ sunset, gold, candy, electric, ice, classic }`, each an array
+  of 3–7 CSS colour strings (`classic` is the library's own default list so one variant can
+  look like the familiar rainbow confetti). **No blue-heavy palette**: the lesson background
+  is a blue gradient, so blue confetti is nearly invisible against it — the first
+  implementation shipped an `ocean` palette and its fountain read as a faint grey smear.
+- `CELEBRATION_VARIANTS` — an array of `{ id, palettes, bursts: [{ options, customShapes,
+  delayMs }] }`, where `options.shapes` holds built-in shape strings, `customShapes` holds
+  `CELEBRATION_PATHS` keys (the runner merges the two into one `shapes` array) and `palettes`
+  lists the 1–2 palette keys that variant may use (its colour identity, still randomised
+  between firings):
 
   | id | bursts |
   | --- | --- |
-  | `side-cannons` | 1: `{particleCount 40, angle 58, spread 55, startVelocity 52, decay 0.9, gravity 1, ticks 130, scalar 0.9, origin {x:0.06,y:0.78}, shapes ['square','circle']}`, `customShapes ['diamond']`, `delayMs 0`; 2: same with `angle 122, origin {x:0.94,y:0.78}`, `delayMs 90` |
-  | `star-shower` | 1: `{particleCount 40, spread 360, startVelocity 26, decay 0.91, gravity 0.9, ticks 160, scalar 1.15, origin {x:0.5,y:0.4}, shapes []}`, `customShapes ['star']`, `delayMs 0` |
-  | `fountain` | 1: `{particleCount 70, angle 90, spread 65, startVelocity 55, decay 0.89, gravity 1.2, ticks 150, scalar 1, flat true, origin {x:0.5,y:0.97}, shapes ['circle','square']}`, `customShapes []`, `delayMs 0` |
-  | `heart-drift` | 1: `{particleCount 32, spread 120, startVelocity 24, decay 0.93, gravity 0.6, drift 0.55, ticks 200, scalar 1.1, flat true, origin {x:0.5,y:0.85}, shapes []}`, `customShapes ['heart']`, `delayMs 0` |
-  | `bolt-pops` | 1: `{particleCount 30, spread 360, startVelocity 30, decay 0.92, gravity 1, ticks 120, scalar 1, origin {x:0.4,y:0.45}, shapes []}`, `customShapes ['bolt','sparkle']`, `delayMs 0`; 2: same with `origin {x:0.6,y:0.55}`, `delayMs 110` |
-  | `flat-burst` | 1: `{particleCount 55, spread 360, startVelocity 34, decay 0.91, gravity 1, ticks 140, scalar 1.2, flat true, origin {x:0.5,y:0.5}, shapes ['square','circle']}`, `customShapes []`, `delayMs 0` |
-  | `sparkle-drift` | 1: `{particleCount 60, spread 140, startVelocity 22, decay 0.9, gravity 0.55, drift 0.5, ticks 180, scalar 0.8, origin {x:0.5,y:0.55}, shapes ['circle']}`, `customShapes ['sparkle']`, `delayMs 0` |
+  | `side-cannons` | 1: `{particleCount 38, angle 55, spread 34, startVelocity 62, decay 0.9, gravity 0.95, ticks 170, scalar 2, flat true, origin {x:0.03,y:0.86}, shapes ['square','circle']}`, `customShapes ['diamond']`, `delayMs 0`; 2: same with `angle 125, origin {x:0.97,y:0.86}`, `delayMs 60` |
+  | `star-shower` | 1: `{particleCount 24, angle 270, spread 40, startVelocity 14, decay 0.97, gravity 0.85, ticks 175, scalar 2.8, flat true, origin {x:0.3,y:0.03}, shapes []}`, `customShapes ['star']`, `delayMs 0`; 2: same with `origin {x:0.7,y:0.03}`, `delayMs 140` (angle 270 fires **downward**, so this is stars raining from the top edge) |
+  | `fountain` | 1: `{particleCount 80, angle 90, spread 30, startVelocity 46, decay 0.9, gravity 2, ticks 165, scalar 1.6, flat true, origin {x:0.5,y:0.97}, shapes ['circle','square']}`, `customShapes []`, `delayMs 0` |
+  | `heart-drift` | 1: `{particleCount 30, angle 90, spread 26, startVelocity 12, decay 0.96, gravity -0.1, drift 0, ticks 185, scalar 2.6, flat true, origin {x:0.5,y:0.9}, shapes []}`, `customShapes ['heart']`, `delayMs 0` (angle 90 is up and gravity is **negative**, so hearts rise instead of falling) |
+  | `bolt-pops` | 1: `{particleCount 44, spread 360, startVelocity 22, decay 0.93, gravity 0.7, ticks 105, scalar 2.2, flat true, origin {x:0.32,y:0.45}, shapes []}`, `customShapes ['bolt','sparkle']`, `delayMs 0`; 2: same with `origin {x:0.68,y:0.55}`, `delayMs 70` |
+  | `flat-burst` | 1: `{particleCount 90, spread 360, startVelocity 40, decay 0.91, gravity 1, ticks 150, scalar 1.8, flat true, origin {x:0.5,y:0.5}, shapes ['square','circle']}`, `customShapes []`, `delayMs 0` |
+  | `sparkle-drift` | 1: `{particleCount 44, spread 180, startVelocity 10, decay 0.95, gravity 0.35, drift 0.4, ticks 190, scalar 2, flat true, origin {x:0.5,y:0.45}, shapes ['circle']}`, `customShapes ['sparkle']`, `delayMs 0` |
+
+  Two rules make the effects read as different things, both asserted in
+  `step-celebration-logic.test.js`:
+
+  - **A custom-path burst is always `flat: true` with `scalar >= 2`.** `updateFetti` draws a
+    path at `|x2 - x1| * 0.1`, and `|x2 - x1|` is `10 * scalar` for a flat particle but
+    `10 * scalar * |cos(wobble)|` otherwise — a non-flat path collapses to a zero-width
+    sliver twice per spin, and a 10-unit path at `scalar 1` is a 10 px blob (the built-in
+    star is `16 * scalar`). The first implementation had both faults, and "the stars" were
+    indistinguishable from ordinary confetti in review.
+  - **Variants differ by physical signature, not by option values**: origin band (top edge /
+    bottom corners / bottom centre / mid-air / centre), direction (down / up / radial), size
+    (`scalar < 1.6`, `1.6–2.5`, `>= 2.5`) and life (`<= 110`, mid, `>= 180` ticks). The test
+    builds that signature per variant and requires all seven to be unique, then asserts the
+    extremes exist — so a future edit cannot quietly make two effects the same gesture.
 
 - `pickCelebrationVariant(previousIndex, random = Math.random)` → `{ index, variant }`.
   Exactly **one** `random()` call. `valid = Number.isInteger(previousIndex) && previousIndex >= 0 && previousIndex < CELEBRATION_VARIANTS.length`;
@@ -256,7 +275,9 @@ effect keyed on the trigger, and returns `null`. Mounted once in
 - `pickCelebrationVariant(-1, () => 0)` → `{ index: 0 }`; with `() => 0.999` → the last index (uniform first pick).
 - `pickCelebrationVariant(previousIndex, random)` for every `previousIndex` in the list and rolls `0`, `0.5`, `0.999` → `index !== previousIndex`; out-of-range/`undefined`/`null`/`NaN` previous → a uniform pick in `[0, count)`.
 - `buildCelebrationPlan(index, () => 0.5)` → jitters are exactly 0, so `origin.x/origin.y/spread/startVelocity` equal the variant's own numbers; with `() => 0` and `() => 0.999` → each jitter is at its `-max`/`+max` and every value stays inside its clamp range.
-- Every planned burst → `delayMs >= 0`, `colors` equal to one of `CELEBRATION_PALETTES`, `zIndex === 100`, `disableForReducedMotion === true`, `options.shapes` built only from `['square','circle','star']`, and `customShapes` deep-equal to the variant's own list.
+- Every planned burst → `delayMs >= 0`, `colors` equal to one of **that variant's own** `palettes` (and every `palettes` key exists in `CELEBRATION_PALETTES`; the variants' palettes are not all the same one, so effects differ in hue and not only in shape), `zIndex === 100`, `disableForReducedMotion === true`, `options.shapes` built only from `['square','circle','star']`, and `customShapes` deep-equal to the variant's own list.
+- **Readability rule** (canvas-confetti draws a path shape at `|x2 - x1| * 0.1`, which is `10 * scalar` only when the particle is flat and `10 * scalar * |cos(wobble)|` otherwise): every burst with a non-empty `customShapes` has `options.flat === true` and `options.scalar >= 2` → asserted, so the stars cannot regress into spinning slivers or 10 px blobs.
+- **Distinctness rule**: each variant's physical signature — origin band (top edge `y < 0.2` / bottom `y > 0.8` / mid-air), horizontal side (left `x < 0.25` / right `x > 0.75` / centre), direction (`angle 270` down / `angle 90` up / radial), rising (`gravity < 0`), size bucket and life bucket (`ticks <= 110` / `>= 180`) — is unique across the seven variants, and the extremes are actually present (a downward rain, a rising burst, a bottom-anchored plume, a corner origin, a `<= 110` tick pop, a `>= 180` tick drift) → asserted, so "different effects" is a property of the motion, not of the numbers in the table.
 - `buildCelebrationPlan` called twice with different randoms → the two plans differ, and `CELEBRATION_VARIANTS` is deep-equal to a snapshot taken before the calls (no mutation of the exported constants, including the `shapes` arrays).
 - `shouldCelebrateStepEnd` → `true` for `{ responseType: 'friendClosedResponse' }` (with and without `simpleVideoUrl`), `false` for `closedResponse`, `openResponse`, `branching`, `viewAndContinue`, `lessonIntro`, `success`, `null`, `undefined`.
 

@@ -6,6 +6,18 @@
 //
 // Randomness is injected (defaulting to Math.random, evaluated per call) so every
 // rule here is deterministic in tests.
+//
+// Two canvas-confetti facts drive the numbers in this file (read from
+// node_modules/canvas-confetti/src/confetti.js `updateFetti`):
+//
+//   1. A path shape is drawn at `pathScale * (|x2 - x1| * 0.1)`. For a flat
+//      particle |x2 - x1| === 10 * scalar, so the draw scale is exactly
+//      `scalar`: our 10-unit paths render 10 * scalar px. The built-in star is
+//      16 * scalar px wide, so a custom shape needs `scalar >= 2` to read.
+//   2. For a NON-flat particle |x2 - x1| === 10 * scalar * |cos(wobble)|, so the
+//      path collapses to a zero-width sliver twice per spin. Every burst that
+//      carries a path shape therefore sets `flat: true`; otherwise the star is
+//      unreadable most of its life.
 
 /**
  * The design box every custom path is authored in: a 10x10 square. The matrix is
@@ -20,6 +32,9 @@ const DESIGN_BOX_MATRIX = [1, 0, 0, 1, -5, -5];
  * survive the library's default worker postMessage (the worker re-creates the
  * Path2D when drawing), so these are safe with `useWorker: true`.
  * Keys are referenced by a variant's `customShapes`.
+ *
+ * Each path fills the 10x10 box and is a silhouette (no holes/marks) so it stays
+ * recognisable at 20-30px.
  */
 export const CELEBRATION_PATHS = {
     star: {
@@ -45,85 +60,114 @@ export const CELEBRATION_PATHS = {
 };
 
 /**
- * Colour palettes. `classic` is canvas-confetti's own default list, so one fire
- * in four looks like the familiar confetti; the others are the app's palette.
+ * Colour palettes. Each variant allows one or two of them (see `palettes`), so a
+ * variant keeps its own identity — "the red one", "the gold one" — while still
+ * varying between two firings. `classic` is canvas-confetti's own default list.
  */
 export const CELEBRATION_PALETTES = {
-    ocean: ['#3a8fd5', '#00c0d8', '#8be8f5', '#ffffff'],
     sunset: ['#ff5e7e', '#ffa62d', '#fcff42', '#ffffff'],
+    gold: ['#ffd166', '#ffb703', '#fff3b0', '#ffffff'],
+    candy: ['#ff7ab6', '#ff3d7f', '#b388ff', '#ffffff'],
+    electric: ['#7c4dff', '#ffea00', '#ffffff', '#ff3d7f'],
+    ice: ['#ffffff', '#d7f9ff', '#a7c7ff'],
     classic: ['#26ccff', '#a25afd', '#ff5e7e', '#88ff5a', '#fcff42', '#ffa62d', '#ff36ff'],
-    mint: ['#88ff5a', '#26ccff', '#a25afd', '#ffffff'],
 };
 
 /** The shapes every canvas-confetti version has built in. */
 export const BUILTIN_SHAPES = ['square', 'circle', 'star'];
 
 /**
- * Seven visually distinct effects. A burst's `options.shapes` holds built-in
- * shape names and `customShapes` holds CELEBRATION_PATHS keys; the web runner
- * merges the two into the single `shapes` array the library reads.
- * Every burst here is short: a friend lesson has up to ~40 of these steps.
+ * Seven effects with different PHYSICAL SIGNATURES, not just different options:
+ * where they start (bottom corners / top edge / bottom centre / mid-air /
+ * centre), which way they move (rising, falling, spraying), how long they live
+ * (95-190 ticks) and how big the pieces are (scalar 1.2-2.8). A learner should
+ * be able to name the effect from a single frame.
+ *
+ * A burst's `options.shapes` holds built-in shape names and `customShapes` holds
+ * CELEBRATION_PATHS keys; the web runner merges the two into the single `shapes`
+ * array the library reads. Every burst here is short: a friend lesson has up to
+ * ~40 of these steps, so the app is mid-next-step while it plays.
  */
 export const CELEBRATION_VARIANTS = [
     {
+        // Two narrow, fast diagonal streams out of the bottom corners.
         id: 'side-cannons',
+        palettes: ['sunset', 'candy'],
         bursts: [
             {
                 options: {
-                    particleCount: 40, angle: 58, spread: 55, startVelocity: 52,
-                    decay: 0.9, gravity: 1, ticks: 130, scalar: 0.9,
-                    origin: { x: 0.06, y: 0.78 }, shapes: ['square', 'circle'],
+                    particleCount: 38, angle: 55, spread: 34, startVelocity: 62,
+                    decay: 0.9, gravity: 0.95, ticks: 170, scalar: 2, flat: true,
+                    origin: { x: 0.03, y: 0.86 }, shapes: ['square', 'circle'],
                 },
                 customShapes: ['diamond'],
                 delayMs: 0,
             },
             {
                 options: {
-                    particleCount: 40, angle: 122, spread: 55, startVelocity: 52,
-                    decay: 0.9, gravity: 1, ticks: 130, scalar: 0.9,
-                    origin: { x: 0.94, y: 0.78 }, shapes: ['square', 'circle'],
+                    particleCount: 38, angle: 125, spread: 34, startVelocity: 62,
+                    decay: 0.9, gravity: 0.95, ticks: 170, scalar: 2, flat: true,
+                    origin: { x: 0.97, y: 0.86 }, shapes: ['square', 'circle'],
                 },
                 customShapes: ['diamond'],
-                delayMs: 90,
+                delayMs: 60,
             },
         ],
     },
     {
+        // Big slow stars RAINING FROM THE TOP EDGE (angle 270 fires downward).
         id: 'star-shower',
+        palettes: ['gold', 'ice'],
         bursts: [
             {
                 options: {
-                    particleCount: 40, spread: 360, startVelocity: 26, decay: 0.91,
-                    gravity: 0.9, ticks: 160, scalar: 1.15,
-                    origin: { x: 0.5, y: 0.4 }, shapes: [],
+                    particleCount: 24, angle: 270, spread: 40, startVelocity: 14,
+                    decay: 0.97, gravity: 0.85, ticks: 175, scalar: 2.8, flat: true,
+                    origin: { x: 0.3, y: 0.03 }, shapes: [],
                 },
                 customShapes: ['star'],
                 delayMs: 0,
             },
+            {
+                options: {
+                    particleCount: 24, angle: 270, spread: 40, startVelocity: 14,
+                    decay: 0.97, gravity: 0.85, ticks: 175, scalar: 2.8, flat: true,
+                    origin: { x: 0.7, y: 0.03 }, shapes: [],
+                },
+                customShapes: ['star'],
+                delayMs: 140,
+            },
         ],
     },
     {
+        // One tall narrow plume from the bottom centre that falls back down.
         id: 'fountain',
+        palettes: ['gold', 'sunset'],
         bursts: [
             {
                 options: {
-                    particleCount: 70, angle: 90, spread: 65, startVelocity: 55,
-                    decay: 0.89, gravity: 1.2, ticks: 150, scalar: 1, flat: true,
+                    particleCount: 80, angle: 90, spread: 30, startVelocity: 46,
+                    decay: 0.9, gravity: 2, ticks: 165, scalar: 1.6, flat: true,
                     origin: { x: 0.5, y: 0.97 }, shapes: ['circle', 'square'],
                 },
+                // A fine spray: the pellets are deliberately small (scalar 1.2),
+                // which is under the >= 2 rule for a readable path shape.
                 customShapes: [],
                 delayMs: 0,
             },
         ],
     },
     {
+        // Hearts RISING from the bottom: angle 90 is up, and negative gravity
+        // keeps accelerating them up instead of pulling them back.
         id: 'heart-drift',
+        palettes: ['candy', 'sunset'],
         bursts: [
             {
                 options: {
-                    particleCount: 32, spread: 120, startVelocity: 24, decay: 0.93,
-                    gravity: 0.6, drift: 0.55, ticks: 200, scalar: 1.1, flat: true,
-                    origin: { x: 0.5, y: 0.85 }, shapes: [],
+                    particleCount: 30, angle: 90, spread: 26, startVelocity: 12,
+                    decay: 0.96, gravity: -0.1, drift: 0, ticks: 185, scalar: 2.6, flat: true,
+                    origin: { x: 0.5, y: 0.9 }, shapes: [],
                 },
                 customShapes: ['heart'],
                 delayMs: 0,
@@ -131,35 +175,39 @@ export const CELEBRATION_VARIANTS = [
         ],
     },
     {
+        // Two short, hard pops in mid-air: highest speed, shortest life.
         id: 'bolt-pops',
+        palettes: ['electric'],
         bursts: [
             {
                 options: {
-                    particleCount: 30, spread: 360, startVelocity: 30, decay: 0.92,
-                    gravity: 1, ticks: 120, scalar: 1,
-                    origin: { x: 0.4, y: 0.45 }, shapes: [],
+                    particleCount: 44, spread: 360, startVelocity: 22,
+                    decay: 0.93, gravity: 0.7, ticks: 105, scalar: 2.2, flat: true,
+                    origin: { x: 0.32, y: 0.45 }, shapes: [],
                 },
                 customShapes: ['bolt', 'sparkle'],
                 delayMs: 0,
             },
             {
                 options: {
-                    particleCount: 30, spread: 360, startVelocity: 30, decay: 0.92,
-                    gravity: 1, ticks: 120, scalar: 1,
-                    origin: { x: 0.6, y: 0.55 }, shapes: [],
+                    particleCount: 44, spread: 360, startVelocity: 22,
+                    decay: 0.93, gravity: 0.7, ticks: 105, scalar: 2.2, flat: true,
+                    origin: { x: 0.68, y: 0.55 }, shapes: [],
                 },
                 customShapes: ['bolt', 'sparkle'],
-                delayMs: 110,
+                delayMs: 70,
             },
         ],
     },
     {
+        // The biggest single blast: 90 big flat ribbons from dead centre.
         id: 'flat-burst',
+        palettes: ['classic'],
         bursts: [
             {
                 options: {
-                    particleCount: 55, spread: 360, startVelocity: 34, decay: 0.91,
-                    gravity: 1, ticks: 140, scalar: 1.2, flat: true,
+                    particleCount: 90, spread: 360, startVelocity: 40,
+                    decay: 0.91, gravity: 1, ticks: 150, scalar: 1.8, flat: true,
                     origin: { x: 0.5, y: 0.5 }, shapes: ['square', 'circle'],
                 },
                 customShapes: [],
@@ -168,13 +216,15 @@ export const CELEBRATION_VARIANTS = [
         ],
     },
     {
+        // A slow, sparkly cloud that sinks and drifts sideways.
         id: 'sparkle-drift',
+        palettes: ['ice', 'gold'],
         bursts: [
             {
                 options: {
-                    particleCount: 60, spread: 140, startVelocity: 22, decay: 0.9,
-                    gravity: 0.55, drift: 0.5, ticks: 180, scalar: 0.8,
-                    origin: { x: 0.5, y: 0.55 }, shapes: ['circle'],
+                    particleCount: 44, spread: 180, startVelocity: 10,
+                    decay: 0.95, gravity: 0.35, drift: 0.4, ticks: 190, scalar: 2, flat: true,
+                    origin: { x: 0.5, y: 0.45 }, shapes: ['circle'],
                 },
                 customShapes: ['sparkle'],
                 delayMs: 0,
@@ -235,9 +285,9 @@ export function pickCelebrationVariant(previousIndex = -1, random = Math.random)
 }
 
 /**
- * Build the ready-to-fire plan for a variant: per-burst options with a random
- * palette and origin/spread/velocity jitter. Never mutates the exported
- * variants (each burst gets a fresh options/origin/shapes object).
+ * Build the ready-to-fire plan for a variant: per-burst options with one of the
+ * variant's palettes and origin/spread/velocity jitter. Never mutates the
+ * exported variants (each burst gets a fresh options/origin/shapes object).
  *
  * @param {number} variantIndex index into CELEBRATION_VARIANTS
  * @param {() => number} [random] injected RNG
@@ -245,7 +295,9 @@ export function pickCelebrationVariant(previousIndex = -1, random = Math.random)
  */
 export function buildCelebrationPlan(variantIndex, random = Math.random) {
     const variant = CELEBRATION_VARIANTS[variantIndex] || CELEBRATION_VARIANTS[0];
-    const paletteKeys = Object.keys(CELEBRATION_PALETTES);
+    const paletteKeys = variant.palettes && variant.palettes.length
+        ? variant.palettes
+        : Object.keys(CELEBRATION_PALETTES);
     const palette = CELEBRATION_PALETTES[paletteKeys[Math.floor(rollFrom(random) * paletteKeys.length)]];
 
     return variant.bursts.map((burst) => {
