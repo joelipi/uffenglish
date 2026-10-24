@@ -71,7 +71,9 @@ const answerFlowTransitions = {
     'interactiveVideo-decisionTime-openResponse':   ['recording/answering', 'interactiveVideo+openResponse'],
     'interactiveVideo-decisionTime-friendClosedResponse': ['recording/answering', 'interactiveVideo+friendClosedResponse'],
     'firstResponse':                             ['recording/answering'],
-    'recording/answering':                       ['processing/transcribing', 'feedback'],
+    // A friendClosedResponse retry returns to its decision screen (the Continue
+    // button) instead of the recording screen (stories/092).
+    'recording/answering':                       ['processing/transcribing', 'feedback', 'simpleVideo-decisionTime-response', 'interactiveVideo-decisionTime-friendClosedResponse'],
     'processing/transcribing':                   ['review', 'transcription preflight-rejected', 'recording/answering', 'feedback'],
     'transcription preflight-rejected':          ['recording/answering'],
     // 'recording/answering' is the "record again" ✕ on the Whisper review

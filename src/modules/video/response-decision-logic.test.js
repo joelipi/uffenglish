@@ -4,6 +4,8 @@ import {
     getResponseOverlayTextKey,
     getResponseAnswerLabelKey,
     getResponseAnswerIconClass,
+    getInteractiveDecisionLabelKey,
+    getInteractiveDecisionIconClass,
     getSimpleVideoOverlayTextKey,
 } from './response-decision-logic.js';
 import { BRANCH_OVERLAY_PHASE, BRANCH_OVERLAY_TEXT_KEY, BRANCH_DEEP_OVERLAY_TEXT_KEY } from '../lesson/branch-choice-logic.js';
@@ -55,6 +57,28 @@ describe('response-decision-logic', () => {
             expect(getResponseAnswerIconClass('friendClosedResponse')).toBe('bi bi-chevron-right');
             expect(getResponseAnswerIconClass('closedResponse')).toBe('bi bi-mic-fill');
             expect(getResponseAnswerIconClass('openResponse')).toBe('bi bi-mic-fill');
+        });
+    });
+
+    describe('getInteractiveDecisionLabelKey', () => {
+        it('labels the interactive friendClosedResponse decision button Continue', () => {
+            expect(getInteractiveDecisionLabelKey('interactiveVideo-decisionTime-friendClosedResponse')).toBe('continue');
+            expect(getInteractiveDecisionLabelKey('interactiveVideo-decisionTime-closedResponse')).toBe('video_repeat_now');
+            expect(getInteractiveDecisionLabelKey('interactiveVideo-decisionTime-openResponse')).toBe('video_respond_now');
+        });
+    });
+
+    describe('getInteractiveDecisionIconClass', () => {
+        it('uses the rightward chevron on the interactive friendClosedResponse decision screen', () => {
+            expect(getInteractiveDecisionIconClass('interactiveVideo-decisionTime-friendClosedResponse', false))
+                .toBe('bi bi-chevron-right');
+        });
+
+        it('keeps the microphone states on every other interactive decision screen', () => {
+            expect(getInteractiveDecisionIconClass('interactiveVideo-decisionTime-closedResponse', false)).toBe('bi bi-mic-mute-fill');
+            expect(getInteractiveDecisionIconClass('interactiveVideo-decisionTime-openResponse', true)).toBe('bi bi-mic-fill');
+            // Once the take is running the mic state wins even on the friend step.
+            expect(getInteractiveDecisionIconClass('interactiveVideo-decisionTime-friendClosedResponse', true)).toBe('bi bi-mic-fill');
         });
     });
 

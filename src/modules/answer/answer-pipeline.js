@@ -24,6 +24,7 @@ import { analyzeSpeech } from '../utils/analytics.js';
 import { saveSpeechRecording, updateSpeechRecording } from '../storage/storage.js';
 import { buildFeedbackData, buildExplanationData } from './feedback-builder.js';
 import { getNextStep } from '../lesson/lesson-routing.js';
+import { resolveRetryPhase, MIC_RETRY_PHASE } from '../lesson/retry-phase-logic.js';
 import getRandomPraise from '../../data/praise.js';
 import { getBotIdentity } from '../user/bot-identity.js';
 import teacherAvatarUrl from '../../assets/img/teacherprofile.webp';
@@ -930,13 +931,25 @@ export function createAnswerPipeline(deps) {
                 }
                 appStore.getState().setMediaVisible(true);
 
-                const player = getCurrentVideoPlayer();
-                if (player && typeof player.replay === 'function') {
-                    player.replay();
+                // A friendClosedResponse step retries on its decision screen so
+                // the Continue → preview → microphone flow runs again on every
+                // attempt (stories/092). Every other step retries on the
+                // recording screen and re-hears the clip automatically.
+                const retryPhase = resolveRetryPhase(stepData);
+                if (retryPhase === MIC_RETRY_PHASE) {
+                    const player = getCurrentVideoPlayer();
+                    if (player && typeof player.replay === 'function') {
+                        player.replay();
+                    }
+                } else {
+                    // The decision screen owns the Replay button, so the clip
+                    // does not start playing underneath the controls.
+                    appStore.getState().setAwaitingRecordingStart(false);
+                    appStore.getState().setMicActive(false);
                 }
 
                 appStore.getState().setSystemMessage({ type: 'info', text: stepData.step || '' });
-                appStore.getState().transitionTo('recording/answering');
+                appStore.getState().transitionTo(retryPhase);
                 resetButtonState(button);
                 return;
             }

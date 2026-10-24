@@ -27,6 +27,21 @@ function interactivePhase(responseType) {
     );
 }
 
+/**
+ * The decision ("did you understand?" / "repeat exactly") phase for an
+ * interactive response clip. One name per response type, because the decision
+ * screen reads the phase to decide its label and icon: lumping
+ * `friendClosedResponse` in with `closedResponse` showed the repeat-now
+ * microphone instead of Continue (stories/092).
+ */
+export function interactiveDecisionPhase(responseType) {
+    return 'interactiveVideo-decisionTime-' + (
+        responseType === 'openResponse' ? 'openResponse'
+            : responseType === 'friendClosedResponse' ? 'friendClosedResponse'
+                : 'closedResponse'
+    );
+}
+
 export function resolveStepPhase({ step, isFirstResponseStep = false, isRetry = false, isFriendLesson = false } = {}) {
     const responseType = step?.responseType;
     if (responseType === 'lessonIntro') return 'lessonIntro';

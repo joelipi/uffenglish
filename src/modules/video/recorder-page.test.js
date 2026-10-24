@@ -1031,6 +1031,16 @@ describe('recorder auto-render — zero server changes', () => {
             'src/modules/looks/preview-gate.test.js',
             'src/modules/lesson/lesson-loader.js',
             'src/modules/lesson/step-executor-webonly.js',
+            // 092: an incorrect friendClosedResponse answer returns to the
+            // decision screen (Continue) instead of the bare microphone.
+            'src/modules/lesson/retry-phase-logic.js',
+            'src/modules/lesson/retry-phase-logic.test.js',
+            'src/modules/lesson/step-phase-logic.js',
+            'src/modules/lesson/step-phase-logic.test.js',
+            'src/modules/answer/answer-pipeline.js',
+            'src/modules/answer/answer-pipeline.test.js',
+            'src/hooks/useInteractiveVideo.js',
+            'src/components/InteractiveVideoPlayer.web.jsx',
             'src/modules/video/response-decision-logic.js',
             'src/modules/video/response-decision-logic.test.js',
             'src/components/looks/LookControls.jsx',
