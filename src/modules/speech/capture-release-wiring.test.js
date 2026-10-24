@@ -179,8 +179,17 @@ describe('the raw camera is probed for moving frames before a take', () => {
         expect(probe).toBeGreaterThan(-1);
         expect(recorder).toBeGreaterThan(-1);
         expect(probe).toBeLessThan(recorder);
-        expect(startFn).toContain('shouldReacquireCapture({');
-        expect(startFn.indexOf('shouldReacquireCapture({')).toBeLessThan(startFn.lastIndexOf('probeCameraFrames(speechCamStream)'));
+        // One acquisition up front, one in the frozen branch — no more.
+        expect(startFn.match(/await ensureSpeechCamStream\(\);/g)).toHaveLength(2);
+        const frozenBranch = sliceBetween(
+            startFn,
+            'if (!cameraProbe.framesAdvanced) {',
+            'const mimeType = selectRecordingMimeType('
+        );
+        expect(frozenBranch).toContain('shouldReacquireCapture({');
+        // The retry probe is the second one INSIDE the frozen branch.
+        expect(frozenBranch.indexOf('shouldReacquireCapture({'))
+            .toBeLessThan(frozenBranch.lastIndexOf('probeCameraFrames(speechCamStream)'));
     });
 
     it('reports the frozen camera to telemetry and to the on-screen panel', () => {

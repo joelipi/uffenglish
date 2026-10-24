@@ -484,8 +484,6 @@ export async function startSpeechCamRecording(micStatusText, userData, { deferSt
 
         await ensureSpeechCamStream();
         setWebcamStream(speechCamStream);
-        await ensureSpeechCamStream();
-        setWebcamStream(speechCamStream);
 
         // iOS records the RAW camera, so the composite liveness gate does not
         // cover it. A re-record re-acquires the camera, and iPadOS can hand back
