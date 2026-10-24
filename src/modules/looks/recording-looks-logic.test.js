@@ -25,6 +25,7 @@ import {
     GUST_COUNT,
     WIND_LEAF_COUNT,
     VHS_LINE_COUNT,
+    VHS_DROPOUTS,
     GRAIN_SPECKS,
     GRAIN_BUCKET_MS,
     SUN_POSITION,
@@ -628,15 +629,16 @@ describe('the rest of the screen overlays', () => {
     });
 
     it('the shooting star only exists for part of its cycle', () => {
+        // period 5 s: 100 ms is fading in, 1500 ms is full, 4500 ms fades out,
+        // 4900 ms is in the gap.
         const early = resolveShootingStar({ ...base, timeMs: 100 });
         const mid = resolveShootingStar({ ...base, timeMs: 1500 });
-        const late = resolveShootingStar({ ...base, timeMs: 2900 });
+        const late = resolveShootingStar({ ...base, timeMs: 4600 });
         expect(mid.headX).toBeGreaterThan(early.headX);
         expect(mid.alpha).toBe(1);
-        // fade in/out at the edges of the pass; nothing at all through the gap
         expect(early.alpha).toBeLessThan(1);
-        expect(resolveShootingStar({ ...base, timeMs: 4000 }).alpha).toBe(0);
         expect(late.alpha).toBeLessThan(1);
+        expect(resolveShootingStar({ ...base, timeMs: 4950 }).alpha).toBe(0);
     });
 
     it('VHS draws its scanlines and a rolling band', () => {
@@ -649,7 +651,8 @@ describe('the rest of the screen overlays', () => {
             fillStyle: '', globalAlpha: 1,
         };
         expect(paintScreenOverlay({ ctx, ...base, screenId: 'vhs', timeMs: 300 })).toBe('vhs');
-        expect(calls.rects).toBe(VHS_LINE_COUNT + 1);
+        // scanlines, the band, and the dropouts riding it
+        expect(calls.rects).toBe(VHS_LINE_COUNT + 1 + VHS_DROPOUTS);
         expect(calls.gradients).toBe(1);
     });
 

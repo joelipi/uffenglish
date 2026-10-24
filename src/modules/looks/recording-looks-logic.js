@@ -972,18 +972,20 @@ export function paintStars({ ctx, canvasWidth, canvasHeight, timeMs = 0 }) {
     });
 }
 
-export const SHOOTING_STAR_PERIOD = 6;
+export const SHOOTING_STAR_PERIOD = 5;
 
 /** The shooting star: a scheduled streak that only exists for part of a cycle. */
 export function resolveShootingStar({ timeMs = 0, canvasWidth, canvasHeight }) {
     const cycle = (timeMs / 1000 % SHOOTING_STAR_PERIOD) / SHOOTING_STAR_PERIOD;
-    const travel = cycle * 1.4 - 0.2;
+    const travel = cycle * 1.5 - 0.25;
     return {
         headX: travel * canvasWidth,
-        headY: (0.06 + travel * 0.22) * canvasHeight,
-        length: canvasWidth * 0.22,
-        alpha: cycle < 0.05 ? cycle / 0.05 : cycle > 0.45 ? Math.max(0, (0.5 - cycle) / 0.05) : 1,
-        angle: Math.atan2(canvasHeight * 0.22, canvasWidth),
+        headY: (0.05 + travel * 0.3) * canvasHeight,
+        length: canvasWidth * 0.55,
+        // Present for most of the cycle (a star that is missing for half of it
+        // reads as "broken"), fading quickly in and out at its ends.
+        alpha: cycle < 0.04 ? cycle / 0.04 : cycle > 0.75 ? Math.max(0, (0.85 - cycle) / 0.1) : 1,
+        angle: Math.atan2(canvasHeight * 0.3, canvasWidth),
     };
 }
 
@@ -991,15 +993,21 @@ export function paintShootingStar({ ctx, canvasWidth, canvasHeight, timeMs = 0 }
     return paintGuarded(ctx, () => {
         const star = resolveShootingStar({ timeMs, canvasWidth, canvasHeight });
         if (star.alpha <= 0) return;
-        // A tapered streak: 14 segments, fading and thinning toward the tail.
-        for (let i = 0; i < 14; i++) {
-            const k = i / 14;
+        // A tapered streak: 18 segments, fading and thinning toward the tail,
+        // with a soft halo behind the head so it reads at a glance.
+        ctx.fillStyle = 'rgb(255, 250, 232)';
+        ctx.globalAlpha = star.alpha * 0.35;
+        ctx.beginPath();
+        ctx.arc(star.headX, star.headY, 22, 0, Math.PI * 2);
+        ctx.fill();
+        for (let i = 0; i < 18; i++) {
+            const k = i / 18;
             const d = star.length * k;
             const x = star.headX - Math.cos(star.angle) * d;
             const y = star.headY - Math.sin(star.angle) * d;
-            ctx.globalAlpha = star.alpha * (1 - k) * 0.9;
-            ctx.fillStyle = 'rgb(255, 250, 232)';
-            const size = 3.2 * (1 - k) + 0.6;
+            ctx.globalAlpha = star.alpha * (1 - k);
+            ctx.fillStyle = 'rgb(255, 252, 240)';
+            const size = 10 * (1 - k) + 2;
             ctx.beginPath();
             ctx.arc(x, y, size, 0, Math.PI * 2);
             ctx.fill();
@@ -1007,48 +1015,74 @@ export function paintShootingStar({ ctx, canvasWidth, canvasHeight, timeMs = 0 }
     });
 }
 
-export const VHS_LINE_COUNT = 80;
+export const VHS_LINE_COUNT = 200;
+export const VHS_DROPOUTS = 24;
 
-/** VHS: scanlines plus a bright band rolling down the frame. */
+/**
+ * VHS: many THIN scanlines (thick bars read as Venetian blinds), a bright band
+ * rolling down with a sharp leading edge, and tracking dropouts smeared along
+ * it — the three things that actually say "tape".
+ */
 export function paintVhs({ ctx, canvasWidth, canvasHeight, timeMs = 0 }) {
     return paintGuarded(ctx, () => {
         const t = timeMs / 1000;
-        const gap = canvasHeight / VHS_LINE_COUNT;
+        const step = canvasHeight / VHS_LINE_COUNT;
         ctx.fillStyle = 'rgb(0, 0, 0)';
-        ctx.globalAlpha = 0.1;
+        ctx.globalAlpha = 0.07;
         for (let i = 0; i < VHS_LINE_COUNT; i++) {
-            ctx.fillRect(0, i * gap, canvasWidth, Math.max(1, gap * 0.35));
+            ctx.fillRect(0, i * step, canvasWidth, 1);
         }
-        const bandY = ((t * 0.18) % 1.2 - 0.1) * canvasHeight;
-        const band = ctx.createLinearGradient(0, bandY, 0, bandY + canvasHeight * 0.12);
+        const bandY = ((t * 0.22) % 1.25 - 0.15) * canvasHeight;
+        const bandHeight = canvasHeight * 0.07;
+        const band = ctx.createLinearGradient(0, bandY, 0, bandY + bandHeight);
         band.addColorStop(0, 'rgba(255,255,255,0)');
-        band.addColorStop(0.5, 'rgba(255,255,255,0.14)');
+        band.addColorStop(0.75, 'rgba(255,255,255,0.06)');
+        band.addColorStop(0.96, 'rgba(255,255,255,0.22)');
         band.addColorStop(1, 'rgba(255,255,255,0)');
         ctx.globalAlpha = 1;
         ctx.fillStyle = band;
-        ctx.fillRect(0, bandY, canvasWidth, canvasHeight * 0.12);
-    });
-}
-
-export const GRAIN_SPECKS = 320;
-/** Grain is re-seeded on a 45 ms bucket so it boils like film, not like noise. */
-export const GRAIN_BUCKET_MS = 45;
-
-/** Procedural film grain: a few hundred specks, re-seeded a few times a second. */
-export function paintGrain({ ctx, canvasWidth, canvasHeight, timeMs = 0 }) {
-    return paintGuarded(ctx, () => {
-        const bucket = Math.floor(timeMs / GRAIN_BUCKET_MS);
+        ctx.fillRect(0, bandY, canvasWidth, bandHeight);
+        // Dropouts: short bright smears riding the band, re-seeded as it moves.
+        const bucket = Math.floor(timeMs / 70);
         ctx.fillStyle = 'rgb(255, 255, 255)';
-        for (let i = 0; i < GRAIN_SPECKS; i++) {
-            const x = hash01(bucket * 31 + i * 3 + 1) * canvasWidth;
-            const y = hash01(bucket * 31 + i * 3 + 2) * canvasHeight;
-            ctx.globalAlpha = 0.04 + hash01(bucket * 31 + i * 3 + 3) * 0.1;
-            ctx.fillRect(x, y, 1.5, 1.5);
+        for (let i = 0; i < VHS_DROPOUTS; i++) {
+            const x = hash01(bucket * 17 + i * 3 + 1) * canvasWidth;
+            const y = bandY + hash01(bucket * 17 + i * 3 + 2) * bandHeight;
+            const w = canvasWidth * (0.01 + hash01(bucket * 17 + i * 3 + 3) * 0.05);
+            ctx.globalAlpha = 0.1 + hash01(bucket * 17 + i * 3 + 4) * 0.18;
+            ctx.fillRect(x, y, w, 1.5);
         }
     });
 }
 
-export const BOKEH_COUNT = 10;
+export const GRAIN_SPECKS = 900;
+/** Grain is re-seeded on a 45 ms bucket so it boils like film, not like noise. */
+export const GRAIN_BUCKET_MS = 45;
+
+/**
+ * Procedural film grain: light AND dark specks, re-seeded on a bucket so it
+ * boils like film. Grain is contrast, not just sparkle, which is why the dark
+ * third matters for being visible at all.
+ */
+export function paintGrain({ ctx, canvasWidth, canvasHeight, timeMs = 0 }) {
+    return paintGuarded(ctx, () => {
+        const bucket = Math.floor(timeMs / GRAIN_BUCKET_MS);
+        for (let i = 0; i < GRAIN_SPECKS; i++) {
+            const x = hash01(bucket * 31 + i * 3 + 1) * canvasWidth;
+            const y = hash01(bucket * 31 + i * 3 + 2) * canvasHeight;
+            const seed = hash01(bucket * 31 + i * 3 + 3);
+            const dark = i % 3 === 0;
+            ctx.fillStyle = dark ? 'rgb(0, 0, 0)' : 'rgb(255, 255, 255)';
+            ctx.globalAlpha = dark ? 0.1 + seed * 0.2 : 0.12 + seed * 0.24;
+            // 2–4.5 px: a 1 px speck is averaged away when the 720p canvas is
+            // shown in a ~390 px wide preview.
+            const size = 2 + seed * 2.5;
+            ctx.fillRect(x, y, size, size);
+        }
+    });
+}
+
+export const BOKEH_COUNT = 14;
 
 /** Bokeh: big, soft, translucent discs drifting up. */
 export function paintBokeh({ ctx, canvasWidth, canvasHeight, timeMs = 0 }) {
@@ -1056,11 +1090,13 @@ export function paintBokeh({ ctx, canvasWidth, canvasHeight, timeMs = 0 }) {
         for (let i = 0; i < BOKEH_COUNT; i++) {
             const p = resolveDriftParticle({
                 index: i, timeMs, canvasWidth, canvasHeight,
-                motion: 'up', speed: [0.01, 0.03], sway: [0.01, 0.04], size: [0.03, 0.08], alpha: [0.05, 0.16],
+                motion: 'up', speed: [0.01, 0.03], sway: [0.01, 0.04], size: [0.035, 0.09], alpha: [0.1, 0.32],
             });
             const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size);
-            gradient.addColorStop(0, 'rgba(255, 244, 214, 1)');
-            gradient.addColorStop(0.7, 'rgba(255, 236, 196, 0.55)');
+            gradient.addColorStop(0, 'rgba(255, 244, 214, 0.95)');
+            gradient.addColorStop(0.72, 'rgba(255, 240, 205, 0.5)');
+            // A defined rim is what makes a disc read as bokeh rather than a blob.
+            gradient.addColorStop(0.9, 'rgba(255, 250, 230, 0.95)');
             gradient.addColorStop(1, 'rgba(255, 236, 196, 0)');
             ctx.globalAlpha = p.alpha;
             ctx.fillStyle = gradient;
