@@ -29,6 +29,15 @@ const SLOT_RAIL_META = [
     { slot: 'lower', label: 'Bottom', icon: 'bi-layers' },
 ];
 
+// iOS Safari keeps its native focus ring on the tapped <button> until focus
+// moves elsewhere, so an option the learner tapped and then abandoned still
+// looked ringed (stories/092). The applied state is the green ring, so a
+// pointer activation releases focus; a keyboard activation (detail 0) keeps it
+// so tab navigation still works.
+function releaseFocusAfterPointerTap(event) {
+    if (event?.detail > 0) event.currentTarget.blur();
+}
+
 // One radio-group strip, reused by the filter picker and the lens-effect
 // picker: the two are independent choices, so they share the chrome, not the
 // state.
@@ -41,9 +50,13 @@ function ChoiceStrip({ testidPrefix, presets, selectedId, onPick }) {
                     <button
                         key={preset.id}
                         type="button"
+                        className="look-tap"
                         data-testid={`${testidPrefix}-${preset.id}`}
                         aria-pressed={selected}
-                        onClick={() => onPick(preset.id)}
+                        onClick={(e) => {
+                            releaseFocusAfterPointerTap(e);
+                            onPick(preset.id);
+                        }}
                         style={{
                             ...styles.chip,
                             ...(selected ? styles.chipSelected : null),
@@ -97,9 +110,13 @@ function OverlayFoldout({ slot }) {
             <div style={styles.foldoutStrip}>
                 <button
                     type="button"
+                    className="look-tap"
                     data-testid={`look-slot-${slot}-none`}
                     aria-pressed={!slugForSlot}
-                    onClick={() => appStore.getState().setLookSlot(slot, null)}
+                    onClick={(e) => {
+                        releaseFocusAfterPointerTap(e);
+                        appStore.getState().setLookSlot(slot, null);
+                    }}
                     style={{ ...styles.chip, ...(!slugForSlot ? styles.chipSelected : null) }}
                 >
                     <span style={{ ...styles.swatch, background: NONE_SWATCH }} />
@@ -111,9 +128,11 @@ function OverlayFoldout({ slot }) {
                         <button
                             key={slug}
                             type="button"
+                            className="look-tap"
                             data-testid={`look-slot-${slot}-${slug}`}
                             aria-pressed={selected}
-                            onClick={() => {
+                            onClick={(e) => {
+                                releaseFocusAfterPointerTap(e);
                                 appStore.getState().setLookSlot(slot, slug);
                                 appStore.getState().setLookActiveSlot(slot);
                             }}
@@ -139,6 +158,7 @@ function OverlayFoldout({ slot }) {
                     />
                     <button
                         type="button"
+                        className="look-tap"
                         onClick={() => appStore.getState().setLookTuning(slot, { dx: 0, dy: 0, scale: 1 })}
                         style={styles.resetButton}
                         data-testid="look-size-reset"
@@ -173,9 +193,13 @@ export default function LookControls() {
             <div style={styles.railRow}>
                 <button
                     type="button"
+                    className="look-tap"
                     data-testid="look-drawer-toggle-filter"
                     aria-expanded={filterOpen}
-                    onClick={() => appStore.getState().toggleLookOpenDrawer('filter')}
+                    onClick={(e) => {
+                        releaseFocusAfterPointerTap(e);
+                        appStore.getState().toggleLookOpenDrawer('filter');
+                    }}
                     style={{
                         ...styles.railBtn,
                         ...(filterOpen ? styles.railBtnOpen : filterActive ? styles.railBtnActive : null),
@@ -190,9 +214,13 @@ export default function LookControls() {
             <div style={styles.railRow}>
                 <button
                     type="button"
+                    className="look-tap"
                     data-testid="look-drawer-toggle-lens"
                     aria-expanded={lensOpen}
-                    onClick={() => appStore.getState().toggleLookOpenDrawer('lens')}
+                    onClick={(e) => {
+                        releaseFocusAfterPointerTap(e);
+                        appStore.getState().toggleLookOpenDrawer('lens');
+                    }}
                     style={{
                         ...styles.railBtn,
                         ...(lensOpen ? styles.railBtnOpen : lensActive ? styles.railBtnActive : null),
@@ -212,9 +240,13 @@ export default function LookControls() {
                     <div key={slot} style={styles.railRow}>
                         <button
                             type="button"
+                            className="look-tap"
                             data-testid={`look-drawer-toggle-${slot}`}
                             aria-expanded={isOpen}
-                            onClick={() => appStore.getState().toggleLookOpenDrawer(slot)}
+                            onClick={(e) => {
+                                releaseFocusAfterPointerTap(e);
+                                appStore.getState().toggleLookOpenDrawer(slot);
+                            }}
                             style={{
                                 ...styles.railBtn,
                                 ...(isOpen ? styles.railBtnOpen : isActive ? styles.railBtnActive : null),

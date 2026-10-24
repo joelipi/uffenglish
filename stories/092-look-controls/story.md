@@ -27,6 +27,7 @@ Nothing here tracks a face. "Face" and "Above face" are fixed anchor zones on th
   - `LENS_PRESETS`: `none`, `softfocus`, `chiaroscuro`; default `none`, same radio-with-off rule as filters (`toggleLensId`).
   - No face tracking: each is one canvas-wide pass centred on the assumed face zone (`SLOT_ANCHORS.face`, 50% / 42%), which is exact enough because the composite canvas is always the same 9:16 frame.
   - The two effects reuse the 091 painters through the injected `paintBeauty` callback (`BEAUTY_PRESETS.lensSoftFocus` = strong downscale bloom + fill light; `lensChiaroscuro` = lit centre + 0.78 vignette), so there is no `ctx.filter` and no new blur technique. They are painted **after the colour grade and under the props** (`paintLooks` step 3).
+- **A tapped option must not keep the native focus ring.** On iOS Safari a `<button>` keeps its focus ring (and its default button chrome) after a tap, so an option the learner had tapped and then abandoned still looked outlined — reported twice as "the white border stays on the previous option". Every picker button now carries `look-tap` (`.look-tap` in `app.css`: `appearance: none`, `-webkit-tap-highlight-color: transparent`, `:focus { outline: none }`, `:focus-visible` keeps a 2px green keyboard cue) and a pointer activation releases focus (`releaseFocusAfterPointerTap`, `event.detail > 0` only, so tab navigation keeps its focus).
 - **Three overlay slots** — `face`, `upper`, `lower` — each holding at most one asset slug plus its own user tuning (`dx`, `dy` as fractions of the canvas, `scale`). Anchor defaults stay clear of the top header blur and bottom mic band: `face` centred at 42% height, `upper` centred at 22% height, `lower` centred at 74% height. Drawing order is face → upper → lower so a lower prop never covers a face cover.
 - **Selection lives in the zustand store** (`lookSelection`, `lookTuning`, `lookActiveSlot`, `lookOpenDrawer`) and is read per frame by the recording composite, so a change repaints the live preview and is baked into the take because it is the same canvas.
 - **Config** per step:
@@ -95,6 +96,15 @@ Nothing here tracks a face. "Face" and "Above face" are fixed anchor zones on th
   - → paints at least one pass for each, and paints nothing for `none`
 - `toggleLookLens('softfocus')` on the store, then `toggleLookFilter('vintage')` + called in unit test
   - → both selections hold at once; a second `toggleLookLens` clears only the lens
+
+### Task 4 - No native focus ring left on a tapped option (iOS)
+
+- `LookControls.jsx` source + called in unit test (`look-controls-focus.test.js`)
+  - → every `<button>` in the picker carries `look-tap`, so a new control cannot silently keep iOS Safari's focus ring/button chrome
+- `app.css` source + called in unit test
+  - → `.look-tap` sets `-webkit-appearance: none`, `appearance: none` and `-webkit-tap-highlight-color: transparent`; `.look-tap:focus` sets `outline: none`; `.look-tap:focus-visible` still paints a 2px green keyboard cue
+- `releaseFocusAfterPointerTap` source + called in unit test
+  - → releases focus only when `event.detail > 0` (pointer), so tab navigation keeps its focus
 
 ## Notes
 

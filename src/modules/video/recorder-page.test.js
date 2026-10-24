@@ -1044,6 +1044,7 @@ describe('recorder auto-render — zero server changes', () => {
             'src/modules/video/response-decision-logic.js',
             'src/modules/video/response-decision-logic.test.js',
             'src/components/looks/LookControls.jsx',
+            'src/components/looks/look-controls-focus.test.js',
             'src/components/widgets/WebcamPreview.jsx',
             'src/components/widgets/IntroChoices.jsx',
             'src/components/widgets/ResponseDecisionButtons.jsx',
