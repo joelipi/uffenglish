@@ -362,6 +362,9 @@ describe('the after-video loop starts itself on iPad', () => {
         // skips the blob fallback and draws on a removed element.
         expect(start).toContain('playback cancelled before it started');
         expect(start).toContain('settle(reject,');
+        // It must also refuse to report success when the loop changed while the
+        // play() promise was in flight (teardown mid-await).
+        expect(start.match(/activeLoop !== loop/g).length).toBeGreaterThanOrEqual(2);
         const teardown = sliceBetween(playerRaw, 'function teardownPlayback(loop) {', 'function drawLoop() {');
         expect(teardown).toContain('clearTimeout(loop.playRetryTimer)');
     });

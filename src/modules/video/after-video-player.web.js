@@ -229,6 +229,10 @@ function startMutedPlayback(loop) {
 
         const handleRefused = (error) => {
             if (settled) return;
+            if (activeLoop !== loop) {
+                settle(reject, new Error('[AfterVideo] playback cancelled before it started'));
+                return;
+            }
             const name = error && error.name ? error.name : null;
             console.warn('[AfterVideo] play attempt ' + attempt + ' refused:', name || error);
             takeDiagnostics.push('after-video play refused', { attempt, name });
@@ -262,7 +266,13 @@ function startMutedPlayback(loop) {
             const { promise, error } = playSafely(loop.video);
             if (error) { handleRefused(error); return; }
             if (!promise) { settle(resolve); return; }
-            promise.then(() => settle(resolve)).catch(handleRefused);
+            promise.then(() => {
+                if (activeLoop !== loop) {
+                    settle(reject, new Error('[AfterVideo] playback cancelled before it started'));
+                    return;
+                }
+                settle(resolve);
+            }).catch(handleRefused);
         };
 
         tryStart();
