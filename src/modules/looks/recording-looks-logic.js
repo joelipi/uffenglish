@@ -108,6 +108,8 @@ export const SCREEN_PRESETS = [
     { id: 'none', label: 'None', labelKey: 'look_screen_none', swatch: NONE_SWATCH },
     { id: 'raindrops', label: 'Raindrops', labelKey: 'look_screen_raindrops', swatch: 'linear-gradient(150deg, #0f1722 0%, #24384d 100%), radial-gradient(circle at 30% 30%, #bfe3ff 0 6%, transparent 7%)' },
     { id: 'snowfall', label: 'Snowfall', labelKey: 'look_screen_snowfall', swatch: 'radial-gradient(circle at 28% 22%, #ffffff 0 5%, transparent 6%), radial-gradient(circle at 64% 44%, #ffffff 0 4%, transparent 5%), radial-gradient(circle at 42% 72%, #ffffff 0 4%, transparent 5%), linear-gradient(165deg, #1d2430 0%, #46536a 100%)' },
+    { id: 'sunny', label: 'Sunny', labelKey: 'look_screen_sunny', swatch: 'radial-gradient(circle at 78% 10%, #fff7d6 0%, #ffd98a 16%, rgba(255,196,110,0.35) 38%, transparent 62%), linear-gradient(160deg, #1d2430 0%, #3b4a63 100%)' },
+    { id: 'windy', label: 'Windy', labelKey: 'look_screen_windy', swatch: 'repeating-linear-gradient(8deg, transparent 0 6px, rgba(255,255,255,0.55) 7px, transparent 8px 14px), linear-gradient(160deg, #22303e 0%, #4a5c70 100%)' },
 ];
 
 export const SCREEN_IDS = SCREEN_PRESETS.map((p) => p.id);
@@ -530,6 +532,166 @@ export function resolveSnowflake({ index, timeMs = 0, canvasWidth, canvasHeight 
     };
 }
 
+// --- Sunny: a warm sun high in the frame, slow rays, drifting pollen. -------
+
+export const SUN_RAY_COUNT = 9;
+export const POLLEN_COUNT = 14;
+
+/** Sun position as fractions of the frame: high and to the right, away from the
+ * face zone (50% / 40%) and from the left rail. */
+export const SUN_POSITION = { cx: 0.78, cy: 0.1 };
+
+/** One pollen mote: a slow, twinkling drift above the frame's lower half. */
+export function resolvePollenMote({ index, timeMs = 0, canvasWidth, canvasHeight }) {
+    const t = timeMs / 1000;
+    const size = hash01(index * 11 + 3);
+    const speed = 0.008 + size * 0.014;               // frame-heights per second
+    const travel = ((hash01(index * 11 + 2) + t * speed) % 1.05) - 0.02;
+    const swayPhase = hash01(index * 11 + 4) * Math.PI * 2;
+    const sway = Math.sin(t * (0.5 + size * 0.7) + swayPhase) * canvasWidth * 0.02;
+    const baseX = (0.08 + hash01(index * 11 + 1) * 0.84) * canvasWidth;
+    return {
+        x: clamp(baseX + sway, 0, canvasWidth),
+        y: canvasHeight * (0.9 - travel),              // drifts upward
+        radius: canvasWidth * (0.002 + size * 0.003),
+        // Twinkle: never fully off, never solid.
+        alpha: 0.25 + 0.35 * (0.5 + 0.5 * Math.sin(t * (1.6 + size * 2) + swayPhase)),
+    };
+}
+
+/**
+ * A sunny day: a warm glow around a high sun, slow rotating rays, and pollen
+ * glints drifting up. All light, no props: the face zone stays readable.
+ */
+export function paintSunny({ ctx, canvasWidth, canvasHeight, timeMs = 0 }) {
+    if (!ctx || !(canvasWidth > 0) || !(canvasHeight > 0)) return false;
+    const t = timeMs / 1000;
+    const sunX = canvasWidth * SUN_POSITION.cx;
+    const sunY = canvasHeight * SUN_POSITION.cy;
+    const radius = Math.max(canvasWidth, canvasHeight) * 0.5;
+    try {
+        ctx.save();
+        // Warm bloom, screened so it reads as light rather than paint.
+        ctx.globalCompositeOperation = 'screen';
+        ctx.globalAlpha = 1;
+        const glow = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, radius);
+        glow.addColorStop(0, 'rgba(255, 244, 196, 0.55)');
+        glow.addColorStop(0.35, 'rgba(255, 224, 150, 0.16)');
+        glow.addColorStop(1, 'rgba(255, 214, 130, 0)');
+        ctx.fillStyle = glow;
+        ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+        // A small bright core so the light has a source.
+        const core = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, canvasWidth * 0.09);
+        core.addColorStop(0, 'rgba(255, 252, 236, 0.95)');
+        core.addColorStop(1, 'rgba(255, 246, 214, 0)');
+        ctx.fillStyle = core;
+        ctx.fillRect(sunX - canvasWidth * 0.09, sunY - canvasWidth * 0.09, canvasWidth * 0.18, canvasWidth * 0.18);
+        // Slow rays. Kept faint and short: they cross the frame, face included.
+        ctx.fillStyle = 'rgba(255, 250, 226, 0.05)';
+        const spin = t * 0.05;
+        const rayLength = Math.max(canvasWidth, canvasHeight) * 0.45;
+        for (let i = 0; i < SUN_RAY_COUNT; i++) {
+            const angle = spin + (i / SUN_RAY_COUNT) * Math.PI * 2;
+            const spread = 0.035;
+            ctx.beginPath();
+            ctx.moveTo(sunX, sunY);
+            ctx.lineTo(sunX + Math.cos(angle - spread) * rayLength, sunY + Math.sin(angle - spread) * rayLength);
+            ctx.lineTo(sunX + Math.cos(angle + spread) * rayLength, sunY + Math.sin(angle + spread) * rayLength);
+            ctx.closePath();
+            ctx.fill();
+        }
+        // Pollen glints.
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.fillStyle = 'rgb(255, 246, 214)';
+        for (let i = 0; i < POLLEN_COUNT; i++) {
+            const mote = resolvePollenMote({ index: i, timeMs, canvasWidth, canvasHeight });
+            ctx.globalAlpha = mote.alpha;
+            ctx.beginPath();
+            ctx.arc(mote.x, mote.y, mote.radius, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.restore();
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
+// --- Windy: gust streaks crossing the frame + leaves tumbling across. -------
+
+export const GUST_COUNT = 9;
+export const WIND_LEAF_COUNT = 12;
+const LEAF_COLOURS = ['rgb(214, 168, 76)', 'rgb(196, 108, 52)', 'rgb(126, 158, 74)'];
+
+/** One gust: a long, faint curve sweeping left → right at its own height. */
+export function resolveGust({ index, timeMs = 0, canvasWidth, canvasHeight }) {
+    const t = timeMs / 1000;
+    const size = hash01(index * 7 + 3);
+    const speed = 0.2 + size * 0.26;                  // frame-widths per second
+    const travel = ((hash01(index * 7 + 2) + t * speed) % 1.35) - 0.15;
+    return {
+        x: travel * canvasWidth,
+        y: (0.1 + hash01(index * 7 + 1) * 0.72) * canvasHeight,
+        length: canvasWidth * (0.3 + size * 0.32),
+        rise: (hash01(index * 7 + 4) - 0.5) * canvasHeight * 0.08,
+        width: 2 + size * 2.5,
+        alpha: 0.12 + size * 0.14,
+    };
+}
+
+/** One leaf: tumbling left → right, faster than the gusts, bobbing as it goes. */
+export function resolveWindLeaf({ index, timeMs = 0, canvasWidth, canvasHeight }) {
+    const t = timeMs / 1000;
+    const size = hash01(index * 9 + 3);
+    const speed = 0.32 + size * 0.34;
+    const travel = ((hash01(index * 9 + 2) + t * speed) % 1.4) - 0.2;
+    const bob = Math.sin(t * (2 + size * 2.5) + hash01(index * 9 + 5) * Math.PI * 2) * canvasHeight * 0.025;
+    return {
+        x: travel * canvasWidth,
+        y: (0.12 + hash01(index * 9 + 1) * 0.72) * canvasHeight + bob,
+        rx: canvasWidth * (0.013 + size * 0.011),
+        ry: canvasWidth * (0.006 + size * 0.006),
+        rotation: t * (1.6 + size * 3) + hash01(index * 9 + 4) * Math.PI * 2,
+        colour: LEAF_COLOURS[index % LEAF_COLOURS.length],
+        alpha: 0.7 + size * 0.25,
+    };
+}
+
+/** A windy day: faint gust curves crossing the frame with leaves tumbling after. */
+export function paintWindy({ ctx, canvasWidth, canvasHeight, timeMs = 0 }) {
+    if (!ctx || !(canvasWidth > 0) || !(canvasHeight > 0)) return false;
+    try {
+        ctx.save();
+        for (let i = 0; i < GUST_COUNT; i++) {
+            const gust = resolveGust({ index: i, timeMs, canvasWidth, canvasHeight });
+            ctx.globalAlpha = gust.alpha;
+            ctx.strokeStyle = 'rgb(255, 255, 255)';
+            ctx.lineWidth = gust.width;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(gust.x, gust.y);
+            ctx.quadraticCurveTo(gust.x + gust.length * 0.5, gust.y + gust.rise, gust.x + gust.length, gust.y);
+            ctx.stroke();
+        }
+        for (let i = 0; i < WIND_LEAF_COUNT; i++) {
+            const leaf = resolveWindLeaf({ index: i, timeMs, canvasWidth, canvasHeight });
+            ctx.globalAlpha = leaf.alpha;
+            ctx.fillStyle = leaf.colour;
+            ctx.save();
+            ctx.translate(leaf.x, leaf.y);
+            ctx.rotate(leaf.rotation);
+            ctx.beginPath();
+            ctx.ellipse(0, 0, leaf.rx, leaf.ry, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+        ctx.restore();
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
 /**
  * Paint the chosen screen overlay over the whole frame. Returns the id painted
  * ('none' when there is nothing to draw or the painter threw), so the adapter
@@ -539,6 +701,12 @@ export function paintScreenOverlay({ ctx, canvasWidth, canvasHeight, screenId, t
     const id = resolveScreenId(screenId);
     if (!ctx || id === 'none') return 'none';
     if (!(canvasWidth > 0) || !(canvasHeight > 0)) return 'none';
+    if (id === 'sunny') {
+        return paintSunny({ ctx, canvasWidth, canvasHeight, timeMs }) ? id : 'none';
+    }
+    if (id === 'windy') {
+        return paintWindy({ ctx, canvasWidth, canvasHeight, timeMs }) ? id : 'none';
+    }
     if (id === 'snowfall') {
         try {
             ctx.save();

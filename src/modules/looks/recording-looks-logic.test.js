@@ -10,9 +10,19 @@ import {
     resolveCloseUpHole,
     resolveRaindrop,
     resolveSnowflake,
+    resolvePollenMote,
+    resolveGust,
+    resolveWindLeaf,
+    paintSunny,
+    paintWindy,
     paintScreenOverlay,
     RAINDROP_COUNT,
     SNOWFLAKE_COUNT,
+    SUN_RAY_COUNT,
+    POLLEN_COUNT,
+    GUST_COUNT,
+    WIND_LEAF_COUNT,
+    SUN_POSITION,
     toggleFilterId,
     toggleLensId,
     toggleScreenId,
@@ -302,8 +312,8 @@ describe('close-up lens — sharp oval, blurred everywhere else', () => {
 });
 
 describe('screen overlays — a category painted over the whole frame', () => {
-    it('offers None, Raindrops and Snowfall, and starts on None', () => {
-        expect(SCREEN_PRESETS.map((p) => p.id)).toEqual(['none', 'raindrops', 'snowfall']);
+    it('offers None, the two weather particles and the two weather lights, and starts on None', () => {
+        expect(SCREEN_PRESETS.map((p) => p.id)).toEqual(['none', 'raindrops', 'snowfall', 'sunny', 'windy']);
         expect(DEFAULT_SCREEN_ID).toBe('none');
         expect(emptySelection().screenId).toBe('none');
         expect(resolveScreenId('bogus')).toBe('none');
@@ -458,6 +468,111 @@ describe('snowfall — small white dots falling straight down with a wobble', ()
         expect(toggleScreenId('raindrops', 'snowfall')).toBe('snowfall');
         expect(toggleScreenId('snowfall', 'snowfall')).toBe('none');
         expect(isLookActive({ filterId: 'none', lensId: 'none', screenId: 'snowfall', slots: {} })).toBe(true);
+    });
+});
+
+
+describe('sunny day — warm glow, slow rays, pollen', () => {
+    const base = { canvasWidth: 1080, canvasHeight: 1920 };
+    function makeCtx() {
+        const calls = { gradients: 0, rects: 0, arcs: 0, fills: 0, composite: [] };
+        return {
+            calls,
+            _op: 'source-over',
+            get globalCompositeOperation() { return this._op; },
+            set globalCompositeOperation(v) { calls.composite.push(v); this._op = v; },
+            save() {}, restore() {},
+            beginPath() {}, moveTo() {}, lineTo() {}, closePath() {},
+            createRadialGradient() { calls.gradients += 1; return { addColorStop() {} }; },
+            fillRect() { calls.rects += 1; },
+            arc() { calls.arcs += 1; },
+            fill() { calls.fills += 1; },
+            fillStyle: '', globalAlpha: 1,
+        };
+    }
+
+    it('puts the sun high and to the right, clear of the face zone and the rail', () => {
+        expect(SUN_POSITION.cy).toBeLessThan(0.2);
+        expect(SUN_POSITION.cx).toBeGreaterThan(0.65);
+    });
+
+    it('pollen motes drift up and twinkle, deterministically', () => {
+        const a = resolvePollenMote({ index: 1, ...base, timeMs: 0 });
+        const again = resolvePollenMote({ index: 1, ...base, timeMs: 0 });
+        const later = resolvePollenMote({ index: 1, ...base, timeMs: 4000 });
+        expect(a).toEqual(again);
+        // upward drift (y shrinks) — compare positions inside one pass
+        expect(later.y).toBeLessThan(a.y + 1);
+        expect(later.alpha).not.toBe(a.alpha);
+        expect(a.alpha).toBeGreaterThan(0);
+        expect(a.alpha).toBeLessThanOrEqual(0.6);
+    });
+
+    it('paints a screened glow, the rays, then the pollen', () => {
+        const ctx = makeCtx();
+        expect(paintSunny({ ctx, ...base, timeMs: 500 })).toBe(true);
+        // the bloom around the sun + its bright core
+        expect(ctx.calls.gradients).toBe(2);
+        expect(ctx.calls.rects).toBe(2);
+        expect(ctx.calls.composite[0]).toBe('screen');
+        // ray triangles + pollen dots
+        expect(ctx.calls.fills).toBe(SUN_RAY_COUNT + POLLEN_COUNT);
+        expect(ctx.calls.arcs).toBe(POLLEN_COUNT);
+    });
+
+    it('is dispatched from the screen painter', () => {
+        const ctx = makeCtx();
+        expect(paintScreenOverlay({ ctx, ...base, screenId: 'sunny', timeMs: 500 })).toBe('sunny');
+    });
+});
+
+describe('windy day — gusts and tumbling leaves', () => {
+    const base = { canvasWidth: 1080, canvasHeight: 1920 };
+    function makeCtx() {
+        const calls = { strokes: 0, fills: 0, ellipses: 0, transforms: 0 };
+        return {
+            calls,
+            save() {}, restore() {},
+            beginPath() {}, moveTo() {}, quadraticCurveTo() {}, closePath() {},
+            stroke() { calls.strokes += 1; },
+            fill() { calls.fills += 1; },
+            translate() { calls.transforms += 1; },
+            rotate() {},
+            ellipse() { calls.ellipses += 1; },
+            strokeStyle: '', fillStyle: '', lineWidth: 1, lineCap: 'butt', globalAlpha: 1,
+        };
+    }
+
+    it('gusts sweep left to right, deterministically', () => {
+        const a = resolveGust({ index: 2, ...base, timeMs: 0 });
+        expect(a).toEqual(resolveGust({ index: 2, ...base, timeMs: 0 }));
+        const later = resolveGust({ index: 2, ...base, timeMs: 600 });
+        // same pass (no wrap): x grows with time
+        expect(later.x).toBeGreaterThan(a.x);
+        expect(a.length).toBeGreaterThan(0);
+        expect(a.width).toBeGreaterThan(0);
+    });
+
+    it('leaves tumble: they move right and rotate as time passes', () => {
+        const a = resolveWindLeaf({ index: 3, ...base, timeMs: 0 });
+        expect(a).toEqual(resolveWindLeaf({ index: 3, ...base, timeMs: 0 }));
+        const later = resolveWindLeaf({ index: 3, ...base, timeMs: 300 });
+        expect(later.x).toBeGreaterThan(a.x);
+        expect(later.rotation).not.toBe(a.rotation);
+        expect(a.rx).toBeGreaterThan(a.ry);
+    });
+
+    it('paints one stroke per gust and one ellipse per leaf', () => {
+        const ctx = makeCtx();
+        expect(paintWindy({ ctx, ...base, timeMs: 700 })).toBe(true);
+        expect(ctx.calls.strokes).toBe(GUST_COUNT);
+        expect(ctx.calls.ellipses).toBe(WIND_LEAF_COUNT);
+        expect(ctx.calls.fills).toBe(WIND_LEAF_COUNT);
+    });
+
+    it('is dispatched from the screen painter', () => {
+        const ctx = makeCtx();
+        expect(paintScreenOverlay({ ctx, ...base, screenId: 'windy', timeMs: 700 })).toBe('windy');
     });
 });
 
