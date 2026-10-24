@@ -375,6 +375,9 @@ Headless recipe (local dev on `:3000`):
 - Advance past the intro: click `#intro-call-widget`.
 - Simulate engine loading/failure by routing `**r2.ultrafastfluency.com/whisper/**` (and `**cdn.jsdelivr.net/**`) to hang or abort; call `window.appStore.getState().setWhisperReady(true)` to reach the mic path without a full model download.
 - Headless Chromium has no media devices, so `getUserMedia` rejects — use this for the no-mic recovery path.
+- **To drive a recording step end to end, launch with `--use-fake-device-for-media-stream` + `--use-fake-ui-for-media-stream`** (real Chrome/Chromium both accept them): the fake camera/mic give a genuine `MediaRecorder` take, so the Continue → preview → `#micBtn` → stop path can be observed.
+- **Setting store state by hand does NOT register the speech-input callback.** `#responseAnswerBtn`/`#micBtn` call `getSpeechInputToggleCallback()`, which `loadStep` sets. A driver that fakes `currentVideo`/`currentStepIndex`/`appPhase` gets a correctly rendered button that silently does nothing when clicked. Load the step through the app's own loader inside `page.evaluate` instead: `const { loadStep } = await import('/src/components/step-loader.web.js'); await loadStep(step, lesson, null, {})`, then set the phase you want to inspect. That is how the friendClosedResponse retry screen was verified.
+- **The animated glow buttons are never "stable"** — `page.click('#responseAnswerBtn')` retries until it times out with `element is not stable`. Use `locator.dispatchEvent('click')`.
 
 **Authentication**
 Do not log in unless the task explicitly requires it — login interferes with guest-user testing.
