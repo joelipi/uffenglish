@@ -182,21 +182,22 @@ export const OVERLAY_MODES = ['none', 'hat', 'desk', 'frame'];
  * - vignette: gentle multiply at the edges so the room reads less
  */
 export const BEAUTY_PRESETS = {
-    none: { softFocus: 0, fillLight: 0, warmth: 0, vignette: 0 },
-    soft: { softFocus: 0.45, fillLight: 0.12, warmth: 0.06, vignette: 0.10 },
-    glow: { softFocus: 0.30, fillLight: 0.24, warmth: 0.10, vignette: 0.14 },
-    warm: { softFocus: 0.14, fillLight: 0.10, warmth: 0.26, vignette: 0.08 },
+    none: { softFocus: 0, frost: 0, fillLight: 0, warmth: 0, vignette: 0 },
+    soft: { softFocus: 0.45, frost: 0, fillLight: 0.12, warmth: 0.06, vignette: 0.10 },
+    glow: { softFocus: 0.30, frost: 0, fillLight: 0.24, warmth: 0.10, vignette: 0.14 },
+    warm: { softFocus: 0.14, frost: 0, fillLight: 0.10, warmth: 0.26, vignette: 0.08 },
     // Lens effects (stories/092): their own category, independent of the filter
     // presets above, so a learner can combine a grade with either of these.
     // Same levers, no new painters and no face tracking: the effect is centred
     // on the assumed face zone of the fixed 9:16 frame.
     //   softFocus  — a strong bloom over the whole frame, dreamy edges.
     //   chiaroscuro — a lit centre with the surround falling into shadow.
-    lensSoftFocus: { softFocus: 0.62, fillLight: 0.14, warmth: 0.04, vignette: 0 },
-    lensChiaroscuro: { softFocus: 0.06, fillLight: 0.34, warmth: 0.18, vignette: 0.78 },
-    // Close-up: the soft-focus pass alone, at full strength, cut around the
-    // sharp oval (`hole`), so the subject stays crisp inside it.
-    lensCloseUp: { softFocus: 0.95, fillLight: 0, warmth: 0, vignette: 0 },
+    lensSoftFocus: { softFocus: 0.62, frost: 0, fillLight: 0.14, warmth: 0.04, vignette: 0 },
+    lensChiaroscuro: { softFocus: 0.06, frost: 0, fillLight: 0.34, warmth: 0.18, vignette: 0.78 },
+    // Close-up: a frosted pane around the sharp oval — the soft-focus pass at
+    // full strength plus a white veil over it (both cut around the same
+    // `hole`), so what is behind the glass is still there but indistinct.
+    lensCloseUp: { softFocus: 0.95, frost: 0.38, fillLight: 0, warmth: 0, vignette: 0 },
 };
 
 /** Placement is a rule, not baked pixel math: top / bottom / full cover-fit. */
@@ -280,6 +281,40 @@ export function resolveOverlayDestRect({ imageWidth, imageHeight, canvasWidth, c
  * back at `strength`. Same downscale/upscale technique as the blur filter, which
  * is why it costs two drawImage calls and needs no shader.
  */
+/**
+ * Clip the frame MINUS the oval (the close-up lens' sharp zone). Building the
+ * path as frame-rect + counter-clockwise ellipse and clipping with the
+ * even-odd rule leaves a hole, so nothing painted under this clip can touch
+ * the subject's own pixels.
+ */
+function clipOutsideHole({ ctx, canvasWidth, canvasHeight, hole }) {
+    ctx.beginPath();
+    ctx.rect(0, 0, canvasWidth, canvasHeight);
+    ctx.ellipse(hole.cx, hole.cy, hole.rx, hole.ry, 0, 0, Math.PI * 2, true);
+    ctx.clip('evenodd');
+}
+
+/**
+ * White frost over the given region (the whole frame, or outside the close-up
+ * oval). Sits on top of the blur: the shapes behind it stay visible, but as a
+ * frosted pane rather than a smeared one.
+ */
+export function paintFrost({ ctx, canvasWidth, canvasHeight, hole, alpha }) {
+    if (!ctx) return false;
+    if (!(alpha > 0)) return false;
+    try {
+        ctx.save();
+        if (hole) clipOutsideHole({ ctx, canvasWidth, canvasHeight, hole });
+        ctx.fillStyle = 'rgb(255, 255, 255)';
+        ctx.globalAlpha = Math.min(1, Math.max(0, alpha));
+        ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+        ctx.restore();
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
 export function paintSoftFocus({ ctx, source, scratch, canvasWidth, canvasHeight, strength, hole }) {
     if (!ctx || !source || !scratch) return false;
     if (!(strength > 0)) return false;
@@ -293,16 +328,10 @@ export function paintSoftFocus({ ctx, source, scratch, canvasWidth, canvasHeight
         sctx.imageSmoothingEnabled = true;
         sctx.drawImage(source, 0, 0, canvasWidth, canvasHeight, 0, 0, sw, sh);
         ctx.save();
-        if (hole) {
-            // Close-up lens: blur everywhere EXCEPT the oval. Clipping the frame
-            // rect plus the (counter-clockwise) ellipse with the even-odd rule
-            // leaves a hole, so the subject's own pixels are never overwritten —
-            // no second full-size canvas and no `ctx.filter` (an iOS no-op).
-            ctx.beginPath();
-            ctx.rect(0, 0, canvasWidth, canvasHeight);
-            ctx.ellipse(hole.cx, hole.cy, hole.rx, hole.ry, 0, 0, Math.PI * 2, true);
-            ctx.clip('evenodd');
-        }
+        // Close-up lens: blur everywhere EXCEPT the oval, so the subject's own
+        // pixels are never overwritten — no second full-size canvas and no
+        // `ctx.filter` (an iOS no-op).
+        if (hole) clipOutsideHole({ ctx, canvasWidth, canvasHeight, hole });
         ctx.globalAlpha = Math.min(1, Math.max(0, strength));
         ctx.imageSmoothingEnabled = true;
         ctx.drawImage(scratch, 0, 0, sw, sh, 0, 0, canvasWidth, canvasHeight);
@@ -382,6 +411,7 @@ export function paintBeautyPass({ ctx, source, scratch, canvasWidth, canvasHeigh
     if (!preset || mode === 'none') return 'none';
     const painted = [
         paintSoftFocus({ ctx, source, scratch, canvasWidth, canvasHeight, strength: preset.softFocus, hole }),
+        paintFrost({ ctx, canvasWidth, canvasHeight, hole: preset.frost > 0 ? hole : null, alpha: preset.frost }),
         paintFillLight({ ctx, canvasWidth, canvasHeight, strength: preset.fillLight }),
         paintTone({ ctx, canvasWidth, canvasHeight, warmth: preset.warmth, vignette: preset.vignette }),
     ];

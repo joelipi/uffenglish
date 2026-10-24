@@ -21,6 +21,7 @@ import {
     BEAUTY_PRESETS,
     paintBeautyPass,
     paintSoftFocus,
+    paintFrost,
 } from './portrait-capture-logic.js';
 
 describe('resolveCompositeDimensions', () => {
@@ -471,7 +472,7 @@ describe('lens effect presets (stories/092)', () => {
 
 describe('close-up lens hole (stories/092)', () => {
     function makeCtx() {
-        const calls = { clip: [], ellipse: 0, rect: 0, draws: 0 };
+        const calls = { clip: [], ellipse: 0, rect: 0, draws: 0, fills: 0 };
         return {
             calls,
             save() {}, restore() {},
@@ -480,6 +481,8 @@ describe('close-up lens hole (stories/092)', () => {
             ellipse() { calls.ellipse += 1; },
             clip(rule) { calls.clip.push(rule); },
             drawImage() { calls.draws += 1; },
+            fillRect() { calls.fills += 1; },
+            fillStyle: '',
             imageSmoothingEnabled: true,
             globalAlpha: 1,
         };
@@ -495,6 +498,9 @@ describe('close-up lens hole (stories/092)', () => {
         expect(preset.softFocus).toBeGreaterThan(BEAUTY_PRESETS.soft.softFocus);
         expect(preset.fillLight).toBe(0);
         expect(preset.vignette).toBe(0);
+        // the frost is what makes it read as a pane of glass, not a smear
+        expect(preset.frost).toBeGreaterThan(0.2);
+        expect(preset.frost).toBeLessThan(0.6);
     });
 
     it('blurs only outside the oval, and leaves the frame whole when there is no hole', () => {
@@ -527,7 +533,7 @@ describe('close-up lens hole (stories/092)', () => {
         expect(whole.calls.draws).toBe(1);
     });
 
-    it('threads the hole through paintBeautyPass', () => {
+    it('threads the hole through paintBeautyPass, for the blur AND the frost', () => {
         const ctx = makeCtx();
         expect(paintBeautyPass({
             ctx,
@@ -538,6 +544,29 @@ describe('close-up lens hole (stories/092)', () => {
             mode: 'lensCloseUp',
             hole: { cx: 540, cy: 730, rx: 389, ry: 614 },
         })).toBe('lensCloseUp');
-        expect(ctx.calls.clip).toEqual(['evenodd']);
+        // blur clipped to outside-the-oval, then the white veil clipped the same way
+        expect(ctx.calls.clip).toEqual(['evenodd', 'evenodd']);
+    });
+
+    it('frosts only outside the oval, and only when asked', () => {
+        const holed = makeCtx();
+        expect(paintFrost({
+            ctx: holed,
+            canvasWidth: 1080,
+            canvasHeight: 1920,
+            hole: { cx: 540, cy: 730, rx: 389, ry: 614 },
+            alpha: 0.38,
+        })).toBe(true);
+        expect(holed.calls.clip).toEqual(['evenodd']);
+        expect(holed.calls.fills).toBe(1);
+
+        const whole = makeCtx();
+        expect(paintFrost({ ctx: whole, canvasWidth: 1080, canvasHeight: 1920, alpha: 0.2 })).toBe(true);
+        expect(whole.calls.clip).toEqual([]);
+        expect(whole.calls.fills).toBe(1);
+
+        const off = makeCtx();
+        expect(paintFrost({ ctx: off, canvasWidth: 1080, canvasHeight: 1920, alpha: 0 })).toBe(false);
+        expect(off.calls.fills).toBe(0);
     });
 });
