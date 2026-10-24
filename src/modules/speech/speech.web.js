@@ -100,6 +100,9 @@ let compositeCanvasEl = null;
 // ---------------------------------------------------------------------------
 // Scratch canvas for the soft-focus downscale/upscale blend.
 let lookScratchCanvas = null;
+// Second scratch, sized to the close-up lens' oval: the sharp region with a
+// feathered alpha mask, drawn back over the blur.
+let lookMaskCanvas = null;
 
 // Decoded overlay images, keyed by slug. Loaded on demand and dropped with the
 // composite so a phone does not hold five full-size PNGs through Whisper.
@@ -135,6 +138,7 @@ function primeLookImages(selection) {
 function clearLookState() {
     lookImages.clear();
     lookScratchCanvas = null;
+    lookMaskCanvas = null;
 }
 
 let recognition = null;
@@ -244,10 +248,12 @@ function createPortraitCaptureStream(rawStream) {
         if (!painted) return false;
         const state = appStore.getState();
         if (!lookScratchCanvas) lookScratchCanvas = document.createElement('canvas');
+        if (!lookMaskCanvas) lookMaskCanvas = document.createElement('canvas');
         paintLooks({
             ctx,
             source: canvas,
             scratch: lookScratchCanvas,
+            maskCanvas: lookMaskCanvas,
             canvasWidth: canvas.width,
             canvasHeight: canvas.height,
             selection: state.lookSelection,

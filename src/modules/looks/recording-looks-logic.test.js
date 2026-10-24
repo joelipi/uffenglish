@@ -271,9 +271,10 @@ describe('close-up lens — sharp oval, blurred everywhere else', () => {
         expect(hole.cy + hole.ry).toBeLessThan(0.7 * 1920);
     });
 
-    it('passes the oval to the painter only for the close-up lens', () => {
+    it('passes the oval and the mask canvas to the painter only for the close-up lens', () => {
         const calls = [];
-        const paintBeauty = vi.fn(({ mode, hole }) => { calls.push({ mode, hole }); return mode; });
+        const paintBeauty = vi.fn(({ mode, hole, maskCanvas }) => { calls.push({ mode, hole, maskCanvas }); return mode; });
+        const maskCanvas = { width: 0, height: 0 };
         const paint = (lensId) => paintLooks({
             ctx: {},
             source: {},
@@ -284,14 +285,17 @@ describe('close-up lens — sharp oval, blurred everywhere else', () => {
             tuning: emptyTuning(),
             images: {},
             paintBeauty,
+            maskCanvas,
         });
         paint('closeup');
         expect(calls[0].mode).toBe('lensCloseUp');
         expect(calls[0].hole).toEqual(resolveCloseUpHole(1080, 1920));
+        expect(calls[0].maskCanvas).toBe(maskCanvas);
         calls.length = 0;
         paint('softfocus');
         expect(calls[0].mode).toBe('lensSoftFocus');
         expect(calls[0].hole).toBeNull();
+        expect(calls[0].maskCanvas).toBeNull();
     });
 });
 

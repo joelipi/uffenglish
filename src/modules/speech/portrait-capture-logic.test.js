@@ -22,6 +22,9 @@ import {
     paintBeautyPass,
     paintSoftFocus,
     paintFrost,
+    prepareCloseUpMask,
+    paintCloseUpSharp,
+    resolveCloseUpBox,
 } from './portrait-capture-logic.js';
 
 describe('resolveCompositeDimensions', () => {
@@ -470,9 +473,11 @@ describe('lens effect presets (stories/092)', () => {
     });
 });
 
-describe('close-up lens hole (stories/092)', () => {
+describe('close-up lens: feathered sharp oval (stories/092)', () => {
+    const hole = { cx: 540, cy: 768, rx: 400, ry: 461 };
+
     function makeCtx() {
-        const calls = { clip: [], ellipse: 0, rect: 0, draws: 0, fills: 0 };
+        const calls = { clip: [], ellipse: 0, rect: 0, draws: [], fills: 0 };
         return {
             calls,
             save() {}, restore() {},
@@ -480,7 +485,7 @@ describe('close-up lens hole (stories/092)', () => {
             rect() { calls.rect += 1; },
             ellipse() { calls.ellipse += 1; },
             clip(rule) { calls.clip.push(rule); },
-            drawImage() { calls.draws += 1; },
+            drawImage(...args) { calls.draws.push(args.length); },
             fillRect() { calls.fills += 1; },
             fillStyle: '',
             imageSmoothingEnabled: true,
@@ -492,79 +497,111 @@ describe('close-up lens hole (stories/092)', () => {
         height: 0,
         getContext: () => ({ imageSmoothingEnabled: true, drawImage() {} }),
     });
+    function makeMaskCanvas() {
+        const calls = { draws: 0, clears: 0, fills: 0, gradients: 0, composite: [] };
+        const ctx = {
+            _op: 'source-over',
+            get globalCompositeOperation() { return this._op; },
+            set globalCompositeOperation(v) { calls.composite.push(v); this._op = v; },
+            clearRect() { calls.clears += 1; },
+            drawImage() { calls.draws += 1; },
+            save() {}, restore() {},
+            translate() {}, scale() {},
+            createRadialGradient() { calls.gradients += 1; return { addColorStop() {} }; },
+            fillRect() { calls.fills += 1; },
+            fillStyle: '',
+        };
+        return { canvas: { width: 0, height: 0, getContext: () => ctx }, calls };
+    }
 
-    it('keeps the soft-focus preset for the other lenses', () => {
+    it('keeps the frosted-pane preset for the close-up lens', () => {
         const preset = BEAUTY_PRESETS.lensCloseUp;
         expect(preset.softFocus).toBeGreaterThan(BEAUTY_PRESETS.soft.softFocus);
-        expect(preset.fillLight).toBe(0);
-        expect(preset.vignette).toBe(0);
-        // the frost is what makes it read as a pane of glass, not a smear
         expect(preset.frost).toBeGreaterThan(0.4);
         expect(preset.frost).toBeLessThan(0.7);
+        expect(preset.fillLight).toBe(0);
+        expect(preset.vignette).toBe(0);
     });
 
-    it('blurs only outside the oval, and leaves the frame whole when there is no hole', () => {
-        const holed = makeCtx();
-        expect(paintSoftFocus({
-            ctx: holed,
-            source: {},
-            scratch: makeScratch(),
-            canvasWidth: 1080,
-            canvasHeight: 1920,
-            strength: 0.95,
-            hole: { cx: 540, cy: 730, rx: 389, ry: 614 },
-        })).toBe(true);
-        expect(holed.calls.rect).toBe(1);
-        expect(holed.calls.ellipse).toBe(1);
-        // even-odd is what turns the ellipse into a hole
-        expect(holed.calls.clip).toEqual(['evenodd']);
-        expect(holed.calls.draws).toBe(1);
-
-        const whole = makeCtx();
-        expect(paintSoftFocus({
-            ctx: whole,
-            source: {},
-            scratch: makeScratch(),
-            canvasWidth: 1080,
-            canvasHeight: 1920,
-            strength: 0.3,
-        })).toBe(true);
-        expect(whole.calls.clip).toEqual([]);
-        expect(whole.calls.draws).toBe(1);
+    it('boxes the oval in canvas pixels', () => {
+        expect(resolveCloseUpBox({ hole, canvasWidth: 1080, canvasHeight: 1920 }))
+            .toEqual({ x: 140, y: 307, w: 800, h: 922 });
+        expect(resolveCloseUpBox({ hole: null, canvasWidth: 1080, canvasHeight: 1920 })).toBeNull();
     });
 
-    it('threads the hole through paintBeautyPass, for the blur AND the frost', () => {
+    it('snapshots the region and feathers it with a radial alpha mask', () => {
+        const mask = makeMaskCanvas();
+        expect(prepareCloseUpMask({
+            source: {},
+            maskCanvas: mask.canvas,
+            hole,
+            canvasWidth: 1080,
+            canvasHeight: 1920,
+        })).toBe(true);
+        // sized to the oval's box, one copy in, one gradient, one masked fill
+        expect(mask.canvas.width).toBe(800);
+        expect(mask.canvas.height).toBe(922);
+        expect(mask.calls.clears).toBe(1);
+        expect(mask.calls.draws).toBe(1);
+        expect(mask.calls.gradients).toBe(1);
+        expect(mask.calls.fills).toBe(1);
+        // destination-in is what fades the rim; the op is restored afterwards
+        expect(mask.calls.composite).toEqual(['source-over', 'destination-in', 'source-over']);
+    });
+
+    it('draws the masked oval back at its own position', () => {
         const ctx = makeCtx();
+        const mask = makeMaskCanvas();
+        // nothing prepared yet → nothing to draw
+        expect(paintCloseUpSharp({
+            ctx,
+            maskCanvas: mask.canvas,
+            hole,
+            canvasWidth: 1080,
+            canvasHeight: 1920,
+        })).toBe(false);
+        prepareCloseUpMask({ source: {}, maskCanvas: mask.canvas, hole, canvasWidth: 1080, canvasHeight: 1920 });
+        expect(paintCloseUpSharp({
+            ctx,
+            maskCanvas: mask.canvas,
+            hole,
+            canvasWidth: 1080,
+            canvasHeight: 1920,
+        })).toBe(true);
+        expect(ctx.calls.draws.length).toBe(1);
+        // the sharp layer goes back exactly where it was cut from
+        expect(paintCloseUpSharp({ ctx: { drawImage() {} }, maskCanvas: { width: 0, height: 0 }, hole, canvasWidth: 1080, canvasHeight: 1920 })).toBe(false);
+    });
+
+    it('blurs and frosts the whole frame, then restores the sharp oval over both', () => {
+        const ctx = makeCtx();
+        const mask = makeMaskCanvas();
+        const order = [];
+        const maskDraw = mask.canvas.getContext();
+        maskDraw.drawImage = () => order.push('mask-copy');
+        const realDraw = ctx.drawImage;
+        ctx.drawImage = (...args) => { order.push(args[0] === mask.canvas ? 'mask-back' : 'blur'); realDraw(...args); };
+        ctx.fillRect = () => order.push('frost');
         expect(paintBeautyPass({
             ctx,
             source: {},
             scratch: makeScratch(),
+            maskCanvas: mask.canvas,
             canvasWidth: 1080,
             canvasHeight: 1920,
             mode: 'lensCloseUp',
-            hole: { cx: 540, cy: 730, rx: 389, ry: 614 },
+            hole,
         })).toBe('lensCloseUp');
-        // blur clipped to outside-the-oval, then the white veil clipped the same way
-        expect(ctx.calls.clip).toEqual(['evenodd', 'evenodd']);
+        // the sharp pixels are captured before the blur overwrites them
+        expect(order).toEqual(['mask-copy', 'blur', 'frost', 'mask-back']);
+        // no hard clip is used anywhere in the feathered path
+        expect(ctx.calls.clip).toEqual([]);
     });
 
-    it('frosts only outside the oval, and only when asked', () => {
-        const holed = makeCtx();
-        expect(paintFrost({
-            ctx: holed,
-            canvasWidth: 1080,
-            canvasHeight: 1920,
-            hole: { cx: 540, cy: 730, rx: 389, ry: 614 },
-            alpha: 0.38,
-        })).toBe(true);
-        expect(holed.calls.clip).toEqual(['evenodd']);
-        expect(holed.calls.fills).toBe(1);
-
+    it('frosts the whole frame, and paints nothing at alpha 0', () => {
         const whole = makeCtx();
-        expect(paintFrost({ ctx: whole, canvasWidth: 1080, canvasHeight: 1920, alpha: 0.2 })).toBe(true);
-        expect(whole.calls.clip).toEqual([]);
+        expect(paintFrost({ ctx: whole, canvasWidth: 1080, canvasHeight: 1920, alpha: 0.55 })).toBe(true);
         expect(whole.calls.fills).toBe(1);
-
         const off = makeCtx();
         expect(paintFrost({ ctx: off, canvasWidth: 1080, canvasHeight: 1920, alpha: 0 })).toBe(false);
         expect(off.calls.fills).toBe(0);

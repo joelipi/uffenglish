@@ -281,30 +281,85 @@ export function resolveOverlayDestRect({ imageWidth, imageHeight, canvasWidth, c
  * back at `strength`. Same downscale/upscale technique as the blur filter, which
  * is why it costs two drawImage calls and needs no shader.
  */
-/**
- * Clip the frame MINUS the oval (the close-up lens' sharp zone). Building the
- * path as frame-rect + counter-clockwise ellipse and clipping with the
- * even-odd rule leaves a hole, so nothing painted under this clip can touch
- * the subject's own pixels.
- */
-function clipOutsideHole({ ctx, canvasWidth, canvasHeight, hole }) {
-    ctx.beginPath();
-    ctx.rect(0, 0, canvasWidth, canvasHeight);
-    ctx.ellipse(hole.cx, hole.cy, hole.rx, hole.ry, 0, 0, Math.PI * 2, true);
-    ctx.clip('evenodd');
+/** Fraction of the oval radius that stays fully sharp before the fade starts. */
+export const CLOSE_UP_FEATHER_START = 0.84;
+
+/** The oval's pixel bounding box, clamped to the frame. */
+export function resolveCloseUpBox({ hole, canvasWidth, canvasHeight }) {
+    if (!hole) return null;
+    const x = Math.max(0, Math.round(hole.cx - hole.rx));
+    const y = Math.max(0, Math.round(hole.cy - hole.ry));
+    const w = Math.min(canvasWidth - x, Math.round(hole.rx * 2));
+    const h = Math.min(canvasHeight - y, Math.round(hole.ry * 2));
+    if (!(w > 1) || !(h > 1)) return null;
+    return { x, y, w, h };
 }
 
 /**
- * White frost over the given region (the whole frame, or outside the close-up
- * oval). Sits on top of the blur: the shapes behind it stay visible, but as a
- * frosted pane rather than a smeared one.
+ * Snapshot the oval's region BEFORE the blur is painted and give it a feathered
+ * elliptical alpha mask (opaque centre, transparent rim). Drawing that layer
+ * back over the blurred frame is what makes the close-up lens fade into the
+ * frost instead of being cut out of it with a crisp edge.
  */
-export function paintFrost({ ctx, canvasWidth, canvasHeight, hole, alpha }) {
+export function prepareCloseUpMask({ source, maskCanvas, hole, canvasWidth, canvasHeight }) {
+    if (!source || !maskCanvas || !hole) return false;
+    const box = resolveCloseUpBox({ hole, canvasWidth, canvasHeight });
+    if (!box) return false;
+    try {
+        if (maskCanvas.width !== box.w) maskCanvas.width = box.w;
+        if (maskCanvas.height !== box.h) maskCanvas.height = box.h;
+        const mctx = maskCanvas.getContext('2d');
+        if (!mctx) return false;
+        mctx.globalCompositeOperation = 'source-over';
+        mctx.clearRect(0, 0, box.w, box.h);
+        mctx.drawImage(source, box.x, box.y, box.w, box.h, 0, 0, box.w, box.h);
+        // `destination-in` multiplies the copied pixels' alpha by the gradient's,
+        // so the rim fades to nothing and the layer has no hard edge.
+        const lcx = hole.cx - box.x;
+        const lcy = hole.cy - box.y;
+        const verticalScale = hole.ry / hole.rx;
+        mctx.globalCompositeOperation = 'destination-in';
+        mctx.save();
+        mctx.translate(lcx, lcy);
+        mctx.scale(1, verticalScale);
+        const gradient = mctx.createRadialGradient(0, 0, hole.rx * CLOSE_UP_FEATHER_START, 0, 0, hole.rx);
+        gradient.addColorStop(0, 'rgba(0,0,0,1)');
+        gradient.addColorStop(1, 'rgba(0,0,0,0)');
+        mctx.fillStyle = gradient;
+        mctx.fillRect(-lcx, -lcy / verticalScale, box.w, box.h / verticalScale);
+        mctx.restore();
+        mctx.globalCompositeOperation = 'source-over';
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
+/** Draw the masked sharp region back over the blurred/frosted frame. */
+export function paintCloseUpSharp({ ctx, maskCanvas, hole, canvasWidth, canvasHeight }) {
+    if (!ctx || !maskCanvas || !hole) return false;
+    const box = resolveCloseUpBox({ hole, canvasWidth, canvasHeight });
+    if (!box) return false;
+    if (!(maskCanvas.width > 0) || !(maskCanvas.height > 0)) return false;
+    try {
+        ctx.drawImage(maskCanvas, box.x, box.y);
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
+/**
+ * White frost over the frame. Sits on top of the blur: the shapes behind it
+ * stay visible, but as a frosted pane rather than a smeared one. The close-up
+ * lens then draws its masked sharp region back over this, so the frost only
+ * survives outside that fade.
+ */
+export function paintFrost({ ctx, canvasWidth, canvasHeight, alpha }) {
     if (!ctx) return false;
     if (!(alpha > 0)) return false;
     try {
         ctx.save();
-        if (hole) clipOutsideHole({ ctx, canvasWidth, canvasHeight, hole });
         ctx.fillStyle = 'rgb(255, 255, 255)';
         ctx.globalAlpha = Math.min(1, Math.max(0, alpha));
         ctx.fillRect(0, 0, canvasWidth, canvasHeight);
@@ -315,7 +370,7 @@ export function paintFrost({ ctx, canvasWidth, canvasHeight, hole, alpha }) {
     }
 }
 
-export function paintSoftFocus({ ctx, source, scratch, canvasWidth, canvasHeight, strength, hole }) {
+export function paintSoftFocus({ ctx, source, scratch, canvasWidth, canvasHeight, strength }) {
     if (!ctx || !source || !scratch) return false;
     if (!(strength > 0)) return false;
     const sw = Math.max(1, Math.round(canvasWidth / SOFT_FOCUS_DOWNSCALE));
@@ -328,10 +383,6 @@ export function paintSoftFocus({ ctx, source, scratch, canvasWidth, canvasHeight
         sctx.imageSmoothingEnabled = true;
         sctx.drawImage(source, 0, 0, canvasWidth, canvasHeight, 0, 0, sw, sh);
         ctx.save();
-        // Close-up lens: blur everywhere EXCEPT the oval, so the subject's own
-        // pixels are never overwritten — no second full-size canvas and no
-        // `ctx.filter` (an iOS no-op).
-        if (hole) clipOutsideHole({ ctx, canvasWidth, canvasHeight, hole });
         ctx.globalAlpha = Math.min(1, Math.max(0, strength));
         ctx.imageSmoothingEnabled = true;
         ctx.drawImage(scratch, 0, 0, sw, sh, 0, 0, canvasWidth, canvasHeight);
@@ -406,15 +457,31 @@ export function paintTone({ ctx, canvasWidth, canvasHeight, warmth, vignette }) 
  * mode that was actually painted ('none' for an unknown mode or a painter that
  * threw), so the adapter can log it.
  */
-export function paintBeautyPass({ ctx, source, scratch, canvasWidth, canvasHeight, mode, hole = null }) {
+export function paintBeautyPass({
+    ctx,
+    source,
+    scratch,
+    maskCanvas = null,
+    canvasWidth,
+    canvasHeight,
+    mode,
+    hole = null,
+}) {
     const preset = BEAUTY_PRESETS[mode];
     if (!preset || mode === 'none') return 'none';
-    const painted = [
-        paintSoftFocus({ ctx, source, scratch, canvasWidth, canvasHeight, strength: preset.softFocus, hole }),
-        paintFrost({ ctx, canvasWidth, canvasHeight, hole: preset.frost > 0 ? hole : null, alpha: preset.frost }),
-        paintFillLight({ ctx, canvasWidth, canvasHeight, strength: preset.fillLight }),
-        paintTone({ ctx, canvasWidth, canvasHeight, warmth: preset.warmth, vignette: preset.vignette }),
-    ];
+    const painted = [];
+    // Snapshot the sharp oval FIRST: after the blur is painted there is nothing
+    // sharp left to restore.
+    if (hole && maskCanvas) {
+        painted.push(prepareCloseUpMask({ source, maskCanvas, hole, canvasWidth, canvasHeight }));
+    }
+    painted.push(paintSoftFocus({ ctx, source, scratch, canvasWidth, canvasHeight, strength: preset.softFocus }));
+    painted.push(paintFrost({ ctx, canvasWidth, canvasHeight, alpha: preset.frost }));
+    if (hole && maskCanvas) {
+        painted.push(paintCloseUpSharp({ ctx, maskCanvas, hole, canvasWidth, canvasHeight }));
+    }
+    painted.push(paintFillLight({ ctx, canvasWidth, canvasHeight, strength: preset.fillLight }));
+    painted.push(paintTone({ ctx, canvasWidth, canvasHeight, warmth: preset.warmth, vignette: preset.vignette }));
     return painted.some(Boolean) ? mode : 'none';
 }
 

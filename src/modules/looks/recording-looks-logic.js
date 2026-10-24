@@ -561,6 +561,7 @@ export function paintLooks({
     tuning,
     images,
     paintBeauty,
+    maskCanvas = null,
     timeMs = 0,
 }) {
     if (!ctx) return { filter: 'none', lens: 'none', screen: 'none', slots: [] };
@@ -596,9 +597,10 @@ export function paintLooks({
             canvasWidth,
             canvasHeight,
             mode: lensPreset.beautyMode,
-            // Close-up cuts its sharp oval out of the blur; every other lens
+            // Close-up gets a feathered mask of its sharp oval; every other lens
             // treats the whole frame.
             hole: lensPreset.hole ? resolveCloseUpHole(canvasWidth, canvasHeight) : null,
+            maskCanvas: lensPreset.hole ? maskCanvas : null,
         });
         lensPainted = painted === 'none' ? 'none' : lensPreset.id;
     }
