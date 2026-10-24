@@ -1028,6 +1028,8 @@ describe('recorder auto-render — zero server changes', () => {
             'src/modules/looks/recording-looks-logic.js',
             'src/modules/looks/recording-looks-logic.test.js',
             'src/modules/looks/preview-gate.js',
+            'src/modules/looks/preview-gate.test.js',
+            'src/modules/lesson/lesson-loader.js',
             'src/components/looks/LookControls.jsx',
             'src/components/widgets/WebcamPreview.jsx',
             'src/components/widgets/IntroChoices.jsx',
