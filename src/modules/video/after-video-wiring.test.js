@@ -352,7 +352,18 @@ describe('the after-video loop starts itself on iPad', () => {
         expect(start).toContain('retryDelayMs(attempt)');
         expect(start).toContain('AFTER_VIDEO_PLAY_MAX_ATTEMPTS');
         // Giving up must reject (the processor then falls back to the blob).
-        expect(start).toContain('reject(error instanceof Error');
+        expect(start).toContain('settle(reject, error instanceof Error');
+    });
+
+    it('cancels the in-flight retry on teardown instead of reporting success', () => {
+        const start = sliceBetween(playerRaw, 'function startMutedPlayback(loop) {', 'function beginPlayback(loop) {');
+        expect(start).toContain('loop.playRetryTimer = setTimeout(');
+        // A torn-down or swapped loop must reject, not resolve: a false success
+        // skips the blob fallback and draws on a removed element.
+        expect(start).toContain('playback cancelled before it started');
+        expect(start).toContain('settle(reject,');
+        const teardown = sliceBetween(playerRaw, 'function teardownPlayback(loop) {', 'function drawLoop() {');
+        expect(teardown).toContain('clearTimeout(loop.playRetryTimer)');
     });
 
     it('reports the attempts to the console and the ?diag panel', () => {

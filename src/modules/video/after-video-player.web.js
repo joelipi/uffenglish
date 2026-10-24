@@ -140,6 +140,10 @@ function stopBufferSource(loop) {
 
 function teardownPlayback(loop) {
     if (!loop) return;
+    if (loop.playRetryTimer != null) {
+        try { clearTimeout(loop.playRetryTimer); } catch (e) { /* ignore */ }
+        loop.playRetryTimer = null;
+    }
     if (loop.rafId != null) {
         try {
             if (typeof cancelAnimationFrame === 'function') cancelAnimationFrame(loop.rafId);
@@ -208,32 +212,59 @@ export const AFTER_VIDEO_PLAY_MAX_ATTEMPTS = 3;
 function startMutedPlayback(loop) {
     return new Promise((resolve, reject) => {
         let attempt = 0;
+        let settled = false;
+
+        const clearRetry = () => {
+            if (loop.playRetryTimer != null) {
+                clearTimeout(loop.playRetryTimer);
+                loop.playRetryTimer = null;
+            }
+        };
+        const settle = (fn, value) => {
+            if (settled) return;
+            settled = true;
+            clearRetry();
+            fn(value);
+        };
+
         const handleRefused = (error) => {
+            if (settled) return;
             const name = error && error.name ? error.name : null;
             console.warn('[AfterVideo] play attempt ' + attempt + ' refused:', name || error);
             takeDiagnostics.push('after-video play refused', { attempt, name });
-            if (!shouldRetryStart({ attempt, errorName: name }) || attempt + 1 >= AFTER_VIDEO_PLAY_MAX_ATTEMPTS) {
-                reject(error instanceof Error ? error : new Error('[AfterVideo] muted playback refused'));
+            const attemptsLeft = attempt + 1 < AFTER_VIDEO_PLAY_MAX_ATTEMPTS;
+            if (!attemptsLeft || !shouldRetryStart({ attempt, errorName: name })) {
+                // Giving up must reject: the processor then falls back to the
+                // blob preview instead of leaving a blank canvas.
+                settle(reject, error instanceof Error ? error : new Error('[AfterVideo] muted playback refused'));
                 return;
             }
             const delay = retryDelayMs(attempt);
             attempt += 1;
-            setTimeout(() => {
-                if (activeLoop !== loop) { resolve(); return; }
+            loop.playRetryTimer = setTimeout(() => {
+                loop.playRetryTimer = null;
                 tryStart();
             }, delay === null ? 250 : delay);
         };
+
         const tryStart = () => {
-            if (activeLoop !== loop) { resolve(); return; }
+            if (settled) return;
+            // A torn-down or swapped loop must not be reported as started: the
+            // caller would then draw on a removed element and skip the fallback.
+            if (activeLoop !== loop) {
+                settle(reject, new Error('[AfterVideo] playback cancelled before it started'));
+                return;
+            }
             setElementMuted(loop.video, true);
             const state = { attempt, readyState: loop.video.readyState };
             console.log('[AfterVideo] play attempt', state);
             takeDiagnostics.push('after-video play attempt', state);
             const { promise, error } = playSafely(loop.video);
             if (error) { handleRefused(error); return; }
-            if (!promise) { resolve(); return; }
-            promise.then(() => resolve()).catch(handleRefused);
+            if (!promise) { settle(resolve); return; }
+            promise.then(() => settle(resolve)).catch(handleRefused);
         };
+
         tryStart();
     });
 }
@@ -264,7 +295,7 @@ async function buildLoopPlayback({ url, canvas, audioContext }) {
             })(),
             decodeUrlToBuffer(url, audioContext),
         ]);
-        return { video, decoded, canvas, audioContext, source: null, rafId: null, objectUrl: null, paused: true, lastTime: null };
+        return { video, decoded, canvas, audioContext, source: null, rafId: null, objectUrl: null, paused: true, lastTime: null, playRetryTimer: null };
     } catch (e) {
         try { video.pause(); } catch (ignored) { /* ignore */ }
         try {
