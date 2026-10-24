@@ -11,6 +11,7 @@ import userAvatar from '../../assets/img/userprofile.png';
 import aiAvatar from '../../assets/img/ai.webp';
 import { trackEvent } from '../utils/posthog.js';
 import { resolveNextStepIndex } from './branch-choice-logic.js';
+import { shouldCelebrateStepEnd } from './step-celebration-logic.js';
 
 export function createProgression(deps) {
     const {
@@ -78,6 +79,13 @@ export function createProgression(deps) {
             } else if (nextStep.simpleVideoUrl) {
                 appStore.getState().setPendingVideoPlayType('simple');
             }
+        }
+
+        // A friend closed-response step just finished: celebrate over the
+        // transition into the next step (the success step keeps its own,
+        // later effect — these are two different moments).
+        if (shouldCelebrateStepEnd(currentStep)) {
+            appStore.getState().triggerStepCelebration();
         }
     }
 

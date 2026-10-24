@@ -1598,6 +1598,23 @@ describe('recorder auto-render — zero server changes', () => {
             'src/generated/poster-lqips.test.js',
             'docs/product.md',
             'tests/topic-pages.spec.js',
+            // Story 093 (randomised celebration on a friend closed-response step
+            // advance; canvas-confetti 1.6.0 -> ^1.9.4 for custom/flat shapes).
+            'package.json',
+            'package-lock.json',
+            'stories/093-step-transition-celebration/story.md',
+            'src/components/LessonContainer.jsx',
+            'src/components/widgets/StepCelebration.jsx',
+            'src/modules/lesson/step-celebration-logic.js',
+            'src/modules/lesson/step-celebration-logic.test.js',
+            'src/modules/lesson/step-celebration.web.js',
+            'src/modules/lesson/step-celebration.web.test.js',
+            'src/modules/lesson/step-celebration-wiring.test.js',
+            'src/modules/lesson/confetti-api-guard.test.js',
+            'src/modules/lesson/lesson-progression.js',
+            'src/modules/lesson/lesson-progression.test.js',
+            'src/modules/store/store.js',
+            'src/modules/store/store.test.js',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);

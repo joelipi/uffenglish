@@ -208,6 +208,11 @@ export const appStore = createStore(
             pendingFriendCredits: [],
             pointLossAmount: null,
             pointLossTrigger: 0,
+            // Monotonic id of the last end-of-step celebration. Deliberately NOT
+            // reset by resetForNextStep/resetForNewLesson/resetStepState: the
+            // effect module dedupes on this value, so a reset would make every
+            // step's trigger identical and swallow every burst after the first.
+            stepCelebrationTrigger: 0,
 
             // --- Media Viewport Dynamic Content ---
             praiseImageUrl: null,
@@ -398,6 +403,9 @@ export const appStore = createStore(
             setInputDisabled: (val) => set({ inputDisabled: val }),
             triggerInputFocus: () => set((state) => ({ inputFocusTrigger: state.inputFocusTrigger + 1 })),
             triggerPointLoss: (target, points) => set((state) => ({ pointLossAmount: points, pointLossTrigger: state.pointLossTrigger + 1 })),
+            // End-of-step celebration (friend closed-response advance). A counter,
+            // not a flag: the effect module fires once per new value.
+            triggerStepCelebration: () => set((state) => ({ stepCelebrationTrigger: state.stepCelebrationTrigger + 1 })),
             triggerVideoPlay: (muted) => set((state) => ({ videoPlayTrigger: state.videoPlayTrigger + 1, videoPlayMuted: muted })),
             triggerVideoClear: () => set((state) => ({ videoClearTrigger: state.videoClearTrigger + 1 })),
             triggerPauseAllVideos: () => set((state) => ({ pauseAllVideosTrigger: state.pauseAllVideosTrigger + 1 })),

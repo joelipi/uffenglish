@@ -401,3 +401,27 @@ describe('clips publishing flag', () => {
         expect(appStore.getState().clipsPublishing).toBe(false);
     });
 });
+
+describe('step celebration trigger', () => {
+    beforeEach(() => appStore.setState({ stepCelebrationTrigger: 0 }));
+
+    it('increments monotonically per celebration', () => {
+        expect(appStore.getState().stepCelebrationTrigger).toBe(0);
+        appStore.getState().triggerStepCelebration();
+        expect(appStore.getState().stepCelebrationTrigger).toBe(1);
+        appStore.getState().triggerStepCelebration();
+        expect(appStore.getState().stepCelebrationTrigger).toBe(2);
+    });
+
+    // The effect module dedupes on this value, so a reset would make every
+    // step's trigger identical and swallow every celebration after the first.
+    it('survives the per-step and per-lesson resets', () => {
+        appStore.setState({ stepCelebrationTrigger: 7 });
+        appStore.getState().resetForNextStep();
+        expect(appStore.getState().stepCelebrationTrigger).toBe(7);
+        appStore.getState().resetForNewLesson();
+        expect(appStore.getState().stepCelebrationTrigger).toBe(7);
+        appStore.getState().resetStepState();
+        expect(appStore.getState().stepCelebrationTrigger).toBe(7);
+    });
+});

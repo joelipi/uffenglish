@@ -153,3 +153,44 @@ describe('replaySimpleVideo', () => {
 beforeEach(() => {
     setCurrentVideoPlayer(null);
 });
+
+describe('loadNextStep celebrates a finished friend closed-response step', () => {
+    // The shared appStore is not reset between tests in this file, so these
+    // assertions are deltas, never absolute values.
+    const trigger = () => appStore.getState().stepCelebrationTrigger;
+
+    it('increments exactly once for a friendClosedResponse step', () => {
+        const lesson = makeLesson(8);
+        seed(lesson, 3);
+        const before = trigger();
+
+        loadNextStep({ responseType: 'friendClosedResponse' }, null, deps(vi.fn()));
+
+        expect(trigger()).toBe(before + 1);
+    });
+
+    it('increments once even when the step ends the lesson', () => {
+        const lesson = makeLesson(3);
+        seed(lesson, 2);
+        const before = trigger();
+
+        loadNextStep({ responseType: 'friendClosedResponse' }, null, deps(vi.fn()));
+
+        expect(appStore.getState().completionMessage).toBeTruthy();
+        expect(trigger()).toBe(before + 1);
+    });
+
+    it('does not celebrate any other step type', () => {
+        for (const responseType of [
+            'closedResponse', 'openResponse', 'viewAndContinue', 'branching', 'success', 'lessonIntro',
+        ]) {
+            const lesson = makeLesson(8);
+            seed(lesson, 3);
+            const before = trigger();
+
+            loadNextStep({ responseType }, null, deps(vi.fn()));
+
+            expect(trigger(), responseType).toBe(before);
+        }
+    });
+});
