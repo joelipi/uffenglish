@@ -60,7 +60,7 @@
     "animate.css": "^4.1.1",
     "bootstrap": "5.3.8",
     "bootstrap-icons": "^1.11.3",
-    "canvas-confetti": "^1.6.0",
+    "canvas-confetti": "^1.9.4",
     "compromise": "^14.15.0",
     "eruda": "^3.4.1",
     "howler": "^2.2.4",
