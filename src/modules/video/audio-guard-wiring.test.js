@@ -139,12 +139,12 @@ describe('PlaybackVideo audio guard', () => {
     });
 
     it('records the learner\'s own mute so the guard does not fight it', () => {
-        const videoElement = sliceBetween(playbackRaw, '<video ref={videoRef}', "style={{ cursor: 'pointer' }} />");
-        expect(videoElement).toContain('muteIntentRef.current = next;');
+        const handleTap = sliceBetween(playbackRaw, 'const handleTakeTap = () => {', '\n    };');
+        expect(handleTap).toContain('muteIntentRef.current = next;');
         // The intent must be recorded BEFORE the element is muted, so a guard
         // tick that lands in between already sees the intent.
-        expect(videoElement.indexOf('muteIntentRef.current = next;'))
-            .toBeLessThan(videoElement.indexOf('video.muted = next;'));
+        expect(handleTap.indexOf('muteIntentRef.current = next;'))
+            .toBeLessThan(handleTap.indexOf('setElementMuted(video, next);'));
     });
 
     it('records the silent loop as an intentional mute before it replays', () => {
@@ -153,25 +153,39 @@ describe('PlaybackVideo audio guard', () => {
         // The intent has to be set before the replay, otherwise the guard's
         // first tick would unmute the intentionally silent loop.
         expect(handleEnded.indexOf('muteIntentRef.current = true;'))
-            .toBeLessThan(handleEnded.indexOf('video.play()'));
+            .toBeLessThan(handleEnded.indexOf('playSafely(video)'));
     });
 
     it('restores the audio when the autoplay with sound was blocked', () => {
-        const handleLoadedMetadata = sliceBetween(playbackRaw, 'const handleLoadedMetadata = () => {', '\n    };');
-        expect(handleLoadedMetadata).toContain('video.muted = true;');
-        expect(handleLoadedMetadata).toContain('el.muted = false;');
+        // The muted fallback is a rung of the start ladder (stories/094), and
+        // the unmute that follows it lives in unmuteAfterStart.
+        const handleBlocked = sliceBetween(playbackRaw, 'const handleBlockedStart = (attempt, error) => {', '\n    };');
+        expect(handleBlocked).toContain('scheduleRetry(attempt);');
+        const unmute = sliceBetween(playbackRaw, 'const unmuteAfterStart = () => {', '\n    };');
+        expect(unmute).toContain('setElementMuted(el, false)');
         // The re-issued play() must come AFTER the unmute — re-issuing it
         // while the element is still muted would not re-open the audio output.
-        expect(handleLoadedMetadata.indexOf('el.muted = false;'))
-            .toBeLessThan(handleLoadedMetadata.lastIndexOf('el.play()'));
+        expect(unmute.indexOf('setElementMuted(el, false)'))
+            .toBeLessThan(unmute.lastIndexOf('playSafely(el)'));
     });
 
     it('does not write the technical fallback mute into the learner\'s mute intent', () => {
         // Comment-stripped: the guard's own prose must not satisfy the check.
-        const stripped = stripComments(sliceBetween(playbackRaw, 'const handleLoadedMetadata = () => {', '\n    };'));
+        // Scoped to the whole start path, so a mute written from any rung of the
+        // ladder is caught (the earlier slice pointed at loadedmetadata, which no
+        // longer holds the start code and would have passed vacuously).
+        const startPath = [
+            sliceBetween(playbackRaw, 'const attemptStart = (attempt = 0) => {', '\n    };'),
+            sliceBetween(playbackRaw, 'const handleBlockedStart = (attempt, error) => {', '\n    };'),
+            sliceBetween(playbackRaw, 'const unmuteAfterStart = () => {', '\n    };'),
+            sliceBetween(playbackRaw, 'const scheduleRetry = (attempt) => {', '\n    };'),
+        ].join('\n');
+        const stripped = stripComments(startPath);
         // A blocked autoplay is a technical state, not the learner asking for
         // silence — it must not be mirrored into the store's mute flag.
         expect(stripped).not.toContain('setPlaybackMuted(true)');
+        // The one legitimate store write is the fresh clip's audible state.
+        expect(stripped).toContain('setPlaybackMuted(false)');
     });
 
     it('resets the mute intent when a new clip arrives', () => {

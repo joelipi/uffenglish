@@ -1598,6 +1598,16 @@ describe('recorder auto-render — zero server changes', () => {
             'src/generated/poster-lqips.test.js',
             'docs/product.md',
             'tests/topic-pages.spec.js',
+            // Story 094 (the recorded take's autoplay start on iPad).
+            'stories/094-fix-ipad-recorded-take-autoplay/story.md',
+            'src/components/PlaybackVideo.jsx',
+            'src/modules/video/playback-start-logic.js',
+            'src/modules/video/playback-start-logic.test.js',
+            'src/modules/video/playback-start-wiring.test.js',
+            'src/modules/video/audio-guard-wiring.test.js',
+            'src/modules/video/recorder-page.test.js',
+            'docs/learnings.md',
+            'tests/playback-video-ipad-autoplay.spec.js',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);
