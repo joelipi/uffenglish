@@ -1036,7 +1036,7 @@ body { margin: 0; font-family: var(--font-body); font-size: 1rem; font-weight: 4
 }
 
 .look-tap:focus {
-    outline: none;
+    outline: none !important;
 }
 
 /* Keyboard users still get a cue, in the same green as the applied state. A

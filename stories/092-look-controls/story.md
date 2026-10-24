@@ -97,7 +97,15 @@ Nothing here tracks a face. "Face" and "Above face" are fixed anchor zones on th
 - `toggleLookLens('softfocus')` on the store, then `toggleLookFilter('vintage')` + called in unit test
   - → both selections hold at once; a second `toggleLookLens` clears only the lens
 
-### Task 4 - No native focus ring left on a tapped option (iOS)
+### Task 4 - The tester can tell which build is running (and a deploy reaches them)
+
+- `resolveBuildId(import.meta.url)` / `formatBuildLog` in `src/modules/utils/build-id.js` + called in unit test
+  - → returns the entry chunk's hashed file name (`main-abc.js`), `'dev'` on the Vite dev server, `'unknown'` for junk — never throws
+  - → `main.jsx` logs `[Build] <entry chunk>` once at boot, so the running build is readable off the eruda console
+- `vite.config.js` sets `workbox.skipWaiting: true` + inspected in the built `sw.js`
+  - → a new deploy activates its worker on install, so the next navigation serves the new shell (a page is never claimed mid-recording, because `clientsClaim` stays off)
+
+### Task 4b - No native focus ring left on a tapped option (iOS)
 
 - `LookControls.jsx` source + called in unit test (`look-controls-focus.test.js`)
   - → every `<button>` in the picker carries `look-tap`, so a new control cannot silently keep iOS Safari's focus ring/button chrome
