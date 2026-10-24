@@ -1619,6 +1619,9 @@ describe('recorder auto-render — zero server changes', () => {
             'src/modules/speech/capture-release-logic.js',
             'src/modules/speech/capture-release-logic.test.js',
             'src/modules/speech/capture-release-wiring.test.js',
+            // Story 094 follow-up: the success clip's autoplay uses the same ladder.
+            'src/components/widgets/SuccessVideo.jsx',
+            'src/modules/video/success-video-autoplay-wiring.test.js',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);
