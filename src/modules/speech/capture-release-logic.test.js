@@ -6,6 +6,8 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import {
     CAPTURE_RELEASE_SETTLE_MS,
+    describeCaptureStream,
+    describeRecordingBlob,
     shouldReleaseCaptureBeforePlayback,
     waitForAudioRouteSettle,
 } from './capture-release-logic.js';
@@ -85,5 +87,61 @@ describe('the module stays pure', () => {
         expect(RAW).not.toMatch(/\bwindow\b/);
         expect(RAW).not.toMatch(/\bdocument\b/);
         expect(RAW).not.toMatch(/\bnavigator\b/);
+    });
+});
+
+describe('describeCaptureStream', () => {
+    const track = (kind, overrides = {}) => ({
+        kind,
+        readyState: 'live',
+        enabled: true,
+        muted: false,
+        getSettings: () => ({ width: 720, height: 1280, frameRate: 24 }),
+        ...overrides,
+    });
+
+    it('describes a live camera capture for a take', () => {
+        const stream = { getTracks: () => [track('video'), track('audio', { getSettings: () => ({ sampleRate: 48000 }) })] };
+        expect(describeCaptureStream(stream, { take: 2, isComposite: false, mimeType: 'video/mp4' })).toEqual({
+            take: 2,
+            mimeType: 'video/mp4',
+            isComposite: false,
+            trackCount: 2,
+            video: { readyState: 'live', enabled: true, muted: false, settings: { width: 720, height: 1280, frameRate: 24 } },
+            audio: { readyState: 'live', enabled: true, muted: false, settings: { sampleRate: 48000 } },
+        });
+    });
+
+    it('flags a video track that is already ended (an audio-only take)', () => {
+        const stream = { getTracks: () => [track('video', { readyState: 'ended' })] };
+        const described = describeCaptureStream(stream, { take: 2 });
+        expect(described.video.readyState).toBe('ended');
+        expect(described.trackCount).toBe(1);
+        expect(described.audio).toBeNull();
+    });
+
+    it('flags a muted video track (the camera delivers no frames)', () => {
+        const stream = { getTracks: () => [track('video', { muted: true })] };
+        expect(describeCaptureStream(stream, { take: 1 }).video.muted).toBe(true);
+    });
+
+    it('survives a throwing getSettings and a missing stream', () => {
+        const stream = { getTracks: () => [track('video', { getSettings: () => { throw new Error('nope'); } })] };
+        expect(describeCaptureStream(stream).video.settings).toBeNull();
+        expect(describeCaptureStream(null)).toEqual({
+            take: null, mimeType: null, isComposite: false, trackCount: 0, video: null, audio: null,
+        });
+    });
+});
+
+describe('describeRecordingBlob', () => {
+    it('describes the file handed to the player', () => {
+        expect(describeRecordingBlob({ size: 240720, type: 'video/mp4' }, { take: 2, mimeType: 'video/mp4' })).toEqual({
+            take: 2, mimeType: 'video/mp4', size: 240720, type: 'video/mp4',
+        });
+    });
+
+    it('is null-safe', () => {
+        expect(describeRecordingBlob(null)).toEqual({ take: null, mimeType: null, size: null, type: null });
     });
 });

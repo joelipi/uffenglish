@@ -17,6 +17,8 @@ import {
     COMPOSITE_WATCHDOG_MS,
 } from './portrait-capture-logic.js';
 import {
+    describeCaptureStream,
+    describeRecordingBlob,
     shouldReleaseCaptureBeforePlayback,
     waitForAudioRouteSettle,
 } from './capture-release-logic.js';
@@ -61,6 +63,10 @@ export let speechCamStream = null;
 let speechCamRecorder = null;
 let speechCamChunks = [];
 let isPlaceholderStream = false;
+// Counts the takes in this page so the capture/blob logs can be tied to the first
+// (working) take or a later re-record — the re-record is the take that differs on
+// iPadOS, and "which take is this?" is the first question every report needs.
+let speechCamTakeIndex = 0;
 
 // Desktop portrait-capture state (see createPortraitCaptureStream). The raw
 // 16:9 camera stream is kept alive behind a hidden <video> that feeds the 9:16
@@ -408,6 +414,13 @@ export async function startSpeechCamRecording(micStatusText, userData, { deferSt
         if (!mimeType) console.warn('[Recording] No preferred MIME type supported; using browser default');
         else console.log('[Recording] MediaRecorder mimeType selected:', mimeType);
 
+        speechCamTakeIndex += 1;
+        console.log('[Recording] capture for take ' + speechCamTakeIndex, describeCaptureStream(speechCamStream, {
+            take: speechCamTakeIndex,
+            isComposite: !!compositeLiveness,
+            mimeType: mimeType || null,
+        }));
+
         speechCamChunks = [];
         speechCamRecorder = new MediaRecorder(speechCamStream, options);
 
@@ -530,6 +543,10 @@ export function stopSpeechCamRecording({ download = true, persist = false, meta 
                         const blob = new Blob(chunks, { type: mime });
                         blobToReturn = blob;
                         console.warn('[DBUG] blob created, size:', blob.size, 'playback:', playback);
+                        console.log('[Recording] take blob', describeRecordingBlob(blob, {
+                            take: speechCamTakeIndex,
+                            mimeType: mime,
+                        }));
 
                         if (playback && blob.size > 0) {
                             // The capture must be closed BEFORE the clip reaches the

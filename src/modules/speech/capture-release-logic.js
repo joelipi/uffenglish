@@ -68,3 +68,62 @@ export function waitForAudioRouteSettle(
     if (!(delayMs > 0)) return Promise.resolve();
     return Promise.resolve(sleep(delayMs));
 }
+
+/**
+ * What the capture handed to MediaRecorder actually looks like.
+ *
+ * A take that plays as a still frame has a capture-side shape too: a video track
+ * that is already `ended` (the recorder then writes an audio-only file), one
+ * that is `muted` (the camera delivers no frames), or a live one whose settings
+ * are not what the recorder expects. A RE-RECORD on iPadOS re-acquires the camera
+ * after the previous capture was released, and that re-acquisition is the step
+ * that differs between the first (working) take and the second (frozen) one — so
+ * log the take index, the track states and the stream shape together.
+ *
+ * @param {MediaStream|null|undefined} stream
+ * @param {{ take?: number, isComposite?: boolean, mimeType?: string|null }} [context]
+ * @returns {object}
+ */
+export function describeCaptureStream(stream, { take = null, isComposite = false, mimeType = null } = {}) {
+    const tracks = stream && typeof stream.getTracks === 'function' ? stream.getTracks() : [];
+    const describe = (kind) => {
+        const track = tracks.find((t) => t && t.kind === kind) || null;
+        if (!track) return null;
+        let settings = null;
+        try {
+            settings = typeof track.getSettings === 'function' ? track.getSettings() : null;
+        } catch (error) {
+            settings = null;
+        }
+        return {
+            readyState: typeof track.readyState === 'string' ? track.readyState : null,
+            enabled: track.enabled !== false,
+            muted: track.muted === true,
+            settings,
+        };
+    };
+    return {
+        take,
+        mimeType,
+        isComposite: isComposite === true,
+        trackCount: tracks.length,
+        video: describe('video'),
+        audio: describe('audio'),
+    };
+}
+
+/**
+ * The recorded file as handed to the player, for the same field report.
+ *
+ * @param {Blob|null|undefined} blob
+ * @param {{ take?: number, mimeType?: string|null }} [context]
+ * @returns {object}
+ */
+export function describeRecordingBlob(blob, { take = null, mimeType = null } = {}) {
+    return {
+        take,
+        mimeType,
+        size: typeof blob?.size === 'number' ? blob.size : null,
+        type: typeof blob?.type === 'string' ? blob.type : null,
+    };
+}

@@ -106,3 +106,29 @@ describe('the capture is closed before the recorded take is handed to the player
         expect(stripped).not.toMatch(/setWebcamStream\(null\);\s*safelyStopStream\(\)/);
     });
 });
+
+// stories/094: a take that plays as a still frame is diagnosed from the capture
+// it recorded and the file it produced, both keyed by the take number — the
+// first take and a re-record behave differently on iPadOS.
+describe('a take names its capture and its blob', () => {
+    it('imports both helpers from the capture module', () => {
+        expect(speechRaw).toContain('describeCaptureStream,');
+        expect(speechRaw).toContain('describeRecordingBlob,');
+    });
+
+    it('numbers the take when the recorder is created and logs its capture', () => {
+        const start = sliceBetween(speechRaw, 'speechCamTakeIndex += 1;', 'speechCamRecorder = new MediaRecorder');
+        expect(start).toContain('describeCaptureStream(speechCamStream');
+        expect(start).toContain('take: speechCamTakeIndex');
+        // The counter must advance BEFORE the recorder exists, so the blob log
+        // of the same take can name it.
+        expect(start.indexOf('speechCamTakeIndex += 1;'))
+            .toBeLessThan(start.indexOf('describeCaptureStream('));
+    });
+
+    it('logs the recorded blob with the same take number', () => {
+        const blobLog = sliceBetween(speechRaw, "console.log('[Recording] take blob'", '});');
+        expect(blobLog).toContain('describeRecordingBlob(blob');
+        expect(blobLog).toContain('take: speechCamTakeIndex');
+    });
+});
