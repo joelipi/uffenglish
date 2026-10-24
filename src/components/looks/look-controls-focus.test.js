@@ -62,18 +62,25 @@ describe('look controls do not keep the native focus ring', () => {
         expect(css).toMatch(/\.look-tap:focus-visible\s*\{[^}]*outline:\s*2px solid/);
     });
 
-    it('resets the UA button chrome inline, not only in a stylesheet', () => {
+    it('resets the UA button chrome inline on every button style, not only in a stylesheet', () => {
         // iOS draws a white rounded bezel on a bare <button>. The class covers
         // it, but the inline styles are what a stale/missing stylesheet cannot
-        // drop (that is how the bezel survived a whole round of fixes).
+        // drop (that is how the bezel survived a whole round of fixes). One
+        // shared constant, spread into every button block so none can be
+        // forgotten — including a block added later.
         const source = read(COMPONENT);
-        for (const block of ['chip', 'railBtn']) {
+        const defStart = source.indexOf('const UA_RESET = {');
+        expect(defStart).toBeGreaterThan(-1);
+        const def = source.slice(defStart, source.indexOf('};', defStart));
+        expect(def).toContain("WebkitAppearance: 'none'");
+        expect(def).toContain("appearance: 'none'");
+        expect(def).toContain("WebkitTapHighlightColor: 'transparent'");
+
+        for (const block of ['chip', 'railBtn', 'resetButton']) {
             const start = source.indexOf(`    ${block}: {`);
             expect(start).toBeGreaterThan(-1);
             const end = source.indexOf('\n    },', start);
-            const slice = source.slice(start, end);
-            expect(slice).toContain("WebkitAppearance: 'none'");
-            expect(slice).toContain("appearance: 'none'");
+            expect(source.slice(start, end)).toContain('...UA_RESET');
         }
     });
 
