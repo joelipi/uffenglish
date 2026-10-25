@@ -1054,7 +1054,13 @@ describe('recorder auto-render — zero server changes', () => {
             'src/modules/store/store.test.js',
             'scripts/generate-overlay-art.py',
             'scripts/generate-twemoji-overlays.mjs',
+            'scripts/generate-twemoji-collection.mjs',
             'src/modules/looks/twemoji-overlays.test.js',
+            'src/generated/twemoji-emojis.js',
+            'src/modules/looks/emoji-picker-logic.js',
+            'src/modules/looks/emoji-picker-logic.test.js',
+            'src/modules/looks/twemoji-collection.js',
+            'src/modules/looks/twemoji-collection.test.js',
             'public/overlays/TWEMOJI-ATTRIBUTION.md',
             'index.html',
             // Retired by the 092 folder layout (deleted paths still appear in the

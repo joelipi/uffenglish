@@ -43,6 +43,7 @@ import {
     resolveSlotDrawRect,
     isSlugValidForSlot,
     overlaySlugsForSlot,
+    assetFileForSlug,
     emptySelection,
     emptyTuning,
     toggleLookDrawer,
@@ -99,6 +100,16 @@ describe('overlay library', () => {
         expect(isSlugValidForSlot('cauldron', 'face')).toBe(false);
         expect(isSlugValidForSlot('cauldron', 'lower')).toBe(true);
         expect(isSlugValidForSlot(null, 'face')).toBe(true);
+    });
+    it('Twemoji slugs belong only to the emoji slot', () => {
+        expect(isSlugValidForSlot('twemoji:1f600', 'emoji')).toBe(true);
+        expect(isSlugValidForSlot('twemoji:1f600', 'face')).toBe(false);
+        expect(isSlugValidForSlot('smiley', 'emoji')).toBe(false);
+        expect(isSlugValidForSlot('twemoji:', 'emoji')).toBe(false);
+    });
+    it('a Twemoji slug resolves to the pinned CDN asset', () => {
+        expect(assetFileForSlug('twemoji:1f600'))
+            .toBe('https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.0.3/assets/svg/1f600.svg');
     });
 });
 
@@ -693,18 +704,18 @@ describe('parseStepOverlays', () => {
             face: { asset: 'smiley' },
             upper: { asset: 'witchhat' },
             lower: { asset: 'cauldron' },
-        })).toEqual({ face: 'smiley', upper: 'witchhat', lower: 'cauldron' });
+        })).toEqual({ face: 'smiley', upper: 'witchhat', lower: 'cauldron', emoji: null });
     });
     it('accepts a bare slug string per slot', () => {
         expect(parseStepOverlays({ upper: 'crown' }).upper).toBe('crown');
     });
     it('drops an unknown slug and an asset in the wrong slot', () => {
         expect(parseStepOverlays({ face: { asset: 'nope' }, upper: { asset: 'cauldron' } }))
-            .toEqual({ face: null, upper: null, lower: null });
+            .toEqual({ face: null, upper: null, lower: null, emoji: null });
     });
     it('missing / non-object → all null', () => {
-        expect(parseStepOverlays(null)).toEqual({ face: null, upper: null, lower: null });
-        expect(parseStepOverlays('smiley')).toEqual({ face: null, upper: null, lower: null });
+        expect(parseStepOverlays(null)).toEqual({ face: null, upper: null, lower: null, emoji: null });
+        expect(parseStepOverlays('smiley')).toEqual({ face: null, upper: null, lower: null, emoji: null });
     });
 });
 

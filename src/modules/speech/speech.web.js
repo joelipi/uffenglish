@@ -134,6 +134,9 @@ function getLookImage(slug) {
     let image = lookImages.get(slug);
     if (!image) {
         image = new Image();
+        // Twemoji assets come from the pinned CDN; the recording canvas may
+        // only draw a cross-origin image when it was loaded CORS-clean.
+        if (/^https?:\/\//.test(file)) image.crossOrigin = 'anonymous';
         image.src = file;
         lookImages.set(slug, image);
     }

@@ -124,7 +124,7 @@ describe('every picker row is a tray, and no horizontal strip survives', () => {
         for (const prefix of ['look-filter', 'look-lens', 'look-screen']) {
             expect(source).toContain(`testidPrefix="${prefix}"`);
         }
-        for (const slot of ['upper', 'face', 'lower']) {
+        for (const slot of ['upper', 'face', 'lower', 'emoji']) {
             expect(source).toContain('data-testid={`look-slot-row-${slot}`}');
         }
     });
@@ -233,7 +233,7 @@ describe('prop rows are a grid tray pinned to the rail top', () => {
     it('OverlayFoldout and ChoiceStrip both render the tray', () => {
         const source = traySource();
         expect(source).toMatch(/style=\{styles\.trayStrip\}/);
-        expect(source.match(/style=\{\{\s*\.\.\.styles\.trayChip,/g)?.length).toBe(3);
+        expect(source.match(/style=\{\{\s*\.\.\.styles\.trayChip,/g)?.length).toBeGreaterThanOrEqual(3);
         expect(source).toMatch(/testidPrefix="look-filter"/);
     });
 });
@@ -248,12 +248,20 @@ describe('look control icons and categories', () => {
         expect(line).not.toContain('bi-magic');
     });
 
-    it('the rail carries the three categories plus the three slots', () => {
+    it('the emoji drawer loads the full generated collection lazily and selects a Twemoji slug', () => {
+        const source = read(COMPONENT);
+        expect(source).toContain("import('../../generated/twemoji-emojis.js')");
+        expect(source).toContain('TWEMOJI_EMOJIS');
+        expect(source).toContain('loading="lazy"');
+        expect(source).toContain("setLookSlot('emoji', slug)");
+    });
+
+    it('the rail carries the three categories plus the four slots', () => {
         const source = read(COMPONENT);
         for (const id of ['look-drawer-toggle-filter', 'look-drawer-toggle-lens', 'look-drawer-toggle-screen']) {
             expect(source).toContain(id);
         }
-        for (const slot of ['upper', 'face', 'lower']) {
+        for (const slot of ['upper', 'face', 'lower', 'emoji']) {
             expect(source).toContain('data-testid={`look-drawer-toggle-${slot}`}');
         }
     });

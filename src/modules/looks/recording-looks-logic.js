@@ -8,10 +8,13 @@
 //
 // See stories/092-look-controls.
 
-export const OVERLAY_SLOTS = ['face', 'upper', 'lower'];
+import { isTwemojiSlug, twemojiAssetUrl, twemojiCodeFromSlug } from './twemoji-collection.js';
 
-// Draw order: a lower prop must never paint over a face cover.
-export const SLOT_DRAW_ORDER = ['face', 'upper', 'lower'];
+export const OVERLAY_SLOTS = ['face', 'upper', 'lower', 'emoji'];
+
+// Draw order: a lower prop must never paint over a face cover; the free-floating
+// emoji is an object in the scene, so it paints after the slot props.
+export const SLOT_DRAW_ORDER = ['face', 'upper', 'lower', 'emoji'];
 
 /**
  * The "nothing applied" swatch, shared with the overlay pickers' None chip so
@@ -229,9 +232,12 @@ export const SLOT_ANCHORS = {
     face: { cx: 0.5, cy: 0.42 },
     upper: { cx: 0.5, cy: 0.22 },
     lower: { cx: 0.5, cy: 0.74 },
+    // A selected Twemoji starts in the middle of the frame and is dragged from
+    // there; it is not tied to the body zones.
+    emoji: { cx: 0.5, cy: 0.5 },
 };
 
-export const LOOK_DRAWERS = ['filter', 'lens', 'screen', 'upper', 'face', 'lower'];
+export const LOOK_DRAWERS = ['filter', 'lens', 'screen', 'upper', 'face', 'lower', 'emoji'];
 
 /** Toggle a left-rail fold-out drawer: tapping the open drawer folds it back in. */
 export function toggleLookDrawer(currentDrawer, clickedDrawer) {
@@ -270,6 +276,9 @@ export const SLOT_BASE_WIDTH = {
     face: 0.62,
     upper: 0.5,
     lower: 0.9,
+    // A Twemoji is an object, not a face cover: start small and let the size
+    // slider grow it.
+    emoji: 0.3,
 };
 
 export const DEFAULT_TUNING = { dx: 0, dy: 0, scale: 1 };
@@ -350,16 +359,20 @@ export function overlaySlugsForSlot(slot) {
 /** A slug is usable only in its own slot — `cauldron` can never become a face cover. */
 export function isSlugValidForSlot(slug, slot) {
     if (slug === null || slug === undefined) return true;
+    if (isTwemojiSlug(slug)) {
+        return slot === 'emoji' && !!twemojiCodeFromSlug(slug);
+    }
+    if (slot === 'emoji') return false;
     const entry = OVERLAY_LIBRARY[slug];
     return !!entry && entry.slot === slot;
 }
 
 export function emptySelection() {
-    return { filterId: DEFAULT_FILTER_ID, lensId: DEFAULT_LENS_ID, screenId: DEFAULT_SCREEN_ID, slots: { face: null, upper: null, lower: null } };
+    return { filterId: DEFAULT_FILTER_ID, lensId: DEFAULT_LENS_ID, screenId: DEFAULT_SCREEN_ID, slots: { face: null, upper: null, lower: null, emoji: null } };
 }
 
 export function emptyTuning() {
-    return { face: { ...DEFAULT_TUNING }, upper: { ...DEFAULT_TUNING }, lower: { ...DEFAULT_TUNING } };
+    return { face: { ...DEFAULT_TUNING }, upper: { ...DEFAULT_TUNING }, lower: { ...DEFAULT_TUNING }, emoji: { ...DEFAULT_TUNING } };
 }
 
 /** True when the learner's look differs from a plain camera frame. */
@@ -439,7 +452,7 @@ export function sanitizeTuning(tuning) {
  * bare slug string per slot. Unknown slugs are dropped, never carried forward.
  */
 export function parseStepOverlays(stepOverlays) {
-    const result = { face: null, upper: null, lower: null };
+    const result = { face: null, upper: null, lower: null, emoji: null };
     if (!stepOverlays || typeof stepOverlays !== 'object') return result;
     for (const slot of OVERLAY_SLOTS) {
         const raw = stepOverlays[slot];
@@ -504,6 +517,7 @@ export function resolveSlotDrawRect({ slot, imageWidth, imageHeight, canvasWidth
 
 /** Human-facing file name for a slug (used by pickers and logs). */
 export function assetFileForSlug(slug) {
+    if (isTwemojiSlug(slug)) return twemojiAssetUrl(twemojiCodeFromSlug(slug));
     const entry = OVERLAY_LIBRARY[slug];
     return entry ? entry.file : null;
 }

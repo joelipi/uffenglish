@@ -1,5 +1,9 @@
 # Twemoji artwork in this folder
 
+The in-app **Emoji** overlay picker also loads the full Twemoji `15.0.3` SVG
+collection (all 3,720 files) from the pinned jsDelivr CDN. Those files are used
+unmodified; the CC-BY 4.0 attribution below covers them as well.
+
 `shades-twemoji.png` and `carnival-twemoji.png` are derived from Twemoji emoji
 artwork:
 

@@ -132,11 +132,7 @@ export const appStore = createStore(
             // dragged each slot and how big they made it. Both live in memory for
             // the lesson session only.
             lookSelection: emptySelection(),
-            lookTuning: {
-                face: { dx: 0, dy: 0, scale: 1 },
-                upper: { dx: 0, dy: 0, scale: 1 },
-                lower: { dx: 0, dy: 0, scale: 1 },
-            },
+            lookTuning: emptyTuning(),
             lookActiveSlot: 'face',
             lookOpenDrawer: null,
             // True only on a friendClosedResponse preview screen: the camera is
@@ -706,7 +702,7 @@ export const appStore = createStore(
                 // filter/overlay picks do not leak between lessons, and neither
                 // does the previous step's config overlays.
                 lookSelection: emptySelection(),
-                lookTuning: { face: { dx: 0, dy: 0, scale: 1 }, upper: { dx: 0, dy: 0, scale: 1 }, lower: { dx: 0, dy: 0, scale: 1 } },
+                lookTuning: emptyTuning(),
                 lookActiveSlot: 'face',
                 lookOpenDrawer: null,
                 awaitingRecordingStart: false,

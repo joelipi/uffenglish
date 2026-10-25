@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store/store.js';
 import {
@@ -18,6 +18,13 @@ import {
     MIN_SCALE,
     MAX_SCALE,
 } from '../../modules/looks/recording-looks-logic.js';
+import { twemojiAssetUrl, twemojiCharacter, twemojiSlug } from '../../modules/looks/twemoji-collection.js';
+import {
+    DEFAULT_EMOJI_CATEGORY,
+    EMOJI_PAGE_SIZE,
+    filterEmojis,
+    visibleEmojis,
+} from '../../modules/looks/emoji-picker-logic.js';
 
 // Look controls for the friendClosedResponse preview screen (stories/092).
 //
@@ -41,6 +48,7 @@ const SLOT_RAIL_META = [
     { slot: 'upper', label: 'Top', icon: 'bi-cloud-fill' },
     { slot: 'face', label: 'Face', icon: 'bi-emoji-smile' },
     { slot: 'lower', label: 'Bottom', icon: 'bi-layers' },
+    { slot: 'emoji', label: 'Emoji', icon: 'bi-emoji-laughing' },
 ];
 
 // iOS Safari keeps its native focus ring on the tapped <button> until focus
@@ -126,9 +134,147 @@ function ScreenStrip() {
     );
 }
 
-function OverlayFoldout({ slot }) {
-    const slugForSlot = useStore(appStore, (state) => state.lookSelection.slots[slot]);
+function SizeSlider({ slot }) {
     const scale = useStore(appStore, (state) => state.lookTuning[slot].scale);
+    return (
+        <div style={styles.sliderRow} data-testid="look-size-slider">
+            <span style={styles.sliderLabel}>Size</span>
+            <input
+                type="range"
+                min={MIN_SCALE}
+                max={MAX_SCALE}
+                step={0.05}
+                value={scale}
+                onChange={(e) => appStore.getState().setLookTuning(slot, { scale: Number(e.target.value) })}
+                style={styles.slider}
+            />
+            <button
+                type="button"
+                className="look-tap"
+                onClick={() => appStore.getState().setLookTuning(slot, { dx: 0, dy: 0, scale: 1 })}
+                style={styles.resetButton}
+                data-testid="look-size-reset"
+            >
+                Reset
+            </button>
+        </div>
+    );
+}
+
+function EmojiFoldout() {
+    const selected = useStore(appStore, (state) => state.lookSelection.slots.emoji);
+    const [collection, setCollection] = useState(null);
+    const [category, setCategory] = useState(DEFAULT_EMOJI_CATEGORY);
+    const [query, setQuery] = useState('');
+    const [visibleCount, setVisibleCount] = useState(EMOJI_PAGE_SIZE);
+
+    // The 3,700-entry manifest is only fetched when the drawer is opened.
+    useEffect(() => {
+        let cancelled = false;
+        import('../../generated/twemoji-emojis.js')
+            .then((module) => { if (!cancelled) setCollection(module); })
+            .catch(() => { if (!cancelled) setCollection({ TWEMOJI_EMOJIS: [], TWEMOJI_CATEGORIES: [] }); });
+        return () => { cancelled = true; };
+    }, []);
+
+    const categories = collection?.TWEMOJI_CATEGORIES || [];
+    const filtered = useMemo(
+        () => filterEmojis(collection?.TWEMOJI_EMOJIS || [], { category, query }),
+        [collection, category, query],
+    );
+    const shown = visibleEmojis(filtered, visibleCount);
+
+    useEffect(() => { setVisibleCount(EMOJI_PAGE_SIZE); }, [category, query]);
+
+    return (
+        <div style={styles.emojiColumn} data-testid="look-slot-row-emoji">
+            <div style={styles.emojiToolbar}>
+                <button
+                    type="button"
+                    className="look-tap"
+                    data-testid="look-slot-emoji-none"
+                    aria-pressed={!selected}
+                    onClick={(e) => {
+                        releaseFocusAfterPointerTap(e);
+                        appStore.getState().setLookSlot('emoji', null);
+                    }}
+                    style={{ ...styles.trayChip, ...(!selected ? styles.chipSelected : null) }}
+                >
+                    <span style={{ ...styles.swatch, background: NONE_SWATCH }} />
+                    <span style={styles.trayChipLabel}>None</span>
+                </button>
+                <select
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    style={styles.emojiSelect}
+                    aria-label="Emoji category"
+                >
+                    {categories.map((name) => <option key={name} value={name}>{name}</option>)}
+                </select>
+                <input
+                    type="search"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Search"
+                    aria-label="Search emoji"
+                    style={styles.emojiSearch}
+                />
+            </div>
+            <div style={styles.emojiGrid} data-testid="look-emoji-grid">
+                {shown.map((emoji) => {
+                    const slug = twemojiSlug(emoji.code);
+                    const isSelected = selected === slug;
+                    const character = twemojiCharacter(emoji.code);
+                    return (
+                        <button
+                            key={emoji.code}
+                            type="button"
+                            className="look-tap"
+                            data-testid={`look-emoji-${emoji.code}`}
+                            aria-pressed={isSelected}
+                            title={emoji.name}
+                            aria-label={emoji.name || character || emoji.code}
+                            onClick={(e) => {
+                                releaseFocusAfterPointerTap(e);
+                                appStore.getState().setLookSlot('emoji', slug);
+                                appStore.getState().setLookActiveSlot('emoji');
+                            }}
+                            style={{ ...styles.emojiCell, ...(isSelected ? styles.emojiCellSelected : null) }}
+                        >
+                            <img
+                                src={twemojiAssetUrl(emoji.code)}
+                                alt=""
+                                loading="lazy"
+                                draggable={false}
+                                style={styles.emojiThumb}
+                            />
+                        </button>
+                    );
+                })}
+            </div>
+            {filtered.length > shown.length && (
+                <button
+                    type="button"
+                    className="look-tap"
+                    onClick={() => setVisibleCount((n) => n + EMOJI_PAGE_SIZE)}
+                    style={styles.emojiMore}
+                    data-testid="look-emoji-more"
+                >
+                    Show more ({filtered.length - shown.length} left)
+                </button>
+            )}
+            {selected && <SizeSlider slot="emoji" />}
+        </div>
+    );
+}
+
+function OverlayFoldout({ slot }) {
+    if (slot === 'emoji') return <EmojiFoldout />;
+    return <SlotOverlayFoldout slot={slot} />;
+}
+
+function SlotOverlayFoldout({ slot }) {
+    const slugForSlot = useStore(appStore, (state) => state.lookSelection.slots[slot]);
     const slugs = overlaySlugsForSlot(slot);
 
     return (
@@ -170,29 +316,7 @@ function OverlayFoldout({ slot }) {
                     );
                 })}
             </div>
-            {slugForSlot && (
-                <div style={styles.sliderRow} data-testid="look-size-slider">
-                    <span style={styles.sliderLabel}>Size</span>
-                    <input
-                        type="range"
-                        min={MIN_SCALE}
-                        max={MAX_SCALE}
-                        step={0.05}
-                        value={scale}
-                        onChange={(e) => appStore.getState().setLookTuning(slot, { scale: Number(e.target.value) })}
-                        style={styles.slider}
-                    />
-                    <button
-                        type="button"
-                        className="look-tap"
-                        onClick={() => appStore.getState().setLookTuning(slot, { dx: 0, dy: 0, scale: 1 })}
-                        style={styles.resetButton}
-                        data-testid="look-size-reset"
-                    >
-                        Reset
-                    </button>
-                </div>
-            )}
+            {slugForSlot && <SizeSlider slot={slot} />}
         </div>
     );
 }
@@ -454,6 +578,94 @@ const styles = {
         // (swatch rows): it fills whatever contains it, so no viewport units
         // are needed anywhere here.
         width: '100%',
+    },
+    emojiColumn: {
+        position: 'absolute',
+        top: 0,
+        left: 56,
+        right: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 6,
+        background: 'rgba(15, 17, 24, 0.9)',
+        border: '1px solid rgba(255,255,255,0.2)',
+        borderRadius: 14,
+        padding: '6px 8px',
+        pointerEvents: 'auto',
+        boxShadow: '0 6px 18px rgba(0,0,0,0.5)',
+        maxWidth: 420,
+    },
+    emojiToolbar: {
+        display: 'flex',
+        gap: 6,
+        alignItems: 'stretch',
+    },
+    emojiSelect: {
+        flex: '0 0 auto',
+        maxWidth: 150,
+        minWidth: 0,
+        borderRadius: 10,
+        border: '1px solid rgba(255,255,255,0.25)',
+        background: 'rgba(0,0,0,0.45)',
+        color: '#fff',
+        fontSize: 11,
+        padding: '4px 6px',
+    },
+    emojiSearch: {
+        flex: 1,
+        minWidth: 0,
+        borderRadius: 10,
+        border: '1px solid rgba(255,255,255,0.25)',
+        background: 'rgba(0,0,0,0.45)',
+        color: '#fff',
+        fontSize: 12,
+        padding: '4px 8px',
+    },
+    emojiGrid: {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(6, 1fr)',
+        gap: 4,
+        maxHeight: 300,
+        overflowY: 'auto',
+        overflowX: 'hidden',
+        pointerEvents: 'auto',
+        WebkitOverflowScrolling: 'touch',
+        touchAction: 'pan-y',
+        transform: 'translateZ(0)',
+        background: 'rgba(15, 17, 24, 0.84)',
+        borderRadius: 12,
+        padding: 6,
+    },
+    emojiCell: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        aspectRatio: '1 / 1',
+        padding: 4,
+        borderRadius: 10,
+        border: '1.5px solid transparent',
+        background: 'rgba(255,255,255,0.06)',
+        ...UA_RESET,
+    },
+    emojiCellSelected: {
+        borderColor: '#5ee08a',
+        background: 'rgba(94,224,138,0.2)',
+    },
+    emojiThumb: {
+        width: '100%',
+        height: '100%',
+        objectFit: 'contain',
+        pointerEvents: 'none',
+    },
+    emojiMore: {
+        alignSelf: 'center',
+        borderRadius: 10,
+        border: '1px solid rgba(255,255,255,0.25)',
+        background: 'rgba(0,0,0,0.45)',
+        color: '#fff',
+        fontSize: 11,
+        padding: '5px 12px',
+        ...UA_RESET,
     },
     trayChip: {
         display: 'flex',
