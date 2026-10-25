@@ -414,11 +414,12 @@ function svgElements(svg) {
  * artwork beats cropping: a hat that dips below the face (Santa's tail) is kept
  * whole, and no skin/beard is left behind.
  */
-export async function buildHatFromPaths(svgText, indices, cropFraction = 1, outSize = 560) {
+export async function buildHatFromPaths(svgText, specs, cropFraction = 1, outSize = 560) {
     const tags = svgElements(svgText);
-    const selected = indices.map((i) => {
-        if (!tags[i]) throw new Error(`Hat path ${i} not found`);
-        return tags[i];
+    const selected = specs.map((spec) => {
+        const index = typeof spec === 'number' ? spec : spec.index;
+        if (!tags[index]) throw new Error(`Hat path ${index} not found`);
+        return spec.subpaths ? selectSubpaths(tags[index], spec.subpaths) : tags[index];
     }).join('');
     const hatSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36">${selected}</svg>`;
     const base = await sharp(Buffer.from(hatSvg), { density: 450 })
@@ -571,10 +572,10 @@ const HAT_PATH_EXTRACTIONS = {
     'mage-hat': { code: '1f9d9', paths: [9] },
     'prince-hat': { code: '1f934', paths: [4, 5] },
     'princess-hat': { code: '1f478', paths: [5, 6, 7, 8] },
-    'guard-hat': { code: '1f482', paths: [9], crop: 0.6 },
     'construction-hat': { code: '1f477', paths: [12, 13] },
     'turban-hat': { code: '1f473', paths: [8, 9] },
-    'cowboy-hat': { code: '1f920', paths: [2, 3] },
+    // Path 1 also carries the eyes and mouth; only its last subpath is the brim.
+    'cowboy-hat': { code: '1f920', paths: [2, 3, { index: 1, subpaths: [3] }] },
     'billed-cap': { code: '1f9e2', paths: [0, 1, 2, 3, 4] },
     'helmet': { code: '26d1', paths: [0, 1, 2, 3, 4, 5] },
     'military-helmet': { code: '1fa96', paths: [0, 1, 2, 3, 4, 5, 6] },
