@@ -193,6 +193,9 @@ describe('prop rows are a grid tray pinned to the rail top', () => {
         expect(block).toMatch(/gridTemplateColumns:\s*'repeat\(3, 1fr\)'/);
         expect(block).toMatch(/overflowY:\s*'auto'/);
         expect(block).toMatch(/maxHeight:\s*300/);
+        // Capped so the tray stays compact on wide frames instead of
+        // stretching the full anchored width.
+        expect(block).toMatch(/maxWidth:\s*420/);
         expect(block).toMatch(/touchAction:\s*'pan-y'/);
         expect(block).toMatch(/WebkitOverflowScrolling:\s*'touch'/);
         expect(block).toMatch(/transform:\s*'translateZ\(0\)'/);
@@ -214,6 +217,10 @@ describe('prop rows are a grid tray pinned to the rail top', () => {
         expect(block).toMatch(/position:\s*'absolute'/);
         expect(block).toMatch(/top:\s*0/);
         expect(block).toMatch(/left:\s*56/);
+        // The right anchor is the actual fix for the sailing tray: without it
+        // the tray sizes from viewport units and runs past the screen edge on
+        // frames narrower than the viewport.
+        expect(block).toMatch(/right:\s*0/);
     });
 
     it('the rail starts below the header blur, around a quarter down', () => {
