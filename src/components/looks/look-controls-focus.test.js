@@ -256,6 +256,16 @@ describe('look control icons and categories', () => {
         expect(source).toContain("setLookSlot('emoji', slug)");
     });
 
+    it('the emoji grid fits its six columns and only scrolls vertically', () => {
+        const source = read(COMPONENT);
+        const start = source.indexOf('emojiGrid: {');
+        expect(start).toBeGreaterThan(-1);
+        const block = source.slice(start, source.indexOf('emojiCell: {', start));
+        expect(block).toContain("gridTemplateColumns: 'repeat(6, minmax(0, 1fr))'");
+        expect(block).toContain("overflowX: 'hidden'");
+        expect(block).toContain("overflowY: 'auto'");
+    });
+
     it('the rail carries the three categories plus the four slots', () => {
         const source = read(COMPONENT);
         for (const id of ['look-drawer-toggle-filter', 'look-drawer-toggle-lens', 'look-drawer-toggle-screen']) {

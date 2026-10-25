@@ -594,11 +594,15 @@ const styles = {
         pointerEvents: 'auto',
         boxShadow: '0 6px 18px rgba(0,0,0,0.5)',
         maxWidth: 420,
+        minWidth: 0,
+        boxSizing: 'border-box',
     },
     emojiToolbar: {
         display: 'flex',
+        flexWrap: 'wrap',
         gap: 6,
         alignItems: 'stretch',
+        minWidth: 0,
     },
     emojiSelect: {
         flex: '0 0 auto',
@@ -623,9 +627,15 @@ const styles = {
     },
     emojiGrid: {
         display: 'grid',
-        gridTemplateColumns: 'repeat(6, 1fr)',
+        // minmax(0, 1fr) is load-bearing: a plain 1fr keeps each cell's
+        // min-content width (the intrinsic 150px SVG), which overflows the
+        // tray and pushes the last column off-screen instead of scrolling.
+        gridTemplateColumns: 'repeat(6, minmax(0, 1fr))',
         gap: 4,
         maxHeight: 300,
+        minWidth: 0,
+        maxWidth: '100%',
+        boxSizing: 'border-box',
         overflowY: 'auto',
         overflowX: 'hidden',
         pointerEvents: 'auto',
@@ -641,6 +651,8 @@ const styles = {
         alignItems: 'center',
         justifyContent: 'center',
         aspectRatio: '1 / 1',
+        minWidth: 0,
+        overflow: 'hidden',
         padding: 4,
         borderRadius: 10,
         border: '1.5px solid transparent',
@@ -654,6 +666,8 @@ const styles = {
     emojiThumb: {
         width: '100%',
         height: '100%',
+        maxWidth: '100%',
+        minWidth: 0,
         objectFit: 'contain',
         pointerEvents: 'none',
     },
