@@ -88,6 +88,76 @@ export const TWEMOJI_EYE_PROBES = {
         ],
         opaque: { fx: 0.5, fy: 0.84 },
     },
+    'grinning-twemoji': {
+        eyes: [
+            { fx: 0.331, fy: 0.372 },
+            { fx: 0.664, fy: 0.372 },
+        ],
+        opaque: { fx: 0.5, fy: 0.85 },
+    },
+    'beaming-twemoji': {
+        eyes: [
+            { fx: 0.361, fy: 0.428 },
+            { fx: 0.639, fy: 0.428 },
+        ],
+        opaque: { fx: 0.5, fy: 0.85 },
+    },
+    'joy-twemoji': {
+        eyes: [
+            { fx: 0.339, fy: 0.456 },
+            { fx: 0.658, fy: 0.456 },
+        ],
+        opaque: { fx: 0.5, fy: 0.85 },
+    },
+    'big-grin-twemoji': {
+        eyes: [
+            { fx: 0.319, fy: 0.347 },
+            { fx: 0.681, fy: 0.347 },
+        ],
+        opaque: { fx: 0.5, fy: 0.85 },
+    },
+    'sweat-twemoji': {
+        eyes: [
+            { fx: 0.333, fy: 0.458 },
+            { fx: 0.667, fy: 0.458 },
+        ],
+        opaque: { fx: 0.5, fy: 0.85 },
+    },
+    'squinting-twemoji': {
+        eyes: [
+            { fx: 0.286, fy: 0.433 },
+            { fx: 0.711, fy: 0.433 },
+        ],
+        opaque: { fx: 0.5, fy: 0.85 },
+    },
+    'wink-twemoji': {
+        eyes: [
+            { fx: 0.317, fy: 0.458 },
+            { fx: 0.667, fy: 0.458 },
+        ],
+        opaque: { fx: 0.5, fy: 0.85 },
+    },
+    'smiling-twemoji': {
+        eyes: [
+            { fx: 0.331, fy: 0.356 },
+            { fx: 0.667, fy: 0.356 },
+        ],
+        opaque: { fx: 0.5, fy: 0.85 },
+    },
+    'tongue-twemoji': {
+        eyes: [
+            { fx: 0.303, fy: 0.411 },
+            { fx: 0.692, fy: 0.411 },
+        ],
+        opaque: { fx: 0.5, fy: 0.85 },
+    },
+    'party-twemoji': {
+        eyes: [
+            { fx: 0.653, fy: 0.436 },
+            { fx: 0.308, fy: 0.514 },
+        ],
+        opaque: { fx: 0.5, fy: 0.85 },
+    },
 };
 
 /** U+1F453 eyeglasses -> transparent lenses, frame kept. Output: 640x640. */
@@ -190,7 +260,7 @@ export async function buildFaceTwemoji(svgText, outSize = 640) {
                 // mouth) by requiring an off-centre centroid unless the component
                 // sits high in the face (true eye row).
                 if (cxn > info.width * 0.2 && cxn < info.width * 0.8 &&
-                    cyn > info.height * 0.2 && cyn < info.height * 0.62 &&
+                    cyn > info.height * 0.30 && cyn < info.height * 0.55 &&
                     ((cxn < info.width * 0.4 || cxn > info.width * 0.6) || cyn < info.height * 0.4)) {
                     comps.push({ minx, maxx, miny, maxy, cx: cxn, cy: cyn, count });
                 }
@@ -237,6 +307,16 @@ const FACE_CODES = {
     'monkey-twemoji': '1f435',
     'dog-twemoji': '1f436',
     'bear-twemoji': '1f43b',
+    'grinning-twemoji': '1f600',
+    'beaming-twemoji': '1f601',
+    'joy-twemoji': '1f602',
+    'big-grin-twemoji': '1f603',
+    'sweat-twemoji': '1f605',
+    'squinting-twemoji': '1f606',
+    'wink-twemoji': '1f609',
+    'smiling-twemoji': '1f60a',
+    'tongue-twemoji': '1f60b',
+    'party-twemoji': '1f973',
 };
 
 const HAT_CODES = {

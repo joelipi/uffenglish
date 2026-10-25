@@ -17,7 +17,7 @@ import { TWEMOJI_EYE_PROBES, probePixel } from '../../../scripts/generate-twemoj
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const FACE_DIR = path.resolve(HERE, '../../../public/overlays/face');
 
-const SLUGS = ['carnival-twemoji', 'shades-twemoji', 'alien-twemoji', 'clown-twemoji', 'grinning-cat-twemoji', 'monkey-twemoji', 'dog-twemoji', 'bear-twemoji'];
+const SLUGS = ['carnival-twemoji', 'shades-twemoji', 'alien-twemoji', 'clown-twemoji', 'grinning-cat-twemoji', 'monkey-twemoji', 'dog-twemoji', 'bear-twemoji', 'grinning-twemoji', 'beaming-twemoji', 'joy-twemoji', 'big-grin-twemoji', 'sweat-twemoji', 'squinting-twemoji', 'wink-twemoji', 'smiling-twemoji', 'tongue-twemoji', 'party-twemoji'];
 
 async function loadPng(slug) {
     const file = assetFileForSlug(slug);
