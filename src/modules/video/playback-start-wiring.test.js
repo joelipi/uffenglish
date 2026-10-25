@@ -98,12 +98,20 @@ describe('the start path survives WebKit returning undefined from play()', () =>
     it('defers the silent-loop replay past the ended event instead of playing inside it', () => {
         const handler = sliceBetween(playbackRaw, 'const handleVideoEnded = () => {', '\n    };');
         // iPadOS can ignore a play() issued synchronously inside `ended`.
-        expect(handler).toContain('replaySilentLoop(0)');
+        expect(handler).toContain('replaySilentLoop(0, replayVideo, replayGen)');
         expect(handler).toContain('clearReplayTimer()');
-        const replay = sliceBetween(playbackRaw, 'const replaySilentLoop = (attempt = 0) => {', '\n    };');
+        const replay = sliceBetween(playbackRaw, 'const replaySilentLoop = (attempt = 0, video = null, gen = -1) => {', '\n    };');
         expect(replay).toContain('video.currentTime = 0');
         expect(replay.indexOf('video.currentTime = 0')).toBeLessThan(replay.indexOf('playSafely(video)'));
         expect(replay).toContain('setTimeout(');
+        // The element persists across takes (only src changes), so a late
+        // rejection from take A must not replay take B: the generation captured
+        // at schedule time has to match, at entry AND in the retry.
+        expect(replay).toContain('gen !== replayGenRef.current');
+        expect(replay).toContain('videoRef.current !== video');
+        expect(replay.indexOf('gen !== replayGenRef.current'))
+            .toBeLessThan(replay.indexOf('video.currentTime = 0'));
+        expect(playbackRaw).toContain('replayGenRef.current += 1;');
     });
 });
 

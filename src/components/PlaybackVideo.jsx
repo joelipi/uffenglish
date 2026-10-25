@@ -114,7 +114,10 @@ export default function PlaybackVideo() {
 
     // The silent-loop replay after the first play. A pending replay must not
     // fire into the next take (or a gone element), like every other timer here.
+    // The <video> element itself persists across takes (only its src changes),
+    // so element identity cannot tell takes apart: the generation does.
     const replayTimerRef = useRef(null);
+    const replayGenRef = useRef(0);
     const clearReplayTimer = () => {
         if (replayTimerRef.current !== null) {
             clearTimeout(replayTimerRef.current);
@@ -305,9 +308,9 @@ export default function PlaybackVideo() {
     // (stories/094). The replay is therefore deferred past the event, the clock
     // is rewound explicitly, and a refusal is retried once — with every step
     // logged so the next report names which one failed.
-    const replaySilentLoop = (attempt = 0) => {
-        const video = videoRef.current;
-        if (!video) return;
+    const replaySilentLoop = (attempt = 0, video = null, gen = -1) => {
+        if (!video || videoRef.current !== video) return;
+        if (gen !== replayGenRef.current) return;
         try {
             if (video.ended && typeof video.currentTime === 'number') video.currentTime = 0;
         } catch (error) { /* rewinding is best effort; play() still restarts */ }
@@ -324,10 +327,11 @@ export default function PlaybackVideo() {
             console.warn('[Playback] silent-loop replay refused (attempt ' + attempt + '):', e && e.name ? e.name : e);
             takeDiagnostics.push('silent-loop replay refused', { attempt, name: e && e.name ? e.name : null });
             if (attempt > 0) return;
+            if (videoRef.current !== video || gen !== replayGenRef.current) return;
             clearReplayTimer();
             replayTimerRef.current = setTimeout(() => {
                 replayTimerRef.current = null;
-                replaySilentLoop(1);
+                replaySilentLoop(1, video, gen);
             }, 300);
         });
     };
@@ -344,9 +348,11 @@ export default function PlaybackVideo() {
         video.loop = true;
         appStore.getState().setPlaybackMuted(true);
         clearReplayTimer();
+        const replayVideo = video;
+        const replayGen = replayGenRef.current;
         replayTimerRef.current = setTimeout(() => {
             replayTimerRef.current = null;
-            replaySilentLoop(0);
+            replaySilentLoop(0, replayVideo, replayGen);
         }, 150);
     };
 
@@ -437,6 +443,7 @@ export default function PlaybackVideo() {
         clearReadinessTimer();
         clearStallTimer();
         clearReplayTimer();
+        replayGenRef.current += 1;
         waitingSinceRef.current = null;
         stallKickedRef.current = false;
         hasStartedRef.current = false;
@@ -522,6 +529,7 @@ export default function PlaybackVideo() {
         clearReadinessTimer();
         clearStallTimer();
         clearReplayTimer();
+        replayGenRef.current += 1;
         if (observerRef.current) {
             observerRef.current.disconnect();
             observerRef.current = null;
