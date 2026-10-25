@@ -148,11 +148,13 @@ describe('look strips stay scrollable on touch', () => {
     });
 });
 
-describe('prop rows are a vertical tray, not a horizontal strip', () => {
+describe('prop rows are a grid tray pinned to the rail top', () => {
     // A horizontal strip can only show its last items by scrolling to a far
     // snap point, which on iOS reads as "stuck partway" — and it gets worse
-    // with every overlay added. The prop rows (Face/Top/Bottom) are a vertical
-    // list instead; the swatch rows keep their horizontal strip.
+    // with every overlay added. The prop rows (Face/Top/Bottom) are a
+    // three-column grid in a vertical tray instead, pinned to the top of the
+    // rail so the menu (and the Size slider under it) never reaches the mic
+    // band; the swatch rows keep their horizontal strip.
     function traySource() {
         return read(COMPONENT)
             .split('\n')
@@ -169,9 +171,10 @@ describe('prop rows are a vertical tray, not a horizontal strip', () => {
         return source.slice(start, end);
     }
 
-    it('the tray scrolls vertically with a fixed pixel cap', () => {
+    it('the tray is a three-column grid with a fixed pixel cap', () => {
         const block = trayBlock('trayStrip');
-        expect(block).toMatch(/flexDirection:\s*'column'/);
+        expect(block).toMatch(/display:\s*'grid'/);
+        expect(block).toMatch(/gridTemplateColumns:\s*'repeat\(3, 1fr\)'/);
         expect(block).toMatch(/overflowY:\s*'auto'/);
         expect(block).toMatch(/maxHeight:\s*300/);
         expect(block).toMatch(/touchAction:\s*'pan-y'/);
@@ -182,13 +185,24 @@ describe('prop rows are a vertical tray, not a horizontal strip', () => {
         expect(block).not.toMatch(/scrollSnap/);
     });
 
-    it('tray rows are full-width with readable labels', () => {
+    it('tray cells stack the label under the thumbnail', () => {
         const block = trayBlock('trayChip');
-        expect(block).toMatch(/flexDirection:\s*'row'/);
-        expect(block).toMatch(/width:\s*'100%'/);
+        expect(block).toMatch(/flexDirection:\s*'column'/);
+        expect(block).toMatch(/alignItems:\s*'center'/);
         const label = trayBlock('trayChipLabel');
-        expect(label).toMatch(/fontSize:\s*12/);
-        expect(label).not.toMatch(/nowrap/);
+        expect(label).toMatch(/textAlign:\s*'center'/);
+    });
+
+    it('the tray is pinned to the rail top, clear of the mic band', () => {
+        const block = trayBlock('foldoutColumn');
+        expect(block).toMatch(/position:\s*'absolute'/);
+        expect(block).toMatch(/top:\s*0/);
+        expect(block).toMatch(/left:\s*56/);
+    });
+
+    it('the rail starts below the header blur, around a quarter down', () => {
+        const block = trayBlock('rail');
+        expect(block).toMatch(/top:\s*'25%'/);
     });
 
     it('OverlayFoldout renders the tray, ChoiceStrip keeps the horizontal strip', () => {

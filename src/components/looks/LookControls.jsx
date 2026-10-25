@@ -322,7 +322,10 @@ const styles = {
     rail: {
         position: 'absolute',
         left: 12,
-        top: '18%',
+        // The pinned tray opens at the rail top, so the rail top IS the tray
+        // top: just under the header blur (~0-15%), with the whole menu ending
+        // well above the mic band on every screen.
+        top: '25%',
         display: 'flex',
         flexDirection: 'column',
         gap: 10,
@@ -389,7 +392,16 @@ const styles = {
         letterSpacing: '0.02em',
         color: 'rgba(255,255,255,0.88)',
     },
+    // The prop rows (Face/Top/Bottom) are a VERTICAL tray pinned to the TOP of
+    // the rail — not dangling from their own button. A tray that opens at the
+    // Face button starts mid-screen and its bottom (plus the Size slider under
+    // it) lands behind the mic button; pinned to the rail top (~25% of the
+    // viewport) the whole menu stays clear of the mic band on every screen.
+    // Only one drawer is ever open, so the pinned trays never overlap.
     foldoutColumn: {
+        position: 'absolute',
+        top: 0,
+        left: 56,
         display: 'flex',
         flexDirection: 'column',
         gap: 6,
@@ -426,20 +438,21 @@ const styles = {
         // force-returning the strip (stories/092).
         scrollSnapType: 'x proximity',
     },
-    // The prop rows (Face/Top/Bottom) are a VERTICAL tray, not a horizontal
-    // strip: a horizontal strip can only ever show its last items by scrolling
-    // to a far snap point and back, which on iOS reads as "stuck partway" —
-    // and it gets worse with every overlay added. A vertical list scrolls on
-    // the platform's most robust gesture and fits dozens of items.
+    // A sticker-sheet GRID, not a list and not a horizontal strip: one row per
+    // overlay cannot hold the dozens of faces coming, and a horizontal strip
+    // can only show its last items by scrolling to a far snap point (which on
+    // iOS reads as stuck partway). Three columns of compact cells scroll on
+    // the platform's most robust gesture and fit many more items.
     trayStrip: {
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'stretch',
-        gap: 4,
+        display: 'grid',
+        gridTemplateColumns: 'repeat(3, 1fr)',
+        gap: 6,
         overflowY: 'auto',
         overflowX: 'hidden',
         // Fixed pixels, not vh: the tray sits between the header blur and the
         // mic band, and vh units shift under iOS Safari's collapsing chrome.
+        // Tray (300) + Size slider below it stays above the mic on a 667px
+        // phone with room to spare.
         maxHeight: 300,
         WebkitOverflowScrolling: 'touch',
         touchAction: 'pan-y',
@@ -447,25 +460,29 @@ const styles = {
         background: 'rgba(15, 17, 24, 0.84)',
         borderRadius: 12,
         padding: '6px',
+        // Explicit width, not just maxWidth: an absolutely positioned box
+        // shrink-wraps to its (narrow) containing block, which would collapse
+        // the 1fr columns to slivers.
+        width: 'calc(100vw - 84px)',
         maxWidth: 'calc(100vw - 84px)',
     },
     trayChip: {
         display: 'flex',
-        flexDirection: 'row',
+        flexDirection: 'column',
         alignItems: 'center',
-        gap: 8,
-        width: '100%',
-        padding: '6px 8px',
+        justifyContent: 'flex-start',
+        gap: 3,
+        minWidth: 0,
+        padding: '6px 4px',
         borderRadius: 10,
         border: '1.5px solid transparent',
         background: 'transparent',
         color: '#fff',
     },
     trayChipLabel: {
-        flex: 1,
-        fontSize: 12,
+        fontSize: 10,
         lineHeight: 1.2,
-        textAlign: 'left',
+        textAlign: 'center',
     },
     chip: {
         display: 'flex',
