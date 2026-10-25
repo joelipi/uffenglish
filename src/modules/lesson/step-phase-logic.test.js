@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { resolveStepPhase } from './step-phase-logic.js';
+import { resolveStepPhase, interactiveDecisionPhase, interactivePlaybackPhase } from './step-phase-logic.js';
 import { BRANCH_OVERLAY_PHASE } from './branch-choice-logic.js';
 import { appStore } from '../store/store.js';
 
@@ -94,6 +94,30 @@ describe('resolveStepPhase', () => {
     it('falls back to interactiveVideo+closedResponse for an unknown/omitted response type', () => {
         expect(resolveStepPhase({ step: { interactiveVideoUrl: 'clip' } })).toBe('interactiveVideo+closedResponse');
         expect(resolveStepPhase({ step: { responseType: 'mystery', interactiveVideoUrl: 'clip' } })).toBe('interactiveVideo+closedResponse');
+    });
+});
+
+describe('interactiveDecisionPhase', () => {
+    it('gives every response type its own decision phase', () => {
+        expect(interactiveDecisionPhase('closedResponse')).toBe('interactiveVideo-decisionTime-closedResponse');
+        expect(interactiveDecisionPhase('openResponse')).toBe('interactiveVideo-decisionTime-openResponse');
+        // Its own phase (not the closedResponse one) is what makes the decision
+        // button read Continue with the chevron (stories/092).
+        expect(interactiveDecisionPhase('friendClosedResponse')).toBe('interactiveVideo-decisionTime-friendClosedResponse');
+    });
+
+    it('falls back to the closedResponse decision phase for an unknown type', () => {
+        expect(interactiveDecisionPhase(undefined)).toBe('interactiveVideo-decisionTime-closedResponse');
+        expect(interactiveDecisionPhase('mystery')).toBe('interactiveVideo-decisionTime-closedResponse');
+    });
+});
+
+describe('interactivePlaybackPhase', () => {
+    it('names the phase that PLAYS the clip, not the decision screen', () => {
+        expect(interactivePlaybackPhase('closedResponse')).toBe('interactiveVideo+closedResponse');
+        expect(interactivePlaybackPhase('openResponse')).toBe('interactiveVideo+openResponse');
+        expect(interactivePlaybackPhase('friendClosedResponse')).toBe('interactiveVideo+friendClosedResponse');
+        expect(interactivePlaybackPhase('mystery')).toBe('interactiveVideo+closedResponse');
     });
 });
 

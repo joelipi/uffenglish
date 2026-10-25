@@ -1,0 +1,184 @@
+# Friend-closed-response preview screen: look controls and per-step overlays
+
+## Context
+
+The friend-closed-response step is the moment a learner records the clip a friend will watch. It currently jumps straight from the step's call-to-action into a 3-2-1 countdown and starts recording, leaving no time to check how they look.
+
+This story gives that step a proper **preview screen**: the step's call-to-action becomes **Continue**, which opens the full-screen camera preview. There the learner sees themselves with the phrase to repeat and the usual warning still on screen, picks a **filter** and up to three **overlays** (Face / Above face / Lower), drags them where they want them, and only then taps the microphone to start recording. The 3-2-1 countdown is removed **for this step only**, because the preview screen already gives them all the time they need.
+
+A step can also ship default overlays from the lesson config (`overlays.face` / `.upper` / `.lower`), which is how a themed step gets its witch hat and cauldron without the learner choosing anything.
+
+Nothing here tracks a face. "Face" and "Above face" are fixed anchor zones on the canvas; the learner frames their own head behind them, exactly like the stationary props shipped in the parent story (091).
+
+## Out of Scope
+
+- Face tracking of any kind. The parked tracker (090) stays parked and must not be imported.
+- Every response type other than `friendClosedResponse` — their flow and their 3-2-1 countdown are unchanged.
+- Real artwork. Placeholder PNGs under `public/overlays/face/` and `public/overlays/props/` are shipped deliberately; they are replaced by filename later.
+- Instagram's literal filter names (trademarks) — descriptive names only.
+- Persisting looks across lessons or to the server. A look lives in memory for the current lesson session.
+
+## Implementation approach
+
+- **Pure module** `src/modules/looks/recording-looks-logic.js` owns every rule: the filter preset table, the overlay library (slug → slot + file), the three slot ids, the anchor defaults, the selection sanitiser, the step-config reader, and the merge that applies a step's config once without carrying it forward.
+- **Filter presets** are Canvas2D blend-mode recipes (`saturation` for mono, `screen`/`multiply` tints for warm/cool/vintage, an `overlay` pass for vivid) plus the beauty levers from 091, so there is no GL context and no `ctx.filter` (which is a no-op on iOS). Preset ids: `none`, `natural`, `warm`, `cool`, `soft`, `mono`, `vintage`, `vivid`; default `none`, so a learner who picks nothing gets an untouched camera frame and the picker shows **None** selected. Filters are a radio group with an explicit off: one at a time, and tapping the applied filter clears it back to `none` (`toggleFilterId`).
+- **The picker must show which filter is applied, and only that one**: the applied chip gets the green ring, a tint and a check badge (`aria-pressed="true"`), while an unapplied chip stays flat. On the rail, **white = this drawer is open, green = something is applied**, so a folded-out drawer never reads as "a filter is selected".
+- **Lens effects are a third kind of control**, next to the colour filter and the prop slots: a whole-frame optical treatment (soft focus, chiaroscuro) rather than a prop placed in the frame. They get their **own rail box** (`Lens`) and their own selection key, so a filter and a lens effect can be applied together (Vintage + Chiaroscuro) and both coexist with the three prop slots. The category is named for the standard term: a camera *lens effect* (Snapchat/Samsung camera call this strip "Lens"; cinema calls soft focus a diffusion filter and chiaroscuro lighting — the umbrella is the lens/camera effect).
+  - `LENS_PRESETS`: `none`, `softfocus`, `chiaroscuro`, `closeup`; default `none`, same radio-with-off rule as filters (`toggleLensId`).
+  - **Close-up** keeps the subject sharp and turns the rest of the frame into a frosted pane: the 091 soft-focus pass at full strength **plus a white frost** (`frost: 0.55`) over it. The oval (`CLOSE_UP_HOLE`, centred 50% / 40%, radii 37% of width and 24% of height — squat, head plus neck, no face tracking) is **feathered, not cut**: `prepareCloseUpMask` copies the oval's box out of the frame *before* the blur and fades its rim with a radial `destination-in` gradient (`CLOSE_UP_FEATHER_START` 0.84, so the last 16% of the radius is the fade), then `paintCloseUpSharp` draws that masked layer back over the blur and the frost. No hard clip, no `ctx.filter`, and the oval's pixels stay the pre-blur ones. Its top edge sits at 16% of the frame, **below the top band (0–15%) that carries the header blur and the logo**, so the sharp area never eats into that strip. The frost is what makes it read as glass rather than a smear: what is behind it is still there, just blurry and indistinct.
+  - No face tracking: each is one canvas-wide pass centred on the assumed face zone (`SLOT_ANCHORS.face`, 50% / 42%), which is exact enough because the composite canvas is always the same 9:16 frame.
+  - The two effects reuse the 091 painters through the injected `paintBeauty` callback (`BEAUTY_PRESETS.lensSoftFocus` = strong downscale bloom + fill light; `lensChiaroscuro` = lit centre + 0.78 vignette), so there is no `ctx.filter` and no new blur technique. They are painted **after the colour grade and under the props** (`paintLooks` step 3).
+- **Screen overlays are a fourth category** (`screen`): artwork that lies over the WHOLE frame, in front of the learner and in front of the props — not a prop at one spot, not a grade, not a lens treatment. Its own rail box (`Screen`) and its own selection key (`screenId`), so it composes with a filter, a lens and the three props at once. `SCREEN_PRESETS`: `none`, `raindrops`, `snowfall`, `sunny`, `windy`, `confetti`, `leaves`, `petals`, `bubbles`, `embers`, `fireflies`, `hearts`, `stars`, `shootingstar`, `vhs`, `grain`, `bokeh`; default `none`, same radio-with-off rule (`toggleScreenId`). Both are painted **procedurally and deterministically** from `(index, timeMs)` (`resolveRaindrop` / `resolveSnowflake` / `paintScreenOverlay`), because a still image would look like a photo pasted on a video:
+  - **Raindrops** — a tear-shaped head with a tapered tail, light blue and semi-transparent, spread over the whole frame and drifting down-left so the field reads as arriving from the top right.
+  - **Snowfall** — small white circles of slightly different sizes (`4–10 px` at 720 wide), translucent (`alpha 0.35–0.65`), falling **straight down** while swaying side to side on a sine of the frame time (the cheap-cartoon flake), never leaving the frame.
+  - **Sunny** — a warm screened bloom around a high sun (`SUN_POSITION` 78% / 10%, chosen clear of the face zone and the left rail) with a bright core, slow very faint rays (`alpha 0.05`) and pollen glints drifting upward and twinkling. Light only: the face zone stays readable.
+  - **Windy** — faint gust curves (`GUST_COUNT`, `alpha 0.12–0.26`) sweeping left → right at their own heights, with leaves tumbling across faster than the gusts, each rotating and bobbing. Both directions are horizontal, so it reads as wind rather than another failing particle.
+  - **The particle family** (`confetti`, `leaves`, `petals`, `bubbles`, `embers`, `fireflies`, `hearts`, `bokeh`) all come from one resolver, `resolveDriftParticle` (`motion` `down` / `up` / `across`, plus speed / sway / size / alpha ranges), so a new particle overlay is a palette and a shape rather than another copy of the motion maths: confetti tumbles as rectangles, leaves as flat ellipses, petals as small pink ellipses, bubbles as rings with a highlight rising, embers as flickering sparks, fireflies as pulsing halos, hearts as bezier hearts, bokeh as soft radial-gradient discs.
+  - **`stars`** is a fixed twinkling field (plus a few cross sparkles); **`shootingstar`** is a scheduled streak (period 5 s, present ~80% of it — a star missing for half the cycle reads as broken) that fades quickly in and out, with a bright 22 px head halo and a 10 → 2 px taper over 55% of the width (`resolveShootingStar`); **`vhs`** is `VHS_LINE_COUNT` (200) **1 px** scanlines plus a rolling bright band with a sharp leading edge and `VHS_DROPOUTS` smears riding it — thick bars read as Venetian blinds, thin lines plus dropouts read as tape; **`grain`** is `GRAIN_SPECKS` light **and dark** specks, 2–4.5 px (a 1 px speck is averaged away when the 720p canvas is shown in a ~390 px preview), re-seeded on a `GRAIN_BUCKET_MS` (45 ms) clock so it boils like film rather than flickering at the display rate.
+  - Every screen painter goes through one dispatch table (`SCREEN_PAINTERS`) and one `paintGuarded` save/restore, so an effect that throws degrades to "no overlay" instead of breaking the frame. `paintLooks` receives `timeMs` (the composite passes `performance.now()`) and paints the screen overlay **last of all**.
+- **A tapped option must not keep the native focus ring.** On iOS Safari a `<button>` keeps its focus ring (and its default button chrome) after a tap, so an option the learner had tapped and then abandoned still looked outlined — reported twice as "the white border stays on the previous option". Every picker button now carries `look-tap` (`.look-tap` in `app.css`: `appearance: none`, `-webkit-tap-highlight-color: transparent`, `:focus { outline: none }`, `:focus-visible` keeps a 2px green keyboard cue) and a pointer activation releases focus (`releaseFocusAfterPointerTap`, `event.detail > 0` only, so tab navigation keeps its focus).
+- **Three overlay slots** — `face`, `upper`, `lower` — each holding at most one asset slug plus its own user tuning (`dx`, `dy` as fractions of the canvas, `scale`). Anchor defaults stay clear of the top header blur and bottom mic band: `face` centred at 42% height, `upper` centred at 22% height, `lower` centred at 74% height. Drawing order is face → upper → lower so a lower prop never covers a face cover.
+- **Selection lives in the zustand store** (`lookSelection`, `lookTuning`, `lookActiveSlot`, `lookOpenDrawer`) and is read per frame by the recording composite, so a change repaints the live preview and is baked into the take because it is the same canvas.
+- **Config** per step:
+  ```json
+  "overlays": { "face": { "asset": "smiley" }, "upper": { "asset": "witchhat" }, "lower": { "asset": "cauldron" } }
+  ```
+  Assets are slugs from the registry, never paths. A step's config overlays are applied when the step's preview first opens and are **not** re-applied on later steps; the learner's own later choices persist for the rest of the lesson.
+- **Two-step flow**: on `friendClosedResponse` steps, the decision button in `ResponseDecisionButtons` / `DecisionButtons` shows the `continue` label and rightward chevron icon (`bi-chevron-right`). Tapping it acquires the camera stream, enters `recording/answering` with `awaitingRecordingStart: true` and `isMicActive: false`, and returns immediately so the bottom `#micBtn` (`MicrophoneToggle`) is ready. Tapping `#micBtn` clears `awaitingRecordingStart`, skips the 3-2-1 countdown, and starts recording immediately; tapping `#micBtn` again stops recording as usual.
+- **Retry goes through the same gate**: an incorrect answer on a `friendClosedResponse` step replays the step's clip (`resolveRetryPhase` in `src/modules/lesson/retry-phase-logic.js`: `simpleVideo` for a simple clip, the interactive playback phase for an interactive one), so the clip's own end-of-playback transition raises the decision screen with Continue again on every attempt. The retry must never jump straight to the decision phase — that paints the gradient overlay over a clip that is still playing. Every other step keeps retrying on the recording screen.
+- **The interactive decision phase is per response type**: `interactiveDecisionPhase(responseType)` in `src/modules/lesson/step-phase-logic.js` gives `friendClosedResponse` its own phase, which is what makes the interactive decision button read Continue; the overlay heading is derived from the step's response type (`getResponseOverlayTextKey`), so it still says "repeat exactly".
+- **Face art with real eye openings.** The face cover is the one slot where the art must keep the learner's eyes visible, so the two new covers are built for it: `carnival` (Venetian domino, gold rim, eye openings cleared to **alpha 0**) and `shades` (sunglasses whose lenses are a **59% tint**, not a hole, so the eyes read through them darkened). Both are **original** art produced by `python3 scripts/generate-overlay-art.py` — that script now supersamples 4× per axis before downsampling, because the hard-edged primitives it used for the placeholders look like pixel junk at 512 px and a ragged hole looks like a bug. No third-party art means no attribution or redistribution question (a Twemoji-derived cut would be CC-BY 4.0 and would carry a credit requirement).
+- **UI** (render-only components) `src/components/looks/LookControls.jsx` renders a compact vertical rail along the left edge (`top: 18%`, clear of the top blur, center face, subtitles, and bottom mic button) where each category (`Filter`, `Top`, `Face`, `Bottom`) folds out horizontally when tapped. Dragging on the mirrored `#webcam-preview` uses `computeDragOffset` (inverting horizontal `dx` for `scaleX(-1)`).
+
+## Tasks
+
+### Task 1 - Look rules (pure module)
+
+- `resolveFilterId('')`, `resolveFilterId('neon')` + called in unit test
+  - → returns the no-filter default `'none'`
+- `resolveFilterId('mono')` + called in unit test
+  - → returns `'mono'`
+- `toggleFilterId(currentId, clickedId)` + called in unit test
+  - → choosing another filter replaces it (one at a time); tapping the applied filter returns `'none'`; `'none'` always returns `'none'`
+- `isLookActive(selection)` + called in unit test
+  - → `false` for `none` (and for `none` + slots), `true` for any chosen filter
+- `paintLooks(...)` with the `none` selection + called in unit test
+  - → paints no beauty pass and no colour grade
+- `isPreviewGateStep({ responseType: 'friendClosedResponse' })` and `({ responseType: 'openResponse' })` + called in unit test
+  - → `true` and `false` respectively
+- `sanitizeSelection` with an unknown filter id and unknown slugs + called in unit test
+  - → falls back to `none` and `null` per slot, never throws
+- `parseStepOverlays` with the three documented keys + called in unit test
+  - → returns `{ face: 'smiley', upper: 'witchhat', lower: 'cauldron' }`
+- `parseStepOverlays` with an unknown slug, a missing object, or a non-object + called in unit test
+  - → drops the unknown slug, returns all-null for the others
+- `applyStepOverlays(selection, stepOverlays)` + called in unit test
+  - → fills only the slots the step declares and leaves the learner's other slots untouched
+- `resolveSlotAnchor('face'|'upper'|'lower', canvasWidth, canvasHeight)` + called in unit test
+  - → returns the documented default centre for each slot
+- `resolveSlotDrawRect` with an asset + tuning (`dx`, `dy`, `scale`) + called in unit test
+  - → applies the tuning on top of the anchor, keeps the asset's aspect ratio, and stays inside the canvas
+- `resolveSlotDrawRect` with no tuning + called in unit test
+  - → equals the anchor default at scale 1
+
+### Task 2 - Filter selection in the store
+
+- `toggleLookFilter('warm')` on a fresh store, then `toggleLookFilter('mono')` + called in unit test
+  - → `lookSelection.filterId` is `'warm'` then `'mono'` (one at a time, starting from `none`)
+- `toggleLookFilter('warm')` twice + called in unit test
+  - → the second tap returns the selection to `'none'` and leaves the overlay slots untouched
+
+### Task 3 - Lens effects (their own category)
+
+- `LENS_PRESETS` / `DEFAULT_LENS_ID` + called in unit test
+  - → ids are `['none', 'softfocus', 'chiaroscuro']`, default is `'none'`, and `none` has no `beautyMode`
+- `resolveLensId('neon')` and `sanitizeSelection({ lensId: 'neon' })` + called in unit test
+  - → both fall back to `'none'`, while a valid `lensId` survives
+- `toggleLensId(current, clicked)` + called in unit test
+  - → one lens at a time, and tapping the applied lens clears it back to `'none'`
+- `isLookActive({ filterId: 'none', lensId: 'softfocus' })` + called in unit test
+  - → `true`, so a lens alone still switches the recording to the composite canvas
+- `paintLooks` with a filter **and** a lens + called in unit test
+  - → calls the beauty painter for the filter preset, then for the lens preset (`['soft', 'lensChiaroscuro']`), and returns `{ filter: 'vintage', lens: 'chiaroscuro', … }`
+- `BEAUTY_PRESETS.lensSoftFocus` / `lensChiaroscuro` + called in unit test
+  - → every lever is within 0…1, soft focus blurs harder than any filter preset, and chiaroscuro's vignette is heavier than any filter preset's
+- `paintBeautyPass({ mode: 'lensSoftFocus' | 'lensChiaroscuro' })` + called in unit test
+  - → paints at least one pass for each, and paints nothing for `none`
+- `toggleLookLens('softfocus')` on the store, then `toggleLookFilter('vintage')` + called in unit test
+  - → both selections hold at once; a second `toggleLookLens` clears only the lens
+
+### Task 4 - The tester can tell which build is running (and a deploy reaches them)
+
+- `resolveBuildId(import.meta.url)` / `formatBuildLog` in `src/modules/utils/build-id.js` + called in unit test
+  - → returns the entry chunk's hashed file name (`main-abc.js`), `'dev'` on the Vite dev server, `'unknown'` for junk — never throws
+  - → `main.jsx` logs `[Build] <entry chunk>` once at boot, so the running build is readable off the eruda console
+- `vite.config.js` sets `workbox.skipWaiting: true` + inspected in the built `sw.js`
+  - → a new deploy activates its worker on install, so the next navigation serves the new shell (a page is never claimed mid-recording, because `clientsClaim` stays off)
+
+### Task 4b - No native focus ring left on a tapped option (iOS)
+
+- `LookControls.jsx` source + called in unit test (`look-controls-focus.test.js`)
+  - → every `<button>` in the picker carries `look-tap`, so a new control cannot silently keep iOS Safari's focus ring/button chrome
+- `app.css` source + called in unit test
+  - → `.look-tap` sets `-webkit-appearance: none`, `appearance: none` and `-webkit-tap-highlight-color: transparent`; `.look-tap:focus` sets `outline: none`; `.look-tap:focus-visible` still paints a 2px green keyboard cue
+- `releaseFocusAfterPointerTap` source + called in unit test
+  - → releases focus only when `event.detail > 0` (pointer), so tab navigation keeps its focus
+
+### Task 5 - Close-up lens, screen overlays, and the Top icon
+
+- `LENS_PRESETS` / `resolveLensPreset('closeup')` + called in unit test
+  - → `closeup` exists with `beautyMode: 'lensCloseUp'` and `hole: true`; the other lenses have no `hole`
+- `resolveCloseUpHole(1080, 1920)` + called in unit test
+  - → the oval is `CLOSE_UP_HOLE` scaled to the canvas, centred at 50% / 40% with radii 37% × 24%, its top edge at or below 15% of the height (clear of the logo band)
+- `resolveCloseUpBox` + called in unit test
+  - → the oval's pixel bounding box (`2rx × 2ry` at its centre), or `null` without a hole
+- `prepareCloseUpMask({ source, maskCanvas, hole })` + called in unit test
+  - → sizes the mask canvas to the box, copies the region before any blur, then applies a radial `destination-in` gradient (composite op restored to `source-over`), and reports `false` without a hole or a canvas
+- `paintCloseUpSharp({ ctx, maskCanvas, hole })` + called in unit test
+  - → draws the masked layer back at the box offset, and does nothing until a mask has been prepared
+- `paintBeautyPass({ mode: 'lensCloseUp', hole, maskCanvas })` + called in unit test
+  - → runs `prepareCloseUpMask` → blur → frost → `paintCloseUpSharp` in that order, uses no `ctx.clip` at all, and reports `lensCloseUp`
+- `paintFrost({ ctx, alpha })` + called in unit test
+  - → one white fill over the frame; alpha `0` paints nothing
+- `BEAUTY_PRESETS.lensCloseUp.frost` + called in unit test
+  - → between 0.4 and 0.7, so the pane is milky without hiding what is behind it
+- `paintLooks` with `lensId: 'closeup'` vs `'softfocus'` + called in unit test
+  - → passes the resolved hole only for the close-up lens
+- `SCREEN_PRESETS` / `resolveScreenId` / `sanitizeSelection` / `isLookActive` + called in unit test
+  - → ids `['none', 'raindrops']`, default `none`, an unknown id sanitises to `none`, and a screen overlay alone counts as a look
+- `toggleScreenId(current, clicked)` + called in unit test
+  - → one overlay at a time, tapping the applied one clears it
+- `resolveRaindrop` + called in unit test
+  - → deterministic for the same `(index, timeMs)`, and both `x` and `y` change with `timeMs`
+- `paintScreenOverlay` + called in unit test
+  - → draws two shapes per drop (`RAINDROP_COUNT` ellipses and fills), one circle per flake for snowfall (`SNOWFLAKE_COUNT` arcs and fills), and nothing for `none`
+- `resolveSnowflake` + called in unit test
+  - → deterministic per `(index, timeMs)`, falls down over time, sways within a narrow column (no diagonal drift, stays on screen), and stays small and translucent
+- `resolvePollenMote` / `paintSunny` + called in unit test
+  - → motes drift upward and twinkle deterministically; the painter screens one bloom, draws the bright core, the `SUN_RAY_COUNT` rays and `POLLEN_COUNT` glints, and the sun sits high (top 20%) and off the face zone
+- `resolveGust` / `resolveWindLeaf` / `paintWindy` + called in unit test
+  - → both are deterministic and move left → right with time (leaves also rotate); the painter strokes one curve per gust and fills one ellipse per leaf
+- `paintScreenOverlay` with `sunny` / `windy` + called in unit test
+  - → dispatches to the right painter and returns its id
+- `paintScreenOverlay` for every preset + called in unit test
+  - → each id returns its own id (a preset without a painter fails this), and `none` paints nothing
+- `resolveDriftParticle` with `motion: 'down' | 'up' | 'across'` + called in unit test
+  - → deterministic, and moves on the right axis (y grows / y shrinks / x grows)
+- `resolveShootingStar` + called in unit test
+  - → crosses, fades in and out, and is invisible (`alpha 0`) for the rest of its cycle
+- `paintVhs` / `paintGrain` + called in unit test
+  - → VHS paints its line count plus one band gradient; grain paints its speck count and re-seeds per time bucket (same bucket ⇒ identical, next bucket ⇒ different)
+- `paintLooks` with filter + lens + screen + called in unit test
+  - → `screen: 'raindrops'`, the rain is painted after the grade and the lens, and its fills are the last thing on the frame
+- `toggleLookScreen` on the store + called in unit test
+  - → independent of `toggleLookFilter` / `toggleLookLens`; a second tap clears only the screen overlay
+- `LookControls.jsx` source + called in unit test
+  - → the Top slot's icon is `bi-cloud-fill` (not `bi-magic`), and the rail has `filter`, `lens`, `screen` plus the three slot drawers
+
+## Notes
+
+- Deliberately no Playwright specs: the owner validates the flow on real devices.
+- The recorder starts on the mic tap for this step. With no countdown, the first ~200ms captures the reach for the button; the trim machinery already exists if that reads badly.
+- Drag is pointer-based on the preview wrapper and writes normalised offsets, so the same numbers work for the 720×1280 phone canvas and the 1080×1920 desktop one.
+- Controls are hidden/disabled once recording begins — a mid-take change would pop visibly in the blob.
+- Art must be PNG only (the repo forbids committed jpg/jpeg/mp4 under `public/`), listed in `recorder-page.test.js`'s allowlist, and excluded from the service-worker precache via `WORKBOX_IGNORES`.

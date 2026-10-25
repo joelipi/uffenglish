@@ -121,6 +121,16 @@ Modal loads a function's **defining module** inside that function's container to
 
 **A render can be driven headlessly (no recorder).** `POST {"jobId","files"}` to the deployed trigger URL with the `Modal-Key`/`Modal-Secret` proxy headers spawns the orchestrator and returns the `jobId`; then poll the private marker `uff-private/raw/status/<jobId>.json` (wrangler with `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID`) until `status:"done"`, and confirm `published` plus a `200` from `r2.ultrafastfluency.com/assets/videos/<slug>.mp4`. The proxy token authorizes *calling* the trigger but cannot `modal deploy` (that needs an account token).
 
+## Verify the bundle before a manual `wrangler pages deploy`
+
+A manual preview deploy is `npm run build && npx wrangler pages deploy dist --project-name=uffenglish --branch=<branch> --commit-dirty=true`. Before uploading, assert the bundle carries the **absolute** CDN base:
+
+```
+grep -c 'r2.ultrafastfluency.com/assets/videos/' dist/assets/main-*.js   # must be >= 1
+```
+
+When it is `0` the `dist` is a dev-flavoured build (`import.meta.env.DEV` left true), so `getPermanentVideoUrl` returns the relative `/assets/videos/<slug>.mp4` instead of the R2 URL. Every video request then goes to the Pages host, Pages answers it with the SPA shell (`200` `text/html`), and every `<video>` reports `MEDIA_ELEMENT_ERROR` code 4 — the whole lesson looks broken (intro, teacher clips, posters) while the source is perfectly fine. That is what a preview deploy of `092` did after `npm run build` ran **concurrently with `npx vitest run`** in the same worktree; `rm -rf dist && npm run build` on its own produced the correct bundle again. So: never run the build and the test suite at the same time, and run the `grep` above before every manual deploy. Diagnose this at the network layer — a `<video>` whose response has `content-type: text/html` is a URL-resolution bug, not a codec or CORS problem.
+
 ## Non-secret Pages variables belong in `wrangler.toml` `[vars]`
 
 `wrangler pages deploy` (`.github/workflows/deploy.yml`) applies `[vars]` from `wrangler.toml` and **drops dashboard plain-text variables not listed there** (dashboard *secrets* survive). So any non-secret Pages variable a Function reads — e.g. `MODAL_RENDER_URL` in `functions/api/pipeline/render.js` — must be in `wrangler.toml`'s `[vars]`, not only in the dashboard, or a deploy silently unsets it and the Function returns `500 "Modal env unset"`. Secrets (`OPERATOR_KEY`, `MODAL_PROXY_TOKEN_ID`/`_SECRET`) stay in the dashboard.
@@ -298,6 +308,8 @@ Execute small, incremental changes and routine bug fixes immediately without ask
 
 **The reused dev server may belong to ANOTHER worktree.** Parallel sessions each have their own worktree, and a `vite --port 5173` process started from a *different* worktree's directory answers on the same port — Playwright reuses it and the spec silently exercises that other worktree's code (the `curl` check above then shows a symbol you just added missing even though your tree has it). `ps aux | grep "[v]ite"` names the owning directory. Don't kill another session's server; run your own on a private port with a temporary config (`baseURL` + `webServer.command` on e.g. 5321, `reuseExistingServer: false`) and delete that config before committing.
 
+**Editing a singleton module under a long-running dev server can leave the app half-booted — restart before believing it.** After an edit to `src/modules/store/store.js` (imported by nearly everything) the already-running `vite` kept serving a graph whose store module was re-evaluated under a stale import, and the page mounted React twice: duplicate `[React Entry] Initializing` / `[GuestLoginModal]` / `[PWA] Install dialog registered` logs, `reactReady: false`, `userData: null`, `appPhase: 'loading'` forever and `configData` never normalized (the guest modal opens, dismissing it sets the language, and nothing loads). That reads exactly like "my change broke the boot", but a fresh `npx vite` on the same tree loads the config in ~4 s. The tell is the *duplicated* mount logs; restart the server (a new port is fastest) and re-run before debugging the code.
+
 **A temporary Playwright config must live INSIDE the repo, and its `webServer` needs an explicit `cwd`.** The config is resolved relative to its own directory, so a config written next to the worktree (outside the repo) cannot resolve `@playwright/test` at all — `Error: Cannot find module '@playwright/test'` — and Playwright runs `webServer.command` with **cwd = the config file's directory**, so a config in a subdirectory starts `vite` in that subdirectory, serves the wrong tree and dies with `Timed out waiting … from config.webServer` and no server output. Put the config in the repo root (and delete it before committing) or in a gitignored path such as `/tidy/`, and set `webServer: { cwd: <repo root> }` when it is not the root.
 
 **A temporary Playwright config in a subdirectory also needs an absolute `testDir`.** `testDir` is resolved relative to the **config file's own directory**, not the repo root — so a config moved into `/tidy/` with `testDir: './tests'` silently collects zero specs ("no tests found") instead of erroring, and the run looks green while testing nothing. Point it at the repo root explicitly (`testDir: path.join(REPO_ROOT, 'tests')`) whenever the config does not live in the repo root.
@@ -375,6 +387,9 @@ Headless recipe (local dev on `:3000`):
 - Advance past the intro: click `#intro-call-widget`.
 - Simulate engine loading/failure by routing `**r2.ultrafastfluency.com/whisper/**` (and `**cdn.jsdelivr.net/**`) to hang or abort; call `window.appStore.getState().setWhisperReady(true)` to reach the mic path without a full model download.
 - Headless Chromium has no media devices, so `getUserMedia` rejects — use this for the no-mic recovery path.
+- **To drive a recording step end to end, launch with `--use-fake-device-for-media-stream` + `--use-fake-ui-for-media-stream`** (real Chrome/Chromium both accept them): the fake camera/mic give a genuine `MediaRecorder` take, so the Continue → preview → `#micBtn` → stop path can be observed.
+- **Setting store state by hand does NOT register the speech-input callback.** `#responseAnswerBtn`/`#micBtn` call `getSpeechInputToggleCallback()`, which `loadStep` sets. A driver that fakes `currentVideo`/`currentStepIndex`/`appPhase` gets a correctly rendered button that silently does nothing when clicked. Load the step through the app's own loader inside `page.evaluate` instead: `const { loadStep } = await import('/src/components/step-loader.web.js'); await loadStep(step, lesson, null, {})`, then set the phase you want to inspect. That is how the friendClosedResponse retry screen was verified.
+- **The animated glow buttons are never "stable"** — `page.click('#responseAnswerBtn')` retries until it times out with `element is not stable`. Use `locator.dispatchEvent('click')`.
 
 **Authentication**
 Do not log in unless the task explicitly requires it — login interferes with guest-user testing.

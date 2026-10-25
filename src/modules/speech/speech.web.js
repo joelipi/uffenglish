@@ -15,6 +15,9 @@ import {
     createFreezeReporter,
     resolveCompositeWatchdog,
     COMPOSITE_WATCHDOG_MS,
+    // Recording looks (stories/091 + 092): filter presets + three overlay slots.
+    paintBeautyPass,
+    shouldCompositeForLook,
 } from './portrait-capture-logic.js';
 import {
     CAMERA_FRAME_PROBE_SAMPLE_MS,
@@ -26,6 +29,15 @@ import {
     resolveCaptureReacquireDelay,
     shouldProbeCamera,
     shouldReacquireCapture,
+} from './capture-release-logic.js';
+import {
+    paintLooks,
+    assetFileForSlug,
+    OVERLAY_SLOTS,
+    isLookActive,
+    isPreviewGateStep,
+} from '../looks/recording-looks-logic.js';
+import {
     shouldReleaseCaptureBeforePlayback,
     waitForAudioRouteSettle,
 } from './capture-release-logic.js';
@@ -58,8 +70,8 @@ const canvasCaptureSupported = typeof HTMLCanvasElement !== 'undefined'
 // recording; otherwise the captured clip (and everything derived from it) comes
 // out at whatever aspect the camera hands back (often 16:9/4:3) rather than
 // Reels-size.
-export function shouldUsePortraitCapture() {
-    return !isIOS();
+export function shouldUsePortraitCapture(options) {
+    return shouldCompositeForLook(options);
 }
 
 
@@ -92,6 +104,62 @@ let compositeFreezeReporter = null;
 let compositeFreezeTickTimer = null;
 let compositeLastSourceTime = 0;
 let compositeCanvasEl = null;
+
+// ---------------------------------------------------------------------------
+// Recording looks (stories/091 + 092).
+//
+// Tracker-free by design: a filter is a Canvas2D lighting/soft-focus + blend-mode
+// recipe and an overlay is a stationary PNG the learner frames themselves and can
+// drag. Everything is painted into the canvas the MediaRecorder already captures,
+// so there is no model, no WebGL context and no per-frame inference in the
+// recording path.
+//
+// The SELECTION lives in the store (the preview screen's controls write it), so a
+// change repaints the live preview and lands in the take because it is the same
+// canvas.
+// ---------------------------------------------------------------------------
+// Scratch canvas for the soft-focus downscale/upscale blend.
+let lookScratchCanvas = null;
+// Second scratch, sized to the close-up lens' oval: the sharp region with a
+// feathered alpha mask, drawn back over the blur.
+let lookMaskCanvas = null;
+
+// Decoded overlay images, keyed by slug. Loaded on demand and dropped with the
+// composite so a phone does not hold five full-size PNGs through Whisper.
+const lookImages = new Map();
+
+function getLookImage(slug) {
+    const file = assetFileForSlug(slug);
+    if (!file) return null;
+    let image = lookImages.get(slug);
+    if (!image) {
+        image = new Image();
+        image.src = file;
+        lookImages.set(slug, image);
+    }
+    return image;
+}
+
+/** slug → image, for whichever slots the current selection uses. */
+function getLookImages(selection) {
+    const map = {};
+    const slots = selection && selection.slots ? selection.slots : {};
+    for (const slot of OVERLAY_SLOTS) {
+        const slug = slots[slot];
+        if (slug) map[slug] = getLookImage(slug);
+    }
+    return map;
+}
+
+function primeLookImages(selection) {
+    getLookImages(selection);
+}
+
+function clearLookState() {
+    lookImages.clear();
+    lookScratchCanvas = null;
+    lookMaskCanvas = null;
+}
 
 let recognition = null;
 let recognitionTimeout = null;
@@ -180,10 +248,17 @@ function createPortraitCaptureStream(rawStream) {
     video.srcObject = rawStream;
     video.play().catch((e) => console.warn('[Speech] portrait-capture playback failed:', e));
 
+    // Prime the assets for whatever the learner already has selected; the painter
+    // draws nothing until an image is decodable, so a slow asset costs a few
+    // unframed frames, never a black take.
+    primeLookImages(appStore.getState().lookSelection);
+
     compositeLiveness = createLivenessCounter();
     compositeLastSourceTime = 0;
 
-    function draw() {
+    // One frame: crop the camera in, then paint the look (filter, then the three
+    // overlay slots), so the preview and the recorded blob always agree.
+    function paintFrame() {
         const rect = compositeCropRect({
             videoWidth: video.videoWidth,
             videoHeight: video.videoHeight,
@@ -191,6 +266,30 @@ function createPortraitCaptureStream(rawStream) {
             canvasHeight: canvas.height,
         });
         const painted = paintCompositeFrame({ ctx, video, rect, canvasWidth: canvas.width, canvasHeight: canvas.height });
+        if (!painted) return false;
+        const state = appStore.getState();
+        if (!lookScratchCanvas) lookScratchCanvas = document.createElement('canvas');
+        if (!lookMaskCanvas) lookMaskCanvas = document.createElement('canvas');
+        paintLooks({
+            ctx,
+            source: canvas,
+            scratch: lookScratchCanvas,
+            maskCanvas: lookMaskCanvas,
+            canvasWidth: canvas.width,
+            canvasHeight: canvas.height,
+            selection: state.lookSelection,
+            tuning: state.lookTuning,
+            images: getLookImages(state.lookSelection),
+            paintBeauty: paintBeautyPass,
+            // Screen overlays animate (rain falls); the frame time keeps them
+            // deterministic per frame rather than random.
+            timeMs: performance.now(),
+        });
+        return true;
+    }
+
+    function draw() {
+        const painted = paintFrame();
         if (painted && compositeLiveness) compositeLiveness.recordPaint();
         if (video.currentTime > compositeLastSourceTime) {
             compositeLiveness.recordSourceAdvance();
@@ -208,13 +307,7 @@ function createPortraitCaptureStream(rawStream) {
     let lastSourceAdvanceAt = performance.now();
     function tick() {
         const prevSourceTime = compositeLastSourceTime;
-        const rect = compositeCropRect({
-            videoWidth: video.videoWidth,
-            videoHeight: video.videoHeight,
-            canvasWidth: canvas.width,
-            canvasHeight: canvas.height,
-        });
-        const painted2 = paintCompositeFrame({ ctx, video, rect, canvasWidth: canvas.width, canvasHeight: canvas.height });
+        const painted2 = paintFrame();
         if (painted2 && compositeLiveness) compositeLiveness.recordPaint();
         if (video.currentTime > prevSourceTime) {
             if (compositeLiveness) compositeLiveness.recordSourceAdvance();
@@ -289,6 +382,8 @@ function teardownPortraitCapture() {
         compositeRawStream.getTracks().forEach((t) => { try { t.stop(); } catch (e) { /* ignore */ } });
         compositeRawStream = null;
     }
+    // Free the prop art + scratch canvas with the composite (before Whisper).
+    clearLookState();
 }
 
 async function createPlaceholderStream() {
@@ -437,8 +532,13 @@ async function ensureSpeechCamStream() {
         const rawStream = await navigator.mediaDevices.getUserMedia(getMediaConstraints());
         // Every platform except iOS wraps the camera in a 9:16 canvas so the
         // preview and recording are always Reels-size. iOS keeps the raw camera
-        // stream unchanged (its MediaRecorder path is fragile).
-        speechCamStream = shouldUsePortraitCapture() && canvasCaptureSupported
+        // stream unchanged (its MediaRecorder path is fragile) — unless this step
+        // shows the look preview, which can only work through the canvas.
+        const state = appStore.getState();
+        const step = state.configData?.lessons?.[state.currentLessonIndex]?.steps?.[state.currentStepIndex];
+        const lookActive = isPreviewGateStep(step) || isLookActive(state.lookSelection);
+        const useComposite = shouldUsePortraitCapture({ isIOS: isIOS(), lookActive });
+        speechCamStream = useComposite && canvasCaptureSupported
             ? createPortraitCaptureStream(rawStream)
             : rawStream;
         isPlaceholderStream = false;

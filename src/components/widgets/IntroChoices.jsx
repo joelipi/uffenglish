@@ -6,6 +6,7 @@ import { isFriendLesson } from '../../modules/user/friend-lesson-detection.js';
 import { setupTextInputForStep } from '../../modules/lesson/step-executor-webonly.js';
 import { getSpeechInputToggleCallback, getSpeechEngineRetryCallback } from '../../modules/lesson/step-loader-callbacks.js';
 import { getSpeechUiState } from '../../modules/speech/speech-ui-state.js';
+import { isPreviewGateStep } from '../../modules/looks/recording-looks-logic.js';
 import Strings from '../../data/strings.js';
 import { useNativeLanguage } from '../../hooks/use-native-language.js';
 import { trackEvent } from '../../modules/utils/posthog.js';
@@ -20,6 +21,13 @@ export default function IntroChoices() {
     // chooser offers only video. Detection is route-only (share link or the
     // 'a'/'b' lesson ids) and re-renders on navigation via useLocation.
     const friendLesson = isFriendLesson({ search: location.search, pathname: location.pathname });
+    // The friend-closed-response step opens a preview screen (look controls, then
+    // a microphone tap to start) instead of recording immediately (stories/092).
+    const configData = useStore(appStore, (state) => state.configData);
+    const currentLessonIndex = useStore(appStore, (state) => state.currentLessonIndex);
+    const currentStepIndex = useStore(appStore, (state) => state.currentStepIndex);
+    const currentStep = configData?.lessons?.[currentLessonIndex]?.steps?.[currentStepIndex] || null;
+    const previewGateStep = isPreviewGateStep(currentStep);
 
     // Track how long the engine has been loading so we can escalate from a
     // quiet "preparing" note to explicit troubleshooting guidance. The interval
@@ -148,6 +156,26 @@ export default function IntroChoices() {
     }
 
     // ── Engine ready — encourage voice; keyboard icon always available ──
+    // The friend-closed-response step gets a single Continue button: it opens the
+    // preview screen (camera + look controls) instead of starting a recording,
+    // and the take then starts from the microphone on that screen (stories/092).
+    if (previewGateStep) {
+        return (
+            <div className="d-flex gap-3 align-items-center" id="state-intro-choices">
+                <button
+                    type="button"
+                    className="btn call-btn btn-row-primary"
+                    id="continueToPreviewButton"
+                    data-testid="continue-to-preview"
+                    aria-label="Continue"
+                    onClick={handleVideoClick}
+                >
+                    <i className="bi bi-chevron-right"></i>
+                </button>
+            </div>
+        );
+    }
+
     return (
         <div className="d-flex gap-3 align-items-center" id="state-intro-choices">
             {voiceButtons(false)}

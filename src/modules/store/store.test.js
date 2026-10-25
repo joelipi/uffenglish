@@ -425,3 +425,78 @@ describe('step celebration trigger', () => {
         expect(appStore.getState().stepCelebrationTrigger).toBe(7);
     });
 });
+
+describe('look filter selection (stories/092)', () => {
+    beforeEach(() => appStore.setState({ lookSelection: { filterId: 'none', slots: { face: null, upper: null, lower: null } } }));
+
+    it('starts on None so an untouched camera means no filter', () => {
+        expect(appStore.getState().lookSelection.filterId).toBe('none');
+    });
+
+    it('applies one filter at a time', () => {
+        appStore.getState().toggleLookFilter('warm');
+        expect(appStore.getState().lookSelection.filterId).toBe('warm');
+        appStore.getState().toggleLookFilter('mono');
+        expect(appStore.getState().lookSelection.filterId).toBe('mono');
+    });
+
+    it('tapping the applied filter unselects it back to None', () => {
+        appStore.getState().toggleLookFilter('warm');
+        appStore.getState().toggleLookFilter('warm');
+        expect(appStore.getState().lookSelection.filterId).toBe('none');
+    });
+
+    it('keeps the overlay slots when the filter changes', () => {
+        appStore.getState().setLookSlot('face', 'smiley');
+        appStore.getState().toggleLookFilter('cool');
+        expect(appStore.getState().lookSelection.filterId).toBe('cool');
+        expect(appStore.getState().lookSelection.slots.face).toBe('smiley');
+        appStore.getState().toggleLookFilter('cool');
+        expect(appStore.getState().lookSelection.filterId).toBe('none');
+        expect(appStore.getState().lookSelection.slots.face).toBe('smiley');
+    });
+});
+
+describe('look lens effect (stories/092)', () => {
+    beforeEach(() => appStore.setState({ lookSelection: { filterId: 'none', lensId: 'none', slots: { face: null, upper: null, lower: null } } }));
+
+    it('is a separate choice from the filter — both can be applied at once', () => {
+        appStore.getState().toggleLookFilter('vintage');
+        appStore.getState().toggleLookLens('softfocus');
+        expect(appStore.getState().lookSelection.filterId).toBe('vintage');
+        expect(appStore.getState().lookSelection.lensId).toBe('softfocus');
+    });
+
+    it('applies one light at a time and clears on a second tap, leaving the filter alone', () => {
+        appStore.getState().toggleLookFilter('vintage');
+        appStore.getState().toggleLookLens('softfocus');
+        appStore.getState().toggleLookLens('chiaroscuro');
+        expect(appStore.getState().lookSelection.lensId).toBe('chiaroscuro');
+        appStore.getState().toggleLookLens('chiaroscuro');
+        expect(appStore.getState().lookSelection.lensId).toBe('none');
+        expect(appStore.getState().lookSelection.filterId).toBe('vintage');
+    });
+});
+
+describe('look screen overlay (stories/092)', () => {
+    beforeEach(() => appStore.setState({ lookSelection: { filterId: 'none', lensId: 'none', screenId: 'none', slots: { face: null, upper: null, lower: null } } }));
+
+    it('is independent of the filter and the lens', () => {
+        appStore.getState().toggleLookFilter('vintage');
+        appStore.getState().toggleLookLens('closeup');
+        appStore.getState().toggleLookScreen('raindrops');
+        const s = appStore.getState().lookSelection;
+        expect(s.filterId).toBe('vintage');
+        expect(s.lensId).toBe('closeup');
+        expect(s.screenId).toBe('raindrops');
+    });
+
+    it('clears on a second tap and leaves the other two alone', () => {
+        appStore.getState().toggleLookLens('closeup');
+        appStore.getState().toggleLookScreen('raindrops');
+        appStore.getState().toggleLookScreen('raindrops');
+        const s = appStore.getState().lookSelection;
+        expect(s.screenId).toBe('none');
+        expect(s.lensId).toBe('closeup');
+    });
+});

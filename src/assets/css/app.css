@@ -1022,6 +1022,32 @@ body { margin: 0; font-family: var(--font-body); font-size: 1rem; font-weight: 4
     outline: none !important;
 }
 
+/* Look picker chips and rail buttons (stories/092).
+   iOS Safari keeps its native focus ring (and its default button chrome) on a
+   <button> after a TAP, so the option the learner selected a moment ago kept a
+   white outline that looked like it was still selected — the applied state is
+   the green ring, so the native ring is suppressed here exactly as it is for
+   .call-btn above. `appearance: none` also removes Safari's default button
+   bezel, which the inline styles do not override on its own. */
+.look-tap {
+    -webkit-appearance: none;
+    appearance: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.look-tap:focus {
+    outline: none !important;
+}
+
+/* Keyboard users still get a cue, in the same green as the applied state. A
+   pointer tap does not match `:focus-visible`, and the tap handler also
+   releases focus, so this ring cannot linger on a chip that was just selected. */
+.look-tap:focus-visible {
+    /* `!important` so the keyboard cue survives any inline reset. */
+    outline: 2px solid #4ade80 !important;
+    outline-offset: 2px;
+}
+
 .call-btn:active {
     transform: scale(0.9) translateY(2px);
     box-shadow: var(--uff-btn-shadow-pressed) !important;

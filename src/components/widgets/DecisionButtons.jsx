@@ -2,6 +2,7 @@ import React from 'react';
 import { useStore } from 'zustand';
 import { appStore, getCurrentVideoPlayer } from '../../modules/store/store.js';
 import { getSpeechInputToggleCallback } from '../../modules/lesson/step-loader-callbacks.js';
+import { getInteractiveDecisionLabelKey, getInteractiveDecisionIconClass } from '../../modules/video/response-decision-logic.js';
 import { getBilingual } from '../../data/strings.js';
 import { useNativeLanguage } from '../../hooks/use-native-language.js';
 
@@ -10,9 +11,7 @@ export default function DecisionButtons() {
     const isTextMode = useStore(appStore, (state) => state.isTextMode);
     const appPhase = useStore(appStore, (state) => state.appPhase);
 
-    const respondNowKey = appPhase === 'interactiveVideo-decisionTime-closedResponse'
-        ? 'video_repeat_now'
-        : 'video_respond_now';
+    const respondNowKey = getInteractiveDecisionLabelKey(appPhase);
 
     const handleEarClick = () => {
         // Replay the video; do NOT pre-enter recording/answering. onRecordingStart
@@ -87,7 +86,7 @@ export default function DecisionButtons() {
                         aria-label="Toggle Microphone"
                         onClick={handleMicClick}
                     >
-                        <i className={isMicActive ? "bi bi-mic-fill" : "bi bi-mic-mute-fill"}></i>
+                        <i className={getInteractiveDecisionIconClass(appPhase, isMicActive)}></i>
                     </button>
                     <button
                         className={`btn call-btn btn-row-primary ${isTextMode ? '' : 'd-none'}`}
