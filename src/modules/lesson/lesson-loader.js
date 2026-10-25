@@ -3,6 +3,7 @@ import { clearInMemoryRecordingsForLesson, clearSpeechRecordingsForLesson, resto
 import { deleteRecordsExceptLesson } from '../storage/recordingDb.js';
 import { loadStep } from '../../components/step-loader.js';
 import { trackEvent } from '../utils/posthog.js';
+import { resetAppliedStepOverlays } from '../looks/recording-looks-logic.js';
 
 export async function loadLessonContent(lesson, options = {}) {
     const { forceRestart = false } = options;
@@ -48,6 +49,9 @@ export async function loadLessonContent(lesson, options = {}) {
     const player = getCurrentVideoPlayer();
     if (player) player.destroy();
     appStore.getState().resetForNewLesson();
+    // A new lesson starts with no remembered per-step overlay defaults: the key
+    // guard otherwise lets a same-numbered step in another lesson skip them.
+    resetAppliedStepOverlays();
     appStore.getState().resetLessonHistory();
     appStore.getState().resetLessonState();
     appStore.getState().setProgressPercent('0%');

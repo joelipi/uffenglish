@@ -24,6 +24,7 @@ import { analyzeSpeech } from '../utils/analytics.js';
 import { saveSpeechRecording, updateSpeechRecording } from '../storage/storage.js';
 import { buildFeedbackData, buildExplanationData } from './feedback-builder.js';
 import { getNextStep } from '../lesson/lesson-routing.js';
+import { resolveRetryPhase, MIC_RETRY_PHASE } from '../lesson/retry-phase-logic.js';
 import getRandomPraise from '../../data/praise.js';
 import { getBotIdentity } from '../user/bot-identity.js';
 import teacherAvatarUrl from '../../assets/img/teacherprofile.webp';
@@ -930,13 +931,24 @@ export function createAnswerPipeline(deps) {
                 }
                 appStore.getState().setMediaVisible(true);
 
+                // A friendClosedResponse step retries by replaying its clip: the
+                // clip's own end-of-playback transition then raises the decision
+                // screen (Continue), so the gradient overlay never covers a
+                // playing clip (stories/092). Every other step retries on the
+                // recording screen as before.
+                const retryPhase = resolveRetryPhase(stepData);
+                if (retryPhase !== MIC_RETRY_PHASE) {
+                    appStore.getState().setAwaitingRecordingStart(false);
+                    appStore.getState().setMicActive(false);
+                }
+
+                appStore.getState().setSystemMessage({ type: 'info', text: stepData.step || '' });
+                appStore.getState().transitionTo(retryPhase);
+
                 const player = getCurrentVideoPlayer();
                 if (player && typeof player.replay === 'function') {
                     player.replay();
                 }
-
-                appStore.getState().setSystemMessage({ type: 'info', text: stepData.step || '' });
-                appStore.getState().transitionTo('recording/answering');
                 resetButtonState(button);
                 return;
             }

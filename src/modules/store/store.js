@@ -7,6 +7,18 @@ import { createStore } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { applyGuestLanguagePreference } from '../user/guest-modal-logic.js';
 import { BRANCH_OVERLAY_PHASE } from '../lesson/branch-choice-logic.js';
+import {
+    sanitizeSelection,
+    sanitizeTuning,
+    emptyTuning,
+    emptySelection,
+    applyStepOverlays,
+    toggleLookDrawer,
+    toggleFilterId,
+    toggleLensId,
+    toggleScreenId,
+    OVERLAY_SLOTS,
+} from '../looks/recording-looks-logic.js';
 
 // ── Module-level mutable refs (not reactive) ──
 // These hold instances that don't belong in Zustand's reactive state.
@@ -63,7 +75,11 @@ const answerFlowTransitions = {
     'interactiveVideo-decisionTime-openResponse':   ['recording/answering', 'interactiveVideo+openResponse'],
     'interactiveVideo-decisionTime-friendClosedResponse': ['recording/answering', 'interactiveVideo+friendClosedResponse'],
     'firstResponse':                             ['recording/answering'],
-    'recording/answering':                       ['processing/transcribing', 'feedback'],
+    // A friendClosedResponse retry replays its clip, and the clip's own
+    // end-of-playback transition raises the decision screen (Continue) — never
+    // the decision phase directly, which would paint the gradient overlay over
+    // a playing clip (stories/092).
+    'recording/answering':                       ['processing/transcribing', 'feedback', 'simpleVideo', 'interactiveVideo+friendClosedResponse'],
     'processing/transcribing':                   ['review', 'transcription preflight-rejected', 'recording/answering', 'feedback'],
     'transcription preflight-rejected':          ['recording/answering'],
     // 'recording/answering' is the "record again" ✕ on the Whisper review
@@ -111,6 +127,21 @@ export const appStore = createStore(
             pauseAllVideosTrigger: 0,
             pendingVideoPlayType: null,  // 'interactive' | 'simple' | 'success' | null
             recordingCountdown: null,    // null | 3 | 2 | 1 — 3-2-1 pre-roll overlay; 'mic' is NOT a value
+            // Recording looks (stories/092). `lookSelection` is the learner's
+            // filter + the three overlay slots; `lookTuning` is where they
+            // dragged each slot and how big they made it. Both live in memory for
+            // the lesson session only.
+            lookSelection: emptySelection(),
+            lookTuning: {
+                face: { dx: 0, dy: 0, scale: 1 },
+                upper: { dx: 0, dy: 0, scale: 1 },
+                lower: { dx: 0, dy: 0, scale: 1 },
+            },
+            lookActiveSlot: 'face',
+            lookOpenDrawer: null,
+            // True only on a friendClosedResponse preview screen: the camera is
+            // live and the recorder waits for the learner's mic tap (no 3-2-1).
+            awaitingRecordingStart: false,
 
 // --- Session-scoped State (not persisted, reset per lesson) ---
             isAudioEnabled: false,
@@ -240,6 +271,62 @@ export const appStore = createStore(
             setWhisperEngineFailed: (val) => set({ isWhisperEngineFailed: val }),
             setMicActive: (val) => set({ isMicActive: val }),
             setRecordingCountdown: (val) => set({ recordingCountdown: val }),
+            // --- Recording looks (stories/092) ---
+            // Values are normalised here so the renderer can trust the store; the
+            // rules themselves live in modules/looks/recording-looks-logic.js.
+            setLookSelection: (selection) => set({ lookSelection: sanitizeSelection(selection) }),
+            // One filter at a time, and tapping the applied one clears it back to
+            // `none` (the rule lives in recording-looks-logic.js).
+            toggleLookFilter: (filterId) => set((state) => ({
+                lookSelection: sanitizeSelection({
+                    ...state.lookSelection,
+                    filterId: toggleFilterId(state.lookSelection.filterId, filterId),
+                }),
+            })),
+            // The lens effect is a separate choice from the filter, so both
+            // can be applied at once (e.g. Vintage + Soft focus).
+            toggleLookLens: (lensId) => set((state) => ({
+                lookSelection: sanitizeSelection({
+                    ...state.lookSelection,
+                    lensId: toggleLensId(state.lookSelection.lensId, lensId),
+                }),
+            })),
+            // The screen overlay is a third independent choice (rain over a
+            // filter over a close-up lens all at once).
+            toggleLookScreen: (screenId) => set((state) => ({
+                lookSelection: sanitizeSelection({
+                    ...state.lookSelection,
+                    screenId: toggleScreenId(state.lookSelection.screenId, screenId),
+                }),
+            })),
+            setLookSlot: (slot, slug) => set((state) => {
+                const slots = { ...state.lookSelection.slots, [slot]: slug };
+                return {
+                    lookSelection: sanitizeSelection({ ...state.lookSelection, slots }),
+                    lookActiveSlot: slug ? slot : state.lookActiveSlot,
+                };
+            }),
+            setLookTuning: (slot, patch) => set((state) => {
+                const next = { ...state.lookTuning, [slot]: { ...state.lookTuning[slot], ...patch } };
+                return { lookTuning: sanitizeTuning(next) };
+            }),
+            resetLookTuning: () => set({ lookTuning: emptyTuning() }),
+            setLookActiveSlot: (slot) => set({ lookActiveSlot: slot }),
+            setLookOpenDrawer: (drawer) => set({ lookOpenDrawer: drawer }),
+            toggleLookOpenDrawer: (drawer) => set((state) => {
+                const nextDrawer = toggleLookDrawer(state.lookOpenDrawer, drawer);
+                return {
+                    lookOpenDrawer: nextDrawer,
+                    lookActiveSlot: OVERLAY_SLOTS.includes(drawer) ? drawer : state.lookActiveSlot,
+                };
+            }),
+            applyStepLookOverlays: (stepOverlays) => set((state) => ({
+                lookSelection: applyStepOverlays(state.lookSelection, stepOverlays),
+            })),
+            setAwaitingRecordingStart: (val) => set((state) => ({
+                awaitingRecordingStart: val,
+                lookOpenDrawer: val ? state.lookOpenDrawer : null,
+            })),
             setTextMode: (val) => set({ isTextMode: val }),
             setPlaybackMuted: (val) => set({ isPlaybackMuted: val }),
             setCameraOff: (val) => set({ isCameraOff: val }),
@@ -615,6 +702,14 @@ export const appStore = createStore(
                 successCanvasVisible: false,
                 afterVideoActive: null,
                 clipsPublishing: false,
+                // A new lesson starts with no look of its own: the learner's
+                // filter/overlay picks do not leak between lessons, and neither
+                // does the previous step's config overlays.
+                lookSelection: emptySelection(),
+                lookTuning: { face: { dx: 0, dy: 0, scale: 1 }, upper: { dx: 0, dy: 0, scale: 1 }, lower: { dx: 0, dy: 0, scale: 1 } },
+                lookActiveSlot: 'face',
+                lookOpenDrawer: null,
+                awaitingRecordingStart: false,
             }),
 
             // --- Input UI Actions (Replaces renderSpeechInputUI/renderTextInputUI) ---

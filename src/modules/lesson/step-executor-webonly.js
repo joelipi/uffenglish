@@ -21,6 +21,7 @@ import { resolveStepPhase } from './step-phase-logic.js';
 import { resolveNextStepIndex } from './branch-choice-logic.js';
 import { shouldTrackHesitation } from '../speech/hesitation-logic.js';
 import { applyNoAudioRecovery, returnToRecordingPhase } from './no-audio-recovery-logic.js';
+import { isPreviewGateStep, applyStepLookOverlaysOnce } from '../looks/recording-looks-logic.js';
 
 // Module-level ref for viewAndContinue handler (decision overlay Continue button)
 let _viewAndContinueHandler = null;
@@ -45,6 +46,7 @@ export function setupTextInputForStep() {
 }
 
 function resetUIForNewStep(step) {
+    appStore.getState().setAwaitingRecordingStart(false);
     const isRetry = appStore.getState().incorrectAttempts > 0;
     const steps = appStore.getState().configData.lessons[appStore.getState().currentLessonIndex].steps;
     const firstResponseIndex = steps.findIndex(s =>
@@ -72,6 +74,7 @@ export function createLoadStep(deps) {
         addAIFeedbackMessages,
         enableAudioSystem,
         releaseSpeechCam,
+        warmUpSpeechCam,
     } = deps;
 
     return function loadStep(step, lesson, fluencyData) {
@@ -110,6 +113,20 @@ export function createLoadStep(deps) {
                 // acquire the mic/cam only when the user picks voice/video mode.
             } else if (appStore.getState().isTextMode) {
                 console.log('[QuestionLoader] Text mode: bypassing hardware prompt');
+            } else if (isPreviewGateStep(step) && appStore.getState().appPhase === 'recording/answering') {
+                // A video-less friendClosedResponse step (e.g. closing lesson g)
+                // lands straight in `recording/answering` with no preceding
+                // Continue button — open the camera preview and look controls
+                // immediately so the bottom #micBtn starts recording on one tap.
+                const stateNow = appStore.getState();
+                const stepKey = `${lesson?.lessonId || 'lesson'}:${stateNow.currentStepIndex}`;
+                applyStepLookOverlaysOnce({
+                    stepKey,
+                    stepOverlays: step.overlays,
+                    store: appStore,
+                });
+                stateNow.setAwaitingRecordingStart(true);
+                if (typeof warmUpSpeechCam === 'function') warmUpSpeechCam();
             } else {
                 // Do not pre-acquire the mic/camera here: requesting
                 // getUserMedia / the mic AudioContext while the step video is

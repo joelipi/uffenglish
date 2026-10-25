@@ -44,6 +44,10 @@ const WORKBOX_IGNORES = [
     // from the precached SPA shell.
     'recorder.html',
     'landing.html',
+    // Optional prop art for the recording looks (stories/091): a learner who
+    // never picks a prop must not pay for the download, so keep it out of the
+    // precache and fetch it on demand.
+    '**/overlays/**',
     // Icon-generation source (see pwa-assets.config.js).
     'pwa-icon-source.png',
 ]
@@ -103,6 +107,17 @@ export default defineConfig({
             workbox: {
                 globPatterns: ['**/*.{js,css,html,png,svg,ico,webmanifest,woff,woff2}'],
                 globIgnores: WORKBOX_IGNORES,
+                // A new deploy must become reachable. Without this, a new worker
+                // installs and WAITS while any client is open, so a reload keeps
+                // being answered from the previous precache — on iOS an installed
+                // PWA or a long-lived tab can sit on an old build indefinitely
+                // (stories/092: two rounds of fixes were invisible on the test
+                // device because of exactly that). `skipWaiting` activates the
+                // new worker as soon as it installs, so the NEXT navigation runs
+                // the new build; `clientsClaim` is deliberately NOT set, so a
+                // page that is mid-recording is never claimed (and never has its
+                // old chunks swapped underneath it) while the learner is working.
+                skipWaiting: true,
                 // SPA client routes are served from the precached shell; the
                 // deny list is the load-bearing part. Workbox's NavigationRoute
                 // would otherwise answer EVERY same-origin navigation (any

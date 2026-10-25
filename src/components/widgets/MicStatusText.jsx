@@ -70,8 +70,13 @@ export default function SystemMessageOverlay() {
     // During the 3-2-1 pre-roll the countdown owns the screen; the speak-now
     // mic + localized "SPEAK." overlay is held back until it reaches null.
     const recordingCountdown = useStore(appStore, (state) => state.recordingCountdown);
+    // On the friendClosedResponse preview screen (stories/092) the learner is
+    // still framing their shot and choosing filters/overlays; the speak-now
+    // indicator is held back until they tap the bottom #micBtn to start.
+    const awaitingStart = useStore(appStore, (state) => state.awaitingRecordingStart);
 
     if (recordingCountdown !== null) return null;
+    if (awaitingStart && systemMessage?.type === 'speak-now') return null;
 
     if (systemMessage) {
         const { type, text, bilingual } = systemMessage;

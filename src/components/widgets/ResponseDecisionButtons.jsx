@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store/store.js';
 import { getSpeechInputToggleCallback } from '../../modules/lesson/step-loader-callbacks.js';
-import { getResponseAnswerLabelKey } from '../../modules/video/response-decision-logic.js';
+import { getResponseAnswerLabelKey, getResponseAnswerIconClass } from '../../modules/video/response-decision-logic.js';
 import { replaySimpleVideo } from '../../modules/lesson/lesson-progression.js';
 import { createTutorialOpener } from '../../modules/video/tutorial-logic.js';
 import { getBilingual } from '../../data/strings.js';
@@ -64,7 +64,7 @@ export default function ResponseDecisionButtons() {
                             aria-label="Answer"
                             onClick={handleMicClick}
                         >
-                            <i className="bi bi-mic-fill"></i>
+                            <i className={getResponseAnswerIconClass(currentVideo?.responseType)}></i>
                         </button>
                         <button
                             className={`btn call-btn btn-row-primary ${isTextMode ? '' : 'd-none'}`}

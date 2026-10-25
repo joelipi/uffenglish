@@ -8,6 +8,7 @@ import { useInteractiveVideo } from '../hooks/useInteractiveVideo.js';
 import { getBilingual } from '../data/strings.js';
 import { useNativeLanguage } from '../hooks/use-native-language.js';
 import { createAudioGuard } from '../modules/video/audio-guard.js';
+import { getResponseOverlayTextKey } from '../modules/video/response-decision-logic.js';
 import VideoPlayIcon from './VideoPlayIcon.jsx';
 
 // ---------------------------------------------------------------------------
@@ -55,12 +56,13 @@ export default function InteractiveVideoPlayer() {
     const isMicActive = useStore(appStore, (s) => s.isMicActive);
     const textInputVisible = useStore(appStore, (s) => s.textInputVisible);
     const pendingVideoPlayType = useStore(appStore, (s) => s.pendingVideoPlayType);
-    const appPhase = useStore(appStore, (s) => s.appPhase);
+    const currentVideo = useStore(appStore, (s) => s.currentVideo);
     const overlayLang = useNativeLanguage();
 
-    const overlayTextKey = appPhase === 'interactiveVideo-decisionTime-closedResponse'
-        ? 'video_repeat_exactly'
-        : 'video_did_understand';
+    // Keyed to the step's response type, not the phase: `friendClosedResponse`
+    // has its own decision phase now, and it is a "repeat exactly" step like
+    // `closedResponse` (stories/092).
+    const overlayTextKey = getResponseOverlayTextKey(currentVideo?.responseType);
 
     const overlayBilingual = useMemo(
         () => getBilingual(overlayTextKey, overlayLang),

@@ -143,7 +143,7 @@ describe('friendClosedResponse auto-advance', () => {
         expect(appStore.getState().appPhase).not.toBe('feedback');
     });
 
-    it('keeps the hangman retry path on an incorrect friendClosedResponse answer', async () => {
+    it('replays the clip after an incorrect interactive friendClosedResponse answer (not the decision screen)', async () => {
         setupStore(friendStep);
         const loadNextStep = vi.fn();
         const _deps = { loadNextStep, callLoadStep: vi.fn() };
@@ -162,7 +162,46 @@ describe('friendClosedResponse auto-advance', () => {
         );
 
         expect(loadNextStep).not.toHaveBeenCalled();
-        expect(appStore.getState().appPhase).toBe('recording/answering');
+        // The retry replays the clip; its end raises the Continue decision
+        // screen (stories/092). Jumping straight to that phase painted the
+        // gradient overlay over a clip that was still playing.
+        expect(appStore.getState().appPhase).toBe('interactiveVideo+friendClosedResponse');
+        expect(appStore.getState().awaitingRecordingStart).toBe(false);
+        expect(appStore.getState().isMicActive).toBe(false);
+    });
+
+    it('replays the clip after an incorrect simple-video friendClosedResponse answer', async () => {
+        const simpleFriendStep = {
+            step: 'friend-simple-1',
+            responseType: 'friendClosedResponse',
+            cue: 'I would rather have a million dollars.',
+            simpleVideoUrl: 'wouldyourather-a-01-01',
+            explanation: '',
+            translation: null,
+        };
+        setupStore(simpleFriendStep);
+        const loadNextStep = vi.fn();
+        const _deps = { loadNextStep, callLoadStep: vi.fn() };
+
+        await pipeline.handleAnswer(
+            'I would rather eat pizza',
+            simpleFriendStep.cue,
+            simpleFriendStep,
+            null,
+            '',
+            { pauseCount: 0, netDuration: 0 },
+            _deps,
+            appStore.getState().userData,
+            appStore.getState().configData,
+            'test-course'
+        );
+
+        expect(loadNextStep).not.toHaveBeenCalled();
+        expect(appStore.getState().appPhase).toBe('simpleVideo');
+        expect(appStore.getState().awaitingRecordingStart).toBe(false);
+        expect(appStore.getState().isMicActive).toBe(false);
+        // The correction card still appears on the retry.
+        expect(appStore.getState().hintsVisible).toBe(true);
     });
 
     it('re-shows the correction card with a new diff after a mic-press dismissal and another mistake', async () => {

@@ -39,9 +39,13 @@ describe('portrait capture (9:16)', () => {
     it('gates the composite on a device check that excludes iOS only', () => {
         expect(WEB).toMatch(/import \{ isIOS \} from '\.\.\/\.\.\/utils\/detectIOS\.js'/);
         expect(WEB).toMatch(/const isAndroid = \/Android\/i\.test\(navigator\.userAgent\)/);
-        const body = functionBody(WEB, 'export function shouldUsePortraitCapture()');
+        // The rule itself is pure and tested behaviourally in
+        // portrait-capture-logic.test.js; the adapter must delegate, never
+        // re-implement it (stories/091 added the look opt-in).
+        const body = functionBody(WEB, 'export function shouldUsePortraitCapture(');
         expect(body).not.toBe('');
-        expect(body).toMatch(/return !isIOS\(\)/);
+        expect(body).toMatch(/shouldCompositeForLook\(/);
+        expect(body).not.toMatch(/return !isIOS\(\)/);
         // Android must NOT be excluded — its recording must be 9:16 too.
         expect(body).not.toMatch(/isAndroid/);
     });
@@ -74,7 +78,10 @@ describe('portrait capture (9:16)', () => {
     it('only applies the composite when the device check passes', () => {
         const body = functionBody(WEB, 'async function ensureSpeechCamStream()');
         expect(body).not.toBe('');
-        expect(body).toMatch(/shouldUsePortraitCapture\(\)/);
+        expect(body).toMatch(/shouldUsePortraitCapture\(\{/);
+        // The look opt-in (stories/092): the preview step, or an explicit look.
+        expect(body).toMatch(/lookActive/);
+        expect(body).toMatch(/isPreviewGateStep\(step\)/);
         expect(body).toMatch(/createPortraitCaptureStream\(rawStream\)/);
         // iOS (false branch) keeps the raw stream.
         expect(body).toMatch(/:\s*rawStream/);

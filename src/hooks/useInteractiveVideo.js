@@ -4,6 +4,7 @@ import { useEffect, useRef, useMemo, useState, useCallback } from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../modules/store/store.js';
 import { InteractiveVideoStateController } from '../modules/video/interactive-video-controller.js';
+import { interactiveDecisionPhase } from '../modules/lesson/step-phase-logic.js';
 import { getCueText } from '../modules/utils/utils.js';
 import { trackEvent } from '../modules/utils/posthog.js';
 
@@ -52,10 +53,7 @@ export function useInteractiveVideo() {
 
             if (state.showOverlay && !prevShowOverlayRef.current) {
                 const responseType = currentVideo?.responseType;
-                const phase = (responseType === 'closedResponse' || responseType === 'friendClosedResponse')
-                    ? 'interactiveVideo-decisionTime-closedResponse'
-                    : 'interactiveVideo-decisionTime-openResponse';
-                appStore.getState().transitionTo(phase);
+                appStore.getState().transitionTo(interactiveDecisionPhase(responseType));
             }
             prevShowOverlayRef.current = state.showOverlay;
 

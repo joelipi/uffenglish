@@ -5,6 +5,7 @@ import { appStore } from '../store/store.js';
 import Strings from '../../data/strings.js';
 import { getAppLanguage } from '../bilingual/config-normalizer.js';
 import { decideRerecordAction, RERECORD_DECISIONS } from './rerecord-logic.js';
+import { isPreviewGateStep, applyStepLookOverlaysOnce } from '../looks/recording-looks-logic.js';
 
 function computeWaveformPeaks(audioData, numPeaks = 120) {
     const blockSize = Math.max(1, Math.floor(audioData.length / numPeaks));
@@ -218,6 +219,23 @@ export function createSpeechOrchestrator({
             if (uiHooks?.onPauseVideo) uiHooks.onPauseVideo(player);
 
             if (!listeningState.active) {
+                const openingPreview = isPreviewGateStep(step) && !appStore.getState().awaitingRecordingStart;
+                if (isPreviewGateStep(step)) {
+                    // A step's config overlays are its DEFAULT look; apply them
+                    // once before the composite stream is built so the first
+                    // preview frame already carries them.
+                    const cfg = configData || appStore.getState().configData;
+                    const lessonIdx = currentLessonIndex ?? appStore.getState().currentLessonIndex;
+                    const stepIdx = currentStepIndex ?? appStore.getState().currentStepIndex;
+                    const lesson = cfg?.lessons?.[lessonIdx];
+                    const stepKey = `${lesson?.lessonId || 'lesson'}:${stepIdx}`;
+                    applyStepLookOverlaysOnce({
+                        stepKey,
+                        stepOverlays: step.overlays,
+                        store: appStore,
+                    });
+                }
+
                 listeningState.active = true;
                 appStore.getState().clearRecordedAudioPeaks();
 
@@ -268,7 +286,21 @@ export function createSpeechOrchestrator({
                         }
                     }, 1000);
                     return;
+                } else if (openingPreview) {
+                    // Step 1 of the two-step friendClosedResponse flow (stories/092):
+                    // the Continue button opens the full-screen camera preview with
+                    // the look controls and the bottom #micBtn ready (isMicActive:
+                    // false, listeningState.active: false). Returning here releases
+                    // listeningState.transitioning so tapping #micBtn starts the
+                    // take immediately on the next invocation.
+                    listeningState.active = false;
+                    appStore.getState().setMicActive(false);
+                    appStore.getState().setAwaitingRecordingStart(true);
+                    if (uiHooks?.onRecordingStart) uiHooks.onRecordingStart(userData);
+                    console.log('[Look] preview open — waiting for the microphone tap');
+                    return;
                 } else {
+                    appStore.getState().setAwaitingRecordingStart(false);
                     let speechDetected = false;
                     let speechStarted = false;
                     let pauseTick = 0;
@@ -343,19 +375,21 @@ export function createSpeechOrchestrator({
 
                     // Stream is ready — transition to recording/answering so the
                     // full-screen camera preview is visible, then run a 3-2-1
-                    // countdown before recording starts.
+                    // countdown before recording starts (skipped on
+                    // friendClosedResponse, where the preview screen already gave
+                    // the learner time to frame themselves).
                     appStore.getState().setMicActive(true);
                     appStore.getState().setHesitationMs(0);
                     if (uiHooks?.onRecordingStart) uiHooks.onRecordingStart(userData);
                     if (uiHooks?.onRecordingActive) uiHooks.onRecordingActive(button);
 
-                    // 3-2-1 countdown before recording. The existing localized
-                    // mic+Speak overlay (MicStatusText `speak-now`) is suppressed
-                    // while `recordingCountdown` is set, so it only appears once
-                    // the last number has left the screen.
-                    for (const n of [3, 2, 1]) {
-                        appStore.getState().setRecordingCountdown(n);
-                        await new Promise((r) => setTimeout(r, 1000));
+                    if (isPreviewGateStep(step)) {
+                        console.log('[Look] microphone tapped — starting the take immediately');
+                    } else {
+                        for (const n of [3, 2, 1]) {
+                            appStore.getState().setRecordingCountdown(n);
+                            await new Promise((r) => setTimeout(r, 1000));
+                        }
                     }
                     appStore.getState().setRecordingCountdown(null);
 

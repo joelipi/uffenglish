@@ -1481,7 +1481,6 @@ describe('incompleteVideoSteps (render completeness gate)', () => {
 // overwrite — otherwise the next config-bot run drops the course's tags.
 describe('withCarriedTags', () => {
     const GENERATED = { courseId: 'wvr', courseName: 'WVR', lessons: [] };
-
     it('carries the previous config\'s tags into the regenerated config', () => {
         const out = withCarriedTags(GENERATED, { courseId: 'wvr', tags: ['preferences', 'money'] });
         expect(out.tags).toEqual(['preferences', 'money']);
@@ -1559,5 +1558,37 @@ describe('withCarriedTags', () => {
         // the carry-over has to fix.
         expect(GENERATED.tags).toBeUndefined();
         expect(withCarriedTags(GENERATED, { tags: ['preferences'] }).tags).toEqual(['preferences']);
+    });
+});
+
+describe('withCarriedTags — step overlays (stories/092)', () => {
+    const overlays = { face: { asset: 'smiley' }, lower: { asset: 'cauldron' } };
+    const generated = {
+        courseId: 'wvr',
+        courseName: 'WVR',
+        lessons: [{ lessonId: 'a', steps: [{ step: 'one' }, { step: 'two' }] }],
+    };
+    const previous = {
+        lessons: [{ lessonId: 'a', steps: [{ step: 'one' }, { step: 'two', overlays }] }],
+    };
+
+    it('carries a step’s overlays into the regenerated step at the same position', () => {
+        const out = withCarriedTags(generated, previous);
+        expect(out.lessons[0].steps[1].overlays).toEqual(overlays);
+        expect(out.lessons[0].steps[0].overlays).toBeUndefined();
+    });
+
+    it('keeps generated overlays when the sheet produced some', () => {
+        const sheetOverlays = { upper: { asset: 'crown' } };
+        const out = withCarriedTags(
+            { ...generated, lessons: [{ lessonId: 'a', steps: [{ step: 'one', overlays: sheetOverlays }, { step: 'two' }] }] },
+            previous,
+        );
+        expect(out.lessons[0].steps[0].overlays).toEqual(sheetOverlays);
+    });
+
+    it('no previous config → lessons untouched', () => {
+        const out = withCarriedTags(generated, null);
+        expect(out.lessons).toEqual(generated.lessons);
     });
 });
