@@ -483,7 +483,7 @@ const COSTUME_EXTRACTIONS = {
     'factory-worker': { code: '1f468-200d-1f3ed', excludePaths: [2, 4, 5, 6, 7, 8, 15, 16] },
     'judge': { code: '1f468-200d-2696-fe0f', excludePaths: [2, 3, 4, 5, 7, 8] },
     'judge-female': { code: '1f469-200d-2696-fe0f', excludePaths: [1, 2, 4, 5, 6, 10, 11] },
-    'construction-worker': { code: '1f477', excludePaths: [4, 5, 6, 7, 8, 9] },
+    'construction-worker': { code: '1f477', excludePaths: [2, 3, 4, 5, 6, 7, 8, 9, 10] },
 };
 
 const FACE_CODES = {
