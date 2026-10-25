@@ -45,6 +45,28 @@ describe('twemoji overlays are registered as face covers', () => {
     });
 });
 
+const COSTUME_SLUGS = ['police-officer', 'chef', 'doctor', 'firefighter', 'pilot', 'astronaut', 'farmer', 'factory-worker', 'judge', 'construction-worker'];
+
+describe('costume covers punch out the whole face, not only the eyes', () => {
+    it('registers every costume as a face cover with its own file', () => {
+        for (const slug of COSTUME_SLUGS) {
+            expect(OVERLAY_LIBRARY[slug].slot).toBe('face');
+            expect(assetFileForSlug(slug)).toBe(`/overlays/face/${slug}.png`);
+            expect(overlaySlugsForSlot('face')).toContain(slug);
+        }
+    });
+
+    it('leaves the face opening transparent and the uniform opaque', async () => {
+        for (const slug of COSTUME_SLUGS) {
+            const buf = await loadPng(slug);
+            const hole = await probePixel(buf, 0.5, 0.45);
+            expect(hole.a, `${slug} face opening`).toBeLessThanOrEqual(24);
+            const body = await probePixel(buf, 0.5, 0.95);
+            expect(body.a, `${slug} uniform body`).toBeGreaterThanOrEqual(220);
+        }
+    });
+});
+
 describe('twemoji overlay eye areas are transparent in the PNG bytes', () => {
     it('ships RGBA art, not opaque RGB', async () => {
         for (const slug of SLUGS) {

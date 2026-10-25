@@ -434,6 +434,28 @@ export async function buildHatFromPaths(svgText, indices, cropFraction = 1, outS
     return sharp(out).trim().png().toBuffer();
 }
 
+/**
+ * Full-body costume cover: keep the whole emoji, but punch out the face paths
+ * so the learner's own face fills the opening.
+ */
+export async function buildCostumeCover(svgText, facePaths, outSize = 640) {
+    const tags = svgElements(svgText);
+    const base = await sharp(Buffer.from(svgText), { density: 450 })
+        .resize(outSize, outSize, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+        .png()
+        .toBuffer();
+    const maskParts = facePaths.map((i) => {
+        if (!tags[i]) throw new Error(`Face path ${i} not found`);
+        return tags[i].replace(/fill="[^"]*"/g, 'fill="white"');
+    }).join('');
+    const maskSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36"><g fill="white" stroke="white" stroke-width="0.5" stroke-linejoin="round">${maskParts}</g></svg>`;
+    const mask = await sharp(Buffer.from(maskSvg), { density: 450 })
+        .resize(outSize, outSize, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+        .png()
+        .toBuffer();
+    return sharp(base).composite([{ input: mask, blend: 'dest-out' }]).png().toBuffer();
+}
+
 /** Raw RGBA pixel at fractional coordinates of a PNG buffer. */
 export async function probePixel(pngBuffer, fx, fy) {
     const { data, info } = await sharp(pngBuffer).raw().toBuffer({ resolveWithObject: true });
@@ -442,6 +464,19 @@ export async function probePixel(pngBuffer, fx, fy) {
     const i = (y * info.width + x) * info.channels;
     return { r: data[i], g: data[i + 1], b: data[i + 2], a: data[i + 3], width: info.width, height: info.height, channels: info.channels };
 }
+
+const COSTUME_EXTRACTIONS = {
+    'police-officer': { code: '1f46e', facePaths: [2, 3, 5] },
+    'chef': { code: '1f468-200d-1f373', facePaths: [2, 3, 4, 5] },
+    'doctor': { code: '1f468-200d-2695-fe0f', facePaths: [1, 2, 3, 4] },
+    'firefighter': { code: '1f468-200d-1f692', facePaths: [5, 6, 7, 8] },
+    'pilot': { code: '1f468-200d-2708-fe0f', facePaths: [2, 3, 4, 5] },
+    'astronaut': { code: '1f468-200d-1f680', facePaths: [4, 5, 6, 7] },
+    'farmer': { code: '1f468-200d-1f33e', facePaths: [2, 3, 4, 5] },
+    'factory-worker': { code: '1f468-200d-1f3ed', facePaths: [2, 4, 5, 6] },
+    'judge': { code: '1f468-200d-2696-fe0f', facePaths: [2, 3, 4, 5] },
+    'construction-worker': { code: '1f477', facePaths: [4, 5, 7] },
+};
 
 const FACE_CODES = {
     'alien-twemoji': '1f47d',
@@ -539,6 +574,15 @@ async function main() {
         if (body.a < 220) throw new Error(`${slug}: body at (${probe.opaque.fx}, ${probe.opaque.fy}) is not opaque (alpha ${body.a})`);
         fs.writeFileSync(path.join(FACE_DIR, `${slug}.png`), buf);
         console.log(`face/${slug}.png ${buf.length}B`);
+    }
+
+    // Full-body costume covers (face punched out)
+    for (const [slug, info] of Object.entries(COSTUME_EXTRACTIONS)) {
+        const svg = await fetchTwemojiSvg(info.code);
+        const buf = await buildCostumeCover(svg, info.facePaths);
+        const filename = `${slug}.png`;
+        fs.writeFileSync(path.join(FACE_DIR, filename), buf);
+        console.log(`face/${filename} ${buf.length}B`);
     }
 
     // Crown replacement + hats

@@ -179,6 +179,18 @@ export const OVERLAY_LIBRARY = {
     'frog-twemoji': { slot: 'face', file: '/overlays/face/frog-twemoji.png', anchor: 'face', label: 'Frog', labelKey: 'look_overlay_frog_twemoji' },
     'owl-twemoji': { slot: 'face', file: '/overlays/face/owl-twemoji.png', anchor: 'face', label: 'Owl', labelKey: 'look_overlay_owl_twemoji' },
     'hamster-twemoji': { slot: 'face', file: '/overlays/face/hamster-twemoji.png', anchor: 'face', label: 'Hamster', labelKey: 'look_overlay_hamster_twemoji' },
+    // Full-body costume covers: the face is punched out, so the learner's own
+    // face fills the opening while the uniform and headwear stay.
+    'police-officer': { slot: 'face', file: '/overlays/face/police-officer.png', anchor: 'face', label: 'Police officer', labelKey: 'look_overlay_police_officer' },
+    chef: { slot: 'face', file: '/overlays/face/chef.png', anchor: 'face', label: 'Chef', labelKey: 'look_overlay_chef' },
+    doctor: { slot: 'face', file: '/overlays/face/doctor.png', anchor: 'face', label: 'Doctor', labelKey: 'look_overlay_doctor' },
+    firefighter: { slot: 'face', file: '/overlays/face/firefighter.png', anchor: 'face', label: 'Firefighter', labelKey: 'look_overlay_firefighter' },
+    pilot: { slot: 'face', file: '/overlays/face/pilot.png', anchor: 'face', label: 'Pilot', labelKey: 'look_overlay_pilot' },
+    astronaut: { slot: 'face', file: '/overlays/face/astronaut.png', anchor: 'face', label: 'Astronaut', labelKey: 'look_overlay_astronaut' },
+    farmer: { slot: 'face', file: '/overlays/face/farmer.png', anchor: 'face', label: 'Farmer', labelKey: 'look_overlay_farmer' },
+    'factory-worker': { slot: 'face', file: '/overlays/face/factory-worker.png', anchor: 'face', label: 'Factory worker', labelKey: 'look_overlay_factory_worker' },
+    judge: { slot: 'face', file: '/overlays/face/judge.png', anchor: 'face', label: 'Judge', labelKey: 'look_overlay_judge' },
+    'construction-worker': { slot: 'face', file: '/overlays/face/construction-worker.png', anchor: 'face', label: 'Construction worker', labelKey: 'look_overlay_construction_worker' },
     // Above-the-face props.
     witchhat: { slot: 'upper', file: '/overlays/props/witchhat.png', anchor: 'upper', label: 'Witch hat', labelKey: 'look_overlay_witchhat' },
     crown: { slot: 'upper', file: '/overlays/props/crown.png', anchor: 'upper', label: 'Crown', labelKey: 'look_overlay_crown' },
