@@ -476,7 +476,7 @@ const COSTUME_EXTRACTIONS = {
     'police-officer': { code: '1f46e', excludePaths: [2, 3, 4, 5, 6, 7] },
     'chef': { code: '1f468-200d-1f373', excludePaths: [2, 3, 4, 5, 6, 7, 8, 9] },
     'doctor': { code: '1f468-200d-2695-fe0f', excludePaths: [1, 2, 3, 4, 5, 7, 8] },
-    'firefighter': { code: '1f468-200d-1f692', excludePaths: [5, 6, 7, 8, 9, 10, 11, 12], holes: [{ cx: 18, cy: 11, rx: 6.6, ry: 5.4 }] },
+    'firefighter': { code: '1f468-200d-1f692', excludePaths: [3, 5, 6, 7, 8, 9, 10, 11, 12] },
     'pilot': { code: '1f468-200d-2708-fe0f', excludePaths: [2, 3, 4, 5, 6, 7, 8, 9] },
     'astronaut': { code: '1f468-200d-1f680', excludePaths: [4, 5, 6, 7, 8, 9, 10, 11] },
     'farmer': { code: '1f468-200d-1f33e', excludePaths: [1, 2, 3, 4, 5, 6, 7, 8, 9] },
