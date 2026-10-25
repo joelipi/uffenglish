@@ -429,6 +429,11 @@ const styles = {
         gap: 6,
         overflowY: 'auto',
         overflowX: 'hidden',
+        // Captures its own touches: the rail is pointer-transparent (so gaps
+        // fall through to the preview), which means every interactive child
+        // must opt back in — without this, taps sail through the tray to the
+        // video underneath, whose pointerdown folds the drawer shut.
+        pointerEvents: 'auto',
         // Fixed pixels, not vh: the tray sits between the header blur and the
         // mic band, and vh units shift under iOS Safari's collapsing chrome.
         // Tray (300) + Size slider below it stays above the mic on a 667px

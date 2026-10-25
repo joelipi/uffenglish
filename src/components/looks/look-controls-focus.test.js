@@ -144,7 +144,7 @@ describe('every picker row is a tray, and no horizontal strip survives', () => {
         expect(rail).toMatch(/left:\s*12/);
         expect(rail).toMatch(/right:\s*12/);
         expect(rail).toMatch(/pointerEvents:\s*'none'/);
-        for (const name of ['railBtn', 'foldoutColumn']) {
+        for (const name of ['railBtn', 'foldoutColumn', 'trayStrip']) {
             expect(styleBlock(source, name)).toMatch(/pointerEvents:\s*'auto'/);
         }
     });
