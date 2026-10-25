@@ -91,7 +91,7 @@ describe('isPreviewGateStep', () => {
 
 describe('overlay library', () => {
     it('each slot lists only its own assets', () => {
-        expect(overlaySlugsForSlot('face')).toContain('smiley');
+        expect(overlaySlugsForSlot('face')).toContain('carnival');
         expect(overlaySlugsForSlot('face')).not.toContain('cauldron');
         expect(overlaySlugsForSlot('upper')).toContain('witchhat');
         expect(overlaySlugsForSlot('lower')).toContain('cauldron');
@@ -104,7 +104,7 @@ describe('overlay library', () => {
     it('Twemoji slugs belong only to the emoji slot', () => {
         expect(isSlugValidForSlot('twemoji:1f600', 'emoji')).toBe(true);
         expect(isSlugValidForSlot('twemoji:1f600', 'face')).toBe(false);
-        expect(isSlugValidForSlot('smiley', 'emoji')).toBe(false);
+        expect(isSlugValidForSlot('carnival', 'emoji')).toBe(false);
         expect(isSlugValidForSlot('twemoji:', 'emoji')).toBe(false);
     });
     it('a Twemoji slug resolves to the pinned CDN asset', () => {
@@ -182,7 +182,7 @@ describe('filters are opt-in — None is a real, selectable choice', () => {
         expect(painted.length).toBe(2);
         expect(isLookActive({ filterId: 'warm', slots: {} })).toBe(true);
         expect(isLookActive({ filterId: 'natural', slots: {} })).toBe(true);
-        expect(isLookActive({ filterId: 'none', slots: { face: 'smiley' } })).toBe(true);
+        expect(isLookActive({ filterId: 'none', slots: { face: 'carnival' } })).toBe(true);
     });
 });
 
@@ -701,10 +701,10 @@ describe('sanitizeTuning', () => {
 describe('parseStepOverlays', () => {
     it('reads the documented object shape', () => {
         expect(parseStepOverlays({
-            face: { asset: 'smiley' },
+            face: { asset: 'carnival' },
             upper: { asset: 'witchhat' },
             lower: { asset: 'cauldron' },
-        })).toEqual({ face: 'smiley', upper: 'witchhat', lower: 'cauldron', emoji: null });
+        })).toEqual({ face: 'carnival', upper: 'witchhat', lower: 'cauldron', emoji: null });
     });
     it('accepts a bare slug string per slot', () => {
         expect(parseStepOverlays({ upper: 'crown' }).upper).toBe('crown');
@@ -715,22 +715,22 @@ describe('parseStepOverlays', () => {
     });
     it('missing / non-object → all null', () => {
         expect(parseStepOverlays(null)).toEqual({ face: null, upper: null, lower: null, emoji: null });
-        expect(parseStepOverlays('smiley')).toEqual({ face: null, upper: null, lower: null, emoji: null });
+        expect(parseStepOverlays('carnival')).toEqual({ face: null, upper: null, lower: null, emoji: null });
     });
 });
 
 describe('applyStepOverlays', () => {
     it('fills only the declared slots and keeps the learner’s others', () => {
-        const selection = { filterId: 'mono', slots: { face: 'blank', upper: null, lower: null } };
+        const selection = { filterId: 'mono', slots: { face: 'carnival', upper: null, lower: null } };
         const merged = applyStepOverlays(selection, { lower: { asset: 'cauldron' } });
-        expect(merged.slots.face).toBe('blank');
+        expect(merged.slots.face).toBe('carnival');
         expect(merged.slots.upper).toBeNull();
         expect(merged.slots.lower).toBe('cauldron');
         expect(merged.filterId).toBe('mono');
     });
     it('a later step with no overlays changes nothing', () => {
-        const selection = { filterId: 'warm', slots: { face: 'smiley', upper: null, lower: null } };
-        expect(applyStepOverlays(selection, null).slots.face).toBe('smiley');
+        const selection = { filterId: 'warm', slots: { face: 'carnival', upper: null, lower: null } };
+        expect(applyStepOverlays(selection, null).slots.face).toBe('carnival');
     });
 });
 

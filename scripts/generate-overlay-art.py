@@ -149,48 +149,6 @@ def render_aa(W, H, draw, scale=4):
 
 # ── Face covers (square-ish, drawn over the face zone) ──────────────────────
 
-def smiley():
-    W = H = 512
-    px = blank(W, H)
-    yellow = (250, 204, 21, 255)
-    dark = (40, 30, 10, 255)
-    ellipse(px, 256, 256, 246, 246, yellow)
-    ellipse(px, 180, 200, 34, 52, dark)
-    ellipse(px, 332, 200, 34, 52, dark)
-    for i in range(9):  # smile arc
-        t = (i / 8.0) * math.pi
-        ellipse(px, 256 - 140 * math.cos(t), 300 + 78 * math.sin(t), 20, 20, dark)
-    png(os.path.join(ROOT, 'face', 'smiley.png'), W, H, px)
-
-
-def blank_face():
-    W = H = 512
-    px = blank(W, H)
-    ellipse(px, 256, 256, 250, 250, (24, 24, 30, 255))
-    png(os.path.join(ROOT, 'face', 'blank.png'), W, H, px)
-
-
-def pixel_face():
-    W = H = 512
-    px = blank(W, H)
-    cell = 32
-    tones = [(120, 90, 160), (90, 60, 130), (150, 120, 190), (60, 40, 100)]
-    for gy in range(0, H, cell):
-        for gx in range(0, W, cell):
-            # deterministic checker of tones
-            idx = (gx // cell * 7 + gy // cell * 13) % len(tones)
-            rect(px, gx, gy, gx + cell, gy + cell, (*tones[idx], 255))
-    # knock the corners back to a rounded blob
-    for gy in range(0, H, cell):
-        for gx in range(0, W, cell):
-            dx = (gx + cell / 2 - 256) / 256
-            dy = (gy + cell / 2 - 256) / 256
-            if dx * dx + dy * dy > 1.0:
-                for y in range(gy, min(gy + cell, H)):
-                    for x in range(gx, min(gx + cell, W)):
-                        px[y][x] = (0, 0, 0, 0)
-    png(os.path.join(ROOT, 'face', 'pixel.png'), W, H, px)
-
 
 def carnival_mask():
     """Venetian-style domino mask with genuinely transparent eye holes.
@@ -240,32 +198,6 @@ def carnival_mask():
                 ellipse(px, cx + side * (150 + i * 22) * s, 108 * s, 5 * s, 5 * s, gold)
 
     png(os.path.join(ROOT, 'face', 'carnival.png'), W, H, render_aa(W, H, draw))
-
-
-def sunglasses():
-    """Sunglasses with translucent lenses: the eyes stay visible, darkened."""
-    W, H = 540, 200
-    frame = (22, 24, 32, 255)
-    lens = (18, 22, 34, 150)          # ~59% — a tint, not a wall
-    shine = (255, 255, 255, 60)
-
-    def draw(px, s):
-        rounded_rect(px, 8 * s, 68 * s, 36 * s, 86 * s, 7 * s, frame)          # left arm
-        rounded_rect(px, (W - 36) * s, 68 * s, (W - 8) * s, 86 * s, 7 * s, frame)  # right arm
-        rounded_rect(px, 232 * s, 76 * s, 308 * s, 94 * s, 9 * s, frame)       # bridge
-        for x0, x1 in ((30, 246), (294, 510)):
-            # frame ring: fill it, punch the glass out, then tint the glass —
-            # painting the tint over an opaque frame would leave alpha 255 and
-            # the eyes invisible.
-            rounded_rect(px, x0 * s, 46 * s, x1 * s, 160 * s, 34 * s, frame)
-            clear_rounded_rect(px, (x0 + 9) * s, 55 * s, (x1 - 9) * s, 151 * s, 28 * s)
-            rounded_rect(px, (x0 + 9) * s, 55 * s, (x1 - 9) * s, 151 * s, 28 * s, lens)
-            # one soft highlight per lens (a single quad: overlapping ones
-            # accumulate to opaque white)
-            poly(px, [((x0 + 50) * s, 62 * s), ((x0 + 82) * s, 62 * s),
-                      ((x0 + 46) * s, 144 * s), ((x0 + 14) * s, 144 * s)], shine)
-
-    png(os.path.join(ROOT, 'face', 'sunglasses.png'), W, H, render_aa(W, H, draw))
 
 
 # ── Upper props (sit above the face zone) ───────────────────────────────────
@@ -346,5 +278,5 @@ def frame():
 
 
 if __name__ == '__main__':
-    for fn in (smiley, blank_face, pixel_face, carnival_mask, sunglasses, witchhat, crown, cauldron, desk, frame):
+    for fn in (carnival_mask, witchhat, crown, cauldron, desk, frame):
         fn()

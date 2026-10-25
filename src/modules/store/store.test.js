@@ -447,13 +447,13 @@ describe('look filter selection (stories/092)', () => {
     });
 
     it('keeps the overlay slots when the filter changes', () => {
-        appStore.getState().setLookSlot('face', 'smiley');
+        appStore.getState().setLookSlot('face', 'carnival');
         appStore.getState().toggleLookFilter('cool');
         expect(appStore.getState().lookSelection.filterId).toBe('cool');
-        expect(appStore.getState().lookSelection.slots.face).toBe('smiley');
+        expect(appStore.getState().lookSelection.slots.face).toBe('carnival');
         appStore.getState().toggleLookFilter('cool');
         expect(appStore.getState().lookSelection.filterId).toBe('none');
-        expect(appStore.getState().lookSelection.slots.face).toBe('smiley');
+        expect(appStore.getState().lookSelection.slots.face).toBe('carnival');
     });
 });
 
