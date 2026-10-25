@@ -48,6 +48,9 @@ const WORKBOX_IGNORES = [
     // never picks a prop must not pay for the download, so keep it out of the
     // precache and fetch it on demand.
     '**/overlays/**',
+    // The full Twemoji manifest is only fetched when the Emoji drawer opens;
+    // keeping it out of the precache avoids charging every learner for it.
+    '**/twemoji-emojis-*.js',
     // Icon-generation source (see pwa-assets.config.js).
     'pwa-icon-source.png',
 ]
