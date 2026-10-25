@@ -438,22 +438,15 @@ export async function buildHatFromPaths(svgText, indices, cropFraction = 1, outS
  * Full-body costume cover: keep the whole emoji, but punch out the face paths
  * so the learner's own face fills the opening.
  */
-export async function buildCostumeCover(svgText, facePaths, outSize = 640) {
+export async function buildCostumeCover(svgText, excludePaths, outSize = 640) {
     const tags = svgElements(svgText);
-    const base = await sharp(Buffer.from(svgText), { density: 450 })
+    const keep = tags.filter((_, i) => !excludePaths.includes(i)).join('');
+    if (!keep) throw new Error('Costume would render nothing');
+    const coverSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36">${keep}</svg>`;
+    return sharp(Buffer.from(coverSvg), { density: 450 })
         .resize(outSize, outSize, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
         .png()
         .toBuffer();
-    const maskParts = facePaths.map((i) => {
-        if (!tags[i]) throw new Error(`Face path ${i} not found`);
-        return tags[i].replace(/fill="[^"]*"/g, 'fill="white"');
-    }).join('');
-    const maskSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36"><g fill="white" stroke="white" stroke-width="0.5" stroke-linejoin="round">${maskParts}</g></svg>`;
-    const mask = await sharp(Buffer.from(maskSvg), { density: 450 })
-        .resize(outSize, outSize, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
-        .png()
-        .toBuffer();
-    return sharp(base).composite([{ input: mask, blend: 'dest-out' }]).png().toBuffer();
 }
 
 /** Raw RGBA pixel at fractional coordinates of a PNG buffer. */
@@ -466,16 +459,18 @@ export async function probePixel(pngBuffer, fx, fy) {
 }
 
 const COSTUME_EXTRACTIONS = {
-    'police-officer': { code: '1f46e', facePaths: [2, 3, 5] },
-    'chef': { code: '1f468-200d-1f373', facePaths: [2, 3, 4, 5] },
-    'doctor': { code: '1f468-200d-2695-fe0f', facePaths: [1, 2, 3, 4] },
-    'firefighter': { code: '1f468-200d-1f692', facePaths: [5, 6, 7, 8] },
-    'pilot': { code: '1f468-200d-2708-fe0f', facePaths: [2, 3, 4, 5] },
-    'astronaut': { code: '1f468-200d-1f680', facePaths: [4, 5, 6, 7] },
-    'farmer': { code: '1f468-200d-1f33e', facePaths: [2, 3, 4, 5] },
-    'factory-worker': { code: '1f468-200d-1f3ed', facePaths: [2, 4, 5, 6] },
-    'judge': { code: '1f468-200d-2696-fe0f', facePaths: [2, 3, 4, 5] },
-    'construction-worker': { code: '1f477', facePaths: [4, 5, 7] },
+    // Hats own the head, so the hair goes with the face. The judge's grey wig is
+    // headwear people expect to keep, so it is deliberately not excluded.
+    'police-officer': { code: '1f46e', excludePaths: [2, 3, 4, 5, 6, 7] },
+    'chef': { code: '1f468-200d-1f373', excludePaths: [2, 3, 4, 5, 6, 7, 8, 9] },
+    'doctor': { code: '1f468-200d-2695-fe0f', excludePaths: [1, 2, 3, 4, 5, 7, 8] },
+    'firefighter': { code: '1f468-200d-1f692', excludePaths: [5, 6, 7, 8, 9, 10, 11, 12] },
+    'pilot': { code: '1f468-200d-2708-fe0f', excludePaths: [2, 3, 4, 5, 6, 7, 8, 9] },
+    'astronaut': { code: '1f468-200d-1f680', excludePaths: [4, 5, 6, 7, 8, 9, 10, 11] },
+    'farmer': { code: '1f468-200d-1f33e', excludePaths: [2, 3, 4, 5, 6, 7, 8, 9] },
+    'factory-worker': { code: '1f468-200d-1f3ed', excludePaths: [2, 4, 5, 6, 7, 8, 15, 16] },
+    'judge': { code: '1f468-200d-2696-fe0f', excludePaths: [2, 3, 4, 5, 7, 8] },
+    'construction-worker': { code: '1f477', excludePaths: [4, 5, 6, 7, 8, 9] },
 };
 
 const FACE_CODES = {
@@ -579,7 +574,7 @@ async function main() {
     // Full-body costume covers (face punched out)
     for (const [slug, info] of Object.entries(COSTUME_EXTRACTIONS)) {
         const svg = await fetchTwemojiSvg(info.code);
-        const buf = await buildCostumeCover(svg, info.facePaths);
+        const buf = await buildCostumeCover(svg, info.excludePaths);
         const filename = `${slug}.png`;
         fs.writeFileSync(path.join(FACE_DIR, filename), buf);
         console.log(`face/${filename} ${buf.length}B`);
