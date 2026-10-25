@@ -1655,6 +1655,7 @@ describe('recorder auto-render — zero server changes', () => {
             'scripts/verify-build-artifact.mjs',
             'scripts/verify-build-artifact.test.js',
             'scripts/lib/pwa-build-output.test.js',
+            'scripts/cartoon-preferences-person.test.js',
             'package.json',
         ];
         for (const file of tracked) {

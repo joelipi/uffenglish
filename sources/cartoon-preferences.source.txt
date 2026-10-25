@@ -35,8 +35,9 @@
 // Media (background, mirror, effect, character, sounds, ...) is pipeline-only:
 // reserved slots, never emitted to the app config. Omitted here until used.
 //
-// The course subject is CARTOON PREFERENCES: the friend keeps asking which
-// cartoon character you are more like. Every character is one a global audience
+// The course subject is CARTOON PREFERENCES: the learner asks which cartoon
+// character they are more like, and the friend answers which one you are more
+// like. Every character is one a global audience
 // knows (Mickey Mouse, Bugs Bunny, SpongeBob, Shrek, Elsa...), so the vocabulary
 // is reusable in real life and needs no cultural footnote.
 // ===========================================================================
@@ -52,13 +53,13 @@
       "en": "X or Y"
     },
     "A2": {
-      "en": "Are you more like X or Y?"
+      "en": "Am I more like X or Y?"
     },
     "B1": {
-      "en": "Would you say you're more like X or Y?"
+      "en": "Would you say I'm more like X or Y?"
     },
     "B2": {
-      "en": "If someone asked which one you're more like, would you say X or Y?"
+      "en": "If someone asked which one I'm more like, would you say X or Y?"
     }
   },
   "rungs": [
@@ -81,9 +82,9 @@
         {
           "question": [
             "Mickey Mouse or Bugs Bunny?",
-            "Are you more like Mickey Mouse or Bugs Bunny?",
-            "Would you say you're more like Mickey Mouse or Bugs Bunny?",
-            "If someone asked which one you're more like, would you say Mickey Mouse or Bugs Bunny?"
+            "Am I more like Mickey Mouse or Bugs Bunny?",
+            "Would you say I'm more like Mickey Mouse or Bugs Bunny?",
+            "If someone asked which one I'm more like, would you say Mickey Mouse or Bugs Bunny?"
           ],
           "choices": [
             "Mickey Mouse",
@@ -92,24 +93,24 @@
           "answers": [
             [
               "Mickey Mouse.",
-              "I'm more like Mickey Mouse.",
-              "I'd say I'm more like Mickey Mouse.",
-              "If someone asked me, I'd say I'm more like Mickey Mouse."
+              "You're more like Mickey Mouse.",
+              "I'd say you're more like Mickey Mouse.",
+              "If someone asked me, I'd say you're more like Mickey Mouse."
             ],
             [
               "Bugs Bunny.",
-              "I'm more like Bugs Bunny.",
-              "I'd say I'm more like Bugs Bunny.",
-              "If someone asked me, I'd say I'm more like Bugs Bunny."
+              "You're more like Bugs Bunny.",
+              "I'd say you're more like Bugs Bunny.",
+              "If someone asked me, I'd say you're more like Bugs Bunny."
             ]
           ]
         },
         {
           "question": [
             "Tom or Jerry?",
-            "Are you more like Tom or Jerry?",
-            "Would you say you're more like Tom or Jerry?",
-            "If someone asked which one you're more like, would you say Tom or Jerry?"
+            "Am I more like Tom or Jerry?",
+            "Would you say I'm more like Tom or Jerry?",
+            "If someone asked which one I'm more like, would you say Tom or Jerry?"
           ],
           "choices": [
             "Tom",
@@ -118,24 +119,24 @@
           "answers": [
             [
               "Tom.",
-              "I'm more like Tom.",
-              "I'd say I'm more like Tom.",
-              "If someone asked me, I'd say I'm more like Tom."
+              "You're more like Tom.",
+              "I'd say you're more like Tom.",
+              "If someone asked me, I'd say you're more like Tom."
             ],
             [
               "Jerry.",
-              "I'm more like Jerry.",
-              "I'd say I'm more like Jerry.",
-              "If someone asked me, I'd say I'm more like Jerry."
+              "You're more like Jerry.",
+              "I'd say you're more like Jerry.",
+              "If someone asked me, I'd say you're more like Jerry."
             ]
           ]
         },
         {
           "question": [
             "Donald Duck or Daffy Duck?",
-            "Are you more like Donald Duck or Daffy Duck?",
-            "Would you say you're more like Donald Duck or Daffy Duck?",
-            "If someone asked which one you're more like, would you say Donald Duck or Daffy Duck?"
+            "Am I more like Donald Duck or Daffy Duck?",
+            "Would you say I'm more like Donald Duck or Daffy Duck?",
+            "If someone asked which one I'm more like, would you say Donald Duck or Daffy Duck?"
           ],
           "choices": [
             "Donald Duck",
@@ -144,15 +145,15 @@
           "answers": [
             [
               "Donald Duck.",
-              "I'm more like Donald Duck.",
-              "I'd say I'm more like Donald Duck.",
-              "If someone asked me, I'd say I'm more like Donald Duck."
+              "You're more like Donald Duck.",
+              "I'd say you're more like Donald Duck.",
+              "If someone asked me, I'd say you're more like Donald Duck."
             ],
             [
               "Daffy Duck.",
-              "I'm more like Daffy Duck.",
-              "I'd say I'm more like Daffy Duck.",
-              "If someone asked me, I'd say I'm more like Daffy Duck."
+              "You're more like Daffy Duck.",
+              "I'd say you're more like Daffy Duck.",
+              "If someone asked me, I'd say you're more like Daffy Duck."
             ]
           ]
         }
@@ -171,9 +172,9 @@
         {
           "question": [
             "SpongeBob or Patrick?",
-            "Are you more like SpongeBob or Patrick?",
-            "Would you say you're more like SpongeBob or Patrick?",
-            "If someone asked which one you're more like, would you say SpongeBob or Patrick?"
+            "Am I more like SpongeBob or Patrick?",
+            "Would you say I'm more like SpongeBob or Patrick?",
+            "If someone asked which one I'm more like, would you say SpongeBob or Patrick?"
           ],
           "choices": [
             "SpongeBob",
@@ -182,24 +183,24 @@
           "answers": [
             [
               "SpongeBob.",
-              "I'm more like SpongeBob.",
-              "I'd say I'm more like SpongeBob.",
-              "If someone asked me, I'd say I'm more like SpongeBob."
+              "You're more like SpongeBob.",
+              "I'd say you're more like SpongeBob.",
+              "If someone asked me, I'd say you're more like SpongeBob."
             ],
             [
               "Patrick.",
-              "I'm more like Patrick.",
-              "I'd say I'm more like Patrick.",
-              "If someone asked me, I'd say I'm more like Patrick."
+              "You're more like Patrick.",
+              "I'd say you're more like Patrick.",
+              "If someone asked me, I'd say you're more like Patrick."
             ]
           ]
         },
         {
           "question": [
             "Shrek or Donkey?",
-            "Are you more like Shrek or Donkey?",
-            "Would you say you're more like Shrek or Donkey?",
-            "If someone asked which one you're more like, would you say Shrek or Donkey?"
+            "Am I more like Shrek or Donkey?",
+            "Would you say I'm more like Shrek or Donkey?",
+            "If someone asked which one I'm more like, would you say Shrek or Donkey?"
           ],
           "choices": [
             "Shrek",
@@ -208,24 +209,24 @@
           "answers": [
             [
               "Shrek.",
-              "I'm more like Shrek.",
-              "I'd say I'm more like Shrek.",
-              "If someone asked me, I'd say I'm more like Shrek."
+              "You're more like Shrek.",
+              "I'd say you're more like Shrek.",
+              "If someone asked me, I'd say you're more like Shrek."
             ],
             [
               "Donkey.",
-              "I'm more like Donkey.",
-              "I'd say I'm more like Donkey.",
-              "If someone asked me, I'd say I'm more like Donkey."
+              "You're more like Donkey.",
+              "I'd say you're more like Donkey.",
+              "If someone asked me, I'd say you're more like Donkey."
             ]
           ]
         },
         {
           "question": [
             "Simba or Nemo?",
-            "Are you more like Simba or Nemo?",
-            "Would you say you're more like Simba or Nemo?",
-            "If someone asked which one you're more like, would you say Simba or Nemo?"
+            "Am I more like Simba or Nemo?",
+            "Would you say I'm more like Simba or Nemo?",
+            "If someone asked which one I'm more like, would you say Simba or Nemo?"
           ],
           "choices": [
             "Simba",
@@ -234,15 +235,15 @@
           "answers": [
             [
               "Simba.",
-              "I'm more like Simba.",
-              "I'd say I'm more like Simba.",
-              "If someone asked me, I'd say I'm more like Simba."
+              "You're more like Simba.",
+              "I'd say you're more like Simba.",
+              "If someone asked me, I'd say you're more like Simba."
             ],
             [
               "Nemo.",
-              "I'm more like Nemo.",
-              "I'd say I'm more like Nemo.",
-              "If someone asked me, I'd say I'm more like Nemo."
+              "You're more like Nemo.",
+              "I'd say you're more like Nemo.",
+              "If someone asked me, I'd say you're more like Nemo."
             ]
           ]
         }
@@ -265,9 +266,9 @@
         {
           "question": [
             "Elsa or Moana?",
-            "Are you more like Elsa or Moana?",
-            "Would you say you're more like Elsa or Moana?",
-            "If someone asked which one you're more like, would you say Elsa or Moana?"
+            "Am I more like Elsa or Moana?",
+            "Would you say I'm more like Elsa or Moana?",
+            "If someone asked which one I'm more like, would you say Elsa or Moana?"
           ],
           "choices": [
             "Elsa",
@@ -276,24 +277,24 @@
           "answers": [
             [
               "Elsa.",
-              "I'm more like Elsa.",
-              "I'd say I'm more like Elsa.",
-              "If someone asked me, I'd say I'm more like Elsa."
+              "You're more like Elsa.",
+              "I'd say you're more like Elsa.",
+              "If someone asked me, I'd say you're more like Elsa."
             ],
             [
               "Moana.",
-              "I'm more like Moana.",
-              "I'd say I'm more like Moana.",
-              "If someone asked me, I'd say I'm more like Moana."
+              "You're more like Moana.",
+              "I'd say you're more like Moana.",
+              "If someone asked me, I'd say you're more like Moana."
             ]
           ]
         },
         {
           "question": [
             "Woody or Buzz Lightyear?",
-            "Are you more like Woody or Buzz Lightyear?",
-            "Would you say you're more like Woody or Buzz Lightyear?",
-            "If someone asked which one you're more like, would you say Woody or Buzz Lightyear?"
+            "Am I more like Woody or Buzz Lightyear?",
+            "Would you say I'm more like Woody or Buzz Lightyear?",
+            "If someone asked which one I'm more like, would you say Woody or Buzz Lightyear?"
           ],
           "choices": [
             "Woody",
@@ -302,24 +303,24 @@
           "answers": [
             [
               "Woody.",
-              "I'm more like Woody.",
-              "I'd say I'm more like Woody.",
-              "If someone asked me, I'd say I'm more like Woody."
+              "You're more like Woody.",
+              "I'd say you're more like Woody.",
+              "If someone asked me, I'd say you're more like Woody."
             ],
             [
               "Buzz Lightyear.",
-              "I'm more like Buzz Lightyear.",
-              "I'd say I'm more like Buzz Lightyear.",
-              "If someone asked me, I'd say I'm more like Buzz Lightyear."
+              "You're more like Buzz Lightyear.",
+              "I'd say you're more like Buzz Lightyear.",
+              "If someone asked me, I'd say you're more like Buzz Lightyear."
             ]
           ]
         },
         {
           "question": [
             "Homer Simpson or Bart Simpson?",
-            "Are you more like Homer Simpson or Bart Simpson?",
-            "Would you say you're more like Homer Simpson or Bart Simpson?",
-            "If someone asked which one you're more like, would you say Homer Simpson or Bart Simpson?"
+            "Am I more like Homer Simpson or Bart Simpson?",
+            "Would you say I'm more like Homer Simpson or Bart Simpson?",
+            "If someone asked which one I'm more like, would you say Homer Simpson or Bart Simpson?"
           ],
           "choices": [
             "Homer Simpson",
@@ -328,15 +329,15 @@
           "answers": [
             [
               "Homer Simpson.",
-              "I'm more like Homer Simpson.",
-              "I'd say I'm more like Homer Simpson.",
-              "If someone asked me, I'd say I'm more like Homer Simpson."
+              "You're more like Homer Simpson.",
+              "I'd say you're more like Homer Simpson.",
+              "If someone asked me, I'd say you're more like Homer Simpson."
             ],
             [
               "Bart Simpson.",
-              "I'm more like Bart Simpson.",
-              "I'd say I'm more like Bart Simpson.",
-              "If someone asked me, I'd say I'm more like Bart Simpson."
+              "You're more like Bart Simpson.",
+              "I'd say you're more like Bart Simpson.",
+              "If someone asked me, I'd say you're more like Bart Simpson."
             ]
           ]
         }
