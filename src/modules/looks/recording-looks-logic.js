@@ -149,9 +149,17 @@ export const OVERLAY_LIBRARY = {
     // eye areas are genuinely transparent so the learner's eyes show through.
     'carnival-twemoji': { slot: 'face', file: '/overlays/face/carnival-twemoji.png', anchor: 'face', label: 'Carnival mask (emoji)', labelKey: 'look_overlay_carnival_twemoji' },
     'shades-twemoji': { slot: 'face', file: '/overlays/face/shades-twemoji.png', anchor: 'face', label: 'Sunglasses (emoji)', labelKey: 'look_overlay_shades_twemoji' },
+    'alien-twemoji': { slot: 'face', file: '/overlays/face/alien-twemoji.png', anchor: 'face', label: 'Alien', labelKey: 'look_overlay_alien_twemoji' },
+    'clown-twemoji': { slot: 'face', file: '/overlays/face/clown-twemoji.png', anchor: 'face', label: 'Clown face', labelKey: 'look_overlay_clown_twemoji' },
+    'grinning-cat-twemoji': { slot: 'face', file: '/overlays/face/grinning-cat-twemoji.png', anchor: 'face', label: 'Grinning cat', labelKey: 'look_overlay_grinning_cat_twemoji' },
+    'monkey-twemoji': { slot: 'face', file: '/overlays/face/monkey-twemoji.png', anchor: 'face', label: 'Monkey face', labelKey: 'look_overlay_monkey_twemoji' },
+    'dog-twemoji': { slot: 'face', file: '/overlays/face/dog-twemoji.png', anchor: 'face', label: 'Dog face', labelKey: 'look_overlay_dog_twemoji' },
+    'bear-twemoji': { slot: 'face', file: '/overlays/face/bear-twemoji.png', anchor: 'face', label: 'Bear', labelKey: 'look_overlay_bear_twemoji' },
     // Above-the-face props.
     witchhat: { slot: 'upper', file: '/overlays/props/witchhat.png', anchor: 'upper', label: 'Witch hat', labelKey: 'look_overlay_witchhat' },
     crown: { slot: 'upper', file: '/overlays/props/crown.png', anchor: 'upper', label: 'Crown', labelKey: 'look_overlay_crown' },
+    'graduationcap-twemoji': { slot: 'upper', file: '/overlays/props/graduationcap-twemoji.png', anchor: 'upper', label: 'Graduation cap', labelKey: 'look_overlay_graduationcap_twemoji' },
+    'tophat-twemoji': { slot: 'upper', file: '/overlays/props/tophat-twemoji.png', anchor: 'upper', label: 'Top hat', labelKey: 'look_overlay_tophat_twemoji' },
     // Lower / scene props.
     cauldron: { slot: 'lower', file: '/overlays/props/cauldron.png', anchor: 'lower', label: 'Cauldron', labelKey: 'look_overlay_cauldron' },
     desk: { slot: 'lower', file: '/overlays/props/desk.png', anchor: 'lower', label: 'Desk', labelKey: 'look_overlay_desk' },

@@ -10,6 +10,15 @@ artwork:
   (`https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.0.3/assets/svg/`)
   - `shades-twemoji.png` ← `1f453.svg` (eyeglasses)
   - `carnival-twemoji.png` ← `1f3ad.svg` (performing arts, purple mask only)
+  - `alien-twemoji.png` ← `1f47d.svg` (alien)
+  - `clown-twemoji.png` ← `1f921.svg` (clown face)
+  - `grinning-cat-twemoji.png` ← `1f63a.svg` (grinning cat)
+  - `monkey-twemoji.png` ← `1f435.svg` (monkey face)
+  - `dog-twemoji.png` ← `1f436.svg` (dog face)
+  - `bear-twemoji.png` ← `1f43b.svg` (bear)
+  - `crown.png` ← `1f451.svg` (crown)
+  - `graduationcap-twemoji.png` ← `1f393.svg` (graduation cap)
+  - `tophat-twemoji.png` ← `1f3a9.svg` (top hat)
 
 ## Modifications (regeneration: `node scripts/generate-twemoji-overlays.mjs`)
 
