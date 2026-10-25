@@ -89,10 +89,21 @@ describe('the start path survives WebKit returning undefined from play()', () =>
     });
 
     it('routes every start through playSafely', () => {
-        ['attemptStart', 'handleVideoEnded', 'unmuteAfterStart'].forEach((name) => {
+        ['attemptStart', 'replaySilentLoop', 'unmuteAfterStart'].forEach((name) => {
             const fn = sliceBetween(playbackRaw, `const ${name} = `, '\n    };');
             expect(fn, name).toContain('playSafely(');
         });
+    });
+
+    it('defers the silent-loop replay past the ended event instead of playing inside it', () => {
+        const handler = sliceBetween(playbackRaw, 'const handleVideoEnded = () => {', '\n    };');
+        // iPadOS can ignore a play() issued synchronously inside `ended`.
+        expect(handler).toContain('replaySilentLoop(0)');
+        expect(handler).toContain('clearReplayTimer()');
+        const replay = sliceBetween(playbackRaw, 'const replaySilentLoop = (attempt = 0) => {', '\n    };');
+        expect(replay).toContain('video.currentTime = 0');
+        expect(replay.indexOf('video.currentTime = 0')).toBeLessThan(replay.indexOf('playSafely(video)'));
+        expect(replay).toContain('setTimeout(');
     });
 });
 
@@ -235,13 +246,15 @@ describe('a not-yet-ready take is not asked to play, and a stalled one is kicked
         expect(body.indexOf('shouldKickStalledPlayback(')).toBeLessThan(body.indexOf('el.pause()'));
     });
 
-    it('clears the readiness and stall timers with the others', () => {
+    it('clears the readiness, stall and replay timers with the others', () => {
         const cleanup = sliceBetween(playbackRaw, 'useEffect(() => () => {', '\n    }, []);');
         expect(cleanup).toContain('clearReadinessTimer();');
         expect(cleanup).toContain('clearStallTimer();');
+        expect(cleanup).toContain('clearReplayTimer();');
         const blobEffect = sliceBetween(playbackRaw, '// Blob URL management', '// Clear trigger');
         expect(blobEffect).toContain('clearReadinessTimer();');
         expect(blobEffect).toContain('clearStallTimer();');
+        expect(blobEffect).toContain('clearReplayTimer();');
         expect(blobEffect).toContain('stallKickedRef.current = false;');
     });
 });

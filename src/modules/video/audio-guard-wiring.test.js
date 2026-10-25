@@ -153,7 +153,7 @@ describe('PlaybackVideo audio guard', () => {
         // The intent has to be set before the replay, otherwise the guard's
         // first tick would unmute the intentionally silent loop.
         expect(handleEnded.indexOf('muteIntentRef.current = true;'))
-            .toBeLessThan(handleEnded.indexOf('playSafely(video)'));
+            .toBeLessThan(handleEnded.indexOf('replaySilentLoop(0)'));
     });
 
     it('restores the audio when the autoplay with sound was blocked', () => {

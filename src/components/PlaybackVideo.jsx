@@ -112,6 +112,16 @@ export default function PlaybackVideo() {
         }
     };
 
+    // The silent-loop replay after the first play. A pending replay must not
+    // fire into the next take (or a gone element), like every other timer here.
+    const replayTimerRef = useRef(null);
+    const clearReplayTimer = () => {
+        if (replayTimerRef.current !== null) {
+            clearTimeout(replayTimerRef.current);
+            replayTimerRef.current = null;
+        }
+    };
+
     /** Retry the same ladder rung once the element is ready (never mute for this). */
     const scheduleReadinessRetry = (attempt) => {
         clearReadinessTimer();
@@ -290,17 +300,54 @@ export default function PlaybackVideo() {
         }, 1200);
     };
 
+    // iPadOS can ignore a play() issued synchronously inside the `ended`
+    // event, which leaves the take on its last frame instead of looping
+    // (stories/094). The replay is therefore deferred past the event, the clock
+    // is rewound explicitly, and a refusal is retried once — with every step
+    // logged so the next report names which one failed.
+    const replaySilentLoop = (attempt = 0) => {
+        const video = videoRef.current;
+        if (!video) return;
+        try {
+            if (video.ended && typeof video.currentTime === 'number') video.currentTime = 0;
+        } catch (error) { /* rewinding is best effort; play() still restarts */ }
+        const state = describeStartState(video);
+        console.log('[Playback] silent-loop replay attempt ' + attempt, state);
+        takeDiagnostics.push('silent-loop replay attempt ' + attempt, state);
+        const { promise, error } = playSafely(video);
+        if (error) {
+            console.warn('[Playback] silent-loop replay threw:', error && error.message ? error.message : error);
+            takeDiagnostics.push('silent-loop replay failed', { attempt, name: error && error.name ? error.name : null });
+        }
+        if (!promise) return;
+        promise.catch((e) => {
+            console.warn('[Playback] silent-loop replay refused (attempt ' + attempt + '):', e && e.name ? e.name : e);
+            takeDiagnostics.push('silent-loop replay refused', { attempt, name: e && e.name ? e.name : null });
+            if (attempt > 0) return;
+            clearReplayTimer();
+            replayTimerRef.current = setTimeout(() => {
+                replayTimerRef.current = null;
+                replaySilentLoop(1);
+            }, 300);
+        });
+    };
+
     const handleVideoEnded = () => {
         const video = videoRef.current;
         if (!video) return;
+        console.log('[Playback] take ended, starting the silent loop', describeStartState(video));
+        takeDiagnostics.push('take ended', describeStartState(video));
         // The clip has played once with sound; from now on it loops silently.
         // The mute is intentional, so the audio guard must stand down.
         muteIntentRef.current = true;
         setElementMuted(video, true);
         video.loop = true;
         appStore.getState().setPlaybackMuted(true);
-        const { promise } = playSafely(video);
-        if (promise) promise.catch(e => console.warn('[playback] replay after mute failed:', e));
+        clearReplayTimer();
+        replayTimerRef.current = setTimeout(() => {
+            replayTimerRef.current = null;
+            replaySilentLoop(0);
+        }, 150);
     };
 
     const handleVideoError = () => {
@@ -389,6 +436,7 @@ export default function PlaybackVideo() {
         clearSampleTimer();
         clearReadinessTimer();
         clearStallTimer();
+        clearReplayTimer();
         waitingSinceRef.current = null;
         stallKickedRef.current = false;
         hasStartedRef.current = false;
@@ -425,6 +473,7 @@ export default function PlaybackVideo() {
             clearSampleTimer();
             clearReadinessTimer();
             clearStallTimer();
+            clearReplayTimer();
             if (video.src && video.src.startsWith('blob:')) {
                 URL.revokeObjectURL(video.src);
             }
@@ -472,6 +521,7 @@ export default function PlaybackVideo() {
         clearSampleTimer();
         clearReadinessTimer();
         clearStallTimer();
+        clearReplayTimer();
         if (observerRef.current) {
             observerRef.current.disconnect();
             observerRef.current = null;
