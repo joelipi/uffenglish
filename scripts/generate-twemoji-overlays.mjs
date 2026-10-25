@@ -186,9 +186,12 @@ export async function buildFaceTwemoji(svgText, outSize = 640) {
                 }
                 const cxn = sumx / count;
                 const cyn = sumy / count;
-                // Eye band: not too close to edges, not the mouth/nose row.
+                // Eye band: not too close to edges. Skip central components (nose,
+                // mouth) by requiring an off-centre centroid unless the component
+                // sits high in the face (true eye row).
                 if (cxn > info.width * 0.2 && cxn < info.width * 0.8 &&
-                    cyn > info.height * 0.2 && cyn < info.height * 0.62) {
+                    cyn > info.height * 0.2 && cyn < info.height * 0.62 &&
+                    ((cxn < info.width * 0.4 || cxn > info.width * 0.6) || cyn < info.height * 0.4)) {
                     comps.push({ minx, maxx, miny, maxy, cx: cxn, cy: cyn, count });
                 }
             }
