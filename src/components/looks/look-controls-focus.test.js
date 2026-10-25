@@ -225,9 +225,10 @@ describe('prop rows are a grid tray pinned to the rail top', () => {
         expect(block).toMatch(/right:\s*0/);
     });
 
-    it('the rail starts below the header blur, around a quarter down', () => {
+    it('the rail starts just below the header blur', () => {
         const block = trayBlock('rail');
-        expect(block).toMatch(/top:\s*'25%'/);
+        // The blurred band is the top ~18.5% of the frame.
+        expect(block).toMatch(/top:\s*'19%'/);
     });
 
     it('OverlayFoldout and ChoiceStrip both render the tray', () => {

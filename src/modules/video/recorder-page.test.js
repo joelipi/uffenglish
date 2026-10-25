@@ -1047,6 +1047,7 @@ describe('recorder auto-render — zero server changes', () => {
             'src/components/looks/look-controls-focus.test.js',
             'src/components/looks/emoji-picker-ui.test.jsx',
             'src/components/widgets/WebcamPreview.jsx',
+            'src/components/widgets/webcam-preview-drag.test.js',
             'src/components/widgets/IntroChoices.jsx',
             'src/components/widgets/ResponseDecisionButtons.jsx',
             'src/components/widgets/DecisionButtons.jsx',

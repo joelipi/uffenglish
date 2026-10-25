@@ -103,18 +103,30 @@ export default function WebcamPreview() {
     }
 
     return (
-        <div ref={wrapperRef} id="pip-wrapper" className={className} style={{ position: 'relative' }}>
+        <div
+            ref={wrapperRef}
+            id="pip-wrapper"
+            className={className}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerUp}
+            style={{
+                position: 'relative',
+                // Touch drags must not be interpreted as a page pan. Put the
+                // rule on the wrapper (a plain div) and capture the pointer
+                // there: Android Chrome does not reliably keep a pointer
+                // sequence alive on a <video> target, which made the overlays
+                // move only a few pixels per drag.
+                ...(lookControlsVisible ? { touchAction: 'none' } : null),
+            }}
+        >
             <video
                 ref={videoRef}
                 id="webcam-preview"
                 autoPlay
                 muted
                 playsInline
-                onPointerDown={handlePointerDown}
-                onPointerMove={handlePointerMove}
-                onPointerUp={handlePointerUp}
-                onPointerCancel={handlePointerUp}
-                style={lookControlsVisible ? { touchAction: 'none' } : undefined}
             ></video>
             {recordingCountdown !== null && (
                 <div

@@ -448,9 +448,10 @@ const styles = {
         left: 12,
         right: 12,
         // The pinned tray opens at the rail top, so the rail top IS the tray
-        // top: just under the header blur (~0-15%), with the whole menu ending
+        // top: just under the header blur (the blurred band is the top ~18.5%
+        // of the frame — see .video-header-blur), with the whole menu ending
         // well above the mic band on every screen.
-        top: '25%',
+        top: '19%',
         display: 'flex',
         flexDirection: 'column',
         gap: 10,
