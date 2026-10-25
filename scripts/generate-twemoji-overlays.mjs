@@ -405,16 +405,33 @@ export async function buildHatTwemoji(svgText, outSize = 560) {
     return sharp(buf).trim().png().toBuffer();
 }
 
-/** Extract a hat from an emoji: crop the top fraction, then trim. */
-export async function buildExtractedHat(svgText, cropFraction = 0.5, outSize = 560) {
-    const base = await sharp(Buffer.from(svgText), { density: 450 })
+function svgElements(svg) {
+    return [...svg.matchAll(/<(path|circle|ellipse|rect)[^>]*\/>/g)].map((m) => m[0]);
+}
+
+/**
+ * Extract only the SVG elements that make up an emoji's hat. Selecting the
+ * artwork beats cropping: a hat that dips below the face (Santa's tail) is kept
+ * whole, and no skin/beard is left behind.
+ */
+export async function buildHatFromPaths(svgText, indices, cropFraction = 1, outSize = 560) {
+    const tags = svgElements(svgText);
+    const selected = indices.map((i) => {
+        if (!tags[i]) throw new Error(`Hat path ${i} not found`);
+        return tags[i];
+    }).join('');
+    const hatSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36">${selected}</svg>`;
+    const base = await sharp(Buffer.from(hatSvg), { density: 450 })
         .resize(outSize, outSize, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
         .png()
         .toBuffer();
-    const meta = await sharp(base).metadata();
-    const cropH = Math.max(1, Math.round(meta.height * cropFraction));
-    const cropped = await sharp(base).extract({ left: 0, top: 0, width: meta.width, height: cropH }).png().toBuffer();
-    return sharp(cropped).trim().png().toBuffer();
+    let out = base;
+    if (cropFraction < 1) {
+        const meta = await sharp(base).metadata();
+        const cropH = Math.max(1, Math.round(meta.height * cropFraction));
+        out = await sharp(base).extract({ left: 0, top: 0, width: meta.width, height: cropH }).png().toBuffer();
+    }
+    return sharp(out).trim().png().toBuffer();
 }
 
 /** Raw RGBA pixel at fractional coordinates of a PNG buffer. */
@@ -464,20 +481,25 @@ const HAT_CODES = {
     'tophat-twemoji': '1f3a9',
 };
 
-const HAT_EXTRACTIONS = {
-    'santa-hat': { code: '1f385', crop: 0.45 },
-    'mrs-claus-hat': { code: '1f936', crop: 0.45 },
-    'mage-hat': { code: '1f9d9', crop: 0.55 },
-    'prince-hat': { code: '1f934', crop: 0.4 },
-    'princess-hat': { code: '1f478', crop: 0.45 },
-    'guard-hat': { code: '1f482', crop: 0.5 },
-    'construction-hat': { code: '1f477', crop: 0.45 },
-    'turban-hat': { code: '1f473', crop: 0.45 },
-    'cowboy-hat': { code: '1f920', crop: 0.4 },
-    'billed-cap': { code: '1f9e2', crop: 1.0 },
-    'helmet': { code: '26d1', crop: 1.0 },
-    'military-helmet': { code: '1fa96', crop: 1.0 },
-    'womans-hat': { code: '1f452', crop: 1.0 },
+/**
+ * Hat paths, picked out of each emoji's SVG so only the hat is rendered.
+ * `crop` trims a compound path that also carries a face feature (Mrs Claus's
+ * mouth, the guard's chin strap).
+ */
+const HAT_PATH_EXTRACTIONS = {
+    'santa-hat': { code: '1f385', paths: [2, 8, 9, 10, 11] },
+    'mrs-claus-hat': { code: '1f936', paths: [6, 9, 10, 11, 12, 13, 16], crop: 0.5 },
+    'mage-hat': { code: '1f9d9', paths: [9] },
+    'prince-hat': { code: '1f934', paths: [4, 5] },
+    'princess-hat': { code: '1f478', paths: [5, 6, 7, 8] },
+    'guard-hat': { code: '1f482', paths: [9], crop: 0.6 },
+    'construction-hat': { code: '1f477', paths: [12, 13] },
+    'turban-hat': { code: '1f473', paths: [8, 9] },
+    'cowboy-hat': { code: '1f920', paths: [2, 3] },
+    'billed-cap': { code: '1f9e2', paths: [0, 1, 2, 3, 4] },
+    'helmet': { code: '26d1', paths: [0, 1, 2, 3, 4, 5] },
+    'military-helmet': { code: '1fa96', paths: [0, 1, 2, 3, 4, 5, 6] },
+    'womans-hat': { code: '1f452', paths: [0, 1, 2, 3, 4, 5, 6, 7, 8] },
 };
 
 async function main() {
@@ -533,9 +555,9 @@ async function main() {
         console.log(`props/${filename} ${buf.length}B`);
     }
 
-    for (const [slug, info] of Object.entries(HAT_EXTRACTIONS)) {
+    for (const [slug, info] of Object.entries(HAT_PATH_EXTRACTIONS)) {
         const svg = await fetchTwemojiSvg(info.code);
-        const buf = await buildExtractedHat(svg, info.crop);
+        const buf = await buildHatFromPaths(svg, info.paths, info.crop);
         const filename = `${slug}.png`;
         fs.writeFileSync(path.join(PROPS_DIR, filename), buf);
         console.log(`props/${filename} ${buf.length}B`);
