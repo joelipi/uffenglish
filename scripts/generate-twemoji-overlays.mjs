@@ -158,6 +158,111 @@ export const TWEMOJI_EYE_PROBES = {
         ],
         opaque: { fx: 0.5, fy: 0.85 },
     },
+    'angry-twemoji': {
+        eyes: [
+            { fx: 0.325, fy: 0.503 },
+            { fx: 0.672, fy: 0.503 },
+        ],
+        opaque: { fx: 0.5, fy: 0.9 },
+    },
+    'nauseated-twemoji': {
+        eyes: [
+            { fx: 0.325, fy: 0.386 },
+            { fx: 0.669, fy: 0.386 },
+        ],
+        opaque: { fx: 0.5, fy: 0.9 },
+    },
+    'vomiting-twemoji': {
+        eyes: [
+            { fx: 0.297, fy: 0.408 },
+            { fx: 0.700, fy: 0.408 },
+        ],
+        opaque: { fx: 0.5, fy: 0.9 },
+    },
+    'cat-twemoji': {
+        eyes: [
+            { fx: 0.333, fy: 0.556 },
+            { fx: 0.664, fy: 0.556 },
+        ],
+        opaque: { fx: 0.5, fy: 0.9 },
+    },
+    'pig-twemoji': {
+        eyes: [
+            { fx: 0.194, fy: 0.469 },
+            { fx: 0.806, fy: 0.469 },
+        ],
+        opaque: { fx: 0.5, fy: 0.9 },
+    },
+    'tiger-twemoji': {
+        eyes: [
+            { fx: 0.361, fy: 0.500 },
+            { fx: 0.639, fy: 0.500 },
+        ],
+        opaque: { fx: 0.5, fy: 0.9 },
+    },
+    'fox-twemoji': {
+        eyes: [
+            { fx: 0.347, fy: 0.492 },
+            { fx: 0.653, fy: 0.492 },
+        ],
+        opaque: { fx: 0.5, fy: 0.9 },
+    },
+    'cow-twemoji': {
+        eyes: [
+            { fx: 0.358, fy: 0.358 },
+            { fx: 0.636, fy: 0.358 },
+        ],
+        opaque: { fx: 0.5, fy: 0.9 },
+    },
+    'panda-twemoji': {
+        eyes: [
+            { fx: 0.328, fy: 0.481 },
+            { fx: 0.669, fy: 0.481 },
+        ],
+        opaque: { fx: 0.5, fy: 0.9 },
+    },
+    'rabbit-twemoji': {
+        eyes: [
+            { fx: 0.344, fy: 0.675 },
+            { fx: 0.650, fy: 0.675 },
+        ],
+        opaque: { fx: 0.5, fy: 0.9 },
+    },
+    'mouse-twemoji': {
+        eyes: [
+            { fx: 0.389, fy: 0.611 },
+            { fx: 0.611, fy: 0.611 },
+        ],
+        opaque: { fx: 0.5, fy: 0.9 },
+    },
+    'koala-twemoji': {
+        eyes: [
+            { fx: 0.347, fy: 0.550 },
+            { fx: 0.653, fy: 0.550 },
+        ],
+        opaque: { fx: 0.5, fy: 0.5 },
+    },
+    'frog-twemoji': {
+        eyes: [
+            { fx: 0.208, fy: 0.208 },
+            { fx: 0.792, fy: 0.208 },
+        ],
+        opaque: { fx: 0.5, fy: 0.9 },
+    },
+    'owl-twemoji': {
+        eyes: [
+            { fx: 0.339, fy: 0.233 },
+            { fx: 0.658, fy: 0.233 },
+        ],
+        opaque: { fx: 0.5, fy: 0.9 },
+    },
+    'hamster-twemoji': {
+        eyes: [
+            { fx: 0.333, fy: 0.583 },
+            { fx: 0.667, fy: 0.583 },
+        ],
+        opaque: { fx: 0.5, fy: 0.9 },
+    },
 };
 
 /** U+1F453 eyeglasses -> transparent lenses, frame kept. Output: 640x640. */
@@ -225,7 +330,10 @@ export async function buildFaceTwemoji(svgText, outSize = 640) {
 
     // Detect dark components on a 360x360 probe grid.
     const probeSize = 360;
-    const raw = await sharp(base).resize(probeSize, probeSize, { fit: 'fill' }).raw().toBuffer({ resolveWithObject: true });
+    const raw = await sharp(Buffer.from(svgText), { density: 450 })
+        .resize(probeSize, probeSize, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+        .raw()
+        .toBuffer({ resolveWithObject: true });
     const { data, info } = raw;
     const visited = new Uint8Array(info.width * info.height);
     const comps = [];
@@ -259,17 +367,23 @@ export async function buildFaceTwemoji(svgText, outSize = 640) {
                 // Eye band: not too close to edges. Skip central components (nose,
                 // mouth) by requiring an off-centre centroid unless the component
                 // sits high in the face (true eye row).
-                if (cxn > info.width * 0.2 && cxn < info.width * 0.8 &&
-                    cyn > info.height * 0.30 && cyn < info.height * 0.55 &&
-                    ((cxn < info.width * 0.4 || cxn > info.width * 0.6) || cyn < info.height * 0.4)) {
+                if (count > 100 && count < 10000 &&
+                    cxn > info.width * 0.05 && cxn < info.width * 0.95 &&
+                    cyn > info.height * 0.20 && cyn < info.height * 0.75 &&
+                    cxn > info.width * 0.15 && cxn < info.width * 0.85 &&
+                    ((cxn < info.width * 0.4 || cxn > info.width * 0.6) || cyn < info.height * 0.4) &&
+                    !(cyn > info.height * 0.65 && cxn > info.width * 0.35 && cxn < info.width * 0.65)) {
                     comps.push({ minx, maxx, miny, maxy, cx: cxn, cy: cyn, count });
                 }
             }
         }
     }
-    if (comps.length === 0) throw new Error('No eye components detected');
+    // Eyes sit lower than eyebrows; pick the two lowest qualifying components.
+    comps.sort((a, b) => b.cy - a.cy);
+    const eyes = comps.slice(0, 2);
+    if (eyes.length === 0) throw new Error('No eye components detected');
     // Build mask ellipses from each component's bbox with padding.
-    const ellipses = comps.map((c) => {
+    const ellipses = eyes.map((c) => {
         const scaleX = W / probeSize;
         const scaleY = H / probeSize;
         const cx = c.cx * scaleX;
@@ -313,10 +427,24 @@ const FACE_CODES = {
     'big-grin-twemoji': '1f603',
     'sweat-twemoji': '1f605',
     'squinting-twemoji': '1f606',
-    'wink-twemoji': '1f609',
     'smiling-twemoji': '1f60a',
     'tongue-twemoji': '1f60b',
     'party-twemoji': '1f973',
+    'angry-twemoji': '1f620',
+    'nauseated-twemoji': '1f922',
+    'vomiting-twemoji': '1f92e',
+    'cat-twemoji': '1f431',
+    'pig-twemoji': '1f437',
+    'tiger-twemoji': '1f42f',
+    'fox-twemoji': '1f98a',
+    'cow-twemoji': '1f42e',
+    'panda-twemoji': '1f43c',
+    'rabbit-twemoji': '1f430',
+    'mouse-twemoji': '1f42d',
+    'koala-twemoji': '1f428',
+    'frog-twemoji': '1f438',
+    'owl-twemoji': '1f989',
+    'hamster-twemoji': '1f439',
 };
 
 const HAT_CODES = {
