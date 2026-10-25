@@ -461,6 +461,32 @@ export async function buildCostumeCover(svgText, excludePaths, holes = [], outSi
     return cover;
 }
 
+/** Keep only selected subpaths of a path's `d` (split on each M/m command). */
+function selectSubpaths(tag, subpathIndices) {
+    const match = tag.match(/ d="([^"]*)"/);
+    if (!match) return tag;
+    const parts = match[1].split(/(?=[Mm])/).filter(Boolean);
+    const d = subpathIndices.map((i) => parts[i]).filter(Boolean).join('');
+    if (!d) throw new Error('Hair subpath not found');
+    return tag.replace(/ d="[^"]*"/, ` d="${d}"`);
+}
+
+/** Extract hair pieces (whole paths or selected subpaths) as a top overlay. */
+export async function buildHairFromPaths(svgText, specs, outSize = 560) {
+    const tags = svgElements(svgText);
+    const selected = specs.map((spec) => {
+        if (!tags[spec.index]) throw new Error(`Hair path ${spec.index} not found`);
+        const tag = tags[spec.index];
+        return spec.subpaths ? selectSubpaths(tag, spec.subpaths) : tag;
+    }).join('');
+    const hairSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36">${selected}</svg>`;
+    const buf = await sharp(Buffer.from(hairSvg), { density: 450 })
+        .resize(outSize, outSize, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+        .png()
+        .toBuffer();
+    return sharp(buf).trim().png().toBuffer();
+}
+
 /** Raw RGBA pixel at fractional coordinates of a PNG buffer. */
 export async function probePixel(pngBuffer, fx, fy) {
     const { data, info } = await sharp(pngBuffer).raw().toBuffer({ resolveWithObject: true });
@@ -469,6 +495,12 @@ export async function probePixel(pngBuffer, fx, fy) {
     const i = (y * info.width + x) * info.channels;
     return { r: data[i], g: data[i + 1], b: data[i + 2], a: data[i + 3], width: info.width, height: info.height, channels: info.channels };
 }
+
+const HAIR_EXTRACTIONS = {
+    // Male judge's path 6 carries the hair first and the moustache second.
+    'male-gray-hair': { code: '1f468-200d-2696-fe0f', specs: [{ index: 6, subpaths: [1] }] },
+    'female-gray-hair': { code: '1f469-200d-2696-fe0f', specs: [{ index: 3 }, { index: 7 }] },
+};
 
 const COSTUME_EXTRACTIONS = {
     // Hats own the head, so the hair goes with the face. The judge's grey wig is
@@ -610,6 +642,14 @@ async function main() {
     for (const [slug, info] of Object.entries(HAT_PATH_EXTRACTIONS)) {
         const svg = await fetchTwemojiSvg(info.code);
         const buf = await buildHatFromPaths(svg, info.paths, info.crop);
+        const filename = `${slug}.png`;
+        fs.writeFileSync(path.join(PROPS_DIR, filename), buf);
+        console.log(`props/${filename} ${buf.length}B`);
+    }
+
+    for (const [slug, info] of Object.entries(HAIR_EXTRACTIONS)) {
+        const svg = await fetchTwemojiSvg(info.code);
+        const buf = await buildHairFromPaths(svg, info.specs);
         const filename = `${slug}.png`;
         fs.writeFileSync(path.join(PROPS_DIR, filename), buf);
         console.log(`props/${filename} ${buf.length}B`);

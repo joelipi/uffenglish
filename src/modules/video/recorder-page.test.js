@@ -1128,6 +1128,8 @@ describe('recorder auto-render — zero server changes', () => {
             'public/overlays/props/helmet.png',
             'public/overlays/props/military-helmet.png',
             'public/overlays/props/womans-hat.png',
+            'public/overlays/props/male-gray-hair.png',
+            'public/overlays/props/female-gray-hair.png',
             'public/overlays/props/cauldron.png',
             'public/overlays/props/desk.png',
             'public/overlays/props/frame.png',

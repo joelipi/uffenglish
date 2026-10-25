@@ -210,6 +210,8 @@ export const OVERLAY_LIBRARY = {
     'helmet': { slot: 'upper', file: '/overlays/props/helmet.png', anchor: 'upper', label: 'Helmet', labelKey: 'look_overlay_helmet' },
     'military-helmet': { slot: 'upper', file: '/overlays/props/military-helmet.png', anchor: 'upper', label: 'Military helmet', labelKey: 'look_overlay_military_helmet' },
     'womans-hat': { slot: 'upper', file: '/overlays/props/womans-hat.png', anchor: 'upper', label: "Woman's hat", labelKey: 'look_overlay_womans_hat' },
+    'male-gray-hair': { slot: 'upper', file: '/overlays/props/male-gray-hair.png', anchor: 'upper', label: 'Male gray hair', labelKey: 'look_overlay_male_gray_hair' },
+    'female-gray-hair': { slot: 'upper', file: '/overlays/props/female-gray-hair.png', anchor: 'upper', label: 'Female gray hair', labelKey: 'look_overlay_female_gray_hair' },
     // Lower / scene props.
     cauldron: { slot: 'lower', file: '/overlays/props/cauldron.png', anchor: 'lower', label: 'Cauldron', labelKey: 'look_overlay_cauldron' },
     desk: { slot: 'lower', file: '/overlays/props/desk.png', anchor: 'lower', label: 'Desk', labelKey: 'look_overlay_desk' },
