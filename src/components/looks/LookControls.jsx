@@ -164,7 +164,7 @@ function OverlayFoldout({ slot }) {
                             }}
                             style={{ ...styles.chip, ...(selected ? styles.chipSelected : null) }}
                         >
-                            <img src={assetFileForSlug(slug)} alt="" style={styles.thumb} />
+                            <img src={assetFileForSlug(slug)} alt="" draggable={false} style={styles.thumb} />
                             <span style={styles.chipLabel}>{OVERLAY_LIBRARY[slug].label}</span>
                         </button>
                     );
@@ -304,7 +304,7 @@ export default function LookControls() {
                             }}
                         >
                             {slug ? (
-                                <img src={assetFileForSlug(slug)} alt="" style={styles.railThumb} />
+                                <img src={assetFileForSlug(slug)} alt="" draggable={false} style={styles.railThumb} />
                             ) : (
                                 <i className={`bi ${icon}`} style={styles.railIcon}></i>
                             )}
@@ -374,6 +374,10 @@ const styles = {
         width: 22,
         height: 22,
         objectFit: 'contain',
+        // Pointer-transparent so a swipe starting on the thumbnail scrolls the
+        // strip (or taps the button) instead of starting an image drag.
+        pointerEvents: 'none',
+        userSelect: 'none',
     },
     railIcon: {
         fontSize: 18,
@@ -400,6 +404,15 @@ const styles = {
         display: 'flex',
         gap: 6,
         overflowX: 'auto',
+        // The prop rows (Face/Top/Bottom) are the only strips whose chips hold
+        // <img> thumbnails, and on iOS a swipe that starts on an image goes to
+        // image interaction instead of the scroller — which is why those rows
+        // would not scroll while the swatch-only rows did. Momentum scrolling
+        // plus an explicit pan gesture (in case an ancestor sets touch-action:
+        // none for drag-to-move) plus pointer-transparent thumbnails keep every
+        // row scrollable (stories/092).
+        WebkitOverflowScrolling: 'touch',
+        touchAction: 'pan-x pan-y',
         background: 'rgba(15, 17, 24, 0.84)',
         borderRadius: 12,
         padding: '4px 6px',
@@ -459,6 +472,10 @@ const styles = {
         objectFit: 'contain',
         borderRadius: 6,
         background: 'rgba(0,0,0,0.35)',
+        // Pointer-transparent so a swipe starting on the thumbnail scrolls the
+        // strip (or taps the button) instead of starting an image drag.
+        pointerEvents: 'none',
+        userSelect: 'none',
     },
     chipLabel: {
         fontSize: 9,

@@ -97,6 +97,47 @@ describe('look controls do not keep the native focus ring', () => {
     });
 });
 
+describe('look strips stay scrollable on touch', () => {
+    // The Face/Top/Bottom rows are the only strips whose chips hold <img>
+    // thumbnails, and on iOS a swipe starting on an image goes to image
+    // interaction instead of the scroller — those rows silently stopped
+    // scrolling while the swatch-only rows kept working (stories/092).
+    function stripCodeStripped() {
+        return read(COMPONENT)
+            .split('\n')
+            .filter((line) => !line.trim().startsWith('//'))
+            .join('\n');
+    }
+
+    /** A `name: { … }` style block, bounded at its own closing brace. */
+    function styleBlock(source, name) {
+        const start = source.indexOf(`    ${name}: {`);
+        expect(start).toBeGreaterThan(-1);
+        const end = source.indexOf('\n    },', start);
+        expect(end).toBeGreaterThan(start);
+        return source.slice(start, end);
+    }
+
+    it('the foldout strip keeps momentum scrolling and an explicit pan gesture', () => {
+        const block = styleBlock(stripCodeStripped(), 'foldoutStrip');
+        expect(block).toMatch(/overflowX:\s*'auto'/);
+        expect(block).toMatch(/WebkitOverflowScrolling:\s*'touch'/);
+        expect(block).toMatch(/touchAction:\s*'pan-x pan-y'/);
+    });
+
+    it('every thumbnail image is non-draggable and pointer-transparent', () => {
+        const source = stripCodeStripped();
+        const imgs = source.match(/<img\b/g) || [];
+        expect(imgs.length).toBeGreaterThan(0);
+        expect((source.match(/draggable=\{false\}/g) || []).length).toBe(imgs.length);
+        for (const name of ['thumb', 'railThumb']) {
+            const block = styleBlock(source, name);
+            expect(block).toMatch(/pointerEvents:\s*'none'/);
+            expect(block).toMatch(/userSelect:\s*'none'/);
+        }
+    });
+});
+
 describe('look control icons and categories', () => {
     it('the Top slot shows something that sits above a head, not a magic wand', () => {
         const source = read(COMPONENT);
