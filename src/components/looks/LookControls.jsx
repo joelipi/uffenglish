@@ -322,6 +322,7 @@ const styles = {
     rail: {
         position: 'absolute',
         left: 12,
+        right: 12,
         // The pinned tray opens at the rail top, so the rail top IS the tray
         // top: just under the header blur (~0-15%), with the whole menu ending
         // well above the mic band on every screen.
@@ -330,7 +331,10 @@ const styles = {
         flexDirection: 'column',
         gap: 10,
         zIndex: 80,
-        pointerEvents: 'auto',
+        // Transparent to touches: the rail now spans the frame width, so only
+        // the buttons and the open tray may capture pointers — everything else
+        // falls through to the preview (e.g. drag-to-move) underneath.
+        pointerEvents: 'none',
         maxWidth: 'calc(100% - 24px)',
     },
     railRow: {
@@ -342,6 +346,7 @@ const styles = {
         width: 48,
         height: 48,
         flexShrink: 0,
+        pointerEvents: 'auto',
         borderRadius: 14,
         // No white chrome: on the picker the only outline anywhere is the green
         // "this is applied" ring, otherwise a previous selection kept looking
@@ -402,6 +407,7 @@ const styles = {
         position: 'absolute',
         top: 0,
         left: 56,
+        right: 0,
         display: 'flex',
         flexDirection: 'column',
         gap: 6,
@@ -409,7 +415,7 @@ const styles = {
         border: '1px solid rgba(255,255,255,0.2)',
         borderRadius: 14,
         padding: '6px 8px',
-        maxWidth: 'calc(100vw - 84px)',
+        pointerEvents: 'auto',
         boxShadow: '0 6px 18px rgba(0,0,0,0.5)',
     },
     foldoutStrip: {
@@ -431,7 +437,9 @@ const styles = {
         background: 'rgba(15, 17, 24, 0.84)',
         borderRadius: 12,
         padding: '4px 6px',
-        maxWidth: 'calc(100vw - 84px)',
+        // Percent of the rail row, never viewport units: vw sizing lets a
+        // strip sail past the screen edge on frames narrower than the viewport.
+        maxWidth: '100%',
         // Proximity, not mandatory: on iOS a mandatory snap can eat a swipe
         // and fling the strip back to where it started, which reads as "does
         // not scroll". Proximity keeps the paging feel without ever
@@ -452,8 +460,10 @@ const styles = {
         // Fixed pixels, not vh: the tray sits between the header blur and the
         // mic band, and vh units shift under iOS Safari's collapsing chrome.
         // Tray (300) + Size slider below it stays above the mic on a 667px
-        // phone with room to spare.
+        // phone with room to spare. Width comes from left/right anchoring, and
+        // is capped so the tray stays compact on wide frames.
         maxHeight: 300,
+        maxWidth: 420,
         WebkitOverflowScrolling: 'touch',
         touchAction: 'pan-y',
         transform: 'translateZ(0)',
@@ -463,8 +473,8 @@ const styles = {
         // Explicit width, not just maxWidth: an absolutely positioned box
         // shrink-wraps to its (narrow) containing block, which would collapse
         // the 1fr columns to slivers.
-        width: 'calc(100vw - 84px)',
-        maxWidth: 'calc(100vw - 84px)',
+        // In-flow inside the anchored column: it fills the column width,
+        // so no viewport units are needed anywhere here.
     },
     trayChip: {
         display: 'flex',

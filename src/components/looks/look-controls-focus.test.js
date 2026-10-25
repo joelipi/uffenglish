@@ -128,6 +128,22 @@ describe('look strips stay scrollable on touch', () => {
         // snap can (which reads as "does not scroll").
         expect(block).toMatch(/transform:\s*'translateZ\(0\)'/);
         expect(block).toMatch(/scrollSnapType:\s*'x proximity'/);
+        // No viewport units: on frames narrower than the viewport (tablet /
+        // desktop) a vw-sized strip sails past the screen edge with columns
+        // cut off.
+        expect(block).toMatch(/maxWidth:\s*'100%'/);
+        expect(block).not.toMatch(/100vw/);
+    });
+
+    it('the rail spans the frame but only buttons and trays capture touches', () => {
+        const source = stripCodeStripped();
+        const rail = styleBlock(source, 'rail');
+        expect(rail).toMatch(/left:\s*12/);
+        expect(rail).toMatch(/right:\s*12/);
+        expect(rail).toMatch(/pointerEvents:\s*'none'/);
+        for (const name of ['railBtn', 'foldoutColumn']) {
+            expect(styleBlock(source, name)).toMatch(/pointerEvents:\s*'auto'/);
+        }
     });
 
     it('chips size to their content instead of squeezing their labels out', () => {
