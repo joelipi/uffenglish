@@ -413,16 +413,27 @@ const styles = {
         // row scrollable (stories/092).
         WebkitOverflowScrolling: 'touch',
         touchAction: 'pan-x pan-y',
+        // Composited layer: on iOS a non-composited overflow box can refuse
+        // touch scrolling outright while the identical box scrolls on desktop.
+        transform: 'translateZ(0)',
         background: 'rgba(15, 17, 24, 0.84)',
         borderRadius: 12,
         padding: '4px 6px',
         maxWidth: 'calc(100vw - 84px)',
-        scrollSnapType: 'x mandatory',
+        // Proximity, not mandatory: on iOS a mandatory snap can eat a swipe
+        // and fling the strip back to where it started, which reads as "does
+        // not scroll". Proximity keeps the paging feel without ever
+        // force-returning the strip (stories/092).
+        scrollSnapType: 'x proximity',
     },
     chip: {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
+        // Size to the content, never shrink: a squeezed chip lets its label
+        // spill over its neighbours (and over their touch targets), and the
+        // strip's snap stops end up narrower than a finger.
+        flex: '0 0 auto',
         gap: 3,
         minWidth: 48,
         padding: '4px 5px',

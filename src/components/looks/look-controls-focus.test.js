@@ -123,6 +123,16 @@ describe('look strips stay scrollable on touch', () => {
         expect(block).toMatch(/overflowX:\s*'auto'/);
         expect(block).toMatch(/WebkitOverflowScrolling:\s*'touch'/);
         expect(block).toMatch(/touchAction:\s*'pan-x pan-y'/);
+        // iOS refuses touch scrolling on some non-composited overflow boxes;
+        // a proximity snap never force-returns the strip the way a mandatory
+        // snap can (which reads as "does not scroll").
+        expect(block).toMatch(/transform:\s*'translateZ\(0\)'/);
+        expect(block).toMatch(/scrollSnapType:\s*'x proximity'/);
+    });
+
+    it('chips size to their content instead of squeezing their labels out', () => {
+        const block = styleBlock(stripCodeStripped(), 'chip');
+        expect(block).toMatch(/flex:\s*'0 0 auto'/);
     });
 
     it('every thumbnail image is non-draggable and pointer-transparent', () => {
