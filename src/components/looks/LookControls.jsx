@@ -133,7 +133,7 @@ function OverlayFoldout({ slot }) {
 
     return (
         <div style={styles.foldoutColumn} data-testid={`look-slot-row-${slot}`}>
-            <div style={styles.foldoutStrip}>
+            <div style={styles.trayStrip}>
                 <button
                     type="button"
                     className="look-tap"
@@ -143,10 +143,10 @@ function OverlayFoldout({ slot }) {
                         releaseFocusAfterPointerTap(e);
                         appStore.getState().setLookSlot(slot, null);
                     }}
-                    style={{ ...styles.chip, ...(!slugForSlot ? styles.chipSelected : null) }}
+                    style={{ ...styles.trayChip, ...(!slugForSlot ? styles.chipSelected : null) }}
                 >
                     <span style={{ ...styles.swatch, background: NONE_SWATCH }} />
-                    <span style={styles.chipLabel}>None</span>
+                    <span style={styles.trayChipLabel}>None</span>
                 </button>
                 {slugs.map((slug) => {
                     const selected = slugForSlot === slug;
@@ -162,10 +162,10 @@ function OverlayFoldout({ slot }) {
                                 appStore.getState().setLookSlot(slot, slug);
                                 appStore.getState().setLookActiveSlot(slot);
                             }}
-                            style={{ ...styles.chip, ...(selected ? styles.chipSelected : null) }}
+                            style={{ ...styles.trayChip, ...(selected ? styles.chipSelected : null) }}
                         >
                             <img src={assetFileForSlug(slug)} alt="" draggable={false} style={styles.thumb} />
-                            <span style={styles.chipLabel}>{OVERLAY_LIBRARY[slug].label}</span>
+                            <span style={styles.trayChipLabel}>{OVERLAY_LIBRARY[slug].label}</span>
                         </button>
                     );
                 })}
@@ -425,6 +425,47 @@ const styles = {
         // not scroll". Proximity keeps the paging feel without ever
         // force-returning the strip (stories/092).
         scrollSnapType: 'x proximity',
+    },
+    // The prop rows (Face/Top/Bottom) are a VERTICAL tray, not a horizontal
+    // strip: a horizontal strip can only ever show its last items by scrolling
+    // to a far snap point and back, which on iOS reads as "stuck partway" —
+    // and it gets worse with every overlay added. A vertical list scrolls on
+    // the platform's most robust gesture and fits dozens of items.
+    trayStrip: {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'stretch',
+        gap: 4,
+        overflowY: 'auto',
+        overflowX: 'hidden',
+        // Fixed pixels, not vh: the tray sits between the header blur and the
+        // mic band, and vh units shift under iOS Safari's collapsing chrome.
+        maxHeight: 300,
+        WebkitOverflowScrolling: 'touch',
+        touchAction: 'pan-y',
+        transform: 'translateZ(0)',
+        background: 'rgba(15, 17, 24, 0.84)',
+        borderRadius: 12,
+        padding: '6px',
+        maxWidth: 'calc(100vw - 84px)',
+    },
+    trayChip: {
+        display: 'flex',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        width: '100%',
+        padding: '6px 8px',
+        borderRadius: 10,
+        border: '1.5px solid transparent',
+        background: 'transparent',
+        color: '#fff',
+    },
+    trayChipLabel: {
+        flex: 1,
+        fontSize: 12,
+        lineHeight: 1.2,
+        textAlign: 'left',
     },
     chip: {
         display: 'flex',

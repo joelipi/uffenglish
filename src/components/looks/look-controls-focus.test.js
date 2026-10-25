@@ -148,6 +148,57 @@ describe('look strips stay scrollable on touch', () => {
     });
 });
 
+describe('prop rows are a vertical tray, not a horizontal strip', () => {
+    // A horizontal strip can only show its last items by scrolling to a far
+    // snap point, which on iOS reads as "stuck partway" — and it gets worse
+    // with every overlay added. The prop rows (Face/Top/Bottom) are a vertical
+    // list instead; the swatch rows keep their horizontal strip.
+    function traySource() {
+        return read(COMPONENT)
+            .split('\n')
+            .filter((line) => !line.trim().startsWith('//'))
+            .join('\n');
+    }
+
+    function trayBlock(name) {
+        const source = traySource();
+        const start = source.indexOf(`    ${name}: {`);
+        expect(start).toBeGreaterThan(-1);
+        const end = source.indexOf('\n    },', start);
+        expect(end).toBeGreaterThan(start);
+        return source.slice(start, end);
+    }
+
+    it('the tray scrolls vertically with a fixed pixel cap', () => {
+        const block = trayBlock('trayStrip');
+        expect(block).toMatch(/flexDirection:\s*'column'/);
+        expect(block).toMatch(/overflowY:\s*'auto'/);
+        expect(block).toMatch(/maxHeight:\s*300/);
+        expect(block).toMatch(/touchAction:\s*'pan-y'/);
+        expect(block).toMatch(/WebkitOverflowScrolling:\s*'touch'/);
+        expect(block).toMatch(/transform:\s*'translateZ\(0\)'/);
+        // No snap at all: a snap point near the end is what used to stop the
+        // strip partway with the last item half-showing.
+        expect(block).not.toMatch(/scrollSnap/);
+    });
+
+    it('tray rows are full-width with readable labels', () => {
+        const block = trayBlock('trayChip');
+        expect(block).toMatch(/flexDirection:\s*'row'/);
+        expect(block).toMatch(/width:\s*'100%'/);
+        const label = trayBlock('trayChipLabel');
+        expect(label).toMatch(/fontSize:\s*12/);
+        expect(label).not.toMatch(/nowrap/);
+    });
+
+    it('OverlayFoldout renders the tray, ChoiceStrip keeps the horizontal strip', () => {
+        const source = traySource();
+        expect(source).toMatch(/style=\{styles\.trayStrip\}/);
+        expect(source.match(/style=\{\{\s*\.\.\.styles\.trayChip,/g)?.length).toBe(2);
+        expect(source).toMatch(/testidPrefix="look-filter"/);
+    });
+});
+
 describe('look control icons and categories', () => {
     it('the Top slot shows something that sits above a head, not a magic wand', () => {
         const source = read(COMPONENT);
