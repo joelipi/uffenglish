@@ -647,12 +647,13 @@ const styles = {
         padding: 6,
     },
     emojiCell: {
+        // No aspect-ratio here: Safari ignores it on <button>, collapsing every
+        // row to zero height so the whole sheet piles at one spot. The cell is
+        // content-sized like trayChip; the image's own ratio sets the height.
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        aspectRatio: '1 / 1',
         minWidth: 0,
-        overflow: 'hidden',
         padding: 4,
         borderRadius: 10,
         border: '1.5px solid transparent',
@@ -664,10 +665,13 @@ const styles = {
         background: 'rgba(94,224,138,0.2)',
     },
     emojiThumb: {
+        // height auto (not 100%): a percentage height against the content-sized
+        // cell is indefinite, which collapses the image where aspect-ratio is
+        // also ignored. Width-constrained with auto height follows the SVG
+        // viewBox ratio on every browser.
         width: '100%',
-        height: '100%',
-        maxWidth: '100%',
-        minWidth: 0,
+        height: 'auto',
+        display: 'block',
         objectFit: 'contain',
         pointerEvents: 'none',
     },

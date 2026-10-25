@@ -266,6 +266,22 @@ describe('look control icons and categories', () => {
         expect(block).toContain("overflowY: 'auto'");
     });
 
+    it('the emoji cells never rely on aspect-ratio or percentage image heights', () => {
+        // Safari ignores aspect-ratio on <button>: every row collapsed to zero
+        // height and the sheet piled at one spot. The image height must come
+        // from its own ratio (width 100% + height auto), never a percentage.
+        const source = read(COMPONENT);
+        const cellStart = source.indexOf('emojiCell: {');
+        expect(cellStart).toBeGreaterThan(-1);
+        const cellBlock = source.slice(cellStart, source.indexOf('emojiCellSelected: {', cellStart));
+        expect(cellBlock).not.toContain('aspectRatio');
+        const thumbStart = source.indexOf('emojiThumb: {');
+        expect(thumbStart).toBeGreaterThan(-1);
+        const thumbBlock = source.slice(thumbStart, source.indexOf('emojiMore: {', thumbStart));
+        expect(thumbBlock).toContain("height: 'auto'");
+        expect(thumbBlock).not.toContain("height: '100%'");
+    });
+
     it('the rail carries the three categories plus the four slots', () => {
         const source = read(COMPONENT);
         for (const id of ['look-drawer-toggle-filter', 'look-drawer-toggle-lens', 'look-drawer-toggle-screen']) {
