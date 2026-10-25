@@ -26,16 +26,30 @@ const DIST = path.join(ROOT, 'dist');
 
 const read = (rel) => readFileSync(path.join(DIST, rel), 'utf8');
 
-/** The `"url": ...` entries of the generated `precacheAndRoute([...])` list. */
+/**
+ * The `url` entries of the generated `precacheAndRoute([...])` list.
+ *
+ * The artifact this test inspects is the MINIFIED production build, where the key
+ * is `url:"…"`; an unminified build writes `"url": "…"`. Accept both, and only
+ * inside the precache call, so a `url` elsewhere in the worker cannot match.
+ */
 function precacheUrls(sw) {
-    return [...sw.matchAll(/\{\s*"url":\s*"([^"]+)"/g)].map((m) => m[1]);
+    const start = sw.indexOf('precacheAndRoute(');
+    if (start === -1) return [];
+    const slice = sw.slice(start, start + 400000);
+    return [...slice.matchAll(/url\s*:\s*["']([^"']+)["']/g)].map((m) => m[1]);
 }
 
 beforeAll(() => {
+    // Build the way a DEPLOY builds. This test invokes the real `npm run build`
+    // into the shared `dist/`, so inheriting vitest's `NODE_ENV=test` produced a
+    // DEVELOPMENT bundle there — which then got deployed as a preview twice
+    // (stories/096), and is now rejected by the build's artifact verifier.
     execFileSync('npm', ['run', 'build', '--silent'], {
         cwd: ROOT,
         timeout: 300000,
         stdio: 'pipe',
+        env: { ...process.env, NODE_ENV: 'production' },
     });
 }, 300000);
 

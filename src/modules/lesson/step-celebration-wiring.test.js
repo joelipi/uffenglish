@@ -65,12 +65,14 @@ describe('StepCelebration mount', () => {
     });
 });
 
-describe('success screen effect is unchanged', () => {
-    it('keeps its own score-gated confetti burst', () => {
+describe('the success screen keeps its own effect', () => {
+    it('keeps its own score-gated fireworks, now from the shared plan', () => {
         expect(successEffects).toContain('shouldShowConfetti');
         expect(successEffects).toContain("import('canvas-confetti')");
-        expect(successEffects).toContain('particleCount: 120');
-        expect(successEffects).toContain('spread: 80');
-        expect(successEffects).toContain('origin: { y: 0.6 }');
+        // Story 095 moved the sizes/lifetimes/palette into the pure planner; the
+        // success moment is still its OWN effect, never the step celebration.
+        expect(successEffects).toContain('buildSuccessFireworkPlan');
+        expect(successEffects).not.toContain('runStepCelebration');
+        expect(successEffects).not.toContain('step-celebration-logic');
     });
 });

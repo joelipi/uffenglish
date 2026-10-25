@@ -60,17 +60,31 @@ export const CELEBRATION_PATHS = {
 };
 
 /**
- * Colour palettes. Each variant allows one or two of them (see `palettes`), so a
- * variant keeps its own identity — "the red one", "the gold one" — while still
- * varying between two firings. `classic` is canvas-confetti's own default list.
+ * Colour palettes, in the app's own colours.
+ *
+ * The lesson frame is a `linear-gradient(135deg, #3a8fd5 -> #00c0d8)`, cards are
+ * `#1a3a5a`, everything outside the 9:16 frame is black, and the type is white.
+ * Each palette carries a near-white piece (luminance >= 0.75) for the gradient
+ * and black frame, a deep piece (<= 0.12) for white panels, and three of the
+ * five carry the warm accent `#ffc24d` (kept out of `ice` so one firing stays calm).
  */
 export const CELEBRATION_PALETTES = {
-    sunset: ['#ff5e7e', '#ffa62d', '#fcff42', '#ffffff'],
-    gold: ['#ffd166', '#ffb703', '#fff3b0', '#ffffff'],
-    candy: ['#ff7ab6', '#ff3d7f', '#b388ff', '#ffffff'],
-    electric: ['#7c4dff', '#ffea00', '#ffffff', '#ff3d7f'],
-    ice: ['#ffffff', '#d7f9ff', '#a7c7ff'],
-    classic: ['#26ccff', '#a25afd', '#ff5e7e', '#88ff5a', '#fcff42', '#ffa62d', '#ff36ff'],
+    snow: ['#ffffff', '#eaf6ff', '#0b2036', '#ffc24d'],
+    sky: ['#ffffff', '#9fd8ff', '#0b2036', '#ffc24d'],
+    deep: ['#ffffff', '#3a8fd5', '#0b2036', '#ffc24d'],
+    ice: ['#ffffff', '#d7f9ff', '#7fb6e8', '#1a3a5a'],
+    midnight: ['#ffffff', '#9fd8ff', '#1a3a5a', '#0b2036'],
+};
+
+/** The one warm piece in the palette, used sparingly (never in every palette). */
+export const CELEBRATION_ACCENT = '#ffc24d';
+
+/** Piece colours, for the luminance rule the guard enforces. */
+export const CELEBRATION_BACKDROP_COLORS = {
+    gradientStart: '#3a8fd5',
+    gradientEnd: '#00c0d8',
+    card: '#1a3a5a',
+    frame: '#000000',
 };
 
 /** The shapes every canvas-confetti version has built in. */
@@ -92,7 +106,7 @@ export const CELEBRATION_VARIANTS = [
     {
         // Two narrow, fast diagonal streams out of the bottom corners.
         id: 'side-cannons',
-        palettes: ['sunset', 'candy'],
+        palettes: ['sky', 'snow'],
         bursts: [
             {
                 options: {
@@ -117,7 +131,7 @@ export const CELEBRATION_VARIANTS = [
     {
         // Big slow stars RAINING FROM THE TOP EDGE (angle 270 fires downward).
         id: 'star-shower',
-        palettes: ['gold', 'ice'],
+        palettes: ['snow', 'ice'],
         bursts: [
             {
                 options: {
@@ -142,7 +156,7 @@ export const CELEBRATION_VARIANTS = [
     {
         // One tall narrow plume from the bottom centre that falls back down.
         id: 'fountain',
-        palettes: ['gold', 'sunset'],
+        palettes: ['ice', 'snow'],
         bursts: [
             {
                 options: {
@@ -161,7 +175,7 @@ export const CELEBRATION_VARIANTS = [
         // Hearts RISING from the bottom: angle 90 is up, and negative gravity
         // keeps accelerating them up instead of pulling them back.
         id: 'heart-drift',
-        palettes: ['candy', 'sunset'],
+        palettes: ['sky', 'deep'],
         bursts: [
             {
                 options: {
@@ -177,7 +191,7 @@ export const CELEBRATION_VARIANTS = [
     {
         // Two short, hard pops in mid-air: highest speed, shortest life.
         id: 'bolt-pops',
-        palettes: ['electric'],
+        palettes: ['deep', 'midnight'],
         bursts: [
             {
                 options: {
@@ -202,7 +216,7 @@ export const CELEBRATION_VARIANTS = [
     {
         // The biggest single blast: 90 big flat ribbons from dead centre.
         id: 'flat-burst',
-        palettes: ['classic'],
+        palettes: ['midnight', 'snow'],
         bursts: [
             {
                 options: {
@@ -218,7 +232,7 @@ export const CELEBRATION_VARIANTS = [
     {
         // A slow, sparkly cloud that sinks and drifts sideways.
         id: 'sparkle-drift',
-        palettes: ['ice', 'gold'],
+        palettes: ['ice', 'snow'],
         bursts: [
             {
                 options: {

@@ -1643,6 +1643,19 @@ describe('recorder auto-render — zero server changes', () => {
             'src/modules/video/after-video-player.web.js',
             'src/modules/video/after-video-player.test.js',
             'src/modules/video/after-video-wiring.test.js',
+            // Story 097 redo: app palette + success fireworks + build verifier.
+            'stories/097-celebration-app-palette-redo/story.md',
+            'src/modules/lesson/step-celebration-logic.js',
+            'src/modules/lesson/step-celebration-wiring.test.js',
+            'src/modules/lesson/celebration-palette.test.js',
+            'src/modules/lesson/success-fireworks-logic.js',
+            'src/modules/lesson/success-fireworks-logic.test.js',
+            'src/modules/lesson/success-effects-wiring.test.js',
+            'src/components/widgets/SuccessEffects.jsx',
+            'scripts/verify-build-artifact.mjs',
+            'scripts/verify-build-artifact.test.js',
+            'scripts/lib/pwa-build-output.test.js',
+            'package.json',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);
