@@ -438,7 +438,7 @@ export async function buildHatFromPaths(svgText, indices, cropFraction = 1, outS
  * Full-body costume cover: keep the whole emoji, but punch out the face paths
  * so the learner's own face fills the opening.
  */
-export async function buildCostumeCover(svgText, excludePaths, holes = [], outSize = 640) {
+export async function buildCostumeCover(svgText, excludePaths, holes = [], cutPaths = [], outSize = 640) {
     const tags = svgElements(svgText);
     const keep = tags.filter((_, i) => !excludePaths.includes(i)).join('');
     if (!keep) throw new Error('Costume would render nothing');
@@ -447,12 +447,16 @@ export async function buildCostumeCover(svgText, excludePaths, holes = [], outSi
         .resize(outSize, outSize, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
         .png()
         .toBuffer();
-    if (holes.length > 0) {
-        const ellipses = holes
-            .map((h) => `<ellipse cx="${h.cx}" cy="${h.cy}" rx="${h.rx}" ry="${h.ry}"/>`)
-            .join('');
-        const holeSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36"><g fill="white">${ellipses}</g></svg>`;
-        const mask = await sharp(Buffer.from(holeSvg), { density: 450 })
+    const cutParts = cutPaths.map((i) => {
+        if (!tags[i]) throw new Error(`Cut path ${i} not found`);
+        return tags[i].replace(/fill="[^"]*"/g, 'fill="white"');
+    }).join('');
+    const ellipses = holes
+        .map((h) => `<ellipse cx="${h.cx}" cy="${h.cy}" rx="${h.rx}" ry="${h.ry}"/>`)
+        .join('');
+    if (cutParts || ellipses) {
+        const maskSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 36 36"><g fill="white">${cutParts}${ellipses}</g></svg>`;
+        const mask = await sharp(Buffer.from(maskSvg), { density: 450 })
             .resize(outSize, outSize, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
             .png()
             .toBuffer();
@@ -515,7 +519,7 @@ const COSTUME_EXTRACTIONS = {
     'factory-worker': { code: '1f468-200d-1f3ed', excludePaths: [2, 4, 5, 6, 7, 8, 15, 16] },
     'judge': { code: '1f468-200d-2696-fe0f', excludePaths: [2, 3, 4, 5, 7, 8] },
     'judge-female': { code: '1f469-200d-2696-fe0f', excludePaths: [1, 2, 4, 5, 6, 10, 11] },
-    'construction-worker': { code: '1f477', excludePaths: [2, 3, 4, 5, 6, 7, 8, 9, 10] },
+    'construction-worker': { code: '1f477', excludePaths: [4, 5, 6, 7, 8, 9], cutPaths: [2, 3, 10] },
 };
 
 const FACE_CODES = {
@@ -619,7 +623,7 @@ async function main() {
     // Full-body costume covers (face punched out)
     for (const [slug, info] of Object.entries(COSTUME_EXTRACTIONS)) {
         const svg = await fetchTwemojiSvg(info.code);
-        const buf = await buildCostumeCover(svg, info.excludePaths, info.holes);
+        const buf = await buildCostumeCover(svg, info.excludePaths, info.holes, info.cutPaths);
         const filename = `${slug}.png`;
         fs.writeFileSync(path.join(FACE_DIR, filename), buf);
         console.log(`face/${filename} ${buf.length}B`);

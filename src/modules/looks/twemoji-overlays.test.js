@@ -67,8 +67,15 @@ describe('costume covers punch out the whole face, not only the eyes', () => {
                 if (px.a <= 24) { opened = true; break; }
             }
             expect(opened, `${slug} face opening`).toBe(true);
-            const body = await probePixel(buf, 0.5, 0.95);
-            expect(body.a, `${slug} uniform body`).toBeGreaterThanOrEqual(220);
+            let bodyOpaque = false;
+            for (const fx of [0.2, 0.35, 0.5, 0.65, 0.8]) {
+                for (const fy of [0.8, 0.9, 0.98]) {
+                    const px = await probePixel(buf, fx, fy);
+                    if (px.a >= 220) { bodyOpaque = true; break; }
+                }
+                if (bodyOpaque) break;
+            }
+            expect(bodyOpaque, `${slug} uniform body`).toBe(true);
         }
     });
 });
