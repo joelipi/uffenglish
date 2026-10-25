@@ -45,7 +45,7 @@ describe('twemoji overlays are registered as face covers', () => {
     });
 });
 
-const COSTUME_SLUGS = ['police-officer', 'chef', 'doctor', 'firefighter', 'pilot', 'astronaut', 'farmer', 'factory-worker', 'judge', 'construction-worker'];
+const COSTUME_SLUGS = ['police-officer', 'chef', 'doctor', 'firefighter', 'pilot', 'astronaut', 'farmer', 'factory-worker', 'judge', 'judge-female', 'construction-worker'];
 
 describe('costume covers punch out the whole face, not only the eyes', () => {
     it('registers every costume as a face cover with its own file', () => {

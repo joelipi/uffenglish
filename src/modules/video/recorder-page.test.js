@@ -1056,6 +1056,7 @@ describe('recorder auto-render — zero server changes', () => {
             'scripts/generate-twemoji-overlays.mjs',
             'src/modules/looks/twemoji-overlays.test.js',
             'public/overlays/TWEMOJI-ATTRIBUTION.md',
+            'index.html',
             // Retired by the 092 folder layout (deleted paths still appear in the
             // diff, so they stay listed here).
             'public/overlays/hat.png',
@@ -1108,6 +1109,7 @@ describe('recorder auto-render — zero server changes', () => {
             'public/overlays/face/farmer.png',
             'public/overlays/face/factory-worker.png',
             'public/overlays/face/judge.png',
+            'public/overlays/face/judge-female.png',
             'public/overlays/face/construction-worker.png',
             'public/overlays/props/witchhat.png',
             'public/overlays/props/crown.png',

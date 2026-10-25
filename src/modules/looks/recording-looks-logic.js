@@ -190,6 +190,7 @@ export const OVERLAY_LIBRARY = {
     farmer: { slot: 'face', file: '/overlays/face/farmer.png', anchor: 'face', label: 'Farmer', labelKey: 'look_overlay_farmer' },
     'factory-worker': { slot: 'face', file: '/overlays/face/factory-worker.png', anchor: 'face', label: 'Factory worker', labelKey: 'look_overlay_factory_worker' },
     judge: { slot: 'face', file: '/overlays/face/judge.png', anchor: 'face', label: 'Judge', labelKey: 'look_overlay_judge' },
+    'judge-female': { slot: 'face', file: '/overlays/face/judge-female.png', anchor: 'face', label: 'Female judge', labelKey: 'look_overlay_judge_female' },
     'construction-worker': { slot: 'face', file: '/overlays/face/construction-worker.png', anchor: 'face', label: 'Construction worker', labelKey: 'look_overlay_construction_worker' },
     // Above-the-face props.
     witchhat: { slot: 'upper', file: '/overlays/props/witchhat.png', anchor: 'upper', label: 'Witch hat', labelKey: 'look_overlay_witchhat' },
