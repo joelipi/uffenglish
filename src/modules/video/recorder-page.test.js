@@ -1061,6 +1061,8 @@ describe('recorder auto-render — zero server changes', () => {
             'public/overlays/face/smiley.png',
             'public/overlays/face/blank.png',
             'public/overlays/face/pixel.png',
+            'public/overlays/face/carnival.png',
+            'public/overlays/face/sunglasses.png',
             'public/overlays/props/witchhat.png',
             'public/overlays/props/crown.png',
             'public/overlays/props/cauldron.png',

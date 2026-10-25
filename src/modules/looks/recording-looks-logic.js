@@ -139,6 +139,11 @@ export const OVERLAY_LIBRARY = {
     smiley: { slot: 'face', file: '/overlays/face/smiley.png', anchor: 'face', label: 'Smiley', labelKey: 'look_overlay_smiley' },
     blank: { slot: 'face', file: '/overlays/face/blank.png', anchor: 'face', label: 'Blank', labelKey: 'look_overlay_blank' },
     pixel: { slot: 'face', file: '/overlays/face/pixel.png', anchor: 'face', label: 'Pixel', labelKey: 'look_overlay_pixel' },
+    // Original art from scripts/generate-overlay-art.py: the carnival mask has
+    // genuinely transparent eye openings, and the sunglasses' lenses are a
+    // 59% tint so the learner's eyes still read through them.
+    carnival: { slot: 'face', file: '/overlays/face/carnival.png', anchor: 'face', label: 'Carnival mask', labelKey: 'look_overlay_carnival' },
+    shades: { slot: 'face', file: '/overlays/face/sunglasses.png', anchor: 'face', label: 'Sunglasses', labelKey: 'look_overlay_shades' },
     // Above-the-face props.
     witchhat: { slot: 'upper', file: '/overlays/props/witchhat.png', anchor: 'upper', label: 'Witch hat', labelKey: 'look_overlay_witchhat' },
     crown: { slot: 'upper', file: '/overlays/props/crown.png', anchor: 'upper', label: 'Crown', labelKey: 'look_overlay_crown' },

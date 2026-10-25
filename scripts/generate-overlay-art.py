@@ -88,6 +88,65 @@ def poly(px, pts, color):
                 blend(px, x, y, color)
 
 
+def rounded_rect(px, x0, y0, x1, y1, r, color, alpha=1.0):
+    for y in range(int(y0) - 1, int(y1) + 1):
+        for x in range(int(x0) - 1, int(x1) + 1):
+            dx = max(x0 + r - x, 0, x - (x1 - r))
+            dy = max(y0 + r - y, 0, y - (y1 - r))
+            if dx * dx + dy * dy <= r * r:
+                blend(px, x, y, color, alpha)
+
+
+def clear_rounded_rect(px, x0, y0, x1, y1, r):
+    for y in range(int(y0) - 1, int(y1) + 1):
+        for x in range(int(x0) - 1, int(x1) + 1):
+            dx = max(x0 + r - x, 0, x - (x1 - r))
+            dy = max(y0 + r - y, 0, y - (y1 - r))
+            if dx * dx + dy * dy <= r * r and 0 <= y < len(px) and 0 <= x < len(px[0]):
+                px[y][x] = (0, 0, 0, 0)
+
+
+def clear_ellipse(px, cx, cy, rx, ry):
+    """Knock a fully transparent hole (the mask's eye openings)."""
+    for y in range(int(cy - ry) - 1, int(cy + ry) + 2):
+        for x in range(int(cx - rx) - 1, int(cx + rx) + 2):
+            if not (0 <= y < len(px) and 0 <= x < len(px[0])):
+                continue
+            dx = (x - cx) / rx if rx else 9
+            dy = (y - cy) / ry if ry else 9
+            if dx * dx + dy * dy <= 1.0:
+                px[y][x] = (0, 0, 0, 0)
+
+
+def render_aa(W, H, draw, scale=4):
+    """Draw supersampled, then box-downsample to W x H.
+
+    The primitives above are hard-edged, which reads as pixel junk at 512 px;
+    sampling 4x per axis and averaging gives clean curves and, crucially, clean
+    transparent eye holes (a hole with a ragged edge looks like a bug).
+    """
+    px = blank(W * scale, H * scale)
+    draw(px, scale)
+    out = blank(W, H)
+    n = scale * scale
+    for y in range(H):
+        for x in range(W):
+            r = g = b = a = 0
+            for sy in range(scale):
+                row = px[y * scale + sy]
+                for sx in range(scale):
+                    pr, pg, pb, pa = row[x * scale + sx]
+                    r += pr * pa
+                    g += pg * pa
+                    b += pb * pa
+                    a += pa
+            if a == 0:
+                out[y][x] = (0, 0, 0, 0)
+                continue
+            out[y][x] = (int(r / a), int(g / a), int(b / a), int(a / n))
+    return out
+
+
 # ── Face covers (square-ish, drawn over the face zone) ──────────────────────
 
 def smiley():
@@ -131,6 +190,82 @@ def pixel_face():
                     for x in range(gx, min(gx + cell, W)):
                         px[y][x] = (0, 0, 0, 0)
     png(os.path.join(ROOT, 'face', 'pixel.png'), W, H, px)
+
+
+def carnival_mask():
+    """Venetian-style domino mask with genuinely transparent eye holes.
+
+    Original geometry (no third-party art, no attribution): a symmetric band
+    that tapers to the tips and dips at the nose bridge, with a gold rim built
+    by construction (gold silhouette, velvet inset) and two eye openings
+    cleared to alpha 0 so the learner's own eyes show through.
+    """
+    W, H = 560, 360
+    purple = (86, 44, 128, 255)
+    purple_hi = (128, 74, 186, 255)
+    gold = (232, 194, 92, 255)
+
+    def draw(px, s):
+        cx = W * s / 2.0
+        half_max = 96 * s
+        cy = 180 * s
+        for x in range(W * s):
+            u = (x - cx) / (W * s / 2.0)
+            half = half_max * (1 - 0.55 * u * u)
+            if half < 5 * s:
+                continue
+            notch = 24 * s * math.exp(-((u / 0.16) ** 2))
+            top = cy - half + notch
+            bottom = cy + half
+            for y in range(int(top), int(bottom) + 1):
+                blend(px, x, y, gold)
+            inset = 11 * s
+            if bottom - top > 2 * inset:
+                for y in range(int(top + inset), int(bottom - inset)):
+                    blend(px, x, y, purple)
+                    # soft sheen along the top of the velvet
+                    if y < top + inset + 34 * s:
+                        blend(px, x, y, purple_hi, 0.16)
+        # eye openings: a gold ring, then a real hole
+        for side in (-1, 1):
+            ex = cx + side * 112 * s
+            ey = 184 * s
+            ellipse(px, ex, ey, 70 * s, 47 * s, gold)
+            clear_ellipse(px, ex, ey, 60 * s, 37 * s)
+        # centre jewel + side studs
+        poly(px, [(int(cx), int(92 * s)), (int(cx + 15 * s), int(110 * s)),
+                  (int(cx), int(128 * s)), (int(cx - 15 * s), int(110 * s))], gold)
+        for side in (-1, 1):
+            for i in range(3):
+                ellipse(px, cx + side * (150 + i * 22) * s, 108 * s, 5 * s, 5 * s, gold)
+
+    png(os.path.join(ROOT, 'face', 'carnival.png'), W, H, render_aa(W, H, draw))
+
+
+def sunglasses():
+    """Sunglasses with translucent lenses: the eyes stay visible, darkened."""
+    W, H = 540, 200
+    frame = (22, 24, 32, 255)
+    lens = (18, 22, 34, 150)          # ~59% — a tint, not a wall
+    shine = (255, 255, 255, 60)
+
+    def draw(px, s):
+        rounded_rect(px, 8 * s, 68 * s, 36 * s, 86 * s, 7 * s, frame)          # left arm
+        rounded_rect(px, (W - 36) * s, 68 * s, (W - 8) * s, 86 * s, 7 * s, frame)  # right arm
+        rounded_rect(px, 232 * s, 76 * s, 308 * s, 94 * s, 9 * s, frame)       # bridge
+        for x0, x1 in ((30, 246), (294, 510)):
+            # frame ring: fill it, punch the glass out, then tint the glass —
+            # painting the tint over an opaque frame would leave alpha 255 and
+            # the eyes invisible.
+            rounded_rect(px, x0 * s, 46 * s, x1 * s, 160 * s, 34 * s, frame)
+            clear_rounded_rect(px, (x0 + 9) * s, 55 * s, (x1 - 9) * s, 151 * s, 28 * s)
+            rounded_rect(px, (x0 + 9) * s, 55 * s, (x1 - 9) * s, 151 * s, 28 * s, lens)
+            # one soft highlight per lens (a single quad: overlapping ones
+            # accumulate to opaque white)
+            poly(px, [((x0 + 50) * s, 62 * s), ((x0 + 82) * s, 62 * s),
+                      ((x0 + 46) * s, 144 * s), ((x0 + 14) * s, 144 * s)], shine)
+
+    png(os.path.join(ROOT, 'face', 'sunglasses.png'), W, H, render_aa(W, H, draw))
 
 
 # ── Upper props (sit above the face zone) ───────────────────────────────────
@@ -211,5 +346,5 @@ def frame():
 
 
 if __name__ == '__main__':
-    for fn in (smiley, blank_face, pixel_face, witchhat, crown, cauldron, desk, frame):
+    for fn in (smiley, blank_face, pixel_face, carnival_mask, sunglasses, witchhat, crown, cauldron, desk, frame):
         fn()
