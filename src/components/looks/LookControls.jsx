@@ -57,7 +57,7 @@ function releaseFocusAfterPointerTap(event) {
 // state.
 function ChoiceStrip({ testidPrefix, presets, selectedId, onPick }) {
     return (
-        <div className="look-strip" data-testid={`${testidPrefix}-strip`} style={styles.foldoutStrip}>
+        <div className="look-strip" data-testid={`${testidPrefix}-strip`} style={styles.trayStrip}>
             {presets.map((preset) => {
                 const selected = preset.id === selectedId;
                 return (
@@ -72,7 +72,7 @@ function ChoiceStrip({ testidPrefix, presets, selectedId, onPick }) {
                             onPick(preset.id);
                         }}
                         style={{
-                            ...styles.chip,
+                            ...styles.trayChip,
                             ...(selected ? styles.chipSelected : null),
                         }}
                     >
@@ -80,7 +80,7 @@ function ChoiceStrip({ testidPrefix, presets, selectedId, onPick }) {
                             <span style={{ ...styles.swatch, background: preset.swatch }} />
                             {selected && <i className="bi bi-check-circle-fill" style={styles.chipCheck}></i>}
                         </span>
-                        <span style={{ ...styles.chipLabel, ...(selected ? styles.chipLabelSelected : null) }}>
+                        <span style={styles.trayChipLabel}>
                             {preset.label}
                         </span>
                     </button>
@@ -418,34 +418,6 @@ const styles = {
         pointerEvents: 'auto',
         boxShadow: '0 6px 18px rgba(0,0,0,0.5)',
     },
-    foldoutStrip: {
-        display: 'flex',
-        gap: 6,
-        overflowX: 'auto',
-        // The prop rows (Face/Top/Bottom) are the only strips whose chips hold
-        // <img> thumbnails, and on iOS a swipe that starts on an image goes to
-        // image interaction instead of the scroller — which is why those rows
-        // would not scroll while the swatch-only rows did. Momentum scrolling
-        // plus an explicit pan gesture (in case an ancestor sets touch-action:
-        // none for drag-to-move) plus pointer-transparent thumbnails keep every
-        // row scrollable (stories/092).
-        WebkitOverflowScrolling: 'touch',
-        touchAction: 'pan-x pan-y',
-        // Composited layer: on iOS a non-composited overflow box can refuse
-        // touch scrolling outright while the identical box scrolls on desktop.
-        transform: 'translateZ(0)',
-        background: 'rgba(15, 17, 24, 0.84)',
-        borderRadius: 12,
-        padding: '4px 6px',
-        // Percent of the rail row, never viewport units: vw sizing lets a
-        // strip sail past the screen edge on frames narrower than the viewport.
-        maxWidth: '100%',
-        // Proximity, not mandatory: on iOS a mandatory snap can eat a swipe
-        // and fling the strip back to where it started, which reads as "does
-        // not scroll". Proximity keeps the paging feel without ever
-        // force-returning the strip (stories/092).
-        scrollSnapType: 'x proximity',
-    },
     // A sticker-sheet GRID, not a list and not a horizontal strip: one row per
     // overlay cannot hold the dozens of faces coming, and a horizontal strip
     // can only show its last items by scrolling to a far snap point (which on
@@ -473,8 +445,10 @@ const styles = {
         // Explicit width, not just maxWidth: an absolutely positioned box
         // shrink-wraps to its (narrow) containing block, which would collapse
         // the 1fr columns to slivers.
-        // In-flow inside the anchored column: it fills the column width,
-        // so no viewport units are needed anywhere here.
+        // In-flow inside the anchored column (prop rows) or the rail row
+        // (swatch rows): it fills whatever contains it, so no viewport units
+        // are needed anywhere here.
+        width: '100%',
     },
     trayChip: {
         display: 'flex',
@@ -488,31 +462,12 @@ const styles = {
         border: '1.5px solid transparent',
         background: 'transparent',
         color: '#fff',
+        ...UA_RESET,
     },
     trayChipLabel: {
         fontSize: 10,
         lineHeight: 1.2,
         textAlign: 'center',
-    },
-    chip: {
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        // Size to the content, never shrink: a squeezed chip lets its label
-        // spill over its neighbours (and over their touch targets), and the
-        // strip's snap stops end up narrower than a finger.
-        flex: '0 0 auto',
-        gap: 3,
-        minWidth: 48,
-        padding: '4px 5px',
-        borderRadius: 10,
-        border: '1.5px solid transparent',
-        // Transparent until chosen: the applied chip is the only one with a
-        // surface and an outline (stories/092).
-        background: 'transparent',
-        color: '#fff',
-        scrollSnapAlign: 'start',
-        ...UA_RESET,
     },
     chipSelected: {
         borderColor: '#4ade80',
@@ -556,15 +511,8 @@ const styles = {
         pointerEvents: 'none',
         userSelect: 'none',
     },
-    chipLabel: {
-        fontSize: 9,
-        lineHeight: 1.1,
-        whiteSpace: 'nowrap',
-    },
-    chipLabelSelected: {
-        color: '#bbf7d0',
-        fontWeight: 600,
-    },
+
+
     sliderRow: {
         display: 'flex',
         alignItems: 'center',

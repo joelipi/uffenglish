@@ -76,7 +76,7 @@ describe('look controls do not keep the native focus ring', () => {
         expect(def).toContain("appearance: 'none'");
         expect(def).toContain("WebkitTapHighlightColor: 'transparent'");
 
-        for (const block of ['chip', 'railBtn', 'resetButton']) {
+        for (const block of ['trayChip', 'railBtn', 'resetButton']) {
             const start = source.indexOf(`    ${block}: {`);
             expect(start).toBeGreaterThan(-1);
             const end = source.indexOf('\n    },', start);
@@ -97,12 +97,11 @@ describe('look controls do not keep the native focus ring', () => {
     });
 });
 
-describe('look strips stay scrollable on touch', () => {
-    // The Face/Top/Bottom rows are the only strips whose chips hold <img>
-    // thumbnails, and on iOS a swipe starting on an image goes to image
-    // interaction instead of the scroller — those rows silently stopped
-    // scrolling while the swatch-only rows kept working (stories/092).
-    function stripCodeStripped() {
+describe('every picker row is a tray, and no horizontal strip survives', () => {
+    // All six rows (Filter/Lens/Screen/Top/Face/Bottom) share the vertical
+    // grid tray now: a horizontal strip can only show its last items by
+    // scrolling to a far snap point, which on iOS reads as stuck partway.
+    function traySource() {
         return read(COMPONENT)
             .split('\n')
             .filter((line) => !line.trim().startsWith('//'))
@@ -118,25 +117,29 @@ describe('look strips stay scrollable on touch', () => {
         return source.slice(start, end);
     }
 
-    it('the foldout strip keeps momentum scrolling and an explicit pan gesture', () => {
-        const block = styleBlock(stripCodeStripped(), 'foldoutStrip');
-        expect(block).toMatch(/overflowX:\s*'auto'/);
-        expect(block).toMatch(/WebkitOverflowScrolling:\s*'touch'/);
-        expect(block).toMatch(/touchAction:\s*'pan-x pan-y'/);
-        // iOS refuses touch scrolling on some non-composited overflow boxes;
-        // a proximity snap never force-returns the strip the way a mandatory
-        // snap can (which reads as "does not scroll").
-        expect(block).toMatch(/transform:\s*'translateZ\(0\)'/);
-        expect(block).toMatch(/scrollSnapType:\s*'x proximity'/);
-        // No viewport units: on frames narrower than the viewport (tablet /
-        // desktop) a vw-sized strip sails past the screen edge with columns
-        // cut off.
-        expect(block).toMatch(/maxWidth:\s*'100%'/);
-        expect(block).not.toMatch(/100vw/);
+    it('every picker renders the shared tray', () => {
+        const source = traySource();
+        expect(source.match(/style=\{styles\.trayStrip\}/g)?.length).toBe(2);
+        expect(source.match(/styles\.trayChip,/g)?.length).toBeGreaterThanOrEqual(3);
+        for (const prefix of ['look-filter', 'look-lens', 'look-screen']) {
+            expect(source).toContain(`testidPrefix="${prefix}"`);
+        }
+        for (const slot of ['upper', 'face', 'lower']) {
+            expect(source).toContain('data-testid={`look-slot-row-${slot}`}');
+        }
+    });
+
+    it('no horizontal strip, squeezed chip, or snap survives anywhere', () => {
+        const source = traySource();
+        expect(source).not.toContain('    foldoutStrip: {');
+        expect(source).not.toContain('    chip: {');
+        expect(source).not.toContain('    chipLabel');
+        expect(source).not.toMatch(/scrollSnap/);
+        expect(source).not.toMatch(/100vw/);
     });
 
     it('the rail spans the frame but only buttons and trays capture touches', () => {
-        const source = stripCodeStripped();
+        const source = traySource();
         const rail = styleBlock(source, 'rail');
         expect(rail).toMatch(/left:\s*12/);
         expect(rail).toMatch(/right:\s*12/);
@@ -146,13 +149,8 @@ describe('look strips stay scrollable on touch', () => {
         }
     });
 
-    it('chips size to their content instead of squeezing their labels out', () => {
-        const block = styleBlock(stripCodeStripped(), 'chip');
-        expect(block).toMatch(/flex:\s*'0 0 auto'/);
-    });
-
     it('every thumbnail image is non-draggable and pointer-transparent', () => {
-        const source = stripCodeStripped();
+        const source = traySource();
         const imgs = source.match(/<img\b/g) || [];
         expect(imgs.length).toBeGreaterThan(0);
         expect((source.match(/draggable=\{false\}/g) || []).length).toBe(imgs.length);
@@ -193,6 +191,10 @@ describe('prop rows are a grid tray pinned to the rail top', () => {
         expect(block).toMatch(/gridTemplateColumns:\s*'repeat\(3, 1fr\)'/);
         expect(block).toMatch(/overflowY:\s*'auto'/);
         expect(block).toMatch(/maxHeight:\s*300/);
+        // Fills its container (the anchored column or the rail row) instead of
+        // shrink-wrapping to content: a collapsed tray hides labels and
+        // shrinks touch targets.
+        expect(block).toMatch(/width:\s*'100%'/);
         // Capped so the tray stays compact on wide frames instead of
         // stretching the full anchored width.
         expect(block).toMatch(/maxWidth:\s*420/);
@@ -228,10 +230,10 @@ describe('prop rows are a grid tray pinned to the rail top', () => {
         expect(block).toMatch(/top:\s*'25%'/);
     });
 
-    it('OverlayFoldout renders the tray, ChoiceStrip keeps the horizontal strip', () => {
+    it('OverlayFoldout and ChoiceStrip both render the tray', () => {
         const source = traySource();
         expect(source).toMatch(/style=\{styles\.trayStrip\}/);
-        expect(source.match(/style=\{\{\s*\.\.\.styles\.trayChip,/g)?.length).toBe(2);
+        expect(source.match(/style=\{\{\s*\.\.\.styles\.trayChip,/g)?.length).toBe(3);
         expect(source).toMatch(/testidPrefix="look-filter"/);
     });
 });
