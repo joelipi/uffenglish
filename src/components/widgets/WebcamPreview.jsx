@@ -7,6 +7,7 @@ import { getRecordingPhraseOverlay } from '../../modules/video/recording-subtitl
 import { syncWebcamPreviewElement } from '../../modules/speech/portrait-capture-logic.js';
 import { isPreviewGateStep, computeDragOffset } from '../../modules/looks/recording-looks-logic.js';
 import LookControls from '../looks/LookControls.jsx';
+import PreviewTutorialButton from './PreviewTutorialButton.jsx';
 
 export default function WebcamPreview() {
     // Subscribe to the key counter (bumped by setWebcamStream) for reactivity,
@@ -103,76 +104,84 @@ export default function WebcamPreview() {
     }
 
     return (
-        <div
-            ref={wrapperRef}
-            id="pip-wrapper"
-            className={className}
-            onPointerDown={handlePointerDown}
-            onPointerMove={handlePointerMove}
-            onPointerUp={handlePointerUp}
-            onPointerCancel={handlePointerUp}
-            style={{
-                position: 'relative',
-                // Touch drags must not be interpreted as a page pan. Put the
-                // rule on the wrapper (a plain div) and capture the pointer
-                // there: Android Chrome does not reliably keep a pointer
-                // sequence alive on a <video> target, which made the overlays
-                // move only a few pixels per drag.
-                ...(lookControlsVisible ? { touchAction: 'none' } : null),
-            }}
-        >
-            <video
-                ref={videoRef}
-                id="webcam-preview"
-                autoPlay
-                muted
-                playsInline
-            ></video>
-            {recordingCountdown !== null && (
-                <div
-                    data-testid="recording-countdown-overlay"
-                    style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        width: '100%',
-                        height: '100%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                        zIndex: 100,
-                        fontSize: '120px',
-                        fontWeight: 'bold',
-                        color: 'white',
-                        pointerEvents: 'none',
-                    }}
-                >
-                    {recordingCountdown}
-                </div>
-            )}
-            {isFriendClosedResponse && phraseText && (
-                <div
-                    data-testid="recording-phrase-subtitles"
-                    className="recording-phrase-overlay"
-                >
-                    {legendBilingual && (
-                        <div className="recording-phrase-legend">
-                            {legendBilingual.localized ? (
-                                <>
-                                    {legendBilingual.english}
-                                    <br />
-                                    <span lang={legendBilingual.lang}>{legendBilingual.localized}</span>
-                                </>
-                            ) : (
-                                legendBilingual.english
-                            )}
-                        </div>
-                    )}
-                    <div className="recording-phrase-text">{phraseText}</div>
-                </div>
-            )}
-            {lookControlsVisible && <LookControls />}
-        </div>
+        <>
+            <div
+                ref={wrapperRef}
+                id="pip-wrapper"
+                className={className}
+                onPointerDown={handlePointerDown}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerUp}
+                onPointerCancel={handlePointerUp}
+                style={{
+                    position: 'relative',
+                    // Touch drags must not be interpreted as a page pan. Put the
+                    // rule on the wrapper (a plain div) and capture the pointer
+                    // there: Android Chrome does not reliably keep a pointer
+                    // sequence alive on a <video> target, which made the overlays
+                    // move only a few pixels per drag.
+                    ...(lookControlsVisible ? { touchAction: 'none' } : null),
+                }}
+            >
+                <video
+                    ref={videoRef}
+                    id="webcam-preview"
+                    autoPlay
+                    muted
+                    playsInline
+                ></video>
+                {recordingCountdown !== null && (
+                    <div
+                        data-testid="recording-countdown-overlay"
+                        style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                            zIndex: 100,
+                            fontSize: '120px',
+                            fontWeight: 'bold',
+                            color: 'white',
+                            pointerEvents: 'none',
+                        }}
+                    >
+                        {recordingCountdown}
+                    </div>
+                )}
+                {isFriendClosedResponse && phraseText && (
+                    <div
+                        data-testid="recording-phrase-subtitles"
+                        className="recording-phrase-overlay"
+                    >
+                        {legendBilingual && (
+                            <div className="recording-phrase-legend">
+                                {legendBilingual.localized ? (
+                                    <>
+                                        {legendBilingual.english}
+                                        <br />
+                                        <span lang={legendBilingual.lang}>{legendBilingual.localized}</span>
+                                    </>
+                                ) : (
+                                    legendBilingual.english
+                                )}
+                            </div>
+                        )}
+                        <div className="recording-phrase-text">{phraseText}</div>
+                    </div>
+                )}
+                {lookControlsVisible && <LookControls />}
+            </div>
+
+            {/* The preview screen's own guide. It is a sibling of the camera
+                takeover (not a child) so its stacking context paints above the
+                bottom overlay, and it exists only while the look rail does —
+                before the take starts, never during recording. */}
+            {lookControlsVisible && <PreviewTutorialButton />}
+        </>
     );
 }

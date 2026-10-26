@@ -22,12 +22,12 @@ export default function BranchChoiceButtons({ view, onChoose, onChooseGroup, onB
     const continueLabel = getBilingual('continue', labelLang);
     const backLabel = getBilingual('branch_back', labelLang);
 
-    // This row only renders for a `branching` step, so the tutorial's step type
-    // is fixed; the opener still runs the supported-type check so an unknown
-    // type can never reach the modal. Opening the modal pauses the lesson
+    // This row only renders for a `branching` step, so the tutorial's topic is
+    // fixed; the opener still runs the supported-topic check so an unknown
+    // topic can never reach the modal. Opening the modal pauses the lesson
     // underneath (TutorialModal's mount effect) — the single pause site.
     const handleTutorial = createTutorialOpener({
-        stepType: 'branching',
+        topic: 'branching',
         onOpen: () => setShowTutorial(true),
     });
 
@@ -99,7 +99,7 @@ export default function BranchChoiceButtons({ view, onChoose, onChooseGroup, onB
             </div>
 
             {showTutorial && (
-                <TutorialModal stepType="branching" onClose={() => setShowTutorial(false)} />
+                <TutorialModal topic="branching" onClose={() => setShowTutorial(false)} />
             )}
         </>
     );

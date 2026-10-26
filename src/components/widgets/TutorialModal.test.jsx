@@ -45,13 +45,13 @@ describe('TutorialModal', () => {
     });
 
     it('renders nothing for an unsupported step type', () => {
-        const { container, cleanup } = render({ stepType: 'lessonIntro', onClose: vi.fn() });
+        const { container, cleanup } = render({ topic: 'lessonIntro', onClose: vi.fn() });
         expect(container.querySelector('.tutorial-modal-overlay')).toBeNull();
         cleanup();
     });
 
     it('opens as a full-screen scrollable overlay with a scrollable card', () => {
-        const { container, cleanup } = render({ stepType: 'branching', onClose: vi.fn() });
+        const { container, cleanup } = render({ topic: 'branching', onClose: vi.fn() });
         const overlay = container.querySelector('.tutorial-modal-overlay');
         expect(overlay).not.toBeNull();
         expect(overlay.id).toBe('tutorial-modal-overlay');
@@ -62,19 +62,19 @@ describe('TutorialModal', () => {
     });
 
     it('pauses the lesson underneath exactly once on mount', () => {
-        const { cleanup } = render({ stepType: 'branching', onClose: vi.fn() });
+        const { cleanup } = render({ topic: 'branching', onClose: vi.fn() });
         expect(pauseCalls).toHaveLength(1);
         cleanup();
     });
 
     it('does not pause the lesson for an unsupported step type', () => {
-        const { cleanup } = render({ stepType: 'success', onClose: vi.fn() });
+        const { cleanup } = render({ topic: 'success', onClose: vi.fn() });
         expect(pauseCalls).toHaveLength(0);
         cleanup();
     });
 
     it('shows the step-type video, portrait and tap-to-play', () => {
-        const { container, cleanup } = render({ stepType: 'branching', onClose: vi.fn() });
+        const { container, cleanup } = render({ topic: 'branching', onClose: vi.fn() });
         const video = container.querySelector('#tutorialVideo');
         expect(video).not.toBeNull();
         expect(video.getAttribute('src')).toContain('/assets/videos/tutorial-branching.mp4');
@@ -87,7 +87,7 @@ describe('TutorialModal', () => {
     });
 
     it('renders the English script subtitles for an English guest', () => {
-        const { container, cleanup } = render({ stepType: 'branching', onClose: vi.fn() });
+        const { container, cleanup } = render({ topic: 'branching', onClose: vi.fn() });
         const subtitle = container.querySelector('.tutorial-modal-subtitle-text');
         expect(subtitle.textContent).toBe(TUTORIAL_SCRIPTS.branching.en);
         expect(subtitle.getAttribute('lang')).toBe('en');
@@ -98,7 +98,7 @@ describe('TutorialModal', () => {
         act(() => {
             appStore.getState().setGuestNativeLanguage('es');
         });
-        const { container, cleanup } = render({ stepType: 'branching', onClose: vi.fn() });
+        const { container, cleanup } = render({ topic: 'branching', onClose: vi.fn() });
         const subtitle = container.querySelector('.tutorial-modal-subtitle-text');
         expect(subtitle.textContent).toBe(TUTORIAL_SCRIPTS.branching.es);
         expect(subtitle.getAttribute('lang')).toBe('es');
@@ -109,7 +109,7 @@ describe('TutorialModal', () => {
         act(() => {
             appStore.getState().setGuestNativeLanguage('pt');
         });
-        const { container, cleanup } = render({ stepType: 'friendClosedResponse', onClose: vi.fn() });
+        const { container, cleanup } = render({ topic: 'friendClosedResponse', onClose: vi.fn() });
         const subtitle = container.querySelector('.tutorial-modal-subtitle-text');
         expect(subtitle.textContent).toBe(TUTORIAL_SCRIPTS.friendClosedResponse.pt);
         expect(subtitle.getAttribute('lang')).toBe('pt');
@@ -117,7 +117,7 @@ describe('TutorialModal', () => {
     });
 
     it('labels Continue with the localized continue string', () => {
-        const { container, cleanup } = render({ stepType: 'viewAndContinue', onClose: vi.fn() });
+        const { container, cleanup } = render({ topic: 'viewAndContinue', onClose: vi.fn() });
         const continueBtn = container.querySelector('#tutorialContinueBtn');
         expect(continueBtn.getAttribute('type')).toBe('button');
         expect(continueBtn.textContent).toContain('CONTINUE');
@@ -127,7 +127,7 @@ describe('TutorialModal', () => {
         act(() => {
             appStore.getState().setGuestNativeLanguage('es');
         });
-        const es = render({ stepType: 'viewAndContinue', onClose: vi.fn() });
+        const es = render({ topic: 'viewAndContinue', onClose: vi.fn() });
         const esBtn = es.container.querySelector('#tutorialContinueBtn');
         expect(esBtn.textContent).toContain('CONTINUAR');
         expect(esBtn.querySelector('span').getAttribute('lang')).toBe('es');
@@ -135,7 +135,7 @@ describe('TutorialModal', () => {
     });
 
     it('renders the corner X control', () => {
-        const { container, cleanup } = render({ stepType: 'branching', onClose: vi.fn() });
+        const { container, cleanup } = render({ topic: 'branching', onClose: vi.fn() });
         const closeBtn = container.querySelector('#tutorialCloseBtn');
         expect(closeBtn.getAttribute('type')).toBe('button');
         expect(closeBtn.getAttribute('aria-label')).toBe('Close');
@@ -145,7 +145,7 @@ describe('TutorialModal', () => {
 
     it('calls onClose from the X, Continue, backdrop and Escape', () => {
         const onClose = vi.fn();
-        const { container, cleanup } = render({ stepType: 'branching', onClose });
+        const { container, cleanup } = render({ topic: 'branching', onClose });
         const overlay = container.querySelector('.tutorial-modal-overlay');
 
         act(() => { container.querySelector('#tutorialCloseBtn').click(); });

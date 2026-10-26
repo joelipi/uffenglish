@@ -1788,6 +1788,24 @@ describe('recorder auto-render — zero server changes', () => {
             'scripts/lib/pwa-build-output.test.js',
             'scripts/cartoon-preferences-person.test.js',
             'package.json',
+            // Story 098: the friend recording-preview screen gets its own
+            // tutorial topic, button and placeholder video (the decision
+            // screen keeps the step-type guide).
+            'stories/098-recording-preview-tutorial/story.md',
+            'src/modules/video/tutorial-logic.js',
+            'src/modules/video/tutorial-logic.test.js',
+            'src/modules/video/tutorial-wiring.test.js',
+            'src/components/widgets/TutorialModal.jsx',
+            'src/components/widgets/TutorialModal.test.jsx',
+            'src/components/widgets/PreviewTutorialButton.jsx',
+            'src/components/widgets/preview-tutorial-button.test.jsx',
+            'src/components/widgets/ViewAndContinueButtons.jsx',
+            'src/components/widgets/ResponseDecisionButtons.jsx',
+            'src/components/widgets/BranchChoiceButtons.jsx',
+            'src/components/widgets/WebcamPreview.jsx',
+            'src/assets/css/app.css',
+            'scripts/generate-tutorial-placeholders.mjs',
+            'scripts/generate-tutorial-placeholders.test.js',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);

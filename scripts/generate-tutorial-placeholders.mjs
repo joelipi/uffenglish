@@ -1,7 +1,8 @@
 #!/usr/bin/env node
-// Generates the five per-step-type tutorial placeholder videos: a portrait
-// 720×1280 clip per step type that simply shows the tutorial script on screen
-// (white wrapped text on the app's #1a3a5a card colour), with no audio track.
+// Generates the per-topic tutorial placeholder videos: a portrait 720×1280
+// clip per tutorial topic (the five step types plus the friend recording-
+// preview screen) that simply shows the tutorial script on screen (white
+// wrapped text on the app's #1a3a5a card colour), with no audio track.
 // They stand in until the narrated videos are recorded.
 //
 // Encoding runs in real Chrome (Playwright, `channel: 'chrome'`): Node has no
@@ -29,7 +30,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { chromium } from '@playwright/test';
 import { Input, BufferSource, ALL_FORMATS } from 'mediabunny';
 import { flagValue, resolveDirOutsideRepo } from './lib/cli-utils.js';
-import { TUTORIAL_STEP_TYPES, TUTORIAL_SCRIPTS, TUTORIAL_VIDEO_WIDTH, TUTORIAL_VIDEO_HEIGHT, getTutorialSlug } from '../src/modules/video/tutorial-logic.js';
+import { TUTORIAL_TOPICS, TUTORIAL_SCRIPTS, TUTORIAL_VIDEO_WIDTH, TUTORIAL_VIDEO_HEIGHT, getTutorialSlug } from '../src/modules/video/tutorial-logic.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -66,7 +67,7 @@ function helpText(o) {
         `Requires real Chrome for H.264: npx playwright install chrome  (bundled Chromium fails).`,
         '',
         'After generating, upload each clip to R2:',
-        ...TUTORIAL_STEP_TYPES.map((t) => `  npx wrangler r2 object put ${R2_BUCKET}/assets/videos/${getTutorialSlug(t)}.mp4 --file <out>/${getTutorialSlug(t)}.mp4 --content-type video/mp4`),
+        ...TUTORIAL_TOPICS.map((t) => `  npx wrangler r2 object put ${R2_BUCKET}/assets/videos/${getTutorialSlug(t)}.mp4 --file <out>/${getTutorialSlug(t)}.mp4 --content-type video/mp4`),
         '',
         `Default output directory: ${o}`,
     ];
@@ -193,9 +194,9 @@ export function assertClipContract({ slug, width, height, duration }) {
     return true;
 }
 
-async function renderOne({ browser, stepType, durationSec }) {
-    const slug = getTutorialSlug(stepType);
-    const script = TUTORIAL_SCRIPTS[stepType].en;
+async function renderOne({ browser, topic, durationSec }) {
+    const slug = getTutorialSlug(topic);
+    const script = TUTORIAL_SCRIPTS[topic].en;
 
     const page = await browser.newPage({ viewport: { width: TUTORIAL_VIDEO_WIDTH, height: TUTORIAL_VIDEO_HEIGHT } });
     try {
@@ -234,16 +235,16 @@ async function main() {
     });
     await fs.mkdir(outDir, { recursive: true });
 
-    console.log(`[tutorial] writing ${TUTORIAL_STEP_TYPES.length} portrait ${TUTORIAL_VIDEO_WIDTH}x${TUTORIAL_VIDEO_HEIGHT} placeholders to ${outDir}`);
+    console.log(`[tutorial] writing ${TUTORIAL_TOPICS.length} portrait ${TUTORIAL_VIDEO_WIDTH}x${TUTORIAL_VIDEO_HEIGHT} placeholders to ${outDir}`);
 
     // `channel: 'chrome'` is mandatory: Playwright's bundled Chromium has no
     // H.264, so MediaRecorder would produce an unplayable file.
     const browser = await chromium.launch({ channel: 'chrome' });
     try {
-        for (const stepType of TUTORIAL_STEP_TYPES) {
-            const script = TUTORIAL_SCRIPTS[stepType].en;
+        for (const topic of TUTORIAL_TOPICS) {
+            const script = TUTORIAL_SCRIPTS[topic].en;
             const duration = forcedDuration || autoDurationSec(script);
-            const { slug, bytes } = await renderOne({ browser, stepType, durationSec: duration });
+            const { slug, bytes } = await renderOne({ browser, topic, durationSec: duration });
             const file = path.join(outDir, `${slug}.mp4`);
             await fs.writeFile(file, bytes);
 
@@ -257,8 +258,8 @@ async function main() {
 
     console.log('');
     console.log('[tutorial] done. Upload with:');
-    for (const stepType of TUTORIAL_STEP_TYPES) {
-        const slug = getTutorialSlug(stepType);
+    for (const topic of TUTORIAL_TOPICS) {
+        const slug = getTutorialSlug(topic);
         console.log(`  npx wrangler r2 object put ${R2_BUCKET}/assets/videos/${slug}.mp4 --file ${path.join(outDir, `${slug}.mp4`)} --content-type video/mp4`);
     }
 }

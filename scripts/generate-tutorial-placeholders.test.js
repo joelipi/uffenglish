@@ -19,7 +19,7 @@ import {
     helpText,
     probeMp4,
 } from './generate-tutorial-placeholders.mjs';
-import { TUTORIAL_STEP_TYPES, TUTORIAL_SCRIPTS, TUTORIAL_VIDEO_WIDTH, TUTORIAL_VIDEO_HEIGHT, getTutorialSlug } from '../src/modules/video/tutorial-logic.js';
+import { TUTORIAL_TOPICS, TUTORIAL_SCRIPTS, TUTORIAL_VIDEO_WIDTH, TUTORIAL_VIDEO_HEIGHT, getTutorialSlug } from '../src/modules/video/tutorial-logic.js';
 import { resolveDirOutsideRepo } from './lib/cli-utils.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -32,8 +32,8 @@ const FIXTURE_DIR = process.env.TUTORIAL_PLACEHOLDER_DIR || path.join(os.tmpdir(
 const FIXTURE = path.join(FIXTURE_DIR, `${getTutorialSlug('branching')}.mp4`);
 
 describe('autoDurationSec', () => {
-    it.each(TUTORIAL_STEP_TYPES)('sizes %s inside the 10-30s window', (stepType) => {
-        const d = autoDurationSec(TUTORIAL_SCRIPTS[stepType].en);
+    it.each(TUTORIAL_TOPICS)('sizes %s inside the 10-30s window', (topic) => {
+        const d = autoDurationSec(TUTORIAL_SCRIPTS[topic].en);
         expect(d).toBeGreaterThanOrEqual(MIN_SECONDS);
         expect(d).toBeLessThanOrEqual(MAX_SECONDS);
     });
@@ -153,11 +153,11 @@ describe('output directory and help output', () => {
 
     it('prints one upload command per tutorial slug, plus the content type', () => {
         const help = helpText('/tmp/out');
-        for (const stepType of TUTORIAL_STEP_TYPES) {
-            expect(help).toContain(`npx wrangler r2 object put ${R2_BUCKET}/assets/videos/${getTutorialSlug(stepType)}.mp4`);
+        for (const topic of TUTORIAL_TOPICS) {
+            expect(help).toContain(`npx wrangler r2 object put ${R2_BUCKET}/assets/videos/${getTutorialSlug(topic)}.mp4`);
         }
         expect(help).toContain('--content-type video/mp4');
-        expect(help.match(/npx wrangler r2 object put/g)).toHaveLength(TUTORIAL_STEP_TYPES.length);
+        expect(help.match(/npx wrangler r2 object put/g)).toHaveLength(TUTORIAL_TOPICS.length);
     });
 });
 
@@ -185,7 +185,7 @@ describe('module safety and encoding path', () => {
         expect(source).toContain("channel: 'chrome'");
         expect(source).toContain('MediaRecorder');
         expect(source).toContain('canvas.captureStream(');
-        expect(source).toContain('TUTORIAL_STEP_TYPES');
+        expect(source).toContain('TUTORIAL_TOPICS');
         // MediaRecorder is given an mp4 mime type, never webm.
         expect(source).toContain("video/mp4;codecs=avc1.42E01E");
         expect(source).not.toContain('video/webm');
