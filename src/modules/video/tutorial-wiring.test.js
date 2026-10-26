@@ -21,6 +21,8 @@ const modal = read('src/components/widgets/TutorialModal.jsx');
 const viewAndContinue = read('src/components/widgets/ViewAndContinueButtons.jsx');
 const responseRow = read('src/components/widgets/ResponseDecisionButtons.jsx');
 const branchRow = read('src/components/widgets/BranchChoiceButtons.jsx');
+const lessonContainer = read('src/components/LessonContainer.jsx');
+const previewTutorial = read('src/components/widgets/PreviewTutorialButton.jsx');
 const progression = read('src/modules/lesson/lesson-progression.js');
 const css = read('src/assets/css/app.css');
 
@@ -36,10 +38,10 @@ function cssBlock(selector) {
 }
 
 describe('TutorialModal stays render-only', () => {
-    it('takes stepType and onClose only, and resolves the rest from the logic module', () => {
+    it('takes topic and onClose only, and resolves the rest from the logic module', () => {
         expect(modal).toContain("from '../../modules/video/tutorial-logic.js'");
         expect(modal).toContain('buildTutorialModalView(');
-        expect(modal).toContain('export default function TutorialModal({ stepType, onClose }) {');
+        expect(modal).toContain('export default function TutorialModal({ topic, onClose }) {');
     });
 
     it('never builds a slug, URL or subtitle text itself', () => {
@@ -81,13 +83,13 @@ describe('TutorialModal stays render-only', () => {
     });
 });
 
-describe('each decision row passes its own step type', () => {
+describe('each decision row passes its own tutorial topic', () => {
     it('view-and-continue row opens the viewAndContinue tutorial', () => {
         const invocation = viewAndContinue.slice(
             viewAndContinue.indexOf('<TutorialModal'),
             viewAndContinue.indexOf('</TutorialModal>')
         );
-        expect(invocation).toContain("stepType=\"viewAndContinue\"");
+        expect(invocation).toContain("topic=\"viewAndContinue\"");
         expect(viewAndContinue).toContain('createTutorialOpener(');
     });
 
@@ -96,7 +98,7 @@ describe('each decision row passes its own step type', () => {
             branchRow.indexOf('<TutorialModal'),
             branchRow.indexOf('</TutorialModal>')
         );
-        expect(invocation).toContain("stepType=\"branching\"");
+        expect(invocation).toContain("topic=\"branching\"");
         expect(branchRow).toContain('createTutorialOpener(');
     });
 
@@ -105,7 +107,7 @@ describe('each decision row passes its own step type', () => {
             responseRow.indexOf('<TutorialModal'),
             responseRow.indexOf('</TutorialModal>')
         );
-        expect(invocation).toContain('stepType={currentVideo?.responseType}');
+        expect(invocation).toContain('topic={currentVideo?.responseType}');
         expect(responseRow).toContain('createTutorialOpener(');
     });
 });
@@ -141,6 +143,71 @@ describe('pauseLessonVideoForTutorial', () => {
 
         // It is reachable from the progression instance the rows call.
         expect(progression).toContain('replaySimpleVideo, pauseLessonVideoForTutorial, loadNextLesson');
+    });
+});
+
+describe('every tutorial button uses the bare question-mark help icon', () => {
+    it.each([
+        ['view-and-continue', viewAndContinue, 'tutorialBtn'],
+        ['response', responseRow, 'responseTutorialBtn'],
+        ['branching', branchRow, 'branchTutorialBtn'],
+        ['recording preview', previewTutorial, 'previewTutorialBtn'],
+    ])('%s row renders the help icon, not a circled or book icon', (_row, source, id) => {
+        const start = source.indexOf(`id="${id}"`);
+        expect(start, `${id} button not found`).toBeGreaterThan(-1);
+        const button = source.slice(start, source.indexOf('</button>', start));
+        expect(button).toContain('bi bi-question-lg');
+        expect(button).not.toContain('bi-book-fill');
+        expect(button).not.toContain('bi-question-circle');
+    });
+});
+
+describe('the recording-preview screen has its own guide', () => {
+    it('LessonContainer renders it as the right-hand column only while awaiting the take', () => {
+        expect(lessonContainer).toContain("import PreviewTutorialButton from './widgets/PreviewTutorialButton.jsx'");
+        expect(lessonContainer).toContain("import { isPreviewGateStep } from '../modules/looks/recording-looks-logic.js'");
+        // The gate is at the store's preview flag AND the friend step, so the
+        // guide is present on the preview screen only, never during the take.
+        const gateStart = lessonContainer.indexOf('const showPreviewTutorial');
+        const gateEnd = lessonContainer.indexOf('\n', gateStart);
+        const gate = lessonContainer.slice(gateStart, gateEnd);
+        expect(gate).toContain('awaitingRecordingStart');
+        expect(gate).toContain('isPreviewGateStep(currentStep)');
+
+        // The bottom row mirrors the three-column decision rows: an empty left
+        // column, the centred microphone, then the tutorial column on the right.
+        const groupStart = lessonContainer.indexOf("showPreviewTutorial ? 'justify-content-around align-items-end'");
+        const groupEnd = lessonContainer.indexOf('<IntroChoices />', groupStart);
+        expect(groupStart, 'preview tutorial row not found').toBeGreaterThan(-1);
+        const group = lessonContainer.slice(groupStart, groupEnd);
+        expect(group).toContain('className="ivp-choice-col"');
+        expect(group).toContain('<MicrophoneToggle />');
+        expect(group).toContain('{showPreviewTutorial && <PreviewTutorialButton />}');
+        expect(group.indexOf('<MicrophoneToggle />')).toBeLessThan(group.indexOf('<PreviewTutorialButton />'));
+        expect(lessonContainer.match(/<PreviewTutorialButton \/>/g)).toHaveLength(1);
+    });
+
+    it('PreviewTutorialButton owns only the modal state and points at its own topic', () => {
+        expect(previewTutorial).toContain("from '../../modules/video/tutorial-logic.js'");
+        expect(previewTutorial).toContain('createTutorialOpener(');
+        expect(previewTutorial).toContain('FRIEND_RECORDING_PREVIEW_TOPIC');
+        expect(previewTutorial).toContain('topic: FRIEND_RECORDING_PREVIEW_TOPIC');
+        expect(previewTutorial).toContain('topic={FRIEND_RECORDING_PREVIEW_TOPIC}');
+        expect(previewTutorial).toContain('id="previewTutorialBtn"');
+        expect(previewTutorial).toContain('bi bi-question-lg');
+        // Same render-only contract as the decision rows: no slug/URL building.
+        expect(previewTutorial).not.toContain('getVideoUrl');
+        expect(previewTutorial).not.toContain('TUTORIAL_SLUG_PREFIX');
+        expect(previewTutorial).not.toContain('/assets/videos/');
+        expect(previewTutorial).not.toContain('appStore.getState()');
+    });
+
+    it('uses the shared decision-row button, with no preview-only stylesheet rule', () => {
+        expect(previewTutorial).toContain("import ChoiceColumn from './ChoiceColumn.jsx'");
+        expect(previewTutorial).toContain('className="btn call-btn"');
+        expect(previewTutorial).not.toContain('preview-tutorial-btn');
+        expect(previewTutorial).not.toContain('style={');
+        expect(css).not.toContain('.preview-tutorial-btn');
     });
 });
 

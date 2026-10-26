@@ -77,6 +77,36 @@ describe('the take starts from every readiness signal, not one event', () => {
     });
 });
 
+describe('a new take starts from its own state', () => {
+    it('clears the previous take\'s persistent loop before assigning the new source', () => {
+        const blobEffect = sliceBetween(playbackRaw, '// Blob URL management', '// Clear trigger');
+        expect(blobEffect).toContain('video.loop = false;');
+        // `loop` is a property on the persistent element, so assigning a new src
+        // does not reset it; a re-record must not auto-loop from its first play.
+        expect(blobEffect.indexOf('video.loop = false;'))
+            .toBeLessThan(blobEffect.indexOf('video.src = URL.createObjectURL(blob);'));
+    });
+});
+
+describe('the first kick waits for the new source to reset', () => {
+    it('defers the kick to a macrotask and clears it on a readiness event and unmount', () => {
+        const blobEffect = sliceBetween(playbackRaw, '// Blob URL management', '// Clear trigger');
+        expect(blobEffect).toContain('startKickRef.current = setTimeout');
+        // The timer must be scheduled AFTER the new source is assigned, so the
+        // load algorithm has a task to reset readyState first.
+        expect(blobEffect.indexOf('video.src = URL.createObjectURL(blob);'))
+            .toBeLessThan(blobEffect.indexOf('startKickRef.current = setTimeout'));
+        const kick = sliceBetween(blobEffect, 'startKickRef.current = setTimeout', '}, 0);');
+        expect(kick).toContain('attemptStart(0);');
+        // A readiness event starts the ladder itself; the pending kick must not
+        // start it again at rung 0 after the refusal.
+        const ready = sliceBetween(playbackRaw, 'const handleReady = () => {', '\n    };');
+        expect(ready).toContain('clearStartKick();');
+        const cleanup = sliceBetween(playbackRaw, 'useEffect(() => () => {', '\n    }, []);');
+        expect(cleanup).toContain('clearStartKick();');
+    });
+});
+
 describe('the start path survives WebKit returning undefined from play()', () => {
     it('imports playSafely from the video module', () => {
         expect(playbackRaw).toContain('playSafely,');
@@ -119,7 +149,11 @@ describe('the start ladder asks for sound once then falls back to muted', () => 
     const attemptStart = sliceBetween(playbackRaw, 'const attemptStart = (attempt = 0) => {', '\n    };');
 
     it('derives the mute state from the ladder rule', () => {
-        expect(attemptStart).toContain('shouldStartMuted({ attempt, muteIntent: muteIntentRef.current })');
+        expect(attemptStart).toContain('shouldStartMuted({');
+        expect(attemptStart).toContain('muteIntent: muteIntentRef.current');
+        // iPadOS refuses the unmuted start unconditionally, so iOS asks for the
+        // muted start from attempt 0 and re-opens the audio once playing.
+        expect(attemptStart).toContain('preferMutedStart: isIOS');
         expect(attemptStart).toContain('setElementMuted(video, muted)');
         // The mute must be applied BEFORE play() is asked for: a muted start is
         // only allowed once the element already carries the muted attribute.
@@ -146,6 +180,12 @@ describe('the start ladder asks for sound once then falls back to muted', () => 
         const unmute = sliceBetween(playbackRaw, 'const unmuteAfterStart = () => {', '\n    };');
         expect(unmute).toContain('if (!el || muteIntentRef.current) return;');
         expect(unmute.indexOf('setElementMuted(el, false)')).toBeLessThan(unmute.indexOf('playSafely(el)'));
+        // The muted start was only the autoplay permission handshake: rewind it
+        // before the audible pass so the learner hears the take from 0, not from
+        // the end of the muted lead-in.
+        expect(unmute).toContain('el.currentTime = 0');
+        expect(unmute.indexOf('el.currentTime = 0')).toBeLessThan(unmute.indexOf('setElementMuted(el, false)'));
+        expect(unmute).toContain("takeDiagnostics.push('rewound before audible start'");
         // Reached only from the muted-start success path.
         expect(attemptStart).toContain('if (muted && !muteIntentRef.current) unmuteAfterStart();');
     });

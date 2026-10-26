@@ -14,6 +14,8 @@ import {
 import { takeDiagnostics } from '../../modules/diagnostics/take-diagnostics.js';
 import VideoSpeedToggle from '../VideoSpeedToggle.jsx';
 
+const isIOS = typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent) || (typeof navigator !== 'undefined' && navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
 export default function SuccessVideo() {
     const videoRef = useRef(null);
     const blob = useStore(appStore, (state) => state.successVideoBlob);
@@ -68,7 +70,7 @@ export default function SuccessVideo() {
                 readyTimer = setTimeout(tryStart, PLAYBACK_READINESS_RETRY_MS);
                 return;
             }
-            const muted = shouldStartMuted({ attempt });
+            const muted = shouldStartMuted({ attempt, preferMutedStart: isIOS });
             setElementMuted(el, muted);
             const startState = { attempt, muted, readyState: el.readyState };
             console.log('[SuccessVideo] start attempt', startState);
@@ -86,10 +88,19 @@ export default function SuccessVideo() {
                 unmuteTimer = setTimeout(() => {
                     const current = videoRef.current;
                     if (!current || cancelled) return;
+                    // The muted start only bought autoplay permission. Rewind
+                    // before the audible pass so the recap is heard from 0, never
+                    // from the end of the muted lead-in.
+                    try {
+                        if (current.ended || current.currentTime > 0) current.currentTime = 0;
+                    } catch (error) { /* best effort */ }
+                    takeDiagnostics.push('success rewound before audible start');
                     setElementMuted(current, false);
                     const next = playSafely(current);
                     if (next.promise) next.promise.catch(() => {});
-                }, 100);
+                // iOS re-opens the audio on the next task; Android still needs
+                // the 100 ms settle for its audio route (stories/075).
+                }, isIOS ? 0 : 100);
             }).catch(handleBlocked);
         };
 

@@ -37,11 +37,12 @@ export default function ResponseDecisionButtons() {
         appStore.getState().triggerPauseAllVideos();
     };
 
-    // The step type comes from the step's own responseType, so a step type with
-    // no tutorial video never opens the modal. Opening the modal pauses the
-    // lesson underneath (TutorialModal's mount effect) — the single pause site.
+    // The tutorial topic comes from the step's own responseType, so a step type
+    // with no tutorial video never opens the modal. Opening the modal pauses
+    // the lesson underneath (TutorialModal's mount effect) — the single pause
+    // site.
     const handleTutorial = createTutorialOpener({
-        stepType: currentVideo?.responseType,
+        topic: currentVideo?.responseType,
         onOpen: () => setShowTutorial(true),
     });
 
@@ -79,13 +80,13 @@ export default function ResponseDecisionButtons() {
 
                 <ChoiceColumn label={getBilingual('watch_tutorial', labelLang)}>
                     <button className="btn call-btn" id="responseTutorialBtn" aria-label="Watch Tutorial" onClick={handleTutorial}>
-                        <i className="bi bi-book-fill"></i>
+                        <i className="bi bi-question-lg"></i>
                     </button>
                 </ChoiceColumn>
             </div>
 
             {showTutorial && (
-                <TutorialModal stepType={currentVideo?.responseType} onClose={() => setShowTutorial(false)} />
+                <TutorialModal topic={currentVideo?.responseType} onClose={() => setShowTutorial(false)} />
             )}
         </>
     );

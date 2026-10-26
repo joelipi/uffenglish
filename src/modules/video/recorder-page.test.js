@@ -2170,6 +2170,36 @@ describe('recorder auto-render — zero server changes', () => {
             'src/config/cartoon-preferences.json',
             'docs/video-pipeline/storage.py',
             'docs/video-pipeline/tests/test_storage_client.py',
+            // Story 098: the friend recording-preview screen gets its own
+            // tutorial topic, button and placeholder video (the decision
+            // screen keeps the step-type guide).
+            'stories/098-recording-preview-tutorial/story.md',
+            'src/modules/video/tutorial-logic.js',
+            'src/modules/video/tutorial-logic.test.js',
+            'src/modules/video/tutorial-wiring.test.js',
+            'src/components/widgets/TutorialModal.jsx',
+            'src/components/widgets/TutorialModal.test.jsx',
+            'src/components/widgets/PreviewTutorialButton.jsx',
+            'src/components/widgets/preview-tutorial-button.test.jsx',
+            'src/components/widgets/ViewAndContinueButtons.jsx',
+            'src/components/widgets/ResponseDecisionButtons.jsx',
+            'src/components/widgets/BranchChoiceButtons.jsx',
+            'src/components/widgets/WebcamPreview.jsx',
+            'src/assets/css/app.css',
+            'scripts/generate-tutorial-placeholders.mjs',
+            'scripts/generate-tutorial-placeholders.test.js',
+            // Story 098 follow-up: the recorded take's silent-loop flag must
+            // reset for the next blob (re-record / next step).
+            'src/components/PlaybackVideo.jsx',
+            'src/modules/video/playback-start-wiring.test.js',
+            'tests/playback-video-ipad-autoplay.spec.js',
+            'AGENTS.md',
+            // Merge with main's new cartoon course: fill its name locales and
+            // teach the derived guards about its intro slug.
+            'src/config/cartoon-preferences.json',
+            'scripts/lib/poster-utils.test.js',
+            'src/modules/courses/friend-course-configs.test.js',
+            'src/generated/poster-lqips.test.js',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);

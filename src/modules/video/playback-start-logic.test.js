@@ -53,6 +53,13 @@ describe('shouldStartMuted', () => {
     it('starts muted from the first attempt when the learner muted the clip', () => {
         expect(shouldStartMuted({ attempt: 0, muteIntent: true })).toBe(true);
     });
+
+    it('starts muted from the first attempt on iOS, where the unmuted start is always refused', () => {
+        expect(shouldStartMuted({ attempt: 0, muteIntent: false, preferMutedStart: true })).toBe(true);
+        expect(shouldStartMuted({ attempt: 1, preferMutedStart: true })).toBe(true);
+        // A learner's explicit unmute intent is not overridden by the platform.
+        expect(shouldStartMuted({ attempt: 0, muteIntent: false, preferMutedStart: false })).toBe(false);
+    });
 });
 
 describe('shouldRetryStart / retryDelayMs', () => {

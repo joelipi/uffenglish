@@ -33,14 +33,18 @@ export const PLAYBACK_START_RETRY_DELAYS_MS = [0, 250, 750, 2000];
 export const AUTOPLAY_ERROR_NAMES = ['NotAllowedError', 'AbortError'];
 
 /**
- * The first attempt asks for sound; every retry starts muted. A learner who
- * muted the clip themselves is muted from the first attempt.
+ * The first attempt asks for sound on browsers that allow it; every retry
+ * starts muted. On iPad/iPhone the unmuted start is always refused, so the
+ * component asks for a muted start from the first attempt there
+ * (`preferMutedStart`), then re-opens the audio after it is really playing. A
+ * learner who muted the clip themselves is muted from the first attempt.
  *
- * @param {{ attempt?: number, muteIntent?: boolean }} [input]
+ * @param {{ attempt?: number, muteIntent?: boolean, preferMutedStart?: boolean }} [input]
  * @returns {boolean}
  */
-export function shouldStartMuted({ attempt = 0, muteIntent = false } = {}) {
+export function shouldStartMuted({ attempt = 0, muteIntent = false, preferMutedStart = false } = {}) {
     if (muteIntent === true) return true;
+    if (preferMutedStart === true) return true;
     return Number(attempt) > 0;
 }
 

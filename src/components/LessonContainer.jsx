@@ -24,6 +24,7 @@ import MissionSection from './widgets/MissionSection.jsx';
 import Hints from './widgets/Hints.jsx';
 import AnswerInput from './widgets/AnswerInput.jsx';
 import WebcamPreview from './widgets/WebcamPreview.jsx';
+import PreviewTutorialButton from './widgets/PreviewTutorialButton.jsx';
 import WhisperReview from './widgets/WhisperReview.jsx';
 import MediaContent from './widgets/MediaContent.jsx';
 import SuccessVideo from './widgets/SuccessVideo.jsx';
@@ -48,6 +49,7 @@ import PlaybackVideo from './PlaybackVideo.jsx';
 import { loadNextStep as loadNextStepImpl, jumpToStep as jumpToStepImpl, replaySimpleVideo, handleTutorChatSubmit } from '../modules/lesson/lesson-progression.js';
 import { buildBranchChoiceView, isBranchingStep, resolveBranchLevel, getBranchHeadingKey } from '../modules/lesson/branch-choice-logic.js';
 import { isVideoHeaderBlurVisible, videoHeaderBlurStyle } from '../modules/video/video-header-logic.js';
+import { isPreviewGateStep } from '../modules/looks/recording-looks-logic.js';
 import { loadLessonContent } from '../modules/lesson/lesson-loader.js';
 import { loadStep } from './step-loader.js';
 import { isNotFoundError } from '../modules/lesson/lesson-not-found-logic.js';
@@ -65,6 +67,7 @@ export default function LessonContainer() {
     const textInputVisible = useStore(appStore, (state) => state.textInputVisible);
     const bottomOverlayVisible = useStore(appStore, (state) => state.bottomOverlayVisible);
     const bottomState = useStore(appStore, (state) => state.bottomState);
+    const awaitingRecordingStart = useStore(appStore, (state) => state.awaitingRecordingStart);
     const labelLang = useNativeLanguage();
 
     // Branching choice depth: an array of sibling keys, one per group entered.
@@ -210,6 +213,11 @@ export default function LessonContainer() {
         ? getBilingual(getBranchHeadingKey(branchPath.length), labelLang)
         : null;
 
+    // The recording-preview screen is a friendClosedResponse step paused before
+    // its take (the look rail is open). It shows the tutorial as the right-hand
+    // column of the bottom control row, exactly like every decision row.
+    const showPreviewTutorial = awaitingRecordingStart && isPreviewGateStep(currentStep);
+
     // A dead link (the lesson is gone from the course) answers with the app's
     // not-found page: the copy says the link may no longer be active and the
     // buttons lead to the course list and home. The critical-error screen is
@@ -351,8 +359,12 @@ export default function LessonContainer() {
                                 </div>
                             )}
                             {['controlIcon', 'introChoices', 'micActiveOrAnswerInput', 'lessonSuccess'].includes(bottomState) && (
-                                <div className="d-flex justify-content-center align-items-center w-100">
+                                <div className={`d-flex ${showPreviewTutorial ? 'justify-content-around align-items-end' : 'justify-content-center align-items-center'} w-100`}>
+                                    {showPreviewTutorial && (
+                                        <div className="ivp-choice-col" style={{ flex: 1, minWidth: 0 }} aria-hidden="true" />
+                                    )}
                                     <MicrophoneToggle />
+                                    {showPreviewTutorial && <PreviewTutorialButton />}
                                     <IntroChoices />
                                     <SuccessScreen onLoadNextLesson={onLoadNextLesson} onRepeat={handleRepeat} canvasRef={successCanvasRef} />
                                 </div>

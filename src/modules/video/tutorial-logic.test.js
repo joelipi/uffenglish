@@ -3,12 +3,13 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import {
-    TUTORIAL_STEP_TYPES,
+    TUTORIAL_TOPICS,
+    FRIEND_RECORDING_PREVIEW_TOPIC,
     TUTORIAL_MODAL_IDS,
     TUTORIAL_SCRIPTS,
     TUTORIAL_VIDEO_WIDTH,
     TUTORIAL_VIDEO_HEIGHT,
-    isTutorialStepType,
+    isTutorialTopic,
     getTutorialSlug,
     getTutorialVideoUrl,
     getTutorialScript,
@@ -21,16 +22,21 @@ import {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const source = readFileSync(path.join(__dirname, 'tutorial-logic.js'), 'utf8');
 
-describe('isTutorialStepType', () => {
-    it.each(TUTORIAL_STEP_TYPES)('accepts %s', (t) => {
-        expect(isTutorialStepType(t)).toBe(true);
+describe('isTutorialTopic', () => {
+    it.each(TUTORIAL_TOPICS)('accepts %s', (t) => {
+        expect(isTutorialTopic(t)).toBe(true);
     });
 
     it.each(['lessonIntro', 'success', 'mystery', '', 'viewandcontinue', null, undefined, 42, {}])(
         'rejects %p', (t) => {
-            expect(isTutorialStepType(t)).toBe(false);
+            expect(isTutorialTopic(t)).toBe(false);
         }
     );
+
+    it('accepts the recording-preview topic even though it is not a step type', () => {
+        expect(FRIEND_RECORDING_PREVIEW_TOPIC).toBe('friendRecordingPreview');
+        expect(isTutorialTopic(FRIEND_RECORDING_PREVIEW_TOPIC)).toBe(true);
+    });
 });
 
 describe('getTutorialSlug', () => {
@@ -39,20 +45,21 @@ describe('getTutorialSlug', () => {
         ['closedResponse', 'tutorial-closedResponse'],
         ['openResponse', 'tutorial-openResponse'],
         ['friendClosedResponse', 'tutorial-friendClosedResponse'],
+        ['friendRecordingPreview', 'tutorial-friendRecordingPreview'],
         ['branching', 'tutorial-branching'],
-    ])('maps %s -> %s', (stepType, slug) => {
-        expect(getTutorialSlug(stepType)).toBe(slug);
+    ])('maps %s -> %s', (topic, slug) => {
+        expect(getTutorialSlug(topic)).toBe(slug);
     });
 
     it.each(['lessonIntro', 'success', '', 'unknown', null, undefined, 7])(
-        'returns null for %p', (stepType) => {
-            expect(getTutorialSlug(stepType)).toBeNull();
+        'returns null for %p', (topic) => {
+            expect(getTutorialSlug(topic)).toBeNull();
         }
     );
 
     it('prefixes every slug so lesson content slugs can never collide', () => {
-        for (const stepType of TUTORIAL_STEP_TYPES) {
-            expect(getTutorialSlug(stepType).startsWith('tutorial-')).toBe(true);
+        for (const topic of TUTORIAL_TOPICS) {
+            expect(getTutorialSlug(topic).startsWith('tutorial-')).toBe(true);
         }
     });
 });
@@ -63,6 +70,7 @@ describe('getTutorialVideoUrl', () => {
             `${import.meta.env.DEV ? '' : 'https://r2.ultrafastfluency.com'}/assets/videos/tutorial-viewAndContinue.mp4`
         );
         expect(getTutorialVideoUrl('branching')).toContain('assets/videos/tutorial-branching.mp4');
+        expect(getTutorialVideoUrl(FRIEND_RECORDING_PREVIEW_TOPIC)).toContain('assets/videos/tutorial-friendRecordingPreview.mp4');
     });
 
     it('is empty for unsupported types', () => {
@@ -72,15 +80,15 @@ describe('getTutorialVideoUrl', () => {
 });
 
 describe('getTutorialScript - new-user, 10-30 s, dismiss reminder', () => {
-    it.each(TUTORIAL_STEP_TYPES)('%s is 25-75 words', (stepType) => {
-        const script = getTutorialScript(stepType);
+    it.each(TUTORIAL_TOPICS)('%s is 25-75 words', (topic) => {
+        const script = getTutorialScript(topic);
         const words = script.trim().split(/\s+/).length;
         expect(words).toBeGreaterThanOrEqual(25);
         expect(words).toBeLessThanOrEqual(75);
     });
 
-    it.each(TUTORIAL_STEP_TYPES)('%s ends with the dismiss reminder', (stepType) => {
-        expect(getTutorialScript(stepType).endsWith('and get to work.')).toBe(true);
+    it.each(TUTORIAL_TOPICS)('%s ends with the dismiss reminder', (topic) => {
+        expect(getTutorialScript(topic).endsWith('and get to work.')).toBe(true);
     });
 
     it('returns null for unsupported types', () => {
@@ -97,8 +105,17 @@ describe('getTutorialScript - new-user, 10-30 s, dismiss reminder', () => {
         }
     });
 
-    it('keeps the five supported step types and nothing else', () => {
-        expect(Object.keys(TUTORIAL_SCRIPTS).sort()).toEqual([...TUTORIAL_STEP_TYPES].sort());
+    it('keeps exactly the supported topics and nothing else', () => {
+        expect(Object.keys(TUTORIAL_SCRIPTS).sort()).toEqual([...TUTORIAL_TOPICS].sort());
+    });
+
+    it('has a distinct preview guide that names the camera-screen controls', () => {
+        const script = getTutorialScript(FRIEND_RECORDING_PREVIEW_TOPIC);
+        expect(script).toContain('recording screen');
+        for (const label of ['Filter', 'Lens', 'Screen', 'Top', 'Face', 'Bottom', 'Emoji', 'Size']) {
+            expect(script).toContain(label);
+        }
+        expect(script).toContain('microphone');
     });
 });
 
@@ -156,6 +173,23 @@ describe('getTutorialSubtitleText - guest-first session language', () => {
         expect(pt).not.toBe(fr);
     });
 
+    it('translates the recording-preview guide and falls back to English for hi/bn', () => {
+        for (const lang of ['es', 'pt', 'fr']) {
+            expect(getTutorialSubtitleText(FRIEND_RECORDING_PREVIEW_TOPIC, lang))
+                .toBe(TUTORIAL_SCRIPTS.friendRecordingPreview[lang]);
+        }
+        const es = getTutorialSubtitleText(FRIEND_RECORDING_PREVIEW_TOPIC, 'es');
+        const pt = getTutorialSubtitleText(FRIEND_RECORDING_PREVIEW_TOPIC, 'pt');
+        const fr = getTutorialSubtitleText(FRIEND_RECORDING_PREVIEW_TOPIC, 'fr');
+        expect(es).not.toBe(pt);
+        expect(es).not.toBe(fr);
+        expect(pt).not.toBe(fr);
+        for (const lang of ['en', 'hi', 'bn', 'xx', null]) {
+            expect(getTutorialSubtitleText(FRIEND_RECORDING_PREVIEW_TOPIC, lang))
+                .toBe(TUTORIAL_SCRIPTS.friendRecordingPreview.en);
+        }
+    });
+
     it('mentions the localized Continue label word', () => {
         expect(getTutorialSubtitleText('viewAndContinue', 'es')).toContain('Continuar');
         expect(getTutorialSubtitleText('viewAndContinue', 'pt')).toContain('Continuar');
@@ -182,16 +216,25 @@ describe('getTutorialSubtitleText - guest-first session language', () => {
 
 describe('buildTutorialModalView', () => {
     it('resolves everything the component renders for a supported type', () => {
-        const view = buildTutorialModalView({ stepType: 'branching', lang: 'es' });
+        const view = buildTutorialModalView({ topic: 'branching', lang: 'es' });
         expect(view.isSupported).toBe(true);
-        expect(view.stepType).toBe('branching');
+        expect(view.topic).toBe('branching');
         expect(view.videoUrl).toContain('assets/videos/tutorial-branching.mp4');
         expect(view.subtitleText).toBe(TUTORIAL_SCRIPTS.branching.es);
         expect(view.subtitleLang).toBe('es');
     });
 
+    it('resolves the recording-preview screen to its own video and script', () => {
+        const view = buildTutorialModalView({ topic: FRIEND_RECORDING_PREVIEW_TOPIC, lang: 'pt' });
+        expect(view.isSupported).toBe(true);
+        expect(view.topic).toBe(FRIEND_RECORDING_PREVIEW_TOPIC);
+        expect(view.videoUrl).toContain('assets/videos/tutorial-friendRecordingPreview.mp4');
+        expect(view.subtitleText).toBe(TUTORIAL_SCRIPTS.friendRecordingPreview.pt);
+        expect(view.subtitleLang).toBe('pt');
+    });
+
     it('marks unsupported types so the caller opens nothing', () => {
-        const view = buildTutorialModalView({ stepType: 'success', lang: 'es' });
+        const view = buildTutorialModalView({ topic: 'success', lang: 'es' });
         expect(view.isSupported).toBe(false);
         expect(view.videoUrl).toBe('');
         expect(view.subtitleText).toBeNull();

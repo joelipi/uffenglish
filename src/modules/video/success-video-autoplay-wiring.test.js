@@ -53,8 +53,8 @@ describe('the success clip walks the same ladder', () => {
             .toBeLessThan(blobEffect.indexOf('playSafely(el)'));
     });
 
-    it('asks for sound once, then retries muted', () => {
-        expect(blobEffect).toContain('shouldStartMuted({ attempt })');
+    it('asks for the only start iPadOS allows, then retries muted', () => {
+        expect(blobEffect).toContain('preferMutedStart: isIOS');
         expect(blobEffect).toContain('setElementMuted(el, muted)');
         // The mute must be applied BEFORE play() is asked for.
         expect(blobEffect.indexOf('setElementMuted(el, muted)'))
@@ -67,6 +67,12 @@ describe('the success clip walks the same ladder', () => {
         expect(blobEffect).toContain('setElementMuted(current, false)');
         expect(blobEffect.indexOf('setElementMuted(current, false)'))
             .toBeLessThan(blobEffect.lastIndexOf('playSafely(current)'));
+        // The muted start is only the autoplay handshake; rewind before the
+        // audible pass so the recap is heard from 0.
+        expect(blobEffect).toContain('current.currentTime = 0');
+        expect(blobEffect.indexOf('current.currentTime = 0'))
+            .toBeLessThan(blobEffect.indexOf('setElementMuted(current, false)'));
+        expect(blobEffect).toContain("takeDiagnostics.push('success rewound before audible start'");
     });
 
     it('reports the attempts to the console and the ?diag panel', () => {

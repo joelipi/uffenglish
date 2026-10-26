@@ -31,10 +31,10 @@ export default function ViewAndContinueButtons() {
     };
 
     // This row only renders in the view-and-continue decision phase, so the
-    // tutorial's step type is fixed. Opening the modal pauses the lesson
+    // tutorial's topic is fixed. Opening the modal pauses the lesson
     // underneath (TutorialModal's mount effect) — the single pause site.
     const handleTutorial = createTutorialOpener({
-        stepType: 'viewAndContinue',
+        topic: 'viewAndContinue',
         onOpen: () => setShowTutorial(true),
     });
 
@@ -57,13 +57,13 @@ export default function ViewAndContinueButtons() {
 
                 <ChoiceColumn label={getBilingual('watch_tutorial', labelLang)}>
                     <button className="btn call-btn" id="tutorialBtn" aria-label="Watch Tutorial" onClick={handleTutorial}>
-                        <i className="bi bi-book-fill"></i>
+                        <i className="bi bi-question-lg"></i>
                     </button>
                 </ChoiceColumn>
             </div>
 
             {showTutorial && (
-                <TutorialModal stepType="viewAndContinue" onClose={() => setShowTutorial(false)} />
+                <TutorialModal topic="viewAndContinue" onClose={() => setShowTutorial(false)} />
             )}
         </>
     );

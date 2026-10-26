@@ -194,12 +194,12 @@
 
 ---
 
-## A missing optional package is the sandbox baseline — install it and the suite is green
+## A missing or stale optional package is the sandbox baseline — fix the shared `node_modules` and the suite is green
 
-**Date**: 2026-10-14 (updated 2026-10-20)
+**Date**: 2026-10-14 (updated 2026-10-26)
 **Area**: build | testing
-**What happened**: A full `npx vitest run` failed 4 test files (201 files: 4 failed / 197 passed) with nothing changed in `package.json` or the repo source: `scripts/lib/pwa-build-output.test.js` (its `npm run build` child fails loading `vite.config.js`), `functions/api/push/send.test.js`, `src/components/pwa/pwa-install-contract.test.jsx` and `src/components/pwa/pwa-install-wiring.test.jsx`. All four were module-resolution errors — `vite-plugin-pwa`, `@block65/webcrypto-web-push` and `@khmyznikov/pwa-install` were absent from the shared `node_modules`. The failures are collection-time (no tests run), so the "Test Files X failed / Tests Y passed" summary is the quickest signal.
-**Takeaway**: These are collection-time failures, not assertions — check `ls node_modules/<pkg>` before debugging the source. They are fixable: `npm install <pkg> --no-save --no-audit --no-fund` in the checkout that owns the shared `node_modules` (the worktree's `node_modules` is often a symlink to it) makes the file collect again. As of 2026-10-20 all three packages are installed and the full suite is green (255 files / 3871 tests), so treat a red suite as a real regression and re-check `node_modules` before assuming a baseline.
+**What happened**: A full `npx vitest run` failed 4 test files (201 files: 4 failed / 197 passed) with nothing changed in `package.json` or the repo source: `scripts/lib/pwa-build-output.test.js` (its `npm run build` child fails loading `vite.config.js`), `functions/api/push/send.test.js`, `src/components/pwa/pwa-install-contract.test.jsx` and `src/components/pwa/pwa-install-wiring.test.jsx`. All four were module-resolution errors — `vite-plugin-pwa`, `@block65/webcrypto-web-push` and `@khmyznikov/pwa-install` were absent from the shared `node_modules`. The failures are collection-time (no tests run), so the "Test Files X failed / Tests Y passed" summary is the quickest signal. A **stale version** fails the same way without being missing: `src/modules/lesson/confetti-api-guard.test.js` (4 failures) read canvas-confetti **1.6.0** while `package.json` requires `^1.9.4`, because the worktree's `node_modules` is a symlink to an older checkout.
+**Takeaway**: These are environment failures, not assertions — check the installed package before debugging the source. Run `ls node_modules/<pkg>` *and* `node -p "require('<pkg>/package.json').version"` against `package.json`'s range; a version-guard test failing on a package you did not touch is the tell. Fix by installing in the checkout that owns the shared `node_modules`: `npm install <pkg>@<version> --prefix <owner-checkout> --no-save --no-audit --no-fund` (both ranges accepted 1.9.4, so the shared copy stayed compatible), never by editing the repo's package files to match the stale install. As of 2026-10-20 all three original packages are installed and the full suite is green (308 files / 4694 tests on 2026-10-26).
 
 ---
 

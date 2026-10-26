@@ -1,9 +1,15 @@
 // src/modules/video/tutorial-logic.js
-// Pure rules for the per-step-type tutorial modal. No React, no React Native,
-// no DOM, no store: the supported step types, slug/URL construction, the
-// localized tutorial scripts and subtitles, and the modal's dismiss/portrait
-// policy all live here so the presentational component and the three decision
-// rows stay free of domain decisions.
+// Pure rules for the tutorial modal. No React, no React Native, no DOM, no
+// store: the supported tutorial topics, slug/URL construction, the localized
+// tutorial scripts and subtitles, and the modal's dismiss/portrait policy all
+// live here so the presentational component and the decision rows stay free of
+// domain decisions.
+//
+// A TOPIC is what a guide is about. It is usually a step type, but the
+// friendClosedResponse step has two screens that need different guides: its
+// decision screen and its recording-preview screen (see
+// FRIEND_RECORDING_PREVIEW_TOPIC). Keeping topics separate from step types is
+// what lets one step render two different tutorial videos.
 //
 // Tutorial videos are lessons' teacher media siblings: they resolve through the
 // shared getVideoUrl (see video-url.js), so a dev build serves
@@ -12,13 +18,20 @@
 
 import { getVideoUrl } from './video-url.js';
 
-// The five step types that render a tutorial button. lessonIntro and success
-// screens have no tutorial button, so they deliberately get no script/URL.
-export const TUTORIAL_STEP_TYPES = [
+// The recording-preview screen of a friendClosedResponse step, whose guide is
+// its own topic because that screen shows filters, overlays and the phrase —
+// not the repeat-exactly decision screen the step-type guide explains.
+export const FRIEND_RECORDING_PREVIEW_TOPIC = 'friendRecordingPreview';
+
+// The five step types that render a tutorial button, plus the preview screen's
+// own topic. lessonIntro and success screens have no tutorial button, so they
+// deliberately get no script/URL.
+export const TUTORIAL_TOPICS = [
     'viewAndContinue',
     'closedResponse',
     'openResponse',
     'friendClosedResponse',
+    FRIEND_RECORDING_PREVIEW_TOPIC,
     'branching',
 ];
 
@@ -41,16 +54,16 @@ export const TUTORIAL_MODAL_IDS = {
     continue: 'tutorialContinueBtn',
 };
 
-export function isTutorialStepType(stepType) {
-    return typeof stepType === 'string' && TUTORIAL_STEP_TYPES.includes(stepType);
+export function isTutorialTopic(topic) {
+    return typeof topic === 'string' && TUTORIAL_TOPICS.includes(topic);
 }
 
-export function getTutorialSlug(stepType) {
-    return isTutorialStepType(stepType) ? `${TUTORIAL_SLUG_PREFIX}${stepType}` : null;
+export function getTutorialSlug(topic) {
+    return isTutorialTopic(topic) ? `${TUTORIAL_SLUG_PREFIX}${topic}` : null;
 }
 
-export function getTutorialVideoUrl(stepType) {
-    const slug = getTutorialSlug(stepType);
+export function getTutorialVideoUrl(topic) {
+    const slug = getTutorialSlug(topic);
     return slug ? getVideoUrl(slug) : '';
 }
 
@@ -83,6 +96,12 @@ export const TUTORIAL_SCRIPTS = {
         pt: 'Seu amigo gravou uma pergunta especialmente para você, então primeiro você verá o vídeo dele. Depois pressione o microfone e repita a frase dele exatamente, palavra por palavra. Se acertar, você passa direto para a próxima pergunta. Se errar uma palavra, você verá uma dica; basta tentar novamente. Agora pressione o X ou Continuar para fechar esta janela e começar a praticar.',
         fr: 'Ton ami a enregistré une question rien que pour toi : tu regarderas d\'abord sa vidéo. Ensuite, appuie sur le micro et répète sa phrase exactement, mot pour mot. Si c\'est juste, tu passes directement à la question suivante. Si un mot manque, tu verras un indice : réessaie simplement. Maintenant, appuie sur le X ou sur Continuer pour fermer cette fenêtre, et au travail.',
     },
+    friendRecordingPreview: {
+        en: 'This is your recording screen. Your words are at the bottom. Tap Filter, Lens, or Screen on the left to change the frame, and Top, Face, Bottom, or Emoji to add stickers. Drag a sticker to move it, and use Size to resize it. When you are ready, tap the microphone to start recording, and tap it again to stop. Now press the X or Continue to close this window, and get to work.',
+        es: 'Esta es tu pantalla de grabación. Tus palabras aparecen abajo. Toca Filter, Lens o Screen a la izquierda para cambiar el marco, y Top, Face, Bottom o Emoji para añadir pegatinas. Arrastra una pegatina para moverla y usa Size para cambiar su tamaño. Cuando estés listo, toca el micrófono para empezar a grabar y tócalo otra vez para parar. Ahora presiona la X o Continuar para cerrar esta ventana y ponerte a trabajar.',
+        pt: 'Esta é a sua tela de gravação. Suas palavras aparecem embaixo. Toque em Filter, Lens ou Screen à esquerda para mudar o quadro, e em Top, Face, Bottom ou Emoji para adicionar adesivos. Arraste um adesivo para movê-lo e use Size para redimensioná-lo. Quando estiver pronto, toque no microfone para começar a gravar e toque nele de novo para parar. Agora pressione o X ou Continuar para fechar esta janela e começar a praticar.',
+        fr: 'C\'est ton écran d\'enregistrement. Tes mots s\'affichent en bas. Appuie sur Filter, Lens ou Screen à gauche pour changer le cadre, et sur Top, Face, Bottom ou Emoji pour ajouter des autocollants. Fais glisser un autocollant pour le déplacer et utilise Size pour le redimensionner. Quand tu es prêt, appuie sur le micro pour commencer à enregistrer et appuie à nouveau pour arrêter. Maintenant, appuie sur le X ou sur Continuer pour fermer cette fenêtre, et au travail.',
+    },
     branching: {
         en: 'This step gives you a choice. Watch the video, then tap one of the text buttons to decide what happens next, because each button jumps to a different step. Replay plays the scene again, and the book icon replays this guide. Now press the X or Continue to close this window, and get to work.',
         es: 'Este paso te da una opción. Mira el video y luego toca uno de los botones de texto para decidir qué pasa después, porque cada botón salta a un paso distinto. Repetir vuelve a mostrar la escena, y el ícono del libro repite esta guía. Ahora presiona la X o Continuar para cerrar esta ventana y ponerte a trabajar.',
@@ -91,9 +110,9 @@ export const TUTORIAL_SCRIPTS = {
     },
 };
 
-export function getTutorialScript(stepType) {
-    if (!isTutorialStepType(stepType)) return null;
-    return TUTORIAL_SCRIPTS[stepType].en;
+export function getTutorialScript(topic) {
+    if (!isTutorialTopic(topic)) return null;
+    return TUTORIAL_SCRIPTS[topic].en;
 }
 
 // The BCP-47-ish language tag stamped on the subtitle element. A missing
@@ -115,25 +134,25 @@ export function getTutorialSubtitleLang(lang) {
 // back to English for en and for any language we do not translate (hi, bn,
 // anything unknown). Returns null for unsupported step types so the caller
 // renders no band at all.
-export function getTutorialSubtitleText(stepType, lang) {
-    if (!isTutorialStepType(stepType)) return null;
+export function getTutorialSubtitleText(topic, lang) {
+    if (!isTutorialTopic(topic)) return null;
     const normalized = typeof lang === 'string' && lang ? getTutorialSubtitleLang(lang) : 'en';
     // English is also the fallback for every untranslated language.
-    return TUTORIAL_SCRIPTS[stepType][normalized] || getTutorialScript(stepType);
+    return TUTORIAL_SCRIPTS[topic][normalized] || getTutorialScript(topic);
 }
 
 /**
  * Builds the tutorial button's open handler, so no component decides whether a
- * step type is supported. An unsupported resolved type (e.g. a stale
+ * topic is supported. An unsupported resolved topic (e.g. a stale
  * `currentVideo` after a step change) logs a warning and opens nothing, so a
  * `getTutorialSlug` `null` can never reach the video element.
  *
  * @returns {() => boolean} true when the modal was opened
  */
-export function createTutorialOpener({ stepType, onOpen } = {}) {
+export function createTutorialOpener({ topic, onOpen } = {}) {
     return () => {
-        if (!isTutorialStepType(stepType)) {
-            console.warn(`[Tutorial] unsupported step type "${String(stepType)}" — tutorial modal not opened`);
+        if (!isTutorialTopic(topic)) {
+            console.warn(`[Tutorial] unsupported topic "${String(topic)}" — tutorial modal not opened`);
             return false;
         }
         if (typeof onOpen === 'function') onOpen();
@@ -158,11 +177,11 @@ export function createTutorialModalHandlers({ onClose } = {}) {
     };
 }
 
-export function buildTutorialModalView({ stepType, lang } = {}) {
-    if (!isTutorialStepType(stepType)) {
+export function buildTutorialModalView({ topic, lang } = {}) {
+    if (!isTutorialTopic(topic)) {
         return {
             isSupported: false,
-            stepType: null,
+            topic: null,
             videoUrl: '',
             subtitleText: null,
             subtitleLang: getTutorialSubtitleLang(lang),
@@ -171,9 +190,9 @@ export function buildTutorialModalView({ stepType, lang } = {}) {
 
     return {
         isSupported: true,
-        stepType,
-        videoUrl: getTutorialVideoUrl(stepType),
-        subtitleText: getTutorialSubtitleText(stepType, lang),
+        topic,
+        videoUrl: getTutorialVideoUrl(topic),
+        subtitleText: getTutorialSubtitleText(topic, lang),
         subtitleLang: getTutorialSubtitleLang(lang),
     };
 }

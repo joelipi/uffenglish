@@ -11,9 +11,9 @@ import { useVideoSpeed } from '../../hooks/useVideoSpeed.js';
 import VideoSpeedToggle from '../VideoSpeedToggle.jsx';
 import { pauseLessonVideoForTutorial } from '../../modules/lesson/lesson-progression.js';
 
-export default function TutorialModal({ stepType, onClose }) {
+export default function TutorialModal({ topic, onClose }) {
     const lang = useNativeLanguage();
-    const view = useMemo(() => buildTutorialModalView({ stepType, lang }), [stepType, lang]);
+    const view = useMemo(() => buildTutorialModalView({ topic, lang }), [topic, lang]);
     const continueLabel = getBilingual('continue', lang);
     const videoRef = useRef(null);
     // Speed toggle (1x -> 0.8x -> 0.6x -> 1x), reset per tutorial clip.
@@ -39,10 +39,10 @@ export default function TutorialModal({ stepType, onClose }) {
     // re-opening the modal cannot restart the lesson clip.
     useEffect(() => {
         if (!view.isSupported) return undefined;
-        console.log('[TutorialModal] opened for stepType:', view.stepType, 'lang:', view.subtitleLang);
+        console.log('[TutorialModal] opened for topic:', view.topic, 'lang:', view.subtitleLang);
         pauseLessonVideoForTutorial();
-        return () => console.log('[TutorialModal] closed for stepType:', view.stepType);
-    }, [view.isSupported, view.stepType, view.subtitleLang]);
+        return () => console.log('[TutorialModal] closed for topic:', view.topic);
+    }, [view.isSupported, view.topic, view.subtitleLang]);
 
     // Escape-to-close, mirroring the HomeScreen menu pattern (window keydown
     // listener with cleanup).
@@ -86,7 +86,7 @@ export default function TutorialModal({ stepType, onClose }) {
                         controls
                         playsInline
                         preload="metadata"
-                        aria-label={`Tutorial for ${view.stepType}`}
+                        aria-label={`Tutorial for ${view.topic}`}
                     />
                     <VideoSpeedToggle rate={playbackRate} onCycle={handleSpeedCycle} />
                     <div className="ivp-subtitle-scroll-container tutorial-modal-subtitles">
