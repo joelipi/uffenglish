@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store/store.js';
 import { getSpeechInputToggleCallback } from '../../modules/lesson/step-loader-callbacks.js';
-import { getResponseAnswerLabelKey, getResponseAnswerIconClass } from '../../modules/video/response-decision-logic.js';
+import { getResponseAnswerLabelKey, getResponseAnswerIconClass, getResponseReplayLabelKey } from '../../modules/video/response-decision-logic.js';
 import { replaySimpleVideo } from '../../modules/lesson/lesson-progression.js';
 import { createTutorialOpener } from '../../modules/video/tutorial-logic.js';
 import { getBilingual } from '../../data/strings.js';
@@ -49,7 +49,7 @@ export default function ResponseDecisionButtons() {
         <>
             <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'flex-end', width: '100%', gap: '8px' }}>
                 {currentVideo?.url && (
-                    <ChoiceColumn label={getBilingual('video_replay', labelLang)}>
+                    <ChoiceColumn label={getBilingual(getResponseReplayLabelKey(currentVideo?.responseType), labelLang)}>
                         <button className="btn call-btn" id="responseReplayBtn" aria-label="Replay Video" onClick={handleReplay}>
                             <i className="bi bi-arrow-repeat"></i>
                         </button>

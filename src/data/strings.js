@@ -2427,6 +2427,8 @@ const strings = {
     'video_repeat_exactly': {
         en: "Can you repeat that exactly?",
         es: "¿Puedes repetir exactamente?",
+        pt: "Você pode repetir exatamente?",
+        fr: "Pouvez-vous répéter exactement ?",
         hi: "क्या आप इसे ठीक वैसे ही दोहरा सकते हैं?",
         bn: "আপনি কি এটি হুবহু পুনরাবৃত্তি করতে পারেন?"
     },
@@ -2485,6 +2487,24 @@ const strings = {
         es: "REPETIR VIDEO",
         hi: "वीडियो फिर से चलाएँ",
         bn: "ভিডিও আবার চালান"
+    },
+    // The closed-response overlay asks "Can you repeat that exactly?". These
+    // labels turn the two choices into an explicit no/yes pair.
+    'video_replay_no': {
+        en: "No? Replay the video.",
+        es: "¿No? Reproduce el video.",
+        pt: "Não? Reproduza o vídeo.",
+        fr: "Non ? Rejouez la vidéo.",
+        hi: "नहीं? वीडियो फिर से चलाएँ।",
+        bn: "না? ভিডিওটি আবার চালান।"
+    },
+    'video_continue_yes': {
+        en: "Yes? Continue.",
+        es: "¿Sí? Continúa.",
+        pt: "Sim? Continue.",
+        fr: "Oui ? Continuez.",
+        hi: "हाँ? जारी रखें।",
+        bn: "হ্যাঁ? চালিয়ে যান।"
     },
     'continue': {
         en: "CONTINUE",

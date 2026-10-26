@@ -4,6 +4,7 @@ import {
     getResponseOverlayTextKey,
     getResponseAnswerLabelKey,
     getResponseAnswerIconClass,
+    getResponseReplayLabelKey,
     getInteractiveDecisionLabelKey,
     getInteractiveDecisionIconClass,
     getSimpleVideoOverlayTextKey,
@@ -41,14 +42,26 @@ describe('response-decision-logic', () => {
     });
 
     describe('getResponseAnswerLabelKey', () => {
-        it('returns repeat-now for closedResponse and continue for friendClosedResponse', () => {
+        it('returns repeat-now for closedResponse and the explicit yes for friendClosedResponse', () => {
             expect(getResponseAnswerLabelKey('closedResponse')).toBe('video_repeat_now');
-            expect(getResponseAnswerLabelKey('friendClosedResponse')).toBe('continue');
+            expect(getResponseAnswerLabelKey('friendClosedResponse')).toBe('video_continue_yes');
         });
 
         it('returns respond-now for open and unknown types', () => {
             expect(getResponseAnswerLabelKey('openResponse')).toBe('video_respond_now');
             expect(getResponseAnswerLabelKey(undefined)).toBe('video_respond_now');
+        });
+    });
+
+    describe('getResponseReplayLabelKey', () => {
+        it('turns Replay into the explicit no on closed-response overlays', () => {
+            expect(getResponseReplayLabelKey('closedResponse')).toBe('video_replay_no');
+            expect(getResponseReplayLabelKey('friendClosedResponse')).toBe('video_replay_no');
+        });
+
+        it('keeps the plain Replay label elsewhere', () => {
+            expect(getResponseReplayLabelKey('openResponse')).toBe('video_replay');
+            expect(getResponseReplayLabelKey(undefined)).toBe('video_replay');
         });
     });
 

@@ -17,8 +17,17 @@ export function getResponseOverlayTextKey(responseType) {
 }
 
 export function getResponseAnswerLabelKey(responseType) {
-    if (responseType === 'friendClosedResponse') return 'continue';
+    if (responseType === 'friendClosedResponse') return 'video_continue_yes';
     return isClosedResponseType(responseType) ? 'video_repeat_now' : 'video_respond_now';
+}
+
+/**
+ * The Replay label on the response overlay. Closed-response steps ask "Can you
+ * repeat that exactly?", so the replay control reads as the "No" answer; other
+ * response types keep the plain Replay label.
+ */
+export function getResponseReplayLabelKey(responseType) {
+    return isClosedResponseType(responseType) ? 'video_replay_no' : 'video_replay';
 }
 
 export function getResponseAnswerIconClass(responseType) {
