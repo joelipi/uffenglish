@@ -652,14 +652,14 @@ body { margin: 0; font-family: var(--font-body); font-size: 1rem; font-weight: 4
     text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
 }
 
-/* The recording-preview screen's tutorial button. Bottom-left, at the same
+/* The recording-preview screen's tutorial button. Bottom-right, at the same
    safe-area offset as the bottom overlay's controls row, so it sits beside the
    centered microphone without covering it, the left look rail, or the phrase.
    z-index 1100 puts it above .bottom-overlay (1050); it is rendered as a
    sibling of the camera takeover for exactly that reason. */
 .preview-tutorial-btn {
     position: absolute;
-    left: 16px;
+    right: 16px;
     bottom: calc(32px + env(safe-area-inset-bottom, 0px));
     z-index: 1100;
     width: 48px;

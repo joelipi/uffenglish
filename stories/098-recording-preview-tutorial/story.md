@@ -26,8 +26,9 @@ This adds a dedicated tutorial topic for the preview screen, its own script/subt
   - `getTutorialSlug(topic)` stays `` `tutorial-${topic}` ``, so the new video is `tutorial-friendRecordingPreview`.
   - `TUTORIAL_SCRIPTS` gains a `friendRecordingPreview` entry with en/es/pt/fr. A `hi`/`bn` session falls back to English via the existing `getTutorialSubtitleText` rule.
   - The script names the controls exactly as the rail shows them (English label words) in every language, so the guide matches the screen.
-- **The guide becomes a component, not a copy of the decision row.** New render-only component `src/components/widgets/PreviewTutorialButton.jsx` owns only the modal's open/closed UI state. It imports `createTutorialOpener` and the topic constant from the pure module, renders `#previewTutorialBtn` (book icon, `aria-label` from the existing `watch_tutorial` string) and mounts `TutorialModal` with `topic={FRIEND_RECORDING_PREVIEW_TOPIC}` when open. Opening pauses the lesson underneath through `TutorialModal`'s existing single pause site.
-- **Placement is on the preview screen only, and only before the take.** `WebcamPreview.jsx` already computes `lookControlsVisible = awaitingRecordingStart && isPreviewGateStep(currentStep)`. It renders `{lookControlsVisible && <PreviewTutorialButton />}`, so the guide is present exactly while the look rail and the preview are present and disappears the moment recording starts. The button is pinned bottom-left above the bottom overlay (`position: absolute` in `#pip-wrapper`, `z-index` above `.bottom-overlay`'s 1050, `bottom` matching the controls-section safe-area padding), clear of the left rail, the centered microphone and the phrase overlay.
+- **The guide becomes a component, not a copy of the decision row.** New render-only component `src/components/widgets/PreviewTutorialButton.jsx` owns only the modal's open/closed UI state. It imports `createTutorialOpener` and the topic constant from the pure module, renders `#previewTutorialBtn` (question-mark icon, `aria-label` from the existing `watch_tutorial` string) and mounts `TutorialModal` with `topic={FRIEND_RECORDING_PREVIEW_TOPIC}` when open. Opening pauses the lesson underneath through `TutorialModal`'s existing single pause site.
+- **Placement is on the preview screen only, and only before the take.** `WebcamPreview.jsx` already computes `lookControlsVisible = awaitingRecordingStart && isPreviewGateStep(currentStep)`. It renders `{lookControlsVisible && <PreviewTutorialButton />}`, so the guide is present exactly while the look rail and the preview are present and disappears the moment recording starts. The button is pinned **bottom-right** above the bottom overlay (`position: absolute`, `z-index` above `.bottom-overlay`'s 1050, `bottom` matching the controls-section safe-area padding), the same corner the decision rows' tutorial button occupies, clear of the left rail, the centered microphone and the phrase overlay.
+- **The tutorial icon is the same help affordance everywhere.** Every tutorial button — `#tutorialBtn`, `#responseTutorialBtn`, `#branchTutorialBtn` and `#previewTutorialBtn` — renders Bootstrap Icons' `bi-question-circle-fill`, replacing the old `bi-book-fill`. The preview button is also pinned bottom-right, matching the decision rows' rightmost tutorial column, rather than the bottom-left corner it started in.
 - **The placeholder video is generated and uploaded like the others.** `scripts/generate-tutorial-placeholders.mjs` iterates the topic list, so adding the topic yields `tutorial-friendRecordingPreview.mp4` (720×1280, 10–30 s, no audio). It is uploaded to the R2 bucket with the generator's printed `wrangler r2 object put` command.
 - **Naming compatibility:** every call site and guard that says `stepType` changes to `topic` in the same commit; there is no alias, so no dead name can drift.
 
@@ -58,7 +59,7 @@ This adds a dedicated tutorial topic for the preview screen, its own script/subt
 ### Task 2 - The preview screen shows its own guide button and modal
 
 - `PreviewTutorialButton` rendered + called in component test
-  - → renders `#previewTutorialBtn` with the book icon and no tutorial overlay
+  - → renders `#previewTutorialBtn` with the question-mark icon and no tutorial overlay
 - `#previewTutorialBtn` clicked + called in component test
   - → the tutorial overlay appears and `#tutorialVideo` src ends with `assets/videos/tutorial-friendRecordingPreview.mp4`
 - the open tutorial's close X clicked + called in component test
@@ -76,6 +77,9 @@ This adds a dedicated tutorial topic for the preview screen, its own script/subt
 - `ResponseDecisionButtons` / `ViewAndContinueButtons` / `BranchChoiceButtons` source + called in static guard test
   - → each passes `topic=` (`{currentVideo?.responseType}` for the response row, the literal step type otherwise)
   - → each still opens the video of the step it represents
+- every tutorial button source + called in static guard test
+  - → `#tutorialBtn`, `#responseTutorialBtn`, `#branchTutorialBtn` and `#previewTutorialBtn` render `bi bi-question-circle-fill`
+  - → none of the four files contains `bi-book-fill`
 - `ResponseDecisionButtons` rendered with `friendClosedResponse` + called in component test
   - → its tutorial still opens `tutorial-friendClosedResponse.mp4` (not the preview video)
 
@@ -90,7 +94,7 @@ This adds a dedicated tutorial topic for the preview screen, its own script/subt
 ## Notes
 
 - The placeholder clip is generated with real Chrome (`channel: 'chrome'`, already installed here) and uploaded with `npx wrangler r2 object put uff/assets/videos/tutorial-friendRecordingPreview.mp4 --file <out> --content-type video/mp4`; the private `uff` bucket is the same one the existing tutorials live in.
-- The preview tutorial button is icon-only (a book, like the decision row's) because the rail already fills the left edge and the phrase and microphone own the bottom centre. It is pinned bottom-left with the controls-section safe-area offset, so it cannot cover the rail, the phrase, or the mic.
+- The preview tutorial button is icon-only (a question mark, the same icon every tutorial button in the app now uses) because the rail already fills the left edge and the phrase and microphone own the bottom centre. It is pinned bottom-right with the controls-section safe-area offset, so it cannot cover the rail, the phrase, or the mic.
 - The guide is deliberately hidden during the take: controls are disabled once recording begins (stories/092), and a mid-take modal would interrupt the learner.
 - `hi`/`bn` fall back to the English guide, matching the documented tutorial-script localization limit.
 - The guide names the rail's English labels (Filter, Lens, Screen, Top, Face, Bottom, Emoji, Size) in every language, because those are the labels actually on screen.

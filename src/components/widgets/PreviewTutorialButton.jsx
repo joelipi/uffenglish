@@ -35,7 +35,7 @@ export default function PreviewTutorialButton() {
                 aria-label={label.english || 'Watch Tutorial'}
                 onClick={handleTutorial}
             >
-                <i className="bi bi-book-fill"></i>
+                <i className="bi bi-question-circle-fill"></i>
             </button>
 
             {showTutorial && (

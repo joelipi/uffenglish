@@ -49,7 +49,7 @@ describe('PreviewTutorialButton', () => {
         const button = container.querySelector('#previewTutorialBtn');
         expect(button).not.toBeNull();
         expect(button.getAttribute('type')).toBe('button');
-        expect(button.querySelector('i.bi.bi-book-fill')).not.toBeNull();
+        expect(button.querySelector('i.bi.bi-question-circle-fill')).not.toBeNull();
         expect(container.querySelector('.tutorial-modal-overlay')).toBeNull();
     });
 

@@ -146,6 +146,21 @@ describe('pauseLessonVideoForTutorial', () => {
     });
 });
 
+describe('every tutorial button uses the question-mark help icon', () => {
+    it.each([
+        ['view-and-continue', viewAndContinue, 'tutorialBtn'],
+        ['response', responseRow, 'responseTutorialBtn'],
+        ['branching', branchRow, 'branchTutorialBtn'],
+        ['recording preview', previewTutorial, 'previewTutorialBtn'],
+    ])('%s row renders the help icon, not the old book icon', (_row, source, id) => {
+        const start = source.indexOf(`id="${id}"`);
+        expect(start, `${id} button not found`).toBeGreaterThan(-1);
+        const button = source.slice(start, source.indexOf('</button>', start));
+        expect(button).toContain('bi bi-question-circle-fill');
+        expect(button).not.toContain('bi-book-fill');
+    });
+});
+
 describe('the recording-preview screen has its own guide', () => {
     it('WebcamPreview renders the guide only while the preview gate is open', () => {
         expect(webcamPreview).toContain("import PreviewTutorialButton from './PreviewTutorialButton.jsx'");
@@ -169,7 +184,7 @@ describe('the recording-preview screen has its own guide', () => {
         expect(previewTutorial).toContain('topic: FRIEND_RECORDING_PREVIEW_TOPIC');
         expect(previewTutorial).toContain('topic={FRIEND_RECORDING_PREVIEW_TOPIC}');
         expect(previewTutorial).toContain('id="previewTutorialBtn"');
-        expect(previewTutorial).toContain('bi bi-book-fill');
+        expect(previewTutorial).toContain('bi bi-question-circle-fill');
         // Same render-only contract as the decision rows: no slug/URL building.
         expect(previewTutorial).not.toContain('getVideoUrl');
         expect(previewTutorial).not.toContain('TUTORIAL_SLUG_PREFIX');
@@ -180,7 +195,7 @@ describe('the recording-preview screen has its own guide', () => {
     it('the button is styled to clear the rail, phrase and microphone', () => {
         const block = cssBlock('.preview-tutorial-btn {');
         expect(block).toContain('position: absolute');
-        expect(block).toContain('left: 16px');
+        expect(block).toContain('right: 16px');
         expect(block).toContain('bottom: calc(32px + env(safe-area-inset-bottom, 0px))');
         expect(block).toContain('z-index: 1100');
         expect(block).toContain('width: 48px');
