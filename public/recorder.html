@@ -260,20 +260,9 @@
             border-top-color: var(--border-color);
             display: flex;
             justify-content: center;
-            gap: 15px;
-        }
-
-        .control-bar-review {
-            display: none;
-            padding-top: 15px;
-            padding-bottom: 15px;
-            padding-left: 15px;
-            padding-right: 15px;
-            background-color: #e3f2fd;
-            border-top-width: 1px;
-            border-top-style: solid;
-            border-top-color: #bbdefb;
-            justify-content: center;
+            /* Three take buttons share this bar (reject | stop | accept), so a
+               narrow desktop column wraps them instead of overflowing. */
+            flex-wrap: wrap;
             gap: 15px;
         }
 
@@ -431,7 +420,7 @@
             .video-box:first-of-type { grid-area: cam; }
             .video-box:last-of-type { grid-area: play; }
             .script-content-area { grid-area: content; }
-            .control-bar-main, .control-bar-review { grid-area: buttons; }
+            .control-bar-main { grid-area: buttons; }
             .app-footer { grid-area: foot; }
         }
 
@@ -474,24 +463,26 @@
             <span id="dom-prev-val" class="meta-text-previous">PREVIOUS LINE: ---</span>
         </div>
 
+        <!-- One control bar for every take phase, in the order the operator
+             reads it: REJECT / RETRY left of the STOP button, ACCEPT & UPLOAD
+             right of it, SAVE TO DEVICE last. Show/hide per phase is decided
+             by showTakeControls(), so the reject and accept actions are
+             already on screen while a take is still recording. -->
         <div id="dom-controls-main" class="control-bar-main">
+            <button id="dom-btn-reject" class="btn-universal btn-state-retry" style="display:none;">
+                🗑️ REJECT / RETRY
+            </button>
             <button id="dom-btn-record" class="btn-universal btn-state-record" disabled>
                 ⏺️ START RECORDING
             </button>
-            <button id="dom-btn-pause" class="btn-universal btn-state-pause" style="display:none;">
-                ⏸️ PAUSE COUNT
-            </button>
-        </div>
-
-        <div id="dom-controls-review" class="control-bar-review">
-            <button id="dom-btn-reject" class="btn-universal btn-state-retry">
-                🗑️ REJECT / RETRY
-            </button>
-            <button id="dom-btn-accept" class="btn-universal btn-state-accept">
+            <button id="dom-btn-accept" class="btn-universal btn-state-accept" style="display:none;">
                 ☁️ ACCEPT & UPLOAD
             </button>
-            <button id="dom-btn-download" class="btn-universal btn-state-retry">
+            <button id="dom-btn-download" class="btn-universal btn-state-retry" style="display:none;">
                 ⬇️ SAVE TO DEVICE
+            </button>
+            <button id="dom-btn-pause" class="btn-universal btn-state-pause" style="display:none;">
+                ⏸️ PAUSE COUNT
             </button>
         </div>
 
@@ -565,6 +556,11 @@
         var global_recorder_obj = null;
         var global_data_chunks = [];
         var global_is_recording_flag = false;
+        // What the next MediaRecorder stop should do: null = normal review,
+        // 'accept' = stop then upload straight away, 'discard' = throw the take
+        // away and retry the same line. Set by the reject/accept buttons when
+        // they are pressed during a take.
+        var global_pending_record_action = null;
         
         var global_countdown_timer = null;
         var global_record_duration_timer = null;
@@ -747,12 +743,34 @@
 
                 global_recorder_obj.onstop = function() {
                     appCoreLog("MediaRecorder STOP event received. Finalizing blob...");
+                    var pending_action = global_pending_record_action;
+                    global_pending_record_action = null;
+                    if (pending_action === 'discard') {
+                        // Rejected mid-take: drop the recorded chunks so no
+                        // clip is produced or uploaded, then start the same
+                        // line again immediately.
+                        global_data_chunks = [];
+                        global_last_final_blob = null;
+                        resetTakeControlsToIdle();
+                        node_status_bar.textContent = "TAKE DISCARDED • RETRYING";
+                        node_status_bar.className = "status-indicator-bar status-ready";
+                        appCoreLog("Take discarded — restarting the same line.");
+                        startPreRollSequence();
+                        return;
+                    }
                     generateFinalVideoBuffer();
+                    if (pending_action === 'accept') {
+                        // Accepted mid-take: the take is complete, so upload it
+                        // now instead of waiting for a separate review click.
+                        appCoreLog("Take accepted while recording — uploading now.");
+                        node_btn_accept.click();
+                    }
                 };
 
                 // INITIALIZE THE START
                 global_recorder_obj.start();
                 global_is_recording_flag = true;
+                showTakeControls('recording');
                 
                 // UPDATE BUTTON UI IMMEDIATELY
                 node_btn_record.innerHTML = "<span>🛑</span> STOP RECORDING";
@@ -821,8 +839,7 @@ node_video_preview.play(); // Explicitly restart playback
             
             // TRANSITION TO REVIEW MODE
             document.body.classList.add('is-reviewing-now');
-            document.getElementById('dom-controls-main').style.display = "none";
-            document.getElementById('dom-controls-review').style.display = "flex";
+            showTakeControls('review');
             
             var size_mb = (final_video_blob.size / 1024 / 1024).toFixed(2);
             appCoreLog("MP4 Generated: " + size_mb + " MB");
@@ -834,6 +851,38 @@ node_video_preview.play(); // Explicitly restart playback
 
         /**
          * ==========================================
+         * TAKE CONTROL BAR VISIBILITY
+         * ==========================================
+         */
+        /**
+         * Shows the actions a phase offers, in the bar's fixed order (reject |
+         * stop | accept | save). Recording offers reject and accept straight
+         * away so the operator never has to stop first and then decide, which
+         * is the point of the layout: STOP is one option among three, not the
+         * only way out of a take.
+         */
+        function showTakeControls(phase) {
+            var is_recording = phase === 'recording';
+            var is_review = phase === 'review';
+            node_btn_reject.style.display = (is_recording || is_review) ? 'flex' : 'none';
+            node_btn_accept.style.display = (is_recording || is_review) ? 'flex' : 'none';
+            node_btn_download.style.display = is_review ? 'flex' : 'none';
+            node_btn_record.style.display = (is_recording || phase === 'pre-roll' || phase === 'idle')
+                ? 'flex'
+                : 'none';
+        }
+
+        // Back to a clean START RECORDING bar for the current script line.
+        function resetTakeControlsToIdle() {
+            document.body.classList.remove('is-reviewing-now');
+            showTakeControls('idle');
+            node_btn_record.innerHTML = "<span>⏺️</span> START RECORDING";
+            node_btn_record.className = "btn-universal btn-state-record";
+            node_btn_record.disabled = false;
+        }
+
+        /**
+         * ==========================================
          * PRE-ROLL PREPARATION
          * ==========================================
          */
@@ -841,6 +890,7 @@ node_video_preview.play(); // Explicitly restart playback
             var counter_val = 4;
             node_btn_record.disabled = true;
             node_btn_pause.style.display = "inline-block";
+            showTakeControls('pre-roll');
             global_is_paused_logic = false;
             
             node_overlay_count.style.display = "block";
@@ -1144,13 +1194,7 @@ node_video_preview.play(); // Explicitly restart playback
             global_current_index = global_current_index + 1;
             
             // Reset Layout for Next take
-            document.body.classList.remove('is-reviewing-now');
-            document.getElementById('dom-controls-main').style.display = "flex";
-            document.getElementById('dom-controls-review').style.display = "none";
-            
-            node_btn_record.innerHTML = "<span>⏺️</span> START RECORDING";
-            node_btn_record.className = "btn-universal btn-state-record";
-            node_btn_record.disabled = false;
+            resetTakeControlsToIdle();
             
             synchronizeDisplay();
             
@@ -1243,6 +1287,19 @@ node_video_preview.play(); // Explicitly restart playback
         }
 
         node_btn_accept.onclick = function() {
+            // A stop is already in flight — the pending action owns the next
+            // step, so a second click must not start a parallel upload.
+            if (global_pending_record_action) {
+                return;
+            }
+            if (global_is_recording_flag === true) {
+                // Accepted while the take is still recording: stop it and
+                // upload immediately, skipping the review pause.
+                appCoreLog("Accept pressed while recording — stopping and uploading.");
+                global_pending_record_action = 'accept';
+                executeStopRecording();
+                return;
+            }
             var current_line_meta = global_script_phrases[global_current_index];
             var bare_filename = current_line_meta.filename || ("take_" + global_current_index);
             var operator_key = getOperatorKey();
@@ -1452,15 +1509,20 @@ node_video_preview.play(); // Explicitly restart playback
         }
 
         node_btn_reject.onclick = function() {
+            // A stop is already in flight — the pending action owns the next step.
+            if (global_pending_record_action) {
+                return;
+            }
+            if (global_is_recording_flag === true) {
+                // Rejected while the take is still recording: throw the clip
+                // away and start the same line again straight away.
+                appCoreLog("Recording rejected mid-take — retrying the same line.");
+                global_pending_record_action = 'discard';
+                executeStopRecording();
+                return;
+            }
             appCoreLog("Recording discarded by user.");
-            
-            document.body.classList.remove('is-reviewing-now');
-            document.getElementById('dom-controls-main').style.display = "flex";
-            document.getElementById('dom-controls-review').style.display = "none";
-            
-            node_btn_record.innerHTML = "<span>⏺️</span> START RECORDING";
-            node_btn_record.className = "btn-universal btn-state-record";
-            node_btn_record.disabled = false;
+            resetTakeControlsToIdle();
             
             node_status_bar.textContent = "HARDWARE READY • MP4 STRICT MODE ENABLED";
             node_status_bar.className = "status-indicator-bar status-ready";
