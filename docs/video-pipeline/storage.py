@@ -65,6 +65,29 @@ def endpoint_url(environ=None) -> str:
     return f"https://{account_id}.r2.cloudflarestorage.com"
 
 
+# One stalled socket must not destroy a whole render. A course render uploads
+# hundreds of megabytes; boto3's default 60 s read timeout plus legacy retries
+# turned a single slow multipart part into a failed ~50-minute job
+# (2026-10-26, cartoon-preferences: ReadTimeout on
+# pipeline-assets/social/...-c-01.mp4?partNumber=1, after the render itself had
+# succeeded). Standard mode retries a read timeout instead of surfacing it, and
+# a longer read timeout absorbs a slow part.
+R2_MAX_ATTEMPTS = 10
+R2_CONNECT_TIMEOUT = 30
+R2_READ_TIMEOUT = 300
+
+
+def r2_client_config():
+    """The botocore client config every R2 client uses (retries + timeouts)."""
+    from botocore.config import Config
+
+    return Config(
+        retries={"max_attempts": R2_MAX_ATTEMPTS, "mode": "standard"},
+        connect_timeout=R2_CONNECT_TIMEOUT,
+        read_timeout=R2_READ_TIMEOUT,
+    )
+
+
 @contextmanager
 def r2_client(environ=None):
     """A boto3 S3 client bound to the R2 endpoint. Closed on exit."""
@@ -77,6 +100,7 @@ def r2_client(environ=None):
         aws_access_key_id=env["R2_ACCESS_KEY_ID"],
         aws_secret_access_key=env["R2_SECRET_ACCESS_KEY"],
         region_name="auto",
+        config=r2_client_config(),
     )
     try:
         yield client
