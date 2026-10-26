@@ -308,11 +308,14 @@ def _restore_from_cache(course_id, fingerprint, plan, cache_keys, objects):
 
     Only the entries whose published objects are missing or stale need their
     source, so a retry after one failed upload downloads that one file rather
-    than the whole course.
+    than the whole course. Returns ``(ok, already_current_slugs)``: a slug whose
+    objects all match is live already and has no local source, so the caller must
+    still report it as published.
     """
     import render_cache
     import video_pipeline as pipeline
 
+    current = []
     for entry in plan:
         web_name = entry.get("web_name")
         need_web = any(
@@ -322,7 +325,7 @@ def _restore_from_cache(course_id, fingerprint, plan, cache_keys, objects):
         if need_web:
             key = render_cache.output_key(course_id, fingerprint, "web", web_name)
             if key not in cache_keys:
-                return False
+                return False, current
             storage.download_to(key, os.path.join(pipeline.WEB_DIR, web_name))
         # A per-take phrase video may have no social twin at all; the cache is
         # the source of truth for "this entry had one", so an entry without a
@@ -335,7 +338,9 @@ def _restore_from_cache(course_id, fingerprint, plan, cache_keys, objects):
         )
         if need_social:
             storage.download_to(social_cache_key, os.path.join(pipeline.SOCIAL_DIR, web_name))
-    return True
+        if not need_web and not need_social:
+            current.append(entry.get("slug"))
+    return True, current
 
 
 def _write_manifest(course_id, fingerprint, plan, srt_by_prefix, take_ids, files, objects):
@@ -440,9 +445,12 @@ def orchestrator(spec: dict):
         if manifest:
             cache_keys = set(storage.list_keys(render_cache.cache_prefix(course_id, fingerprint)))
         plan = render_cache.plan_from_manifest(manifest) if manifest else []
-        restored = bool(plan) and _restore_from_cache(
-            course_id, fingerprint, plan, cache_keys,
-            render_cache.objects_from_manifest(manifest))
+        cache_objects = render_cache.objects_from_manifest(manifest) if manifest else {}
+        current_slugs = []
+        restored = False
+        if plan:
+            restored, current_slugs = _restore_from_cache(
+                course_id, fingerprint, plan, cache_keys, cache_objects)
         gpu_seconds = 0.0
 
         if restored:
@@ -508,8 +516,15 @@ def orchestrator(spec: dict):
             _store_render_cache(course_id, fingerprint, files, plan, srt_by_prefix, take_ids)
 
         publish_result = _publish(plan, on_progress=_on_publish_progress)
-        published = publish_result["published"]
-        social_published = publish_result["social_published"]
+        # An entry with no local source (fully current cache hit) is still live;
+        # report it, or a "nothing to do" retry looks like it published nothing.
+        social_current = [
+            entry.get("slug") for entry in plan
+            if entry.get("slug") in current_slugs
+            and cache_objects.get(entry.get("social_video_key"))
+        ]
+        published = list(dict.fromkeys(current_slugs + publish_result["published"]))
+        social_published = list(dict.fromkeys(social_current + publish_result["social_published"]))
         # Record the published digests, so a later retry can prove from object
         # metadata that there is nothing left to do (no downloads at all).
         try:
