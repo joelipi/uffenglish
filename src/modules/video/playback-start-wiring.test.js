@@ -149,7 +149,11 @@ describe('the start ladder asks for sound once then falls back to muted', () => 
     const attemptStart = sliceBetween(playbackRaw, 'const attemptStart = (attempt = 0) => {', '\n    };');
 
     it('derives the mute state from the ladder rule', () => {
-        expect(attemptStart).toContain('shouldStartMuted({ attempt, muteIntent: muteIntentRef.current })');
+        expect(attemptStart).toContain('shouldStartMuted({');
+        expect(attemptStart).toContain('muteIntent: muteIntentRef.current');
+        // iPadOS refuses the unmuted start unconditionally, so iOS asks for the
+        // muted start from attempt 0 and re-opens the audio once playing.
+        expect(attemptStart).toContain('preferMutedStart: isIOS');
         expect(attemptStart).toContain('setElementMuted(video, muted)');
         // The mute must be applied BEFORE play() is asked for: a muted start is
         // only allowed once the element already carries the muted attribute.

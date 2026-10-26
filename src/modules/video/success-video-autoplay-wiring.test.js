@@ -53,8 +53,8 @@ describe('the success clip walks the same ladder', () => {
             .toBeLessThan(blobEffect.indexOf('playSafely(el)'));
     });
 
-    it('asks for sound once, then retries muted', () => {
-        expect(blobEffect).toContain('shouldStartMuted({ attempt })');
+    it('asks for the only start iPadOS allows, then retries muted', () => {
+        expect(blobEffect).toContain('preferMutedStart: isIOS');
         expect(blobEffect).toContain('setElementMuted(el, muted)');
         // The mute must be applied BEFORE play() is asked for.
         expect(blobEffect.indexOf('setElementMuted(el, muted)'))

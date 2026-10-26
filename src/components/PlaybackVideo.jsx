@@ -232,7 +232,14 @@ export default function PlaybackVideo() {
         }
         waitingSinceRef.current = null;
 
-        const muted = shouldStartMuted({ attempt, muteIntent: muteIntentRef.current });
+        const muted = shouldStartMuted({
+            attempt,
+            muteIntent: muteIntentRef.current,
+            // iPadOS refuses the unmuted start unconditionally, so ask for the
+            // muted start that is actually allowed and re-open the audio after
+            // it is playing (stories/094). Desktop/Android still start audible.
+            preferMutedStart: isIOS,
+        });
         const applied = setElementMuted(video, muted);
         if (attempt === 0 && !muted) {
             // A fresh clip is audible; mirror the state so the player and the

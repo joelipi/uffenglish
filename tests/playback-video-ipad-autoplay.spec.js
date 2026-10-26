@@ -12,6 +12,7 @@ import { test, expect } from '@playwright/test';
 import { confirmGuestLanguage } from './helpers/lesson-e2e.js';
 
 const LESSON_URL = '/course/model/lesson/m-g';
+const IPAD_UA = 'Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
 
 /** Record a short WebM in the page — the shape the app records (canvas + audio). */
 async function mountRecordedTake(page, seconds = 3) {
@@ -200,5 +201,35 @@ test.describe('iPad autoplay shapes for the recorded take', () => {
         await page.locator('#playback-video').click({ force: true });
         await expectTakePlaying(page);
         expect(pageErrors).toEqual([]);
+    });
+
+    // The recorded take is the one place the app knows it is on iOS and can
+    // choose the only start iPadOS allows: muted first, then re-open the audio.
+    test.describe('an iPad user agent starts muted on the first attempt', () => {
+        test.use({ userAgent: IPAD_UA });
+
+        test('the first play() call for the take is muted', async ({ page }) => {
+            await page.addInitScript(() => {
+                const original = HTMLMediaElement.prototype.play;
+                window.__uffPlayCalls = [];
+                HTMLMediaElement.prototype.play = function patchedPlay() {
+                    window.__uffPlayCalls.push({ id: this.id, paused: this.paused, muted: this.muted });
+                    return original.apply(this, arguments);
+                };
+            });
+
+            await openLesson(page);
+            await mountRecordedTake(page);
+            await expectTakePlaying(page);
+
+            const calls = await page.evaluate(
+                () => window.__uffPlayCalls.filter((call) => call.id === 'playback-video')
+            );
+            expect(calls.length).toBeGreaterThan(0);
+            // The unmuted start is always refused on iPad; asking for it first
+            // makes the take depend on the fallback's timing (the ?diag=1 race).
+            expect(calls[0]).toMatchObject({ paused: true, muted: true });
+            expect(pageErrors).toEqual([]);
+        });
     });
 });

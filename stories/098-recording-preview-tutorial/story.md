@@ -111,6 +111,16 @@ This adds a dedicated tutorial topic for the preview screen, its own script/subt
   - → the diagnostics panel's extra re-render was supplying the missing delay; the macrotask makes the start independent of render timing
   - → the iPad autoplay spec (4/4) still passes with the deferred kick
 
+### Task 7 - iOS asks for the muted start first
+
+- `shouldStartMuted({ attempt: 0, preferMutedStart: true })` + called in unit test
+  - → `true` (the only start iPadOS allows), while `preferMutedStart: false` keeps the audible first attempt
+- `PlaybackVideo` / `SuccessVideo` source + called in static guard test
+  - → both pass `preferMutedStart: isIOS` to `shouldStartMuted`, so attempt 0 is muted on iPad/iPhone and the audio is re-opened after it plays
+- iPad user-agent Playwright case + executed against the recorded take
+  - → the first `play()` call for `#playback-video` has `paused: true, muted: true`
+  - → without `preferMutedStart` the first call is `muted: false` and the case fails
+
 ## Notes
 
 - The placeholder clip is generated with real Chrome (`channel: 'chrome'`, already installed here) and uploaded with `npx wrangler r2 object put uff/assets/videos/tutorial-friendRecordingPreview.mp4 --file <out> --content-type video/mp4`; the private `uff` bucket is the same one the existing tutorials live in.
