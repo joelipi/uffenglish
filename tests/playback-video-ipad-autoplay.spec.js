@@ -152,6 +152,28 @@ test.describe('iPad autoplay shapes for the recorded take', () => {
         expect(pageErrors).toEqual([]);
     });
 
+    test('a second take does not inherit the previous take\'s silent loop', async ({ page }) => {
+        await openLesson(page);
+        await mountRecordedTake(page, 1);
+        await expectTakePlaying(page);
+
+        // Let the first take end and switch itself into the silent loop.
+        await page.waitForFunction(() => {
+            const v = document.querySelector('#playback-video');
+            return !!v && v.loop === true;
+        }, null, { timeout: 15000 });
+
+        // Hand over a re-record. The persistent <video> element keeps `loop`
+        // unless the new take resets it; an inherited `true` means the second
+        // take auto-loops from its first play and never fires `ended`, so it
+        // never performs the audible-once → silent-loop hand-off.
+        await mountRecordedTake(page, 1);
+        await page.waitForFunction(() => {
+            const v = document.querySelector('#playback-video');
+            return !!v && !v.paused && v.loop === false;
+        }, null, { timeout: 15000 });
+    });
+
     test('a tap on a paused take starts it instead of toggling the sound', async ({ page }) => {
         // Refuse every start attempt (the Low Power Mode shape): the ladder ends
         // with the take paused.

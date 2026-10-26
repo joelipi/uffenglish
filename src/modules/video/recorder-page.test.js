@@ -1806,6 +1806,12 @@ describe('recorder auto-render — zero server changes', () => {
             'src/assets/css/app.css',
             'scripts/generate-tutorial-placeholders.mjs',
             'scripts/generate-tutorial-placeholders.test.js',
+            // Story 098 follow-up: the recorded take's silent-loop flag must
+            // reset for the next blob (re-record / next step).
+            'src/components/PlaybackVideo.jsx',
+            'src/modules/video/playback-start-wiring.test.js',
+            'tests/playback-video-ipad-autoplay.spec.js',
+            'AGENTS.md',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);

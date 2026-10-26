@@ -93,6 +93,14 @@ This adds a dedicated tutorial topic for the preview screen, its own script/subt
 - `tutorial-friendRecordingPreview.mp4` uploaded to `uff/assets/videos/` + verified by R2 HEAD/GET
   - → returns 200 `video/mp4`
 
+### Task 5 - A new take starts from its own loop state (recorded-take regression)
+
+- `PlaybackVideo` blob effect + called in static guard test
+  - → sets `video.loop = false` before `video.src = URL.createObjectURL(blob)`
+- a take that played once and entered its silent loop, then a second take mounted + Playwright iPad spec
+  - → the second take starts with `video.loop === false`, so it can fire `ended` and perform its own audible-once → silent-loop hand-off
+  - → without the reset the second take inherits `loop = true`, never fires `ended`, and never goes silent (the bug reproduced by the new spec case)
+
 ## Notes
 
 - The placeholder clip is generated with real Chrome (`channel: 'chrome'`, already installed here) and uploaded with `npx wrangler r2 object put uff/assets/videos/tutorial-friendRecordingPreview.mp4 --file <out> --content-type video/mp4`; the private `uff` bucket is the same one the existing tutorials live in.

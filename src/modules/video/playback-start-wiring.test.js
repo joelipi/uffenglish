@@ -77,6 +77,17 @@ describe('the take starts from every readiness signal, not one event', () => {
     });
 });
 
+describe('a new take starts from its own state', () => {
+    it('clears the previous take\'s persistent loop before assigning the new source', () => {
+        const blobEffect = sliceBetween(playbackRaw, '// Blob URL management', '// Clear trigger');
+        expect(blobEffect).toContain('video.loop = false;');
+        // `loop` is a property on the persistent element, so assigning a new src
+        // does not reset it; a re-record must not auto-loop from its first play.
+        expect(blobEffect.indexOf('video.loop = false;'))
+            .toBeLessThan(blobEffect.indexOf('video.src = URL.createObjectURL(blob);'));
+    });
+});
+
 describe('the start path survives WebKit returning undefined from play()', () => {
     it('imports playSafely from the video module', () => {
         expect(playbackRaw).toContain('playSafely,');

@@ -435,6 +435,13 @@ export default function PlaybackVideo() {
         const video = videoRef.current;
         if (!video) return;
 
+        // A new take must not inherit the previous take's silent loop. `loop`
+        // is a property on the persistent <video> element and survives a `src`
+        // change, so a re-record would otherwise auto-loop from its first play
+        // and never fire `ended` (which is what starts the silent loop). The
+        // first take is unaffected: the property is already false.
+        video.loop = false;
+
         // A new take starts from scratch: nothing has started yet, and no timer
         // from the previous clip may fire into this one.
         clearRetry();
