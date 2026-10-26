@@ -100,12 +100,21 @@ def _github_fetch(url, method="GET", headers=None, body=None):
 
 
 def _fetch_takes(workdir, files):
+    """Download the raw takes and return their published identity.
+
+    The identity (``etag`` + ``size``) feeds the render-cache fingerprint: a
+    re-recorded take keeps its slug but changes the bytes, so the cache must miss.
+    """
+    identities = {}
     for slug in files:
         key = raw_take_key(slug)
         if not key:
             continue
         dest = os.path.join(workdir, "rawvideos", f"{slug}.mp4")
         storage.download_to(key, dest)
+        meta = storage.head(key) or {}
+        identities[slug] = {"etag": meta.get("etag") or "", "size": meta.get("size") or 0}
+    return identities
 
 
 def _sheet_fetch(url):
@@ -211,6 +220,144 @@ def _write_status(job_id, status, stage, extra=None):
         storage.upload_json(key, serialize_status(payload))
 
 
+def _rows_for_files(rows, files):
+    """The CSV rows that define this run's takes (the cache fingerprint's input).
+
+    A row whose ``filename`` is in scope defines a take; rows without one (the
+    branch/answer variant rows) do not change the rendered bytes on their own,
+    but their step key does, so include rows whose ``video_file`` is in scope too.
+    """
+    wanted = {str(f).strip() for f in files}
+    scoped = []
+    for row in rows or []:
+        name = str(row.get("filename") or "").strip()
+        step = str(row.get("video_file") or "").strip()
+        if (name and name in wanted) or (step and step in wanted):
+            # Plain dicts: the fingerprint helper must not receive pandas Series.
+            scoped.append({k: v for k, v in row.items()})
+    return scoped or [{k: v for k, v in row.items()} for row in (rows or [])]
+
+
+def _load_manifest(course_id, fingerprint):
+    """The render cache's manifest for this fingerprint, or None.
+
+    A cache is an optimization, never a gate: any read problem is a miss.
+    """
+    import render_cache
+
+    try:
+        return storage.read_json(render_cache.manifest_key(course_id, fingerprint))
+    except Exception as exc:  # noqa: BLE001 - a broken cache must not fail a render
+        print(f"⚠️ render cache manifest unreadable: {exc}")
+        return None
+
+
+def _restore_cached_bg(course_id, fingerprint, files, cache_keys):
+    """Restore Stage-2 outputs into ``VIDEO_DIRECTORY``; returns the take slugs restored."""
+    import render_cache
+    import video_pipeline as pipeline
+
+    restored = []
+    for take in files:
+        dest = os.path.join(pipeline.VIDEO_DIRECTORY, f"{take}_no_silence_bg_removed.mp4")
+        if os.path.exists(dest):
+            restored.append(take)
+            continue
+        key = render_cache.bg_key(course_id, fingerprint, take)
+        if key not in cache_keys:
+            continue
+        try:
+            storage.download_to(key, dest)
+            restored.append(take)
+        except Exception as exc:  # noqa: BLE001 - fall back to rendering this take
+            print(f"⚠️ render cache restore failed for {take}: {exc}")
+    return restored
+
+
+def _restore_from_cache(course_id, fingerprint, plan, cache_keys, objects):
+    """Download the sources a publish still needs. False when the cache cannot.
+
+    Only the entries whose published objects are missing or stale need their
+    source, so a retry after one failed upload downloads that one file rather
+    than the whole course.
+    """
+    import render_cache
+    import video_pipeline as pipeline
+
+    for entry in plan:
+        web_name = entry.get("web_name")
+        need_web = any(
+            render_cache.should_upload(storage.head(entry.get(key)), objects.get(entry.get(key), ""))
+            for key in ("video_key", "poster_key")
+        )
+        if need_web:
+            key = render_cache.output_key(course_id, fingerprint, "web", web_name)
+            if key not in cache_keys:
+                return False
+            storage.download_to(key, os.path.join(pipeline.WEB_DIR, web_name))
+        # A per-take phrase video may have no social twin at all; the cache is
+        # the source of truth for "this entry had one", so an entry without a
+        # cached social file must not demand one (that would fall back to a
+        # full re-render for the whole run).
+        social_cache_key = render_cache.output_key(course_id, fingerprint, "social", web_name)
+        need_social = social_cache_key in cache_keys and any(
+            render_cache.should_upload(storage.head(entry.get(key)), objects.get(entry.get(key), ""))
+            for key in ("social_video_key", "social_poster_key")
+        )
+        if need_social:
+            storage.download_to(social_cache_key, os.path.join(pipeline.SOCIAL_DIR, web_name))
+    return True
+
+
+def _write_manifest(course_id, fingerprint, plan, srt_by_prefix, take_ids, files, objects):
+    """Persist the cache manifest (best-effort)."""
+    import json
+    from datetime import datetime, timezone
+
+    import render_cache
+
+    payload = render_cache.manifest_payload(
+        course_id, fingerprint, plan, objects, srt_by_prefix,
+        take_ids=take_ids, files=files,
+        created=datetime.now(timezone.utc).isoformat(),
+    )
+    storage.upload_json(render_cache.manifest_key(course_id, fingerprint),
+                        json.dumps(payload))
+
+
+def _store_render_cache(course_id, fingerprint, files, plan, srt_by_prefix, take_ids):
+    """Persist what this run rendered, so a retry can skip Stages 1-3.
+
+    Written BEFORE the publish: a publish failure then leaves a retry with only
+    uploads (and the hash-skip) to do. Best-effort — a cache write must never
+    fail an otherwise-good render.
+    """
+    import json
+
+    import render_cache
+    import video_pipeline as pipeline
+
+    try:
+        for take in files:
+            local = os.path.join(pipeline.VIDEO_DIRECTORY, f"{take}_no_silence_bg_removed.mp4")
+            if os.path.exists(local):
+                _upload_if_changed(local, render_cache.bg_key(course_id, fingerprint, take),
+                                   "video/mp4")
+        for entry in plan:
+            for kind, directory in (("web", pipeline.WEB_DIR), ("social", pipeline.SOCIAL_DIR)):
+                local = os.path.join(directory, entry["web_name"])
+                if os.path.exists(local):
+                    _upload_if_changed(
+                        local,
+                        render_cache.output_key(course_id, fingerprint, kind, entry["web_name"]),
+                        "video/mp4")
+        storage.upload_json(render_cache.srt_key(course_id, fingerprint),
+                            json.dumps(srt_by_prefix or {}))
+        _write_manifest(course_id, fingerprint, plan, srt_by_prefix, take_ids, files, objects={})
+    except Exception as exc:  # noqa: BLE001 - cache is an optimization
+        print(f"⚠️ render cache write failed: {exc}")
+
+
 @app.function(image=cpu_image, cpu=8, memory=16384, timeout=7200,
               secrets=[secret, github_secret])
 def orchestrator(spec: dict):
@@ -227,11 +374,22 @@ def orchestrator(spec: dict):
     course_id = spec["course"]
     os.makedirs(WORKDIR, exist_ok=True)
     started = time.time()
+    progress_state = {"published": [], "social_published": []}
+
+    def _on_publish_progress(pub, social):
+        # Written after every entry, so a failure's marker names exactly what
+        # landed. Before this, a timeout reported `published: []` while a dozen
+        # objects were live.
+        progress_state["published"] = list(pub)
+        progress_state["social_published"] = list(social)
+        _write_status(job_id, "running", "publish", dict(progress_state))
 
     try:
+        import render_cache
+
         _write_status(job_id, "running", "fetch")
         _fetch_assets(WORKDIR, course_id=course_id)
-        _fetch_takes(WORKDIR, files)
+        take_ids = _fetch_takes(WORKDIR, files)
 
         # Create the pipeline's sub-directories (no_silence/, output/social, …)
         # and verify deps/fonts before Stage 1. The local main() calls this;
@@ -241,54 +399,96 @@ def orchestrator(spec: dict):
             raise RuntimeError("pipeline environment not ready (missing dependency or font)")
 
         csv_file = os.path.join(WORKDIR, "video_data.csv")
-        background_mapping, mirror_mapping = pipeline.load_background_mapping(csv_file)
-
-        _write_status(job_id, "running", "stage1")
-        stage_args = argparse.Namespace(
-            silence_threshold=-50, min_silence=1000, min_speech=300,
-            start_margin=100, end_margin=500, output_suffix="no_silence",
-            cfr_fps=30, workers=8,
-        )
-        pipeline.run_silence_removal(stage_args, background_mapping,
-                                     mirror_mapping, only=files)
-
-        _write_status(job_id, "running", "stage2")
-        gpu_seconds = pipeline.run_background_removal(background_mapping,
-                                                      mirror_mapping, only=files)
-
-        _write_status(job_id, "running", "stage3")
-        pipeline.process_video_batch(csv_file, max_workers=8, only=files)
-        join_plan, joined_prefixes = pipeline.load_join_plan(csv_file)
-        phrase_map = pipeline.load_phrase_map(csv_file)
-        # `video_file` is the step key for the rendered video, the join and the
-        # SRT (falling back to the filename prefix on legacy rows without it).
         video_file_map = pipeline.load_video_file_map(csv_file)
-        _, srt_by_prefix = pipeline.concatenate_all_processed_videos(
-            joined_prefixes, phrase_map, video_file_map, join_plan)
-        # Persist the computed SRT into the CSV (before the join, so the CSV
-        # carries the per-step srt values), then after the join upload the updated
-        # CSV back to R2 so the sync-srt action can write the `srt` column into
-        # the master CSV (story 050, Option B), mirroring video_pipeline.main.
-        pipeline.write_srt_column(csv_file, srt_by_prefix, video_file_map)
-        pipeline.concatenate_joined_videos(join_plan)
-        storage.upload_file(csv_file, pipeline_asset_key("video_data.csv"),
-                            content_type="text/csv")
-
-        _write_status(job_id, "running", "publish")
         rows = pipeline.load_csv_rows(csv_file)
-        # The plan derives the step/join slugs from the rows themselves (the
-        # join column), so it needs the rendered `output/web` listing; the
-        # social twins share one compositing pass with it.
-        plan = plan_publish(rows, os.listdir(pipeline.WEB_DIR), only=files)
-        # Per-take phrase-only web videos are named after the raw take (no
-        # `processed_`/`_full` suffix) and are served to the app as-is.
-        take_plan = plan_publish_phrase_takes(os.listdir(pipeline.WEB_DIR), only=files)
-        seen = {e["slug"] for e in plan}
-        take_plan = [e for e in take_plan if e["slug"] not in seen]
-        plan = plan + take_plan
-        publish_result = _publish(plan)
+
+        # Content-addressed render cache: the fingerprint covers this run's CSV
+        # rows and the raw takes' published identities, so unchanged inputs hit
+        # and a retry skips Stages 1-3 instead of re-rendering every frame.
+        fingerprint = render_cache.inputs_fingerprint(_rows_for_files(rows, files), take_ids)
+        manifest = _load_manifest(course_id, fingerprint)
+        cache_keys = set()
+        if manifest:
+            cache_keys = set(storage.list_keys(render_cache.cache_prefix(course_id, fingerprint)))
+        plan = render_cache.plan_from_manifest(manifest) if manifest else []
+        restored = bool(plan) and _restore_from_cache(
+            course_id, fingerprint, plan, cache_keys,
+            render_cache.objects_from_manifest(manifest))
+        gpu_seconds = 0.0
+
+        if restored:
+            print(f"♻️ render cache hit: {len(plan)} publish entries, Stages 1-3 skipped")
+            _write_status(job_id, "running", "publish")
+            srt_by_prefix = render_cache.srt_from_manifest(manifest)
+            pipeline.write_srt_column(csv_file, srt_by_prefix, video_file_map)
+            storage.upload_file(csv_file, pipeline_asset_key("video_data.csv"),
+                                content_type="text/csv")
+        else:
+            background_mapping, mirror_mapping = pipeline.load_background_mapping(csv_file)
+            # Restore whatever Stage-2 outputs the cache has; the stages skip an
+            # existing output, so this saves the GPU work for finished takes.
+            restored_takes = _restore_cached_bg(course_id, fingerprint, files, cache_keys)
+            if restored_takes and set(restored_takes) >= set(files):
+                print(f"♻️ render cache hit: all {len(files)} takes restored, Stages 1-2 skipped")
+            else:
+                _write_status(job_id, "running", "stage1")
+                stage_args = argparse.Namespace(
+                    silence_threshold=-50, min_silence=1000, min_speech=300,
+                    start_margin=100, end_margin=500, output_suffix="no_silence",
+                    cfr_fps=30, workers=8,
+                )
+                pipeline.run_silence_removal(stage_args, background_mapping,
+                                             mirror_mapping, only=files)
+
+                _write_status(job_id, "running", "stage2")
+                gpu_seconds = pipeline.run_background_removal(background_mapping,
+                                                              mirror_mapping, only=files)
+
+            _write_status(job_id, "running", "stage3")
+            pipeline.process_video_batch(csv_file, max_workers=8, only=files)
+            join_plan, joined_prefixes = pipeline.load_join_plan(csv_file)
+            phrase_map = pipeline.load_phrase_map(csv_file)
+            # `video_file` is the step key for the rendered video, the join and the
+            # SRT (falling back to the filename prefix on legacy rows without it).
+            video_file_map = pipeline.load_video_file_map(csv_file)
+            _, srt_by_prefix = pipeline.concatenate_all_processed_videos(
+                joined_prefixes, phrase_map, video_file_map, join_plan)
+            # Persist the computed SRT into the CSV (before the join, so the CSV
+            # carries the per-step srt values), then after the join upload the updated
+            # CSV back to R2 so the sync-srt action can write the `srt` column into
+            # the master CSV (story 050, Option B), mirroring video_pipeline.main.
+            pipeline.write_srt_column(csv_file, srt_by_prefix, video_file_map)
+            pipeline.concatenate_joined_videos(join_plan)
+            storage.upload_file(csv_file, pipeline_asset_key("video_data.csv"),
+                                content_type="text/csv")
+
+            _write_status(job_id, "running", "publish")
+            rows = pipeline.load_csv_rows(csv_file)
+            # The plan derives the step/join slugs from the rows themselves (the
+            # join column), so it needs the rendered `output/web` listing; the
+            # social twins share one compositing pass with it.
+            plan = plan_publish(rows, os.listdir(pipeline.WEB_DIR), only=files)
+            # Per-take phrase-only web videos are named after the raw take (no
+            # `processed_`/`_full` suffix) and are served to the app as-is.
+            take_plan = plan_publish_phrase_takes(os.listdir(pipeline.WEB_DIR), only=files)
+            seen = {e["slug"] for e in plan}
+            take_plan = [e for e in take_plan if e["slug"] not in seen]
+            plan = plan + take_plan
+            # Cache BEFORE publishing: if the publish dies, the retry restores
+            # these files instead of re-rendering them.
+            _store_render_cache(course_id, fingerprint, files, plan, srt_by_prefix, take_ids)
+
+        publish_result = _publish(plan, on_progress=_on_publish_progress)
         published = publish_result["published"]
         social_published = publish_result["social_published"]
+        # Record the published digests, so a later retry can prove from object
+        # metadata that there is nothing left to do (no downloads at all).
+        try:
+            _write_manifest(course_id, fingerprint, plan, srt_by_prefix, take_ids, files,
+                            objects=publish_result.get("digests") or {})
+        except Exception as exc:  # noqa: BLE001 - cache is an optimization
+            print(f"⚠️ render cache manifest finalize failed: {exc}")
+
 
         # Lesson intros are synthesized from the master CSV's `intro_video` column,
         # so they never enter the plan above; the render still owes them their
@@ -332,11 +532,28 @@ def orchestrator(spec: dict):
                 "intro_posters": intro_posters,
                 "wall_seconds": wall, "gpu_seconds": gpu_seconds}
     except Exception as exc:  # noqa: BLE001 - surface any failure as a status marker
-        _write_status(job_id, "error", "error", {"error": str(exc)})
+        # Carry the publish progress: a failed run must say what already landed.
+        _write_status(job_id, "error", "error", {"error": str(exc), **progress_state})
         raise
 
 
-def _publish(plan):
+def _upload_if_changed(local_path, r2_key, content_type):
+    """Upload only when the published object's ``sha256`` differs.
+
+    Existence is not identity: an object written by an older pipeline carries no
+    digest and is re-uploaded. Returns the local file's digest either way, so
+    the caller can record what the published bytes are.
+    """
+    import render_cache
+
+    digest = storage.sha256_file(local_path)
+    if render_cache.should_upload(storage.head(r2_key), digest):
+        storage.upload_file(local_path, r2_key, content_type=content_type,
+                            metadata={"sha256": digest})
+    return digest
+
+
+def _publish(plan, on_progress=None):
     """Publish each planned web file plus a 0.2s poster; enforce the web budget.
 
     Every entry also publishes its private **social twin** — the CRF-18
@@ -344,6 +561,11 @@ def _publish(plan):
     ``poster_args`` still cut from that master. Social files upload as-is (no
     budget check, no re-encode: the master is the high-quality source) and are
     required, so a social upload error propagates exactly like a web one.
+
+    Uploads are idempotent (``_upload_if_changed``), so a retry re-sends only the
+    objects whose bytes changed. ``on_progress(published, social_published)`` is
+    called after each entry, so a failure's status marker names exactly what
+    landed instead of reporting an empty list.
     """
     from pipeline_lib import (
         is_within_web_budget,
@@ -359,6 +581,7 @@ def _publish(plan):
 
     published = []
     social_published = []
+    digests = {}
     for entry in plan:
         slug = entry["slug"]
         source = os.path.join(pipeline.WEB_DIR, entry["web_name"])
@@ -373,19 +596,21 @@ def _publish(plan):
                 # `*_args` return ffmpeg *arguments* (they start with `-y`), so
                 # the binary must be prepended or Python tries to exec `-y`.
                 subprocess.run(["ffmpeg", *reencode_web_args(source, web)], check=True)
-            storage.upload_file(web, entry["video_key"], content_type="video/mp4")
+            digests[entry["video_key"]] = _upload_if_changed(
+                web, entry["video_key"], "video/mp4")
             poster = os.path.join(tmp, "poster.jpg")
             subprocess.run(["ffmpeg", *poster_args(web, poster)], check=True)
-            storage.upload_file(poster, entry["poster_key"], content_type="image/jpeg")
+            digests[entry["poster_key"]] = _upload_if_changed(
+                poster, entry["poster_key"], "image/jpeg")
             # The social twin: same missing-file skip as web, no budget path.
             if os.path.exists(social_source):
-                storage.upload_file(social_source, social_video_key(slug),
-                                    content_type="video/mp4")
+                digests[social_video_key(slug)] = _upload_if_changed(
+                    social_source, social_video_key(slug), "video/mp4")
                 social_poster = os.path.join(tmp, "social-poster.jpg")
                 subprocess.run(["ffmpeg", *poster_args(social_source, social_poster)],
                                check=True)
-                storage.upload_file(social_poster, social_poster_key(slug),
-                                    content_type="image/jpeg")
+                digests[social_poster_key(slug)] = _upload_if_changed(
+                    social_poster, social_poster_key(slug), "image/jpeg")
                 social_published.append(slug)
             else:
                 # Loud, never silent: the web twin exists (just published), so
@@ -395,7 +620,11 @@ def _publish(plan):
                 print(f"\u26a0\ufe0f social twin missing for {slug}: "
                       f"{entry['web_name']} (web published, social not)")
         published.append(slug)
-    return {"published": published, "social_published": social_published}
+        if on_progress:
+            on_progress(list(published), list(social_published))
+    return {"published": published, "social_published": social_published,
+            "digests": digests}
+
 
 
 def _probe(path):

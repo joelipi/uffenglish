@@ -39,12 +39,15 @@ def assert_social_twin_uploads(text: str, tc=None) -> None:
     method would only ever see the real source). `tc` is an optional
     TestCase so assertion messages get the class's context.
     """
-    body = slice_between(text, "def _publish(plan):", "def _probe(")
+    body = slice_between(text, "def _publish(plan, on_progress=None):", "def _probe(")
     checks = (
         ("social_video_key", body),
         ("social_poster_key", body),
-        ("storage.upload_file(social_source, social_video_key(slug),", body),
-        ("storage.upload_file(social_poster, social_poster_key(slug),", body),
+        # The upload goes through the idempotent helper (digest metadata), and
+        # it is the SOCIAL file that is uploaded, not the web re-encode.
+        ("_upload_if_changed(", body),
+        ('social_source, social_video_key(slug), "video/mp4"', body),
+        ('social_poster, social_poster_key(slug), "image/jpeg"', body),
         # The still is cut from the social master, not re-encoded from web.
         ('["ffmpeg", *poster_args(social_source, social_poster)]', body),
     )
@@ -59,7 +62,7 @@ def check_intro_posters_wired(text: str) -> None:
     """Story 055: a lesson intro comes from the sheet's `intro_video` column, so
     it is never a row slug in `plan_publish`; the orchestrator must still publish
     its poster (the deploy no longer generates any)."""
-    body = slice_between(text, "def orchestrator(spec: dict):", "def _publish(")
+    body = slice_between(text, "def orchestrator(spec: dict):", "def _upload_if_changed(")
     assert "_publish_intro_posters(rows)" in body
     assert '"posters"' in body
     assert '"intro_posters": intro_posters' in body
@@ -125,7 +128,7 @@ class OrchestratorGuardTest(unittest.TestCase):
         # Story 051: the orchestrator also gets the uff-github dispatch secret.
         self.assertIn("secrets=[secret, github_secret]", header)
 
-        body = slice_between(text, "def orchestrator(spec: dict):", "def _publish(")
+        body = slice_between(text, "def orchestrator(spec: dict):", "def _upload_if_changed(")
         for token in ("run_silence_removal", "run_background_removal",
                       "process_video_batch", "concatenate_all_processed_videos",
                       "concatenate_joined_videos", "plan_publish"):
@@ -141,7 +144,7 @@ class OrchestratorGuardTest(unittest.TestCase):
 
     def test_writes_status_after_each_stage(self):
         text = read(APP)
-        body = slice_between(text, "def orchestrator(spec: dict):", "def _publish(")
+        body = slice_between(text, "def orchestrator(spec: dict):", "def _upload_if_changed(")
         # A serialize_status call for running, done and error.
         self.assertGreaterEqual(body.count("_write_status("), 5)
         self.assertIn('"running"', body)
@@ -207,7 +210,7 @@ class TriggerGuardTest(unittest.TestCase):
 
     def test_gpu_seconds_flow_into_the_cost_estimate(self):
         text = read(APP)
-        body = slice_between(text, "def orchestrator(spec: dict):", "def _publish(")
+        body = slice_between(text, "def orchestrator(spec: dict):", "def _upload_if_changed(")
         # Stage 2 returns the accumulated GPU wall time and it feeds estimate_cost.
         self.assertIn("gpu_seconds = pipeline.run_background_removal(", body)
         self.assertIn('"gpu_seconds": gpu_seconds', body)
@@ -217,22 +220,25 @@ class TriggerGuardTest(unittest.TestCase):
         # the CSV (mirroring video_pipeline.main) and uploads the updated CSV back
         # to R2 so the sync-srt Action can read the `srt` column.
         text = read(APP)
-        body = slice_between(text, "def orchestrator(spec: dict):", "def _publish(")
+        body = slice_between(text, "def orchestrator(spec: dict):", "def _upload_if_changed(")
         self.assertIn("write_srt_column", body)
         self.assertIn('pipeline_asset_key("video_data.csv")', body)
         self.assertIn("storage.upload_file(csv_file", body)
-        # Order: concatenate -> write_srt_column -> upload, after concatenation.
+        # Both paths persist the CSV: the cache-hit path (before publishing) and
+        # the rendered path (after concatenation), so sync-srt always sees srt.
+        self.assertEqual(body.count('pipeline_asset_key("video_data.csv")'), 2)
+        # Order on the rendered path: concatenate -> write_srt_column -> upload.
         self.assertLess(body.index("concatenate_all_processed_videos"),
-                        body.index("write_srt_column"))
-        self.assertLess(body.index("write_srt_column"),
-                        body.index('pipeline_asset_key("video_data.csv")'))
+                        body.rindex("write_srt_column"))
+        self.assertLess(body.rindex("write_srt_column"),
+                        body.rindex('pipeline_asset_key("video_data.csv")'))
 
     def test_publish_prepends_ffmpeg_to_the_arg_builders(self):
         # `reencode_web_args`/`poster_args` return args starting with `-y` (the
         # binary is excluded), so `_publish` must prepend "ffmpeg" or the
         # subprocess fails with `[Errno 2] No such file or directory: '-y'`.
         text = read(APP)
-        body = slice_between(text, "def _publish(plan):", "def _probe(")
+        body = slice_between(text, "def _publish(plan, on_progress=None):", "def _probe(")
         self.assertIn('["ffmpeg", *reencode_web_args(source, web)]', body)
         self.assertIn('["ffmpeg", *poster_args(web, poster)]', body)
         self.assertNotIn("subprocess.run(reencode_web_args(", body)
@@ -259,7 +265,7 @@ class SocialPublishGuardTest(unittest.TestCase):
 
     def test_social_upload_shares_the_missing_file_skip(self):
         text = read(APP)
-        body = slice_between(text, "def _publish(plan):", "def _probe(")
+        body = slice_between(text, "def _publish(plan, on_progress=None):", "def _probe(")
         # ONE web existence check gates the entry (the social twin is written
         # by the same compositing pass), so a missing file cannot publish half
         # an entry.
@@ -268,7 +274,7 @@ class SocialPublishGuardTest(unittest.TestCase):
 
     def test_social_publish_is_required_not_swallowed(self):
         text = read(APP)
-        body = slice_between(text, "def _publish(plan):", "def _probe(")
+        body = slice_between(text, "def _publish(plan, on_progress=None):", "def _probe(")
         # No exception guard inside _publish: an upload error propagates and
         # fails the render (web has always been required; social matches).
         self.assertNotIn("except Exception", body)
@@ -276,7 +282,7 @@ class SocialPublishGuardTest(unittest.TestCase):
 
     def test_done_marker_reports_the_social_slugs(self):
         text = read(APP)
-        orchestrator = slice_between(text, "def orchestrator(spec: dict):", "def _publish(")
+        orchestrator = slice_between(text, "def orchestrator(spec: dict):", "def _upload_if_changed(")
         # The status field and the result dict carry the same key+value.
         self.assertIn('"social_published": social_published', orchestrator)
         self.assertIn('"published": published, "social_published": social_published',
@@ -285,7 +291,7 @@ class SocialPublishGuardTest(unittest.TestCase):
     def test_publish_guard_fails_when_the_twin_is_removed(self):
         source = read(APP)
         mutated = "SENTINEL".join(
-            source.split("storage.upload_file(social_source, social_video_key(slug),"))
+            source.split("social_source, social_video_key(slug)"))
         self.assertNotEqual(mutated, source)
         with self.assertRaises(AssertionError):
             assert_social_twin_uploads(mutated)
@@ -332,9 +338,9 @@ class DeployGraphImportGuardTest(unittest.TestCase):
         self.assertNotIn("video_pipeline", self._module_level_imports(text))
         # ...but it must still be imported lazily, or the orchestrator breaks.
         self.assertIn("import video_pipeline as pipeline", text)
-        body = slice_between(text, "def orchestrator(spec: dict):", "def _publish(")
+        body = slice_between(text, "def orchestrator(spec: dict):", "def _upload_if_changed(")
         self.assertIn("import video_pipeline as pipeline", body)
-        publish = slice_between(text, "def _publish(plan):", "def _probe(")
+        publish = slice_between(text, "def _publish(plan, on_progress=None):", "def _probe(")
         self.assertIn("import video_pipeline as pipeline", publish)
 
     def _assert_trigger_imports(self, text):
@@ -422,7 +428,7 @@ class SheetFetchGuardTest(unittest.TestCase):
         self.assertIn('os.path.join(workdir, "video_data.csv")', fetch)
         self.assertNotIn('storage.download_to(pipeline_asset_key("video_data.csv")', fetch)
         # The post-render output upload (sync-srt.yml reads it) is untouched.
-        body = slice_between(text, "def orchestrator(spec: dict):", "def _publish(")
+        body = slice_between(text, "def orchestrator(spec: dict):", "def _upload_if_changed(")
         self.assertIn('storage.upload_file(csv_file, pipeline_asset_key("video_data.csv")', body)
 
     def test_fetch_assets_reads_the_sheet_not_r2(self):
@@ -452,7 +458,7 @@ class DispatchGuardTest(unittest.TestCase):
     """Story 051: the orchestrator dispatches `render-complete` best-effort."""
 
     def _assert_contract(self, text):
-        body = slice_between(text, "def orchestrator(spec: dict):", "def _publish(")
+        body = slice_between(text, "def orchestrator(spec: dict):", "def _upload_if_changed(")
         self.assertIn("dispatch_render_complete(", body)
         self.assertIn("GH_DISPATCH_REPO", body)
         self.assertIn("GH_DISPATCH_TOKEN", body)
@@ -464,7 +470,7 @@ class DispatchGuardTest(unittest.TestCase):
         self.assertIn('modal.Secret.from_name("uff-github")', text)
         # Called once, after publish, and recorded in the `done` extra.
         self.assertEqual(body.count("dispatch_render_complete("), 1)
-        self.assertLess(body.index("publish_result = _publish(plan)"),
+        self.assertLess(body.index("publish_result = _publish("),
                         body.index("dispatch_render_complete("))
         self.assertLess(body.index("dispatch_render_complete("),
                         body.index('"dispatch": dispatch_note'))

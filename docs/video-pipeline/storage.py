@@ -119,13 +119,31 @@ def download_to(r2_key: str, dest_path) -> str:
     return str(dest)
 
 
+def sha256_file(path) -> str:
+    """The hex SHA-256 of a local file, streamed (never loads the file whole).
+
+    This is the identity used for publish idempotence and the render cache:
+    R2/S3 multipart ETags are NOT the file's MD5 (they hash the part hashes and
+    append the part count), so they cannot be compared with a local digest.
+    """
+    import hashlib
+
+    digest = hashlib.sha256()
+    with open(path, "rb") as fh:
+        for chunk in iter(lambda: fh.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
 def head(r2_key: str):
     """An object's metadata, or ``None`` when it is absent.
 
-    Returns ``{"last_modified": datetime | None, "size": int | None}``. Only a
-    genuine 404 maps to ``None``; auth/network failures re-raise, so a
-    misconfigured secret cannot masquerade as "no object" (same rule as
-    ``read_json``).
+    Returns ``{"last_modified": datetime | None, "size": int | None,
+    "etag": str | None, "metadata": dict}``. ``metadata`` is the object's
+    custom metadata (``sha256`` for every object the pipeline writes), which is
+    what publish idempotence compares. Only a genuine 404 maps to ``None``;
+    auth/network failures re-raise, so a misconfigured secret cannot masquerade
+    as "no object" (same rule as ``read_json``).
     """
     from botocore.exceptions import ClientError
 
@@ -140,13 +158,25 @@ def head(r2_key: str):
     return {
         "last_modified": response.get("LastModified"),
         "size": response.get("ContentLength"),
+        "etag": response.get("ETag"),
+        "metadata": dict(response.get("Metadata") or {}),
     }
 
 
-def upload_file(local_path, r2_key: str, content_type: str | None = None) -> str:
+def upload_file(local_path, r2_key: str, content_type: str | None = None,
+                metadata: dict | None = None) -> str:
     """Upload a local file. Returns the public CDN URL only for a public key;
-    private keys (no custom domain) return the key, not a misleading 404 URL."""
-    extra = {"ContentType": content_type} if content_type else None
+    private keys (no custom domain) return the key, not a misleading 404 URL.
+
+    ``metadata`` becomes R2 custom metadata. The publish path always passes
+    ``{"sha256": ...}`` so a later run can skip an object whose bytes have not
+    changed (see ``head``).
+    """
+    extra = {}
+    if content_type:
+        extra["ContentType"] = content_type
+    if metadata:
+        extra["Metadata"] = {str(k): str(v) for k, v in metadata.items()}
     with r2_client() as client:
         client.upload_file(
             str(local_path), _bucket_for(r2_key), r2_key,
@@ -155,6 +185,13 @@ def upload_file(local_path, r2_key: str, content_type: str | None = None) -> str
     if bucket_for_key(r2_key) == "private":
         return r2_key
     return f"https://r2.ultrafastfluency.com/{r2_key}"
+
+
+def delete_object(r2_key: str) -> None:
+    """Delete one object (cache eviction). A missing key is not an error."""
+    with r2_client() as client:
+        client.delete_object(Bucket=_bucket_for(r2_key), Key=r2_key)
+
 
 
 def upload_json(r2_key: str, payload: str, content_type: str = "application/json") -> str:

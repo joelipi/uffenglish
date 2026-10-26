@@ -2170,6 +2170,13 @@ describe('recorder auto-render — zero server changes', () => {
             'src/config/cartoon-preferences.json',
             'docs/video-pipeline/storage.py',
             'docs/video-pipeline/tests/test_storage_client.py',
+            // Render retry (idempotent publish + content-addressed cache).
+            'docs/video-pipeline/render_cache.py',
+            'docs/video-pipeline/tests/test_render_cache.py',
+            'docs/video-pipeline/tests/test_publish_idempotence.py',
+            'docs/video-pipeline/modal_app.py',
+            'docs/video-pipeline/tests/test_modal_app_source.py',
+            'AGENTS.md',
             // Story 098: the friend recording-preview screen gets its own
             // tutorial topic, button and placeholder video (the decision
             // screen keeps the step-type guide).
