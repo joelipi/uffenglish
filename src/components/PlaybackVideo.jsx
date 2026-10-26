@@ -62,6 +62,18 @@ export default function PlaybackVideo() {
     // with `paused:false`). This retries the SAME rung until it is ready.
     const readinessTimerRef = useRef(null);
     const waitingSinceRef = useRef(null);
+    // Defer the first kick by a macrotask: assigning `src` queues the media
+    // load algorithm, and on iPadOS the element can still report the PREVIOUS
+    // take's readyState for that instant. A synchronous start then asks to play
+    // too early — the field report where the take only plays when the
+    // diagnostics panel's extra work changes the timing.
+    const startKickRef = useRef(null);
+    const clearStartKick = () => {
+        if (startKickRef.current !== null) {
+            clearTimeout(startKickRef.current);
+            startKickRef.current = null;
+        }
+    };
     // A started element whose clock never moves is kicked once.
     const stallTimerRef = useRef(null);
     const startedAtRef = useRef({ at: 0, time: 0 });
@@ -258,6 +270,9 @@ export default function PlaybackVideo() {
         if (!video) return;
         if (mediaState === 'chat') return;
         if (!shouldAttemptStart({ paused: video.paused, hasStarted: hasStartedRef.current, autoplay })) return;
+        // A readiness event is the better start signal; a still-pending kick
+        // must not start the ladder a second time at rung 0.
+        clearStartKick();
         attemptStart(attemptRef.current);
     };
 
@@ -450,6 +465,7 @@ export default function PlaybackVideo() {
         clearReadinessTimer();
         clearStallTimer();
         clearReplayTimer();
+        clearStartKick();
         replayGenRef.current += 1;
         waitingSinceRef.current = null;
         stallKickedRef.current = false;
@@ -477,9 +493,17 @@ export default function PlaybackVideo() {
 
         video.src = URL.createObjectURL(blob);
 
-        // Kick the start now: iPadOS defers media loading, so waiting for an
-        // event that may never come is how the clip stayed a still frame.
-        attemptStart(0);
+        // Kick the start from a macrotask, not synchronously: assigning `src`
+        // queues the load algorithm, and an immediate attempt can still read
+        // the previous source's readyState on iPadOS. This is still an immediate
+        // kick from the learner's point of view (no event is awaited), but it
+        // gives the new source one task to reach HAVE_NOTHING so the readiness
+        // ladder sees the real state.
+        startKickRef.current = setTimeout(() => {
+            startKickRef.current = null;
+            if (hasStartedRef.current || attemptRef.current !== 0) return;
+            attemptStart(0);
+        }, 0);
 
         return () => {
             clearRetry();
@@ -488,6 +512,7 @@ export default function PlaybackVideo() {
             clearReadinessTimer();
             clearStallTimer();
             clearReplayTimer();
+            clearStartKick();
             if (video.src && video.src.startsWith('blob:')) {
                 URL.revokeObjectURL(video.src);
             }
@@ -536,6 +561,7 @@ export default function PlaybackVideo() {
         clearReadinessTimer();
         clearStallTimer();
         clearReplayTimer();
+        clearStartKick();
         replayGenRef.current += 1;
         if (observerRef.current) {
             observerRef.current.disconnect();

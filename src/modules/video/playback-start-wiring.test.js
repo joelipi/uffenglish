@@ -88,6 +88,25 @@ describe('a new take starts from its own state', () => {
     });
 });
 
+describe('the first kick waits for the new source to reset', () => {
+    it('defers the kick to a macrotask and clears it on a readiness event and unmount', () => {
+        const blobEffect = sliceBetween(playbackRaw, '// Blob URL management', '// Clear trigger');
+        expect(blobEffect).toContain('startKickRef.current = setTimeout');
+        // The timer must be scheduled AFTER the new source is assigned, so the
+        // load algorithm has a task to reset readyState first.
+        expect(blobEffect.indexOf('video.src = URL.createObjectURL(blob);'))
+            .toBeLessThan(blobEffect.indexOf('startKickRef.current = setTimeout'));
+        const kick = sliceBetween(blobEffect, 'startKickRef.current = setTimeout', '}, 0);');
+        expect(kick).toContain('attemptStart(0);');
+        // A readiness event starts the ladder itself; the pending kick must not
+        // start it again at rung 0 after the refusal.
+        const ready = sliceBetween(playbackRaw, 'const handleReady = () => {', '\n    };');
+        expect(ready).toContain('clearStartKick();');
+        const cleanup = sliceBetween(playbackRaw, 'useEffect(() => () => {', '\n    }, []);');
+        expect(cleanup).toContain('clearStartKick();');
+    });
+});
+
 describe('the start path survives WebKit returning undefined from play()', () => {
     it('imports playSafely from the video module', () => {
         expect(playbackRaw).toContain('playSafely,');

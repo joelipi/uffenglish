@@ -101,6 +101,16 @@ This adds a dedicated tutorial topic for the preview screen, its own script/subt
   - → the second take starts with `video.loop === false`, so it can fire `ended` and perform its own audible-once → silent-loop hand-off
   - → without the reset the second take inherits `loop = true`, never fires `ended`, and never goes silent (the bug reproduced by the new spec case)
 
+### Task 6 - The first kick waits for the new source (recorded-take timing regression)
+
+- `PlaybackVideo` blob effect + called in static guard test
+  - → the first `attemptStart(0)` is scheduled from a 0 ms macrotask after the new `video.src`, never called synchronously
+  - → a readiness event calls `clearStartKick()` before starting the ladder, so the pending kick cannot restart at rung 0
+  - → a new blob and unmount clear the pending kick
+- the take only played when `?diag=1` was present + covered by the static guard
+  - → the diagnostics panel's extra re-render was supplying the missing delay; the macrotask makes the start independent of render timing
+  - → the iPad autoplay spec (4/4) still passes with the deferred kick
+
 ## Notes
 
 - The placeholder clip is generated with real Chrome (`channel: 'chrome'`, already installed here) and uploaded with `npx wrangler r2 object put uff/assets/videos/tutorial-friendRecordingPreview.mp4 --file <out> --content-type video/mp4`; the private `uff` bucket is the same one the existing tutorials live in.
