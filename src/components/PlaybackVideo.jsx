@@ -168,6 +168,10 @@ export default function PlaybackVideo() {
      * A muted start succeeded: re-open the audio output. Clearing `muted` alone
      * is not enough on a browser that already tore the output down, so playback
      * is re-issued as well (stories/075). The learner's own mute intent wins.
+     *
+     * The muted start only bought the autoplay permission. Rewind it before the
+     * audible pass, or the learner hears the take from 100 ms in and thinks the
+     * beginning of their recording was cut off.
      */
     const unmuteAfterStart = () => {
         clearUnmuteTimer();
@@ -175,13 +179,23 @@ export default function PlaybackVideo() {
             unmuteTimerRef.current = null;
             const el = videoRef.current;
             if (!el || muteIntentRef.current) return;
+            const rewindFrom = typeof el.currentTime === 'number' ? el.currentTime : null;
+            try {
+                if (el.ended || el.currentTime > 0) el.currentTime = 0;
+            } catch (error) {
+                console.warn('[Playback] could not rewind before the audible start:', error && error.message ? error.message : error);
+            }
+            takeDiagnostics.push('rewound before audible start', { from: rewindFrom });
             setElementMuted(el, false);
             const { promise, error } = playSafely(el);
             if (promise) promise.catch(() => {});
             if (error) console.warn('[Playback] could not re-open audio:', error && error.message ? error.message : error);
             console.log('[Playback] unmuted after the muted start');
             takeDiagnostics.push('unmuted after muted start');
-        }, 100);
+            // iOS starts muted only to satisfy autoplay; re-open the audio on
+            // the next task so the muted lead-in is at most a frame. Android
+            // still needs the 100 ms settle for its audio route (stories/075).
+        }, isIOS ? 0 : 100);
     };
 
     const scheduleRetry = (attempt) => {

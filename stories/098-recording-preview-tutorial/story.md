@@ -116,7 +116,8 @@ This adds a dedicated tutorial topic for the preview screen, its own script/subt
 - `shouldStartMuted({ attempt: 0, preferMutedStart: true })` + called in unit test
   - → `true` (the only start iPadOS allows), while `preferMutedStart: false` keeps the audible first attempt
 - `PlaybackVideo` / `SuccessVideo` source + called in static guard test
-  - → both pass `preferMutedStart: isIOS` to `shouldStartMuted`, so attempt 0 is muted on iPad/iPhone and the audio is re-opened after it plays
+  - → both pass `preferMutedStart: isIOS` to `shouldStartMuted`, so attempt 0 is muted on iPad/iPhone
+  - → both set `currentTime = 0` **before** re-opening the audio, so the muted lead-in is not lost (no cut-off beginning); iOS re-opens on the next task, Android keeps the 100 ms settle
 - iPad user-agent Playwright case + executed against the recorded take
   - → the first `play()` call for `#playback-video` has `paused: true, muted: true`
   - → without `preferMutedStart` the first call is `muted: false` and the case fails

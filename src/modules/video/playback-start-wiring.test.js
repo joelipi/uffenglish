@@ -180,6 +180,12 @@ describe('the start ladder asks for sound once then falls back to muted', () => 
         const unmute = sliceBetween(playbackRaw, 'const unmuteAfterStart = () => {', '\n    };');
         expect(unmute).toContain('if (!el || muteIntentRef.current) return;');
         expect(unmute.indexOf('setElementMuted(el, false)')).toBeLessThan(unmute.indexOf('playSafely(el)'));
+        // The muted start was only the autoplay permission handshake: rewind it
+        // before the audible pass so the learner hears the take from 0, not from
+        // the end of the muted lead-in.
+        expect(unmute).toContain('el.currentTime = 0');
+        expect(unmute.indexOf('el.currentTime = 0')).toBeLessThan(unmute.indexOf('setElementMuted(el, false)'));
+        expect(unmute).toContain("takeDiagnostics.push('rewound before audible start'");
         // Reached only from the muted-start success path.
         expect(attemptStart).toContain('if (muted && !muteIntentRef.current) unmuteAfterStart();');
     });

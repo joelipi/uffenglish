@@ -88,10 +88,19 @@ export default function SuccessVideo() {
                 unmuteTimer = setTimeout(() => {
                     const current = videoRef.current;
                     if (!current || cancelled) return;
+                    // The muted start only bought autoplay permission. Rewind
+                    // before the audible pass so the recap is heard from 0, never
+                    // from the end of the muted lead-in.
+                    try {
+                        if (current.ended || current.currentTime > 0) current.currentTime = 0;
+                    } catch (error) { /* best effort */ }
+                    takeDiagnostics.push('success rewound before audible start');
                     setElementMuted(current, false);
                     const next = playSafely(current);
                     if (next.promise) next.promise.catch(() => {});
-                }, 100);
+                // iOS re-opens the audio on the next task; Android still needs
+                // the 100 ms settle for its audio route (stories/075).
+                }, isIOS ? 0 : 100);
             }).catch(handleBlocked);
         };
 
