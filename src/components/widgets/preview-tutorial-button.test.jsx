@@ -43,13 +43,21 @@ describe('PreviewTutorialButton', () => {
         act(() => container.querySelector(`#${id}`).click());
     };
 
-    it('renders the book button without opening anything', () => {
+    it('renders the shared label + circular call button without opening anything', () => {
         render();
 
         const button = container.querySelector('#previewTutorialBtn');
         expect(button).not.toBeNull();
         expect(button.getAttribute('type')).toBe('button');
-        expect(button.querySelector('i.bi.bi-question-circle-fill')).not.toBeNull();
+        // Exactly the same button appearance as the decision rows: no
+        // preview-only class or style.
+        expect(button.classList.contains('btn')).toBe(true);
+        expect(button.classList.contains('call-btn')).toBe(true);
+        expect(button.classList.contains('preview-tutorial-btn')).toBe(false);
+        expect(button.querySelector('i.bi.bi-question-lg')).not.toBeNull();
+        // The label comes from the shared ChoiceColumn, like every other row.
+        expect(container.querySelector('.ivp-choice-col')).not.toBeNull();
+        expect(container.querySelector('.ivp-choice-label-text').textContent).toContain('WATCH TUTORIAL');
         expect(container.querySelector('.tutorial-modal-overlay')).toBeNull();
     });
 

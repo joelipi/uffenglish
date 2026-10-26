@@ -21,7 +21,7 @@ const modal = read('src/components/widgets/TutorialModal.jsx');
 const viewAndContinue = read('src/components/widgets/ViewAndContinueButtons.jsx');
 const responseRow = read('src/components/widgets/ResponseDecisionButtons.jsx');
 const branchRow = read('src/components/widgets/BranchChoiceButtons.jsx');
-const webcamPreview = read('src/components/widgets/WebcamPreview.jsx');
+const lessonContainer = read('src/components/LessonContainer.jsx');
 const previewTutorial = read('src/components/widgets/PreviewTutorialButton.jsx');
 const progression = read('src/modules/lesson/lesson-progression.js');
 const css = read('src/assets/css/app.css');
@@ -146,35 +146,45 @@ describe('pauseLessonVideoForTutorial', () => {
     });
 });
 
-describe('every tutorial button uses the question-mark help icon', () => {
+describe('every tutorial button uses the bare question-mark help icon', () => {
     it.each([
         ['view-and-continue', viewAndContinue, 'tutorialBtn'],
         ['response', responseRow, 'responseTutorialBtn'],
         ['branching', branchRow, 'branchTutorialBtn'],
         ['recording preview', previewTutorial, 'previewTutorialBtn'],
-    ])('%s row renders the help icon, not the old book icon', (_row, source, id) => {
+    ])('%s row renders the help icon, not a circled or book icon', (_row, source, id) => {
         const start = source.indexOf(`id="${id}"`);
         expect(start, `${id} button not found`).toBeGreaterThan(-1);
         const button = source.slice(start, source.indexOf('</button>', start));
-        expect(button).toContain('bi bi-question-circle-fill');
+        expect(button).toContain('bi bi-question-lg');
         expect(button).not.toContain('bi-book-fill');
+        expect(button).not.toContain('bi-question-circle');
     });
 });
 
 describe('the recording-preview screen has its own guide', () => {
-    it('WebcamPreview renders the guide only while the preview gate is open', () => {
-        expect(webcamPreview).toContain("import PreviewTutorialButton from './PreviewTutorialButton.jsx'");
-        // The gate is the same one that shows the look rail: awaiting the take
-        // AND a friendClosedResponse step. Sliced to the assignment so a second,
-        // unguarded render cannot hide behind this one.
-        const gateStart = webcamPreview.indexOf('const lookControlsVisible');
-        const gateEnd = webcamPreview.indexOf('\n', gateStart);
-        const gate = webcamPreview.slice(gateStart, gateEnd);
-        expect(gate).toContain('awaitingStart');
+    it('LessonContainer renders it as the right-hand column only while awaiting the take', () => {
+        expect(lessonContainer).toContain("import PreviewTutorialButton from './widgets/PreviewTutorialButton.jsx'");
+        expect(lessonContainer).toContain("import { isPreviewGateStep } from '../modules/looks/recording-looks-logic.js'");
+        // The gate is at the store's preview flag AND the friend step, so the
+        // guide is present on the preview screen only, never during the take.
+        const gateStart = lessonContainer.indexOf('const showPreviewTutorial');
+        const gateEnd = lessonContainer.indexOf('\n', gateStart);
+        const gate = lessonContainer.slice(gateStart, gateEnd);
+        expect(gate).toContain('awaitingRecordingStart');
         expect(gate).toContain('isPreviewGateStep(currentStep)');
-        expect(webcamPreview).toContain('{lookControlsVisible && <PreviewTutorialButton />}');
-        // Exactly one render site, and it is the guarded one.
-        expect(webcamPreview.match(/<PreviewTutorialButton \/>/g)).toHaveLength(1);
+
+        // The bottom row mirrors the three-column decision rows: an empty left
+        // column, the centred microphone, then the tutorial column on the right.
+        const groupStart = lessonContainer.indexOf("showPreviewTutorial ? 'justify-content-around align-items-end'");
+        const groupEnd = lessonContainer.indexOf('<IntroChoices />', groupStart);
+        expect(groupStart, 'preview tutorial row not found').toBeGreaterThan(-1);
+        const group = lessonContainer.slice(groupStart, groupEnd);
+        expect(group).toContain('className="ivp-choice-col"');
+        expect(group).toContain('<MicrophoneToggle />');
+        expect(group).toContain('{showPreviewTutorial && <PreviewTutorialButton />}');
+        expect(group.indexOf('<MicrophoneToggle />')).toBeLessThan(group.indexOf('<PreviewTutorialButton />'));
+        expect(lessonContainer.match(/<PreviewTutorialButton \/>/g)).toHaveLength(1);
     });
 
     it('PreviewTutorialButton owns only the modal state and points at its own topic', () => {
@@ -184,7 +194,7 @@ describe('the recording-preview screen has its own guide', () => {
         expect(previewTutorial).toContain('topic: FRIEND_RECORDING_PREVIEW_TOPIC');
         expect(previewTutorial).toContain('topic={FRIEND_RECORDING_PREVIEW_TOPIC}');
         expect(previewTutorial).toContain('id="previewTutorialBtn"');
-        expect(previewTutorial).toContain('bi bi-question-circle-fill');
+        expect(previewTutorial).toContain('bi bi-question-lg');
         // Same render-only contract as the decision rows: no slug/URL building.
         expect(previewTutorial).not.toContain('getVideoUrl');
         expect(previewTutorial).not.toContain('TUTORIAL_SLUG_PREFIX');
@@ -192,14 +202,12 @@ describe('the recording-preview screen has its own guide', () => {
         expect(previewTutorial).not.toContain('appStore.getState()');
     });
 
-    it('the button is styled to clear the rail, phrase and microphone', () => {
-        const block = cssBlock('.preview-tutorial-btn {');
-        expect(block).toContain('position: absolute');
-        expect(block).toContain('right: 16px');
-        expect(block).toContain('bottom: calc(32px + env(safe-area-inset-bottom, 0px))');
-        expect(block).toContain('z-index: 1100');
-        expect(block).toContain('width: 48px');
-        expect(block).toContain('height: 48px');
+    it('uses the shared decision-row button, with no preview-only stylesheet rule', () => {
+        expect(previewTutorial).toContain("import ChoiceColumn from './ChoiceColumn.jsx'");
+        expect(previewTutorial).toContain('className="btn call-btn"');
+        expect(previewTutorial).not.toContain('preview-tutorial-btn');
+        expect(previewTutorial).not.toContain('style={');
+        expect(css).not.toContain('.preview-tutorial-btn');
     });
 });
 

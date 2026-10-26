@@ -92,7 +92,7 @@ export default function BranchChoiceButtons({ view, onChoose, onChooseGroup, onB
 
                     <ChoiceColumn label={getBilingual('watch_tutorial', labelLang)}>
                         <button className="btn call-btn" id="branchTutorialBtn" aria-label="Watch Tutorial" onClick={handleTutorial}>
-                            <i className="bi bi-question-circle-fill"></i>
+                            <i className="bi bi-question-lg"></i>
                         </button>
                     </ChoiceColumn>
                 </div>

@@ -1,6 +1,8 @@
-// PreviewTutorialButton — the book button on the friend recording-preview
+// PreviewTutorialButton — the tutorial button on the friend recording-preview
 // screen (the camera takeover with the look rail), and its tutorial modal.
 //
+// It renders the same label + circular call button as every other tutorial
+// button (ChoiceColumn + `.btn.call-btn`); no preview-only styling exists.
 // Render-only: the topic, slug and script come from
 // src/modules/video/tutorial-logic.js, the label from strings.js. The screen
 // decides whether the button exists; this component owns only the modal's
@@ -12,6 +14,7 @@ import {
     createTutorialOpener,
     FRIEND_RECORDING_PREVIEW_TOPIC,
 } from '../../modules/video/tutorial-logic.js';
+import ChoiceColumn from './ChoiceColumn.jsx';
 import TutorialModal from './TutorialModal.jsx';
 
 export default function PreviewTutorialButton() {
@@ -28,15 +31,17 @@ export default function PreviewTutorialButton() {
 
     return (
         <>
-            <button
-                type="button"
-                className="look-tap preview-tutorial-btn"
-                id="previewTutorialBtn"
-                aria-label={label.english || 'Watch Tutorial'}
-                onClick={handleTutorial}
-            >
-                <i className="bi bi-question-circle-fill"></i>
-            </button>
+            <ChoiceColumn label={label}>
+                <button
+                    type="button"
+                    className="btn call-btn"
+                    id="previewTutorialBtn"
+                    aria-label="Watch Tutorial"
+                    onClick={handleTutorial}
+                >
+                    <i className="bi bi-question-lg"></i>
+                </button>
+            </ChoiceColumn>
 
             {showTutorial && (
                 <TutorialModal
