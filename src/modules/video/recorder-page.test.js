@@ -614,7 +614,7 @@ describe('recorder page — lesson auto-render', () => {
         return impl;
     }
 
-    const bootAuto = async (stub, seedStorage = null) => {
+    const bootAuto = async (stub, seedStorage = null, setupWindow = null) => {
         const { JSDOM } = await import('jsdom');
         const html = fs.readFileSync(PAGE_PATH, 'utf8');
         const dom = new JSDOM(html, {
@@ -625,6 +625,7 @@ describe('recorder page — lesson auto-render', () => {
                 for (const [k, v] of Object.entries(seedStorage || {})) {
                     pageWindow.sessionStorage.setItem(k, v);
                 }
+                if (setupWindow) { setupWindow(pageWindow); }
             },
         });
         const { window: win } = dom;
@@ -896,6 +897,379 @@ describe('recorder page — lesson auto-render', () => {
             await flush();
             expect(stub.calls.status).toEqual([]);
         } finally { closeAuto(win); }
+    });
+});
+
+// The operator can reject or accept a take while it is still recording: the
+// three actions sit side by side in one bar (reject | stop | accept), so the
+// decision does not wait for the review screen. Express mode then removes the
+// START RECORDING click entirely: each line's countdown begins on its own.
+// These tests boot the real page script with a fake camera/recorder (jsdom has
+// no media stack of its own) and drive the real buttons, so the phase
+// transitions, the stop handling and the auto-start are the shipped ones.
+describe('recorder page — take actions and express mode', () => {
+    const installFakeMedia = (pageWindow) => {
+        const recorders = [];
+        class FakeMediaRecorder {
+            constructor(stream, config) {
+                this.stream = stream;
+                this.config = config;
+                this.state = 'inactive';
+                this.ondataavailable = null;
+                this.onstop = null;
+                recorders.push(this);
+            }
+            static isTypeSupported() { return true; }
+            start() { this.state = 'recording'; }
+            stop() {
+                this.state = 'inactive';
+                // A real MediaRecorder delivers the final chunk and the stop
+                // event in a later task, after stop() returns — not
+                // synchronously inside the call (`executeStopRecording` sets
+                // its flags after stop()).
+                setTimeout(() => {
+                    if (this.ondataavailable) {
+                        this.ondataavailable({ data: new pageWindow.Blob(['take-bytes'], { type: 'video/mp4' }) });
+                    }
+                    if (this.onstop) { this.onstop(); }
+                }, 0);
+            }
+        }
+        pageWindow.MediaRecorder = FakeMediaRecorder;
+        pageWindow.navigator.mediaDevices = {
+            getUserMedia: async () => ({
+                getTracks: () => [],
+                getAudioTracks: () => [],
+                getVideoTracks: () => [],
+            }),
+            enumerateDevices: async () => [],
+        };
+        pageWindow.URL.createObjectURL = () => 'blob:fake-take';
+        pageWindow.URL.revokeObjectURL = () => {};
+        pageWindow.HTMLMediaElement.prototype.play = () => Promise.resolve();
+        pageWindow.HTMLMediaElement.prototype.pause = () => {};
+        return recorders;
+    };
+
+    const tick = async (n = 10) => {
+        for (let i = 0; i < n; i++) await new Promise((r) => setTimeout(r, 0));
+    };
+
+    // Starts a real take (the page's own triggerStartRecording) and waits past
+    // its 150ms stability delay for the recorder to be running.
+    const startTake = async (win) => {
+        win.triggerStartRecording();
+        const deadline = Date.now() + 3000;
+        while (!win.global_is_recording_flag) {
+            if (Date.now() > deadline) throw new Error('timed out waiting for a running take');
+            await new Promise((r) => setTimeout(r, 20));
+        }
+    };
+
+    const closeTake = (win) => {
+        for (const timer of ['global_record_duration_timer', 'global_countdown_timer', 'global_render_poll_timer']) {
+            try {
+                if (win[timer]) { win.clearInterval(win[timer]); }
+            } catch (e) { /* already closed */ }
+        }
+        win.close();
+    };
+
+    const visibleButtons = (win) => [...win.document.querySelectorAll('#dom-controls-main button')]
+        .filter((btn) => btn.style.display !== 'none')
+        .map((btn) => btn.id);
+
+    const firstTakeFilename = (win) => win.global_script_phrases[win.global_current_index].filename;
+
+    const bootWithMedia = async (stub, seedStorage = null) => {
+        const { JSDOM } = await import('jsdom');
+        // bootAuto lives in the auto-render describe; rebuild the same boot here
+        // so this block stays independent of that describe's locals.
+        const html = fs.readFileSync(PAGE_PATH, 'utf8');
+        const dom = new JSDOM(html, {
+            url: 'http://127.0.0.1:9/recorder.html?course=wouldyourather',
+            runScripts: 'dangerously',
+            beforeParse(pageWindow) {
+                pageWindow.fetch = stub;
+                for (const [k, v] of Object.entries(seedStorage || {})) {
+                    pageWindow.sessionStorage.setItem(k, v);
+                }
+                installFakeMedia(pageWindow);
+            },
+        });
+        const { window: win } = dom;
+        await new Promise((resolve) => {
+            if (win.document.readyState === 'complete') resolve();
+            else win.addEventListener('load', () => resolve(), { once: true });
+        });
+        const deadline = Date.now() + 5000;
+        while (win.global_script_phrases.length === 0) {
+            if (Date.now() > deadline) throw new Error('timed out waiting for take list');
+            await new Promise((r) => setTimeout(r, 25));
+        }
+        return win;
+    };
+
+    const AUTO_CSV_FOR_TAKE_ACTIONS = [
+        'course_id,lesson_id,filename,phrase,character,order,response_type,video_file',
+        'crs,a,a01,Q-a1?,Teacher,1,friendClosedResponse,crs-a-01',
+        'crs,a,a02,Q-a2?,Teacher,2,friendClosedResponse,crs-a-01',
+    ].join('\n');
+
+    const pipelineStub = () => {
+        const calls = { upload: [], render: [] };
+        const impl = async (url, opts = {}) => {
+            const u = String(url);
+            if (u.includes('/api/pipeline/upload-raw')) {
+                calls.upload.push(opts.headers && opts.headers['x-filename']);
+                return { ok: true };
+            }
+            if (u.includes('/api/pipeline/render')) {
+                const body = JSON.parse(opts.body);
+                calls.render.push(body.files);
+                return { ok: true, json: async () => ({ jobId: 'job-1' }) };
+            }
+            return { ok: true, text: async () => AUTO_CSV_FOR_TAKE_ACTIONS };
+        };
+        impl.calls = calls;
+        return impl;
+    };
+
+    it('shows reject, stop and accept together while a take is recording', async () => {
+        const stub = pipelineStub();
+        const win = await bootWithMedia(stub);
+        try {
+            await startTake(win);
+            expect(visibleButtons(win)).toEqual(['dom-btn-reject', 'dom-btn-record', 'dom-btn-accept']);
+            expect(win.document.getElementById('dom-btn-record').textContent).toContain('STOP RECORDING');
+        } finally { closeTake(win); }
+    });
+
+    it('reject during a take discards the clip and restarts the same line', async () => {
+        const stub = pipelineStub();
+        const win = await bootWithMedia(stub);
+        try {
+            await startTake(win);
+            const index_before = win.global_current_index;
+            win.document.getElementById('dom-btn-reject').click();
+            await tick();
+            // Nothing uploaded, nothing kept, no review screen: the take is gone.
+            expect(stub.calls.upload).toEqual([]);
+            expect(win.global_last_final_blob).toBeNull();
+            expect(win.document.body.classList.contains('is-reviewing-now')).toBe(false);
+            expect(win.global_current_index).toBe(index_before);
+            // And the same line's pre-roll is already running again.
+            expect(win.global_is_recording_flag).toBe(false);
+            expect(win.document.getElementById('dom-btn-record').disabled).toBe(true);
+            expect(win.global_countdown_timer).toBeTruthy();
+        } finally { closeTake(win); }
+    });
+
+    it('accept during a take stops and uploads it immediately, then advances', async () => {
+        const stub = pipelineStub();
+        const win = await bootWithMedia(stub);
+        try {
+            win.document.getElementById('dom-operator-key').value = 'K';
+            await startTake(win);
+            const filename = firstTakeFilename(win);
+            const index_before = win.global_current_index;
+            win.document.getElementById('dom-btn-accept').click();
+            await tick();
+            expect(stub.calls.upload).toEqual([filename]);
+            expect(win.global_current_index).toBe(index_before + 1);
+        } finally { closeTake(win); }
+    });
+
+    it('stop still opens the review screen and uploads nothing by itself', async () => {
+        const stub = pipelineStub();
+        const win = await bootWithMedia(stub);
+        try {
+            await startTake(win);
+            win.document.getElementById('dom-btn-record').click();
+            await tick();
+            expect(stub.calls.upload).toEqual([]);
+            expect(win.document.body.classList.contains('is-reviewing-now')).toBe(true);
+            expect(visibleButtons(win)).toEqual(['dom-btn-reject', 'dom-btn-accept', 'dom-btn-download']);
+        } finally { closeTake(win); }
+    });
+
+    const barOrder = (source) => {
+        const start = source.indexOf('id="dom-controls-main"');
+        expect(start, 'control bar').toBeGreaterThan(-1);
+        const end = source.indexOf('</div>', start);
+        expect(end, 'control bar closing tag').toBeGreaterThan(start);
+        return [...source.slice(start, end).matchAll(/id="dom-btn-([a-z]+)"/g)].map((m) => m[1]);
+    };
+
+    it('the bar carries every take action exactly once, in reading order', () => {
+        const html = fs.readFileSync(PAGE_PATH, 'utf8');
+        expect(barOrder(html)).toEqual(['reject', 'record', 'accept', 'download', 'pause']);
+        for (const id of barOrder(html)) {
+            expect(html.split(`id="dom-btn-${id}"`).length - 1, id).toBe(1);
+        }
+        // The review bar is gone: one bar owns every phase.
+        expect(html).not.toContain('dom-controls-review');
+    });
+
+    it('the reading-order guard fails when the buttons are reordered', () => {
+        const html = fs.readFileSync(PAGE_PATH, 'utf8');
+        const swapped = html
+            .replace('id="dom-btn-reject"', 'id="dom-btn-TMP"')
+            .replace('id="dom-btn-accept"', 'id="dom-btn-reject"')
+            .replace('id="dom-btn-TMP"', 'id="dom-btn-accept"');
+        expect(swapped).not.toBe(html);
+        expect(barOrder(swapped)).not.toEqual(['reject', 'record', 'accept', 'download', 'pause']);
+    });
+
+    /**
+     * ==========================================
+     * EXPRESS MODE
+     * ==========================================
+     */
+    const waitFor = async (cond, what, timeoutMs = 3000) => {
+        const deadline = Date.now() + timeoutMs;
+        while (!cond()) {
+            if (Date.now() > deadline) throw new Error(`timed out waiting for ${what}`);
+            await new Promise((r) => setTimeout(r, 20));
+        }
+    };
+
+    const setExpress = (win, checked) => {
+        const box = win.document.getElementById('dom-check-express');
+        box.checked = checked;
+        box.dispatchEvent(new win.Event('change'));
+    };
+
+    it('offers an express-mode toggle that starts unchecked', async () => {
+        const win = await bootWithMedia(pipelineStub());
+        try {
+            const box = win.document.getElementById('dom-check-express');
+            expect(box).not.toBeNull();
+            expect(box.type).toBe('checkbox');
+            expect(box.checked).toBe(false);
+            const label = win.document.querySelector('label[for="dom-check-express"]');
+            expect(label.textContent).toContain('Express mode');
+        } finally { closeTake(win); }
+    });
+
+    it('does not start a take by itself while express mode is off', async () => {
+        const win = await bootWithMedia(pipelineStub());
+        try {
+            await tick();
+            expect(win.global_take_phase).toBe('idle');
+            expect(win.global_countdown_timer).toBeNull();
+            expect(win.document.getElementById('dom-btn-record').disabled).toBe(false);
+        } finally { closeTake(win); }
+    });
+
+    it('starts the countdown as soon as the page is ready when express mode is on', async () => {
+        const win = await bootWithMedia(pipelineStub(), { uff_express_mode: '1' });
+        try {
+            expect(win.document.getElementById('dom-check-express').checked).toBe(true);
+            await waitFor(() => win.global_take_phase === 'pre-roll', 'the express pre-roll');
+            expect(win.global_countdown_timer).toBeTruthy();
+            expect(win.document.getElementById('dom-btn-record').disabled).toBe(true);
+            expect(win.document.getElementById('dom-huge-countdown').style.display).toBe('block');
+        } finally { closeTake(win); }
+    });
+
+    it('turning express mode on starts the current line’s countdown at once', async () => {
+        const win = await bootWithMedia(pipelineStub());
+        try {
+            await waitFor(() => !!win.global_stream_handle, 'the camera stream');
+            expect(win.global_take_phase).toBe('idle');
+            setExpress(win, true);
+            await waitFor(() => win.global_take_phase === 'pre-roll', 'the toggled-on pre-roll');
+            expect(win.global_countdown_timer).toBeTruthy();
+            expect(win.sessionStorage.getItem('uff_express_mode')).toBe('1');
+        } finally { closeTake(win); }
+    });
+
+    it('never starts a take over the review screen', async () => {
+        const win = await bootWithMedia(pipelineStub());
+        try {
+            win.showTakeControls('review');
+            setExpress(win, true);
+            await tick();
+            expect(win.global_take_phase).toBe('review');
+            expect(win.global_countdown_timer).toBeNull();
+        } finally { closeTake(win); }
+    });
+
+    it('starts the next line after an accept without the auto-advance checkbox', async () => {
+        const win = await bootWithMedia(pipelineStub());
+        try {
+            win.document.getElementById('dom-operator-key').value = 'K';
+            await startTake(win);
+            setExpress(win, true);
+            const index_before = win.global_current_index;
+            win.document.getElementById('dom-btn-accept').click();
+            await waitFor(() => win.global_current_index === index_before + 1, 'the accept advance');
+            await waitFor(() => win.global_take_phase === 'pre-roll', 'the express next take');
+            expect(win.document.getElementById('dom-check-auto').checked).toBe(false);
+            expect(win.global_countdown_timer).toBeTruthy();
+        } finally { closeTake(win); }
+    });
+
+    it('retries the line when a review take is rejected in express mode', async () => {
+        const win = await bootWithMedia(pipelineStub());
+        try {
+            await startTake(win);
+            win.document.getElementById('dom-btn-record').click(); // stop -> review
+            await waitFor(() => win.global_take_phase === 'review', 'the review screen');
+            setExpress(win, true);
+            const index_before = win.global_current_index;
+            win.document.getElementById('dom-btn-reject').click();
+            await waitFor(() => win.global_take_phase === 'pre-roll', 'the retry pre-roll');
+            expect(win.global_current_index).toBe(index_before);
+            expect(win.global_countdown_timer).toBeTruthy();
+        } finally { closeTake(win); }
+    });
+
+    it('autoplays the recorded take when express mode is off', async () => {
+        const win = await bootWithMedia(pipelineStub());
+        try {
+            const played = [];
+            win.HTMLMediaElement.prototype.play = function () { played.push(this.id); return Promise.resolve(); };
+            await startTake(win);
+            win.document.getElementById('dom-btn-record').click(); // stop -> review
+            await waitFor(() => win.global_take_phase === 'review', 'the review screen');
+            expect(played).toContain('dom-video-playback');
+        } finally { closeTake(win); }
+    });
+
+    it('does not autoplay the recorded take in express mode', async () => {
+        const win = await bootWithMedia(pipelineStub(), { uff_express_mode: '1' });
+        try {
+            await waitFor(() => win.global_take_phase === 'pre-roll', 'the express pre-roll');
+            // Cancel the auto countdown so this test drives one take directly.
+            win.clearInterval(win.global_countdown_timer);
+            win.global_countdown_timer = null;
+            const played = [];
+            win.HTMLMediaElement.prototype.play = function () { played.push(this.id); return Promise.resolve(); };
+            await startTake(win);
+            win.document.getElementById('dom-btn-record').click(); // stop -> review
+            await waitFor(() => win.global_take_phase === 'review', 'the review screen');
+            expect(played).not.toContain('dom-video-playback');
+            // The clip is still loaded, so the operator can play it by hand.
+            expect(win.document.getElementById('dom-video-playback').src).toContain('blob:fake-take');
+        } finally { closeTake(win); }
+    });
+
+    it('turning express mode off stores the off state and starts nothing', async () => {
+        const win = await bootWithMedia(pipelineStub(), { uff_express_mode: '1' });
+        try {
+            await waitFor(() => win.global_take_phase === 'pre-roll', 'the express pre-roll');
+            // Cancel the running countdown so the assertion is about the toggle.
+            win.clearInterval(win.global_countdown_timer);
+            win.global_countdown_timer = null;
+            win.global_take_phase = 'idle';
+            setExpress(win, false);
+            await tick();
+            expect(win.global_take_phase).toBe('idle');
+            expect(win.global_countdown_timer).toBeNull();
+            expect(win.sessionStorage.getItem('uff_express_mode')).toBe('0');
+        } finally { closeTake(win); }
     });
 });
 

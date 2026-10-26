@@ -260,20 +260,9 @@
             border-top-color: var(--border-color);
             display: flex;
             justify-content: center;
-            gap: 15px;
-        }
-
-        .control-bar-review {
-            display: none;
-            padding-top: 15px;
-            padding-bottom: 15px;
-            padding-left: 15px;
-            padding-right: 15px;
-            background-color: #e3f2fd;
-            border-top-width: 1px;
-            border-top-style: solid;
-            border-top-color: #bbdefb;
-            justify-content: center;
+            /* Three take buttons share this bar (reject | stop | accept), so a
+               narrow desktop column wraps them instead of overflowing. */
+            flex-wrap: wrap;
             gap: 15px;
         }
 
@@ -431,7 +420,7 @@
             .video-box:first-of-type { grid-area: cam; }
             .video-box:last-of-type { grid-area: play; }
             .script-content-area { grid-area: content; }
-            .control-bar-main, .control-bar-review { grid-area: buttons; }
+            .control-bar-main { grid-area: buttons; }
             .app-footer { grid-area: foot; }
         }
 
@@ -474,24 +463,26 @@
             <span id="dom-prev-val" class="meta-text-previous">PREVIOUS LINE: ---</span>
         </div>
 
+        <!-- One control bar for every take phase, in the order the operator
+             reads it: REJECT / RETRY left of the STOP button, ACCEPT & UPLOAD
+             right of it, SAVE TO DEVICE last. Show/hide per phase is decided
+             by showTakeControls(), so the reject and accept actions are
+             already on screen while a take is still recording. -->
         <div id="dom-controls-main" class="control-bar-main">
+            <button id="dom-btn-reject" class="btn-universal btn-state-retry" style="display:none;">
+                🗑️ REJECT / RETRY
+            </button>
             <button id="dom-btn-record" class="btn-universal btn-state-record" disabled>
                 ⏺️ START RECORDING
             </button>
-            <button id="dom-btn-pause" class="btn-universal btn-state-pause" style="display:none;">
-                ⏸️ PAUSE COUNT
-            </button>
-        </div>
-
-        <div id="dom-controls-review" class="control-bar-review">
-            <button id="dom-btn-reject" class="btn-universal btn-state-retry">
-                🗑️ REJECT / RETRY
-            </button>
-            <button id="dom-btn-accept" class="btn-universal btn-state-accept">
+            <button id="dom-btn-accept" class="btn-universal btn-state-accept" style="display:none;">
                 ☁️ ACCEPT & UPLOAD
             </button>
-            <button id="dom-btn-download" class="btn-universal btn-state-retry">
+            <button id="dom-btn-download" class="btn-universal btn-state-retry" style="display:none;">
                 ⬇️ SAVE TO DEVICE
+            </button>
+            <button id="dom-btn-pause" class="btn-universal btn-state-pause" style="display:none;">
+                ⏸️ PAUSE COUNT
             </button>
         </div>
 
@@ -526,6 +517,11 @@
                 </select>
             </div>
             
+            <div style="margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+                <input type="checkbox" id="dom-check-express" style="width: 25px; height: 25px; cursor: pointer;">
+                <label for="dom-check-express" style="font-weight: bold; cursor: pointer;">Express mode (auto-start each take)</label>
+            </div>
+
             <div style="margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
                 <input type="checkbox" id="dom-check-auto" style="width: 25px; height: 25px; cursor: pointer;">
                 <label for="dom-check-auto" style="font-weight: bold; cursor: pointer;">Auto-start next line after Accept</label>
@@ -565,6 +561,15 @@
         var global_recorder_obj = null;
         var global_data_chunks = [];
         var global_is_recording_flag = false;
+        // What the next MediaRecorder stop should do: null = normal review,
+        // 'accept' = stop then upload straight away, 'discard' = throw the take
+        // away and retry the same line. Set by the reject/accept buttons when
+        // they are pressed during a take.
+        var global_pending_record_action = null;
+        // Which controls the bar is showing: 'idle' | 'pre-roll' | 'recording'
+        // | 'review'. Express mode only starts a take from 'idle', so it can
+        // never interrupt a running countdown, a take, or the review of one.
+        var global_take_phase = 'idle';
         
         var global_countdown_timer = null;
         var global_record_duration_timer = null;
@@ -594,6 +599,7 @@
         var node_btn_render = document.getElementById('dom-btn-render');
         var node_operator_key = document.getElementById('dom-operator-key');
         var node_render_status = document.getElementById('dom-render-status');
+        var node_check_express = document.getElementById('dom-check-express');
         
         var node_select_mic = document.getElementById('dom-select-mic');
         var node_select_jump = document.getElementById('dom-select-jump');
@@ -702,6 +708,9 @@
                 if (node_select_mic.options.length <= 1) {
                     await refreshAudioDeviceList();
                 }
+                // The first take of the session: express mode starts its
+                // countdown as soon as the camera is actually live.
+                maybeAutoStartTake();
             } catch (fail) {
                 appCoreLog("HARDWARE INITIALIZATION FAILED: " + fail.message);
                 node_status_bar.textContent = "HARDWARE ERROR: " + fail.message;
@@ -747,12 +756,34 @@
 
                 global_recorder_obj.onstop = function() {
                     appCoreLog("MediaRecorder STOP event received. Finalizing blob...");
+                    var pending_action = global_pending_record_action;
+                    global_pending_record_action = null;
+                    if (pending_action === 'discard') {
+                        // Rejected mid-take: drop the recorded chunks so no
+                        // clip is produced or uploaded, then start the same
+                        // line again immediately.
+                        global_data_chunks = [];
+                        global_last_final_blob = null;
+                        resetTakeControlsToIdle();
+                        node_status_bar.textContent = "TAKE DISCARDED • RETRYING";
+                        node_status_bar.className = "status-indicator-bar status-ready";
+                        appCoreLog("Take discarded — restarting the same line.");
+                        startPreRollSequence();
+                        return;
+                    }
                     generateFinalVideoBuffer();
+                    if (pending_action === 'accept') {
+                        // Accepted mid-take: the take is complete, so upload it
+                        // now instead of waiting for a separate review click.
+                        appCoreLog("Take accepted while recording — uploading now.");
+                        node_btn_accept.click();
+                    }
                 };
 
                 // INITIALIZE THE START
                 global_recorder_obj.start();
                 global_is_recording_flag = true;
+                showTakeControls('recording');
                 
                 // UPDATE BUTTON UI IMMEDIATELY
                 node_btn_record.innerHTML = "<span>🛑</span> STOP RECORDING";
@@ -821,16 +852,93 @@ node_video_preview.play(); // Explicitly restart playback
             
             // TRANSITION TO REVIEW MODE
             document.body.classList.add('is-reviewing-now');
-            document.getElementById('dom-controls-main').style.display = "none";
-            document.getElementById('dom-controls-review').style.display = "flex";
+            showTakeControls('review');
             
             var size_mb = (final_video_blob.size / 1024 / 1024).toFixed(2);
             appCoreLog("MP4 Generated: " + size_mb + " MB");
+            
+            if (isExpressModeEnabled()) {
+                // Express mode keeps the review silent: the operator is moving
+                // straight on to the next line, so the recorded take is loaded
+                // but must not start playing on its own. It stays paused and
+                // can still be played with the native controls.
+                node_video_playback.pause();
+                appCoreLog("Express mode: recorded take loaded without autoplay.");
+                return;
+            }
             
             node_video_playback.play().catch(function(e) {
                 appCoreLog("Video Playback Autoplay blocked: " + e.message);
             });
         }
+
+        /**
+         * ==========================================
+         * TAKE CONTROL BAR VISIBILITY
+         * ==========================================
+         */
+        /**
+         * Shows the actions a phase offers, in the bar's fixed order (reject |
+         * stop | accept | save). Recording offers reject and accept straight
+         * away so the operator never has to stop first and then decide, which
+         * is the point of the layout: STOP is one option among three, not the
+         * only way out of a take.
+         */
+        function showTakeControls(phase) {
+            global_take_phase = phase;
+            var is_recording = phase === 'recording';
+            var is_review = phase === 'review';
+            node_btn_reject.style.display = (is_recording || is_review) ? 'flex' : 'none';
+            node_btn_accept.style.display = (is_recording || is_review) ? 'flex' : 'none';
+            node_btn_download.style.display = is_review ? 'flex' : 'none';
+            node_btn_record.style.display = (is_recording || phase === 'pre-roll' || phase === 'idle')
+                ? 'flex'
+                : 'none';
+        }
+
+        // Back to a clean START RECORDING bar for the current script line.
+        function resetTakeControlsToIdle() {
+            document.body.classList.remove('is-reviewing-now');
+            showTakeControls('idle');
+            node_btn_record.innerHTML = "<span>⏺️</span> START RECORDING";
+            node_btn_record.className = "btn-universal btn-state-record";
+            node_btn_record.disabled = false;
+        }
+
+        /**
+         * ==========================================
+         * EXPRESS MODE
+         * ==========================================
+         */
+        function isExpressModeEnabled() {
+            return !!node_check_express && node_check_express.checked === true;
+        }
+
+        // Express mode removes the START RECORDING click: whichever way the bar
+        // arrives back at 'idle' (first load, accept, review reject), the
+        // countdown for the current line starts on its own. Guarded by the phase
+        // so it can never cut into a running countdown, a take, or a review.
+        function maybeAutoStartTake() {
+            if (!isExpressModeEnabled()) { return; }
+            if (global_take_phase !== 'idle') { return; }
+            if (!global_stream_handle) { return; }
+            if (global_script_phrases.length === 0) { return; }
+            if (global_current_index >= global_script_phrases.length) { return; }
+            appCoreLog("Express mode: starting the take automatically.");
+            startPreRollSequence();
+        }
+
+        node_check_express.onchange = function() {
+            try {
+                sessionStorage.setItem('uff_express_mode', this.checked ? '1' : '0');
+            } catch (err) {
+                // Storage blocked: express mode still works for this page load.
+            }
+            appCoreLog("Express mode " + (this.checked ? "enabled" : "disabled") + ".");
+            if (this.checked) {
+                maybeAutoStartTake();
+            }
+        };
 
         /**
          * ==========================================
@@ -841,6 +949,7 @@ node_video_preview.play(); // Explicitly restart playback
             var counter_val = 4;
             node_btn_record.disabled = true;
             node_btn_pause.style.display = "inline-block";
+            showTakeControls('pre-roll');
             global_is_paused_logic = false;
             
             node_overlay_count.style.display = "block";
@@ -1144,13 +1253,7 @@ node_video_preview.play(); // Explicitly restart playback
             global_current_index = global_current_index + 1;
             
             // Reset Layout for Next take
-            document.body.classList.remove('is-reviewing-now');
-            document.getElementById('dom-controls-main').style.display = "flex";
-            document.getElementById('dom-controls-review').style.display = "none";
-            
-            node_btn_record.innerHTML = "<span>⏺️</span> START RECORDING";
-            node_btn_record.className = "btn-universal btn-state-record";
-            node_btn_record.disabled = false;
+            resetTakeControlsToIdle();
             
             synchronizeDisplay();
             
@@ -1161,6 +1264,11 @@ node_video_preview.play(); // Explicitly restart playback
                     appCoreLog("Auto-advance triggered.");
                     setTimeout(startPreRollSequence, 1000);
                 }
+            } else {
+                // Express mode starts the next line without a click even when
+                // the auto-advance checkbox is off. The phase guard in
+                // maybeAutoStartTake keeps it to one countdown.
+                maybeAutoStartTake();
             }
         }
 
@@ -1243,6 +1351,19 @@ node_video_preview.play(); // Explicitly restart playback
         }
 
         node_btn_accept.onclick = function() {
+            // A stop is already in flight — the pending action owns the next
+            // step, so a second click must not start a parallel upload.
+            if (global_pending_record_action) {
+                return;
+            }
+            if (global_is_recording_flag === true) {
+                // Accepted while the take is still recording: stop it and
+                // upload immediately, skipping the review pause.
+                appCoreLog("Accept pressed while recording — stopping and uploading.");
+                global_pending_record_action = 'accept';
+                executeStopRecording();
+                return;
+            }
             var current_line_meta = global_script_phrases[global_current_index];
             var bare_filename = current_line_meta.filename || ("take_" + global_current_index);
             var operator_key = getOperatorKey();
@@ -1452,18 +1573,25 @@ node_video_preview.play(); // Explicitly restart playback
         }
 
         node_btn_reject.onclick = function() {
+            // A stop is already in flight — the pending action owns the next step.
+            if (global_pending_record_action) {
+                return;
+            }
+            if (global_is_recording_flag === true) {
+                // Rejected while the take is still recording: throw the clip
+                // away and start the same line again straight away.
+                appCoreLog("Recording rejected mid-take — retrying the same line.");
+                global_pending_record_action = 'discard';
+                executeStopRecording();
+                return;
+            }
             appCoreLog("Recording discarded by user.");
-            
-            document.body.classList.remove('is-reviewing-now');
-            document.getElementById('dom-controls-main').style.display = "flex";
-            document.getElementById('dom-controls-review').style.display = "none";
-            
-            node_btn_record.innerHTML = "<span>⏺️</span> START RECORDING";
-            node_btn_record.className = "btn-universal btn-state-record";
-            node_btn_record.disabled = false;
+            resetTakeControlsToIdle();
             
             node_status_bar.textContent = "HARDWARE READY • MP4 STRICT MODE ENABLED";
             node_status_bar.className = "status-indicator-bar status-ready";
+            // Express mode: a rejected take retries the line on its own.
+            maybeAutoStartTake();
         };
 
         node_select_jump.onchange = function() {
@@ -1485,6 +1613,11 @@ node_video_preview.play(); // Explicitly restart playback
             appCoreLog("System Application Launch...");
             global_uploaded_takes = loadPersistedSet('uff_uploaded_takes');
             global_rendered_lessons = loadPersistedSet('uff_rendered_lessons');
+            // Express mode survives a reload (the course switch reloads this
+            // page), so an operator does not lose the mode mid-session.
+            if (node_check_express) {
+                node_check_express.checked = sessionStorage.getItem('uff_express_mode') === '1';
+            }
             await loadCourseIndex();
             // Switching course reloads the studio so the CSV, the take list and
             // the render requests all belong to the same course.
