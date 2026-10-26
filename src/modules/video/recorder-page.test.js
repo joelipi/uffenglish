@@ -1226,6 +1226,36 @@ describe('recorder page — take actions and express mode', () => {
         } finally { closeTake(win); }
     });
 
+    it('autoplays the recorded take when express mode is off', async () => {
+        const win = await bootWithMedia(pipelineStub());
+        try {
+            const played = [];
+            win.HTMLMediaElement.prototype.play = function () { played.push(this.id); return Promise.resolve(); };
+            await startTake(win);
+            win.document.getElementById('dom-btn-record').click(); // stop -> review
+            await waitFor(() => win.global_take_phase === 'review', 'the review screen');
+            expect(played).toContain('dom-video-playback');
+        } finally { closeTake(win); }
+    });
+
+    it('does not autoplay the recorded take in express mode', async () => {
+        const win = await bootWithMedia(pipelineStub(), { uff_express_mode: '1' });
+        try {
+            await waitFor(() => win.global_take_phase === 'pre-roll', 'the express pre-roll');
+            // Cancel the auto countdown so this test drives one take directly.
+            win.clearInterval(win.global_countdown_timer);
+            win.global_countdown_timer = null;
+            const played = [];
+            win.HTMLMediaElement.prototype.play = function () { played.push(this.id); return Promise.resolve(); };
+            await startTake(win);
+            win.document.getElementById('dom-btn-record').click(); // stop -> review
+            await waitFor(() => win.global_take_phase === 'review', 'the review screen');
+            expect(played).not.toContain('dom-video-playback');
+            // The clip is still loaded, so the operator can play it by hand.
+            expect(win.document.getElementById('dom-video-playback').src).toContain('blob:fake-take');
+        } finally { closeTake(win); }
+    });
+
     it('turning express mode off stores the off state and starts nothing', async () => {
         const win = await bootWithMedia(pipelineStub(), { uff_express_mode: '1' });
         try {

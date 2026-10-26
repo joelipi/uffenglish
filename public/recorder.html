@@ -857,6 +857,16 @@ node_video_preview.play(); // Explicitly restart playback
             var size_mb = (final_video_blob.size / 1024 / 1024).toFixed(2);
             appCoreLog("MP4 Generated: " + size_mb + " MB");
             
+            if (isExpressModeEnabled()) {
+                // Express mode keeps the review silent: the operator is moving
+                // straight on to the next line, so the recorded take is loaded
+                // but must not start playing on its own. It stays paused and
+                // can still be played with the native controls.
+                node_video_playback.pause();
+                appCoreLog("Express mode: recorded take loaded without autoplay.");
+                return;
+            }
+            
             node_video_playback.play().catch(function(e) {
                 appCoreLog("Video Playback Autoplay blocked: " + e.message);
             });
