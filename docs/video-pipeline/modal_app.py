@@ -539,7 +539,9 @@ def orchestrator(spec: dict):
         # Lesson intros are synthesized from the master CSV's `intro_video` column,
         # so they never enter the plan above; the render still owes them their
         # posters (the deploy no longer generates any).
-        _write_status(job_id, "running", "posters")
+        # Keep the publish progress on the posters stage: a poller must not see
+        # published drop back to empty while the run is still healthy.
+        _write_status(job_id, "running", "posters", dict(progress_state))
         intro_posters = _publish_intro_posters(rows)
 
         # One-click chain: tell GitHub to run SRT write-back -> translation ->
