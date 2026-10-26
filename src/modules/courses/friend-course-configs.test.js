@@ -46,8 +46,10 @@ describe('loadConfigEntries', () => {
         const courses = listFriendCourses(await loadConfigEntries());
         // The listed courses: every config that is a friend course and is not
         // one of the reserved fixtures (`test`, `wouldyourather-test`). The
-        // health course is the second ABABAB course, so it is listed too.
-        expect(courses.map((c) => c.courseId)).toEqual(['health', 'wouldyourather']);
+        // health course is the second ABABAB course, so it is listed too; the
+        // cartoon course is the third.
+        expect(courses.map((c) => c.courseId))
+            .toEqual(['cartoon-preferences', 'health', 'wouldyourather']);
         for (const course of courses) {
             expect(course.firstLessonId).toBe('a');
         }

@@ -77,9 +77,11 @@ describe('introTargets', () => {
         // step slugs (`intro` retired — no config references it); the configs
         // are generated, so this list grows as courses are added. The generated
         // course opens on a TAKE (wouldyourather-a-01-01), not the take-group.
-        // The health course opens on its own first take (health-a-01-01).
+        // The health course opens on its own first take (health-a-01-01), and
+        // cartoon-preferences likewise on its first ask take.
         expect(slugs).toEqual(
             [
+                'cartoon-preferences-a-01-01',
                 'do_you_have_dark_chocolate',
                 'do_you_have_rolls_too',
                 'gtests-1-0',

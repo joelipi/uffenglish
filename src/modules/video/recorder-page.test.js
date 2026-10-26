@@ -2162,6 +2162,14 @@ describe('recorder auto-render — zero server changes', () => {
             'scripts/lib/pwa-build-output.test.js',
             'scripts/cartoon-preferences-person.test.js',
             'package.json',
+            // Cartoon-preferences course: the rendered SRT in the master CSV,
+            // the generated config (hand-authored courseName translations), and
+            // the R2 upload retry timeout that keeps a render from being lost to
+            // one stalled multipart part.
+            'public/cartoon-preferences.master.csv',
+            'src/config/cartoon-preferences.json',
+            'docs/video-pipeline/storage.py',
+            'docs/video-pipeline/tests/test_storage_client.py',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);
