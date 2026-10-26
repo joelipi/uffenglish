@@ -80,6 +80,7 @@ describe('introTargets', () => {
         // The health course opens on its own first take (health-a-01-01).
         expect(slugs).toEqual(
             [
+                'cartoon-preferences-a-01-01',
                 'do_you_have_dark_chocolate',
                 'do_you_have_rolls_too',
                 'gtests-1-0',

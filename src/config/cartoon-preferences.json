@@ -1,7 +1,12 @@
 {
   "courseId": "cartoon-preferences",
   "courseName": {
-    "en": "Mickey Mouse or Bugs Bunny?"
+    "en": "Mickey Mouse or Bugs Bunny?",
+    "es": "¿Mickey Mouse o Bugs Bunny?",
+    "pt": "Mickey Mouse ou Bugs Bunny?",
+    "fr": "Mickey Mouse ou Bugs Bunny ?",
+    "hi": "मिकी माउस या बग्स बनी?",
+    "bn": "মিকি মাউস নাকি বাগস বানি?"
   },
   "tags": [
     "media"

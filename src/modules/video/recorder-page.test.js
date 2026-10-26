@@ -2186,6 +2186,12 @@ describe('recorder auto-render — zero server changes', () => {
             'src/modules/video/playback-start-wiring.test.js',
             'tests/playback-video-ipad-autoplay.spec.js',
             'AGENTS.md',
+            // Merge with main's new cartoon course: fill its name locales and
+            // teach the derived guards about its intro slug.
+            'src/config/cartoon-preferences.json',
+            'scripts/lib/poster-utils.test.js',
+            'src/modules/courses/friend-course-configs.test.js',
+            'src/generated/poster-lqips.test.js',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);
