@@ -198,6 +198,21 @@ def srt_from_manifest(manifest) -> dict:
     return dict(srt) if isinstance(srt, dict) else {}
 
 
+def shares_file_set(manifest, files) -> bool:
+    """Whether a manifest cached exactly this set of takes.
+
+    Eviction is scoped by this: parallel per-lesson jobs cache different take
+    sets, so deleting a sibling lesson's prefix would throw away work another
+    run may still be publishing.
+    """
+    if not isinstance(manifest, dict):
+        return False
+    recorded = manifest.get("files")
+    if not isinstance(recorded, list):
+        return False
+    return sorted(str(f) for f in recorded) == sorted(str(f) for f in (files or []))
+
+
 def missing_objects(manifest, heads) -> list:
     """The recorded object keys whose published digest does not match.
 

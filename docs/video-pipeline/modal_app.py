@@ -220,6 +220,35 @@ def _write_status(job_id, status, stage, extra=None):
         storage.upload_json(key, serialize_status(payload))
 
 
+def _evict_stale_cache(course_id, fingerprint, files):
+    """Delete caches for the SAME take set under an older fingerprint.
+
+    Bounded growth: every changed input produces a new fingerprint, so without
+    this the bucket keeps every version forever. Scoped by ``files`` so a
+    parallel per-lesson job's cache is never touched. Best-effort.
+    """
+    import render_cache
+
+    try:
+        root = f"{render_cache.CACHE_ROOT}/{course_id}/"
+        prefixes = set()
+        for key in storage.list_keys(root):
+            rest = key[len(root):]
+            if "/" in rest:
+                prefixes.add(rest.split("/", 1)[0])
+        for other in prefixes:
+            if other == fingerprint:
+                continue
+            manifest = _load_manifest(course_id, other)
+            if not render_cache.shares_file_set(manifest, files):
+                continue
+            for key in storage.list_keys(f"{root}{other}/"):
+                storage.delete_object(key)
+            print(f"🧹 evicted stale render cache {other[:12]} for the same take set")
+    except Exception as exc:  # noqa: BLE001 - cache maintenance is best-effort
+        print(f"⚠️ render cache eviction failed: {exc}")
+
+
 def _rows_for_files(rows, files):
     """The CSV rows that define this run's takes (the cache fingerprint's input).
 
@@ -488,6 +517,8 @@ def orchestrator(spec: dict):
                             objects=publish_result.get("digests") or {})
         except Exception as exc:  # noqa: BLE001 - cache is an optimization
             print(f"⚠️ render cache manifest finalize failed: {exc}")
+        # Only after a successful publish: an older cache is superseded.
+        _evict_stale_cache(course_id, fingerprint, files)
 
 
         # Lesson intros are synthesized from the master CSV's `intro_video` column,

@@ -166,5 +166,16 @@ class ManifestTest(unittest.TestCase):
         self.assertEqual(rc.missing_objects(m, {"assets/videos/s.mp4": {"metadata": {"sha256": "sha"}}}), [])
 
 
+class EvictionScopeTest(unittest.TestCase):
+    def test_matches_only_the_same_take_set(self):
+        m = {"files": ["b", "a"]}
+        self.assertTrue(rc.shares_file_set(m, ["a", "b"]))
+        self.assertFalse(rc.shares_file_set(m, ["a"]), "a per-lesson job must not evict siblings")
+        self.assertFalse(rc.shares_file_set(m, ["a", "b", "c"]))
+        self.assertFalse(rc.shares_file_set({}, ["a"]))
+        self.assertFalse(rc.shares_file_set({"files": "a"}, ["a"]))
+        self.assertFalse(rc.shares_file_set(None, ["a"]))
+
+
 if __name__ == "__main__":
     unittest.main()
