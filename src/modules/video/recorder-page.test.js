@@ -902,11 +902,12 @@ describe('recorder page — lesson auto-render', () => {
 
 // The operator can reject or accept a take while it is still recording: the
 // three actions sit side by side in one bar (reject | stop | accept), so the
-// decision does not wait for the review screen. These tests boot the real page
-// script with a fake camera/recorder (jsdom has no media stack of its own) and
-// drive the real buttons, so the phase transitions and the stop handling are
-// the shipped ones.
-describe('recorder page — reject and accept during a take', () => {
+// decision does not wait for the review screen. Express mode then removes the
+// START RECORDING click entirely: each line's countdown begins on its own.
+// These tests boot the real page script with a fake camera/recorder (jsdom has
+// no media stack of its own) and drive the real buttons, so the phase
+// transitions, the stop handling and the auto-start are the shipped ones.
+describe('recorder page — take actions and express mode', () => {
     const installFakeMedia = (pageWindow) => {
         const recorders = [];
         class FakeMediaRecorder {
@@ -980,7 +981,7 @@ describe('recorder page — reject and accept during a take', () => {
 
     const firstTakeFilename = (win) => win.global_script_phrases[win.global_current_index].filename;
 
-    const bootWithMedia = async (stub) => {
+    const bootWithMedia = async (stub, seedStorage = null) => {
         const { JSDOM } = await import('jsdom');
         // bootAuto lives in the auto-render describe; rebuild the same boot here
         // so this block stays independent of that describe's locals.
@@ -990,6 +991,9 @@ describe('recorder page — reject and accept during a take', () => {
             runScripts: 'dangerously',
             beforeParse(pageWindow) {
                 pageWindow.fetch = stub;
+                for (const [k, v] of Object.entries(seedStorage || {})) {
+                    pageWindow.sessionStorage.setItem(k, v);
+                }
                 installFakeMedia(pageWindow);
             },
         });
@@ -1115,6 +1119,127 @@ describe('recorder page — reject and accept during a take', () => {
             .replace('id="dom-btn-TMP"', 'id="dom-btn-accept"');
         expect(swapped).not.toBe(html);
         expect(barOrder(swapped)).not.toEqual(['reject', 'record', 'accept', 'download', 'pause']);
+    });
+
+    /**
+     * ==========================================
+     * EXPRESS MODE
+     * ==========================================
+     */
+    const waitFor = async (cond, what, timeoutMs = 3000) => {
+        const deadline = Date.now() + timeoutMs;
+        while (!cond()) {
+            if (Date.now() > deadline) throw new Error(`timed out waiting for ${what}`);
+            await new Promise((r) => setTimeout(r, 20));
+        }
+    };
+
+    const setExpress = (win, checked) => {
+        const box = win.document.getElementById('dom-check-express');
+        box.checked = checked;
+        box.dispatchEvent(new win.Event('change'));
+    };
+
+    it('offers an express-mode toggle that starts unchecked', async () => {
+        const win = await bootWithMedia(pipelineStub());
+        try {
+            const box = win.document.getElementById('dom-check-express');
+            expect(box).not.toBeNull();
+            expect(box.type).toBe('checkbox');
+            expect(box.checked).toBe(false);
+            const label = win.document.querySelector('label[for="dom-check-express"]');
+            expect(label.textContent).toContain('Express mode');
+        } finally { closeTake(win); }
+    });
+
+    it('does not start a take by itself while express mode is off', async () => {
+        const win = await bootWithMedia(pipelineStub());
+        try {
+            await tick();
+            expect(win.global_take_phase).toBe('idle');
+            expect(win.global_countdown_timer).toBeNull();
+            expect(win.document.getElementById('dom-btn-record').disabled).toBe(false);
+        } finally { closeTake(win); }
+    });
+
+    it('starts the countdown as soon as the page is ready when express mode is on', async () => {
+        const win = await bootWithMedia(pipelineStub(), { uff_express_mode: '1' });
+        try {
+            expect(win.document.getElementById('dom-check-express').checked).toBe(true);
+            await waitFor(() => win.global_take_phase === 'pre-roll', 'the express pre-roll');
+            expect(win.global_countdown_timer).toBeTruthy();
+            expect(win.document.getElementById('dom-btn-record').disabled).toBe(true);
+            expect(win.document.getElementById('dom-huge-countdown').style.display).toBe('block');
+        } finally { closeTake(win); }
+    });
+
+    it('turning express mode on starts the current line’s countdown at once', async () => {
+        const win = await bootWithMedia(pipelineStub());
+        try {
+            await waitFor(() => !!win.global_stream_handle, 'the camera stream');
+            expect(win.global_take_phase).toBe('idle');
+            setExpress(win, true);
+            await waitFor(() => win.global_take_phase === 'pre-roll', 'the toggled-on pre-roll');
+            expect(win.global_countdown_timer).toBeTruthy();
+            expect(win.sessionStorage.getItem('uff_express_mode')).toBe('1');
+        } finally { closeTake(win); }
+    });
+
+    it('never starts a take over the review screen', async () => {
+        const win = await bootWithMedia(pipelineStub());
+        try {
+            win.showTakeControls('review');
+            setExpress(win, true);
+            await tick();
+            expect(win.global_take_phase).toBe('review');
+            expect(win.global_countdown_timer).toBeNull();
+        } finally { closeTake(win); }
+    });
+
+    it('starts the next line after an accept without the auto-advance checkbox', async () => {
+        const win = await bootWithMedia(pipelineStub());
+        try {
+            win.document.getElementById('dom-operator-key').value = 'K';
+            await startTake(win);
+            setExpress(win, true);
+            const index_before = win.global_current_index;
+            win.document.getElementById('dom-btn-accept').click();
+            await waitFor(() => win.global_current_index === index_before + 1, 'the accept advance');
+            await waitFor(() => win.global_take_phase === 'pre-roll', 'the express next take');
+            expect(win.document.getElementById('dom-check-auto').checked).toBe(false);
+            expect(win.global_countdown_timer).toBeTruthy();
+        } finally { closeTake(win); }
+    });
+
+    it('retries the line when a review take is rejected in express mode', async () => {
+        const win = await bootWithMedia(pipelineStub());
+        try {
+            await startTake(win);
+            win.document.getElementById('dom-btn-record').click(); // stop -> review
+            await waitFor(() => win.global_take_phase === 'review', 'the review screen');
+            setExpress(win, true);
+            const index_before = win.global_current_index;
+            win.document.getElementById('dom-btn-reject').click();
+            await waitFor(() => win.global_take_phase === 'pre-roll', 'the retry pre-roll');
+            expect(win.global_current_index).toBe(index_before);
+            expect(win.global_countdown_timer).toBeTruthy();
+        } finally { closeTake(win); }
+    });
+
+    it('turning express mode off stores the off state and starts nothing', async () => {
+        const win = await bootWithMedia(pipelineStub(), { uff_express_mode: '1' });
+        try {
+            await waitFor(() => win.global_take_phase === 'pre-roll', 'the express pre-roll');
+            // Cancel the running countdown so the assertion is about the toggle.
+            win.clearInterval(win.global_countdown_timer);
+            win.global_countdown_timer = null;
+            win.global_take_phase = 'idle';
+            setExpress(win, false);
+            await tick();
+            expect(win.global_take_phase).toBe('idle');
+            expect(win.global_countdown_timer).toBeNull();
+            expect(win.sessionStorage.getItem('uff_express_mode')).toBe('0');
+        } finally { closeTake(win); }
     });
 });
 

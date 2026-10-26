@@ -518,6 +518,11 @@
             </div>
             
             <div style="margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+                <input type="checkbox" id="dom-check-express" style="width: 25px; height: 25px; cursor: pointer;">
+                <label for="dom-check-express" style="font-weight: bold; cursor: pointer;">Express mode (auto-start each take)</label>
+            </div>
+
+            <div style="margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
                 <input type="checkbox" id="dom-check-auto" style="width: 25px; height: 25px; cursor: pointer;">
                 <label for="dom-check-auto" style="font-weight: bold; cursor: pointer;">Auto-start next line after Accept</label>
             </div>
@@ -561,6 +566,10 @@
         // away and retry the same line. Set by the reject/accept buttons when
         // they are pressed during a take.
         var global_pending_record_action = null;
+        // Which controls the bar is showing: 'idle' | 'pre-roll' | 'recording'
+        // | 'review'. Express mode only starts a take from 'idle', so it can
+        // never interrupt a running countdown, a take, or the review of one.
+        var global_take_phase = 'idle';
         
         var global_countdown_timer = null;
         var global_record_duration_timer = null;
@@ -590,6 +599,7 @@
         var node_btn_render = document.getElementById('dom-btn-render');
         var node_operator_key = document.getElementById('dom-operator-key');
         var node_render_status = document.getElementById('dom-render-status');
+        var node_check_express = document.getElementById('dom-check-express');
         
         var node_select_mic = document.getElementById('dom-select-mic');
         var node_select_jump = document.getElementById('dom-select-jump');
@@ -698,6 +708,9 @@
                 if (node_select_mic.options.length <= 1) {
                     await refreshAudioDeviceList();
                 }
+                // The first take of the session: express mode starts its
+                // countdown as soon as the camera is actually live.
+                maybeAutoStartTake();
             } catch (fail) {
                 appCoreLog("HARDWARE INITIALIZATION FAILED: " + fail.message);
                 node_status_bar.textContent = "HARDWARE ERROR: " + fail.message;
@@ -862,6 +875,7 @@ node_video_preview.play(); // Explicitly restart playback
          * only way out of a take.
          */
         function showTakeControls(phase) {
+            global_take_phase = phase;
             var is_recording = phase === 'recording';
             var is_review = phase === 'review';
             node_btn_reject.style.display = (is_recording || is_review) ? 'flex' : 'none';
@@ -880,6 +894,41 @@ node_video_preview.play(); // Explicitly restart playback
             node_btn_record.className = "btn-universal btn-state-record";
             node_btn_record.disabled = false;
         }
+
+        /**
+         * ==========================================
+         * EXPRESS MODE
+         * ==========================================
+         */
+        function isExpressModeEnabled() {
+            return !!node_check_express && node_check_express.checked === true;
+        }
+
+        // Express mode removes the START RECORDING click: whichever way the bar
+        // arrives back at 'idle' (first load, accept, review reject), the
+        // countdown for the current line starts on its own. Guarded by the phase
+        // so it can never cut into a running countdown, a take, or a review.
+        function maybeAutoStartTake() {
+            if (!isExpressModeEnabled()) { return; }
+            if (global_take_phase !== 'idle') { return; }
+            if (!global_stream_handle) { return; }
+            if (global_script_phrases.length === 0) { return; }
+            if (global_current_index >= global_script_phrases.length) { return; }
+            appCoreLog("Express mode: starting the take automatically.");
+            startPreRollSequence();
+        }
+
+        node_check_express.onchange = function() {
+            try {
+                sessionStorage.setItem('uff_express_mode', this.checked ? '1' : '0');
+            } catch (err) {
+                // Storage blocked: express mode still works for this page load.
+            }
+            appCoreLog("Express mode " + (this.checked ? "enabled" : "disabled") + ".");
+            if (this.checked) {
+                maybeAutoStartTake();
+            }
+        };
 
         /**
          * ==========================================
@@ -1205,6 +1254,11 @@ node_video_preview.play(); // Explicitly restart playback
                     appCoreLog("Auto-advance triggered.");
                     setTimeout(startPreRollSequence, 1000);
                 }
+            } else {
+                // Express mode starts the next line without a click even when
+                // the auto-advance checkbox is off. The phase guard in
+                // maybeAutoStartTake keeps it to one countdown.
+                maybeAutoStartTake();
             }
         }
 
@@ -1526,6 +1580,8 @@ node_video_preview.play(); // Explicitly restart playback
             
             node_status_bar.textContent = "HARDWARE READY • MP4 STRICT MODE ENABLED";
             node_status_bar.className = "status-indicator-bar status-ready";
+            // Express mode: a rejected take retries the line on its own.
+            maybeAutoStartTake();
         };
 
         node_select_jump.onchange = function() {
@@ -1547,6 +1603,11 @@ node_video_preview.play(); // Explicitly restart playback
             appCoreLog("System Application Launch...");
             global_uploaded_takes = loadPersistedSet('uff_uploaded_takes');
             global_rendered_lessons = loadPersistedSet('uff_rendered_lessons');
+            // Express mode survives a reload (the course switch reloads this
+            // page), so an operator does not lose the mode mid-session.
+            if (node_check_express) {
+                node_check_express.checked = sessionStorage.getItem('uff_express_mode') === '1';
+            }
             await loadCourseIndex();
             // Switching course reloads the studio so the CSV, the take list and
             // the render requests all belong to the same course.
