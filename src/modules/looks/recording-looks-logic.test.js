@@ -184,6 +184,25 @@ describe('filters are opt-in — None is a real, selectable choice', () => {
         expect(isLookActive({ filterId: 'natural', slots: {} })).toBe(true);
         expect(isLookActive({ filterId: 'none', slots: { face: 'carnival' } })).toBe(true);
     });
+
+    it('forwards the cheap sourceDraw to the beauty pass (no canvas readback)', () => {
+        const paintBeauty = vi.fn();
+        const sourceDraw = () => {};
+        paintLooks({
+            ctx: { save() {}, restore() {}, fillRect() {}, globalCompositeOperation: 'source-over', globalAlpha: 1, fillStyle: '' },
+            source: {},
+            scratch: {},
+            canvasWidth: 720,
+            canvasHeight: 1280,
+            selection: { filterId: 'soft', slots: { face: null, upper: null, lower: null } },
+            tuning: emptyTuning(),
+            images: {},
+            paintBeauty,
+            sourceDraw,
+        });
+        expect(paintBeauty).toHaveBeenCalledTimes(1);
+        expect(paintBeauty.mock.calls[0][0].sourceDraw).toBe(sourceDraw);
+    });
 });
 
 describe('toggleFilterId', () => {

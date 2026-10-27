@@ -780,8 +780,13 @@
                     }
                 };
 
-                // INITIALIZE THE START
-                global_recorder_obj.start();
+                // INITIALIZE THE START.
+                // A timeslice is required on iOS: Safari 26's MediaRecorder
+                // loses video samples on a no-timeslice MP4 recording (the
+                // picture freezes while the audio keeps running — an out-of-sync
+                // take), and start(1000) is the documented workaround. It also
+                // gives the stop path data before the final buffer.
+                global_recorder_obj.start(1000);
                 global_is_recording_flag = true;
                 showTakeControls('recording');
                 

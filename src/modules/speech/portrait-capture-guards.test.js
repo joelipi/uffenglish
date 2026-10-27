@@ -56,7 +56,16 @@ describe('portrait capture (9:16)', () => {
         expect(body).toMatch(/aspectRatio: \{ ideal: 16 \/ 9 \}/);
         expect(body).toMatch(/isWindows && \{ aspectRatio: \{ ideal: 9 \/ 16 \} \}/);
         // No Android-specific portrait request — the composite guarantees it.
-        expect(body).not.toMatch(/isAndroid/);
+        // The only 9:16 ask is the existing Windows webcam override.
+        expect(body.match(/ideal: 9 \/ 16/g) || []).toHaveLength(1);
+        // The composite's hidden <video> decodes and scales the camera on every
+        // painted frame, so the source is bounded: a 4K feed is latency that
+        // lands in the take as A/V drift.
+        expect(body).toMatch(/width: \{ ideal: isAndroid \? 1280 : 1920 \}/);
+        expect(body).toMatch(/height: \{ ideal: isAndroid \? 720 : 1080 \}/);
+        expect(body).toMatch(/frameRate: \{ ideal: 30, max: 30 \}/);
+        // iOS records the raw camera and must keep its portrait constraints.
+        expect(body).toMatch(/boundedSource = !isIOS\(\)/);
     });
 
     it('builds a 9:16 canvas stream, centre-cropping the camera', () => {
@@ -65,7 +74,7 @@ describe('portrait capture (9:16)', () => {
         // Dimensions + crop math moved to portrait-capture-logic.js (resolveCompositeDimensions,
         // compositeCropRect, paintCompositeFrame) and are tested behaviourally there.
         // The adapter must still call them and carry the camera audio through.
-        expect(body).toMatch(/resolveCompositeDimensions\(/);
+        expect(body).toMatch(/resolveCompositeDimensions\(\{ isAndroid, isIOS: isIOS\(\) \}\)/);
         expect(body).toMatch(/compositeCropRect\(/);
         expect(body).toMatch(/paintCompositeFrame\(/);
         expect(body).toMatch(/canvas\.captureStream\(dims\.fps\)/);
@@ -73,6 +82,28 @@ describe('portrait capture (9:16)', () => {
         expect(body).toMatch(/rawStream\.getAudioTracks\(\)/);
         // The adapter must not call ctx.drawImage directly anymore.
         expect(body).not.toMatch(/ctx\.drawImage\(/);
+    });
+
+    it('paints a composite frame only when the camera has a new one', () => {
+        const body = functionBody(WEB, 'function createPortraitCaptureStream(rawStream)');
+        expect(body).not.toBe('');
+        // `captureStream` timestamps a frame when the canvas is painted, so a
+        // repaint per display tick (twice per camera frame on a 120 Hz iPad)
+        // buys no freshness and costs the encoder the time it needs — the
+        // recorded picture then trails the live microphone (A/V drift).
+        expect(body).toMatch(/video\.requestVideoFrameCallback\(onSourceFrame\)/);
+        expect(body).toMatch(/shouldPaintCompositeFrame\(\{ hasFrameCallback, framePending \}\)/);
+        // rAF stays as the scheduler/fallback, so a platform without the
+        // callback still paints every tick.
+        expect(body).toMatch(/requestAnimationFrame\(tick\)/);
+        // The measured latency goes to the take diagnostics, so a field report
+        // quantifies the drift instead of describing it.
+        expect(body).toMatch(/takeDiagnostics\.push\('composite lag'/);
+        // The soft-focus pass takes the frame straight from the camera <video>
+        // instead of reading back the canvas it just painted (that readback is
+        // the expensive part on a phone).
+        expect(body).toMatch(/sourceDraw: rect/);
+        expect(body).toMatch(/targetCtx\.drawImage\(\s*video,/);
     });
 
     it('only applies the composite when the device check passes', () => {

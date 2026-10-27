@@ -10,12 +10,39 @@ export const COMPOSITE_STALL_MS = 2000;
 export const COMPOSITE_FROZEN_MS = 3000;
 export const COMPOSITE_WATCHDOG_MS = 1000;
 
-export function resolveCompositeDimensions({ isAndroid }) {
+export function resolveCompositeDimensions({ isAndroid, isIOS = false }) {
+    // Every phone/tablet gets the light composite. The 1080×1920 canvas used to
+    // be the "desktop" size, but an iPad composite painter is just as
+    // constrained as an Android one: painting 2.25× the pixels per frame is how
+    // the recorded picture fell behind the live microphone (A/V drift), and a
+    // 720p canvas cuts that work by more than half while keeping the same 9:16
+    // framing.
+    const light = isAndroid === true || isIOS === true;
     return {
-        width: isAndroid ? 720 : 1080,
-        height: isAndroid ? 1280 : 1920,
-        fps: isAndroid ? 24 : 30,
+        width: light ? 720 : 1080,
+        height: light ? 1280 : 1920,
+        fps: light ? 24 : 30,
     };
+}
+
+/**
+ * Whether this display tick should repaint the composite canvas.
+ *
+ * The recorded take's video is the composite canvas, and `captureStream`
+ * timestamps a frame when the canvas is painted. Repainting on every display
+ * tick (a 120 Hz iPad paints twice for every 24 fps camera frame) does not make
+ * the picture any fresher — the source only has a new frame when it has one —
+ * but it does spend main-thread time that the encoder and the camera pipeline
+ * need, and that is what lets the recorded picture fall behind the live
+ * microphone. With `requestVideoFrameCallback` a paint is due only when the
+ * source signals a new frame; without it, every tick paints (the old path).
+ *
+ * @param {{ hasFrameCallback?: boolean, framePending?: boolean }} [input]
+ * @returns {boolean}
+ */
+export function shouldPaintCompositeFrame({ hasFrameCallback = false, framePending = false } = {}) {
+    if (!hasFrameCallback) return true;
+    return framePending === true;
 }
 
 export function compositeCropRect({ videoWidth, videoHeight, canvasWidth, canvasHeight }) {
@@ -335,6 +362,40 @@ export function prepareCloseUpMask({ source, maskCanvas, hole, canvasWidth, canv
     }
 }
 
+/**
+ * Bleed the sharpest texture out of the frame for a soft-focus look.
+ *
+ * `sourceDraw(ctx, width, height)` is an optional cheaper way to obtain the
+ * frame at a small size. The recording composite paints the camera into the
+ * canvas it is about to read back; on a phone/tablet that readback is the most
+ * expensive part of the pass, and the same pixels can be drawn straight from
+ * the camera <video> into the scratch. Callers that only have a canvas (the
+ * tests, the look preview) omit it.
+ */
+export function paintSoftFocus({ ctx, source, scratch, canvasWidth, canvasHeight, strength, sourceDraw = null }) {
+    if (!ctx || (!source && typeof sourceDraw !== 'function') || !scratch) return false;
+    if (!(strength > 0)) return false;
+    const sw = Math.max(1, Math.round(canvasWidth / SOFT_FOCUS_DOWNSCALE));
+    const sh = Math.max(1, Math.round(canvasHeight / SOFT_FOCUS_DOWNSCALE));
+    try {
+        if (scratch.width !== sw) scratch.width = sw;
+        if (scratch.height !== sh) scratch.height = sh;
+        const sctx = scratch.getContext('2d');
+        if (!sctx) return false;
+        sctx.imageSmoothingEnabled = true;
+        if (typeof sourceDraw === 'function') sourceDraw(sctx, sw, sh);
+        else sctx.drawImage(source, 0, 0, canvasWidth, canvasHeight, 0, 0, sw, sh);
+        ctx.save();
+        ctx.globalAlpha = Math.min(1, Math.max(0, strength));
+        ctx.imageSmoothingEnabled = true;
+        ctx.drawImage(scratch, 0, 0, sw, sh, 0, 0, canvasWidth, canvasHeight);
+        ctx.restore();
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
 /** Draw the masked sharp region back over the blurred/frosted frame. */
 export function paintCloseUpSharp({ ctx, maskCanvas, hole, canvasWidth, canvasHeight }) {
     if (!ctx || !maskCanvas || !hole) return false;
@@ -363,29 +424,6 @@ export function paintFrost({ ctx, canvasWidth, canvasHeight, alpha }) {
         ctx.fillStyle = 'rgb(255, 255, 255)';
         ctx.globalAlpha = Math.min(1, Math.max(0, alpha));
         ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-        ctx.restore();
-        return true;
-    } catch (e) {
-        return false;
-    }
-}
-
-export function paintSoftFocus({ ctx, source, scratch, canvasWidth, canvasHeight, strength }) {
-    if (!ctx || !source || !scratch) return false;
-    if (!(strength > 0)) return false;
-    const sw = Math.max(1, Math.round(canvasWidth / SOFT_FOCUS_DOWNSCALE));
-    const sh = Math.max(1, Math.round(canvasHeight / SOFT_FOCUS_DOWNSCALE));
-    try {
-        if (scratch.width !== sw) scratch.width = sw;
-        if (scratch.height !== sh) scratch.height = sh;
-        const sctx = scratch.getContext('2d');
-        if (!sctx) return false;
-        sctx.imageSmoothingEnabled = true;
-        sctx.drawImage(source, 0, 0, canvasWidth, canvasHeight, 0, 0, sw, sh);
-        ctx.save();
-        ctx.globalAlpha = Math.min(1, Math.max(0, strength));
-        ctx.imageSmoothingEnabled = true;
-        ctx.drawImage(scratch, 0, 0, sw, sh, 0, 0, canvasWidth, canvasHeight);
         ctx.restore();
         return true;
     } catch (e) {
@@ -466,6 +504,7 @@ export function paintBeautyPass({
     canvasHeight,
     mode,
     hole = null,
+    sourceDraw = null,
 }) {
     const preset = BEAUTY_PRESETS[mode];
     if (!preset || mode === 'none') return 'none';
@@ -475,7 +514,7 @@ export function paintBeautyPass({
     if (hole && maskCanvas) {
         painted.push(prepareCloseUpMask({ source, maskCanvas, hole, canvasWidth, canvasHeight }));
     }
-    painted.push(paintSoftFocus({ ctx, source, scratch, canvasWidth, canvasHeight, strength: preset.softFocus }));
+    painted.push(paintSoftFocus({ ctx, source, scratch, canvasWidth, canvasHeight, strength: preset.softFocus, sourceDraw }));
     painted.push(paintFrost({ ctx, canvasWidth, canvasHeight, alpha: preset.frost }));
     if (hole && maskCanvas) {
         painted.push(paintCloseUpSharp({ ctx, maskCanvas, hole, canvasWidth, canvasHeight }));

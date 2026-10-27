@@ -920,7 +920,7 @@ describe('recorder page — take actions and express mode', () => {
                 recorders.push(this);
             }
             static isTypeSupported() { return true; }
-            start() { this.state = 'recording'; }
+            start(timeslice) { this.state = 'recording'; this.startTimeslice = timeslice; }
             stop() {
                 this.state = 'inactive';
                 // A real MediaRecorder delivers the final chunk and the stop
@@ -935,6 +935,7 @@ describe('recorder page — take actions and express mode', () => {
                 }, 0);
             }
         }
+        FakeMediaRecorder.instances = recorders;
         pageWindow.MediaRecorder = FakeMediaRecorder;
         pageWindow.navigator.mediaDevices = {
             getUserMedia: async () => ({
@@ -1042,6 +1043,15 @@ describe('recorder page — take actions and express mode', () => {
             await startTake(win);
             expect(visibleButtons(win)).toEqual(['dom-btn-reject', 'dom-btn-record', 'dom-btn-accept']);
             expect(win.document.getElementById('dom-btn-record').textContent).toContain('STOP RECORDING');
+        } finally { closeTake(win); }
+    });
+
+    it('starts the recorder with a 1s timeslice (Safari loses MP4 samples without one)', async () => {
+        const win = await bootWithMedia(pipelineStub());
+        try {
+            await startTake(win);
+            const recorder = win.MediaRecorder.instances[win.MediaRecorder.instances.length - 1];
+            expect(recorder.startTimeslice).toBe(1000);
         } finally { closeTake(win); }
     });
 

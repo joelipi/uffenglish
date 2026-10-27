@@ -1276,6 +1276,10 @@ export function paintLooks({
     paintBeauty,
     maskCanvas = null,
     timeMs = 0,
+    // Optional cheap way to obtain the frame at a smaller size (see
+    // paintSoftFocus). The recording composite draws the camera directly into
+    // the blur scratch instead of reading the canvas it just painted back.
+    sourceDraw = null,
 }) {
     if (!ctx) return { filter: 'none', lens: 'none', screen: 'none', slots: [] };
     const safe = sanitizeSelection(selection);
@@ -1291,6 +1295,7 @@ export function paintLooks({
             canvasWidth,
             canvasHeight,
             mode: preset.beauty,
+            sourceDraw,
         });
     }
     if (preset && preset.ops.length > 0) {
@@ -1314,6 +1319,7 @@ export function paintLooks({
             // treats the whole frame.
             hole: lensPreset.hole ? resolveCloseUpHole(canvasWidth, canvasHeight) : null,
             maskCanvas: lensPreset.hole ? maskCanvas : null,
+            sourceDraw,
         });
         lensPainted = painted === 'none' ? 'none' : lensPreset.id;
     }

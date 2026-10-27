@@ -17,6 +17,7 @@ import {
     resolveOverlayModeFromSearch,
     resolveOverlayDestRect,
     shouldCompositeForLook,
+    shouldPaintCompositeFrame,
     // Recording looks (stories/092): the lens effects reuse these painters.
     BEAUTY_PRESETS,
     paintBeautyPass,
@@ -31,11 +32,28 @@ describe('resolveCompositeDimensions', () => {
     it('phone dims', () => {
         expect(resolveCompositeDimensions({ isAndroid: true })).toEqual({ width: 720, height: 1280, fps: 24 });
     });
+    it('tablet dims are the light composite too', () => {
+        // An iPad painting a 1080p canvas is as constrained as a phone: the
+        // recorded picture fell behind the live audio, so iOS uses the light
+        // composite as well.
+        expect(resolveCompositeDimensions({ isAndroid: false, isIOS: true })).toEqual({ width: 720, height: 1280, fps: 24 });
+    });
     it('desktop dims', () => {
         expect(resolveCompositeDimensions({ isAndroid: false })).toEqual({ width: 1080, height: 1920, fps: 30 });
     });
     it('is deterministic', () => {
         expect(resolveCompositeDimensions({ isAndroid: true })).toEqual(resolveCompositeDimensions({ isAndroid: true }));
+    });
+});
+
+describe('shouldPaintCompositeFrame', () => {
+    it('paints only on a new camera frame when requestVideoFrameCallback exists', () => {
+        expect(shouldPaintCompositeFrame({ hasFrameCallback: true, framePending: true })).toBe(true);
+        expect(shouldPaintCompositeFrame({ hasFrameCallback: true, framePending: false })).toBe(false);
+    });
+    it('paints every tick on the fallback path', () => {
+        expect(shouldPaintCompositeFrame({ hasFrameCallback: false, framePending: false })).toBe(true);
+        expect(shouldPaintCompositeFrame()).toBe(true);
     });
 });
 
@@ -605,5 +623,59 @@ describe('close-up lens: feathered sharp oval (stories/092)', () => {
         const off = makeCtx();
         expect(paintFrost({ ctx: off, canvasWidth: 1080, canvasHeight: 1920, alpha: 0 })).toBe(false);
         expect(off.calls.fills).toBe(0);
+    });
+});
+
+describe('paintSoftFocus source draw', () => {
+    function makeScratch() {
+        const calls = { draws: [] };
+        return {
+            width: 0,
+            height: 0,
+            calls,
+            getContext: () => ({
+                imageSmoothingEnabled: true,
+                drawImage: (...args) => calls.draws.push(args.length),
+            }),
+        };
+    }
+    function makeOut() {
+        const calls = { draws: 0 };
+        return {
+            calls,
+            save() {}, restore() {},
+            globalAlpha: 1,
+            imageSmoothingEnabled: true,
+            drawImage: () => { calls.draws += 1; },
+        };
+    }
+
+    it('draws the frame straight into the scratch when a sourceDraw is given (no canvas readback)', () => {
+        const scratch = makeScratch();
+        const out = makeOut();
+        const drawn = [];
+        const sourceDraw = (targetCtx, width, height) => { drawn.push({ width, height, hasCtx: !!targetCtx }); };
+        expect(paintSoftFocus({
+            ctx: out, source: { readback: true }, scratch, canvasWidth: 720, canvasHeight: 1280,
+            strength: 0.5, sourceDraw,
+        })).toBe(true);
+        expect(drawn).toEqual([{ width: 60, height: 107, hasCtx: true }]);
+        // The canvas was never read back; only the scratch was upscaled.
+        expect(scratch.calls.draws).toEqual([]);
+        expect(out.calls.draws).toBe(1);
+    });
+
+    it('falls back to reading the source canvas when no sourceDraw is given', () => {
+        const scratch = makeScratch();
+        const out = makeOut();
+        expect(paintSoftFocus({
+            ctx: out, source: { canvas: true }, scratch, canvasWidth: 720, canvasHeight: 1280, strength: 0.5,
+        })).toBe(true);
+        expect(scratch.calls.draws).toEqual([9]);
+    });
+
+    it('needs either a source or a sourceDraw', () => {
+        const out = makeOut();
+        expect(paintSoftFocus({ ctx: out, source: null, scratch: makeScratch(), canvasWidth: 720, canvasHeight: 1280, strength: 0.5 })).toBe(false);
     });
 });

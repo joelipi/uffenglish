@@ -12,6 +12,7 @@ import {
     paintCompositeFrame,
     createLivenessCounter,
     shouldForceReleaseComposite,
+    shouldPaintCompositeFrame,
     createFreezeReporter,
     resolveCompositeWatchdog,
     COMPOSITE_WATCHDOG_MS,
@@ -168,6 +169,14 @@ let recognition = null;
 let recognitionTimeout = null;
 
 function getMediaConstraints() {
+    // iOS records the raw camera (see shouldUsePortraitCapture), so its
+    // constraints stay untouched: its front camera already yields a portrait
+    // frame and asking for a landscape size would flip it. Every COMPOSITE
+    // platform gets a bounded source, because the hidden <video> that feeds the
+    // canvas decodes and scales it on every painted frame — a 4K feed is pure
+    // latency, and a slow camera pipeline is what puts the recorded picture
+    // behind the live microphone in the take.
+    const boundedSource = !isIOS();
     return {
         video: {
             // The composite (createPortraitCaptureStream) guarantees the 9:16
@@ -176,6 +185,11 @@ function getMediaConstraints() {
             // for 9:16 directly (the composite crops either way).
             aspectRatio: { ideal: 16 / 9 },
             facingMode: "user",
+            ...(boundedSource && {
+                width: { ideal: isAndroid ? 1280 : 1920 },
+                height: { ideal: isAndroid ? 720 : 1080 },
+                frameRate: { ideal: 30, max: 30 },
+            }),
             ...(isWindows && { aspectRatio: { ideal: 9 / 16 } })
         },
         audio: {
@@ -223,13 +237,16 @@ export function releaseSpeechCamStream() {
  * audio track is carried through. Returns a new stream whose video track comes
  * from the canvas.
  *
- * Phones get a lighter composite (720×1280 @ 24 fps): a 1080×1920 canvas plus a
- * software MediaRecorder encode of it OOMs low-memory Android devices while the
- * Whisper model is resident, and the 720p canvas keeps the same 9:16 framing at
- * ~3× less encoder load. Desktops keep the full 1080×1920 @ 30 fps.
+ * Phones AND tablets get a lighter composite (720×1280 @ 24 fps): a 1080×1920
+ * canvas plus a software MediaRecorder encode of it OOMs low-memory Android
+ * devices while the Whisper model is resident, and the 720p canvas keeps the
+ * same 9:16 framing at ~3× less encoder load. The picture is painted from a
+ * hidden <video>, so every extra pixel of canvas work is latency between the
+ * live microphone and the recorded frame — a loaded iPad drifted out of sync
+ * with the audio on the 1080p canvas. Desktops keep the full 1080×1920 @ 30 fps.
  */
 function createPortraitCaptureStream(rawStream) {
-    const dims = resolveCompositeDimensions({ isAndroid });
+    const dims = resolveCompositeDimensions({ isAndroid, isIOS: isIOS() });
     const canvas = document.createElement('canvas');
     canvas.width = dims.width;
     canvas.height = dims.height;
@@ -249,6 +266,9 @@ function createPortraitCaptureStream(rawStream) {
     video.style.cssText = 'position:fixed;top:0;left:0;width:2px;height:2px;opacity:0.01;pointer-events:none;';
     document.body.appendChild(video);
     video.srcObject = rawStream;
+    // Wall-clock anchor for the frame-latency diagnostic: the media timeline
+    // starts at this play().
+    const videoStartWallMs = performance.now();
     video.play().catch((e) => console.warn('[Speech] portrait-capture playback failed:', e));
 
     // Prime the assets for whatever the learner already has selected; the painter
@@ -284,6 +304,17 @@ function createPortraitCaptureStream(rawStream) {
             tuning: state.lookTuning,
             images: getLookImages(state.lookSelection),
             paintBeauty: paintBeautyPass,
+            // The soft-focus pass needs the frame at a fraction of the canvas
+            // size. Drawing it straight from the camera <video> skips a
+            // full-canvas readback, which is the expensive part of the pass on
+            // a phone (and the reason a filtered take drifted out of sync).
+            sourceDraw: rect
+                ? (targetCtx, width, height) => targetCtx.drawImage(
+                    video,
+                    rect.sx, rect.sy, rect.sw, rect.sh,
+                    0, 0, width, height,
+                )
+                : null,
             // Screen overlays animate (rain falls); the frame time keeps them
             // deterministic per frame rather than random.
             timeMs: performance.now(),
@@ -300,9 +331,39 @@ function createPortraitCaptureStream(rawStream) {
         }
     }
 
+    // Paint once per CAMERA frame, not once per display tick. `captureStream`
+    // timestamps a frame when the canvas is painted, so a paint that runs a
+    // display tick after the camera frame — or a 120 Hz iPad repainting the same
+    // 1080p frame twice — shows the learner a picture that is behind their live
+    // voice. The recorded take then looks out of sync (worse on a loaded
+    // device). `requestVideoFrameCallback` fires when the source has a new
+    // frame, so the newest picture is painted at the first opportunity and the
+    // main thread does no work for duplicate frames. Platforms without it keep
+    // the rAF paint loop.
+    const hasFrameCallback = typeof video.requestVideoFrameCallback === 'function';
+    let framePending = true;
+    let loggedFrameLag = false;
+    if (hasFrameCallback) {
+        const onSourceFrame = (now, metadata) => {
+            framePending = true;
+            // The field tell for a take that "looks out of sync": how far the
+            // painted camera frame is behind the clock. Logged once per stream.
+            if (!loggedFrameLag && metadata && Number.isFinite(metadata.presentationTime)
+                && Number.isFinite(metadata.mediaTime) && metadata.presentationTime > 0) {
+                loggedFrameLag = true;
+                const lagMs = Math.round(metadata.presentationTime - (videoStartWallMs + metadata.mediaTime * 1000));
+                console.log('[Speech] composite frame latency', lagMs + 'ms');
+                takeDiagnostics.push('composite lag', { lagMs });
+            }
+            if (compositeVideoEl === video) video.requestVideoFrameCallback(onSourceFrame);
+        };
+        video.requestVideoFrameCallback(onSourceFrame);
+    }
+
     // The caller (`ensureSpeechCamStream`) only builds this when
     // `canvas.captureStream` is supported, so no in-function capability check.
     draw();
+    framePending = false;
     compositeRawStream = rawStream;
     compositeVideoEl = video;
     // rAF loop (Phase 2 promoted): same scheduler as executeRenderLoop.
@@ -310,8 +371,11 @@ function createPortraitCaptureStream(rawStream) {
     let lastSourceAdvanceAt = performance.now();
     function tick() {
         const prevSourceTime = compositeLastSourceTime;
-        const painted2 = paintFrame();
-        if (painted2 && compositeLiveness) compositeLiveness.recordPaint();
+        if (shouldPaintCompositeFrame({ hasFrameCallback, framePending })) {
+            framePending = false;
+            const painted2 = paintFrame();
+            if (painted2 && compositeLiveness) compositeLiveness.recordPaint();
+        }
         if (video.currentTime > prevSourceTime) {
             if (compositeLiveness) compositeLiveness.recordSourceAdvance();
             compositeLastSourceTime = video.currentTime;
