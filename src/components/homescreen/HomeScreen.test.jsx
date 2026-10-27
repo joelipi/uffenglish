@@ -156,6 +156,47 @@ describe('HomeScreen', () => {
         expect(cards[0].textContent).toContain('Friend Challenge');
         expect(cards[1].textContent).toContain('Would You Rather');
     });
+
+    it('renders the statistics table above the course list', async () => {
+        const today = new Date().toLocaleDateString('en-CA');
+        apiMocks.useUserProfileImpl.mockReturnValue({ data: {
+            $id: 'u1',
+            shareCode: 'zz99',
+            completed_dates: [today],
+            lessons_completed: 4,
+            friends: [{ id: 'f1' }],
+            referrals: 2,
+        } });
+        await renderHome();
+        const stats = container.querySelector('[data-testid="home-stats"]');
+        expect(stats).not.toBeNull();
+        expect(stats.querySelectorAll('.profile-stat-tile')).toHaveLength(5);
+        expect(container.querySelector('[data-testid="profile-stat-streak"]').textContent).toContain('1');
+        expect(container.querySelector('[data-testid="profile-stat-lessons"]').textContent).toContain('4');
+        expect(container.querySelector('[data-testid="profile-stat-friends"]').textContent).toContain('1');
+        expect(container.querySelector('[data-testid="profile-stat-referrals"]').textContent).toContain('2');
+        // Two tiles per row comes from app.css; assert the grid wrapper is used.
+        expect(stats.querySelector('.profile-stats-grid')).not.toBeNull();
+        const heading = container.querySelector('[data-testid="friend-courses-heading"]');
+        expect(stats.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+
+    it('shows a guest the local activity metrics instead of the empty guest stub', async () => {
+        appStore.setState({ dayCount: 6, currentStreak: 3, lessonsCompleted: 9 });
+        apiMocks.useUserProfileImpl.mockReturnValue({ data: {
+            $id: 'guest',
+            completed_dates: [],
+            lessons_completed: 0,
+            friends: [],
+            referrals: 0,
+        } });
+        await renderHome();
+        expect(container.querySelector('[data-testid="profile-stat-streak"]').textContent).toContain('3');
+        expect(container.querySelector('[data-testid="profile-stat-lessons"]').textContent).toContain('9');
+        expect(container.querySelector('[data-testid="profile-stat-daysActive"]').textContent).toContain('6');
+        expect(container.querySelector('[data-testid="profile-stat-friends"]').textContent).toContain('0');
+        appStore.setState({ dayCount: 0, currentStreak: 0, lessonsCompleted: 0 });
+    });
 });
 
 describe('HomeScreen course-listings wiring', () => {

@@ -4,6 +4,7 @@ import { syncUserMetaDataMutation, getCurrentUser, fetchProfileIdentityRow, reco
 import { appStore } from '../store/store.js';
 import { profileIsIncomplete, planProfileRepair } from './profile-repair-logic.js';
 import { mintShareCode } from '../utils/share-code-mint.js';
+import { calculateCurrentStreak } from './streak-logic.js';
 
 /**
  * Fold a freshly written profile payload into the store's copy of the user, so
@@ -319,28 +320,11 @@ export async function saveLessonProgress(courseId, lessonId, userData, options =
     return resultState;
 }
 
-/**
- * Restored from your original file: Calculates streaks
- */
-export function calculateCurrentStreak(completedDatesArray) {
-    if (!Array.isArray(completedDatesArray) || completedDatesArray.length === 0) return 0;
-    const localToday = new Date().toLocaleDateString('en-CA');
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const localYesterday = yesterday.toLocaleDateString('en-CA');
-
-    if (!completedDatesArray.includes(localToday) && !completedDatesArray.includes(localYesterday)) return 0;
-
-    let streak = 0;
-    let checkDate = new Date();
-    if (!completedDatesArray.includes(localToday)) checkDate.setDate(checkDate.getDate() - 1);
-
-    while (completedDatesArray.includes(checkDate.toLocaleDateString('en-CA'))) {
-        streak++;
-        checkDate.setDate(checkDate.getDate() - 1);
-    }
-    return streak;
-}
+// The streak arithmetic lives in the pure `streak-logic.js` module (so the
+// statistics modules do not import this file's API client and store). It is
+// re-exported here for the existing callers: the bootstrap wiring, the signup
+// credit and this module's own completion bookkeeping.
+export { calculateCurrentStreak };
 
 /**
  * Handles offline score syncing. All storage goes through the Zustand store (persist middleware).

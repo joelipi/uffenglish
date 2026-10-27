@@ -13,7 +13,8 @@ import AvatarCropper from '../widgets/AvatarCropper.jsx';
 import PWAInstallBanner from '../pwa/PWAInstallBanner.web.jsx';
 import PushNotificationsOptIn from '../notifications/PushNotificationsOptIn.web.jsx';
 import { PROFILE_LANGUAGES, LOCALE_MAP } from '../../data/languages.js';
-import { calculateCurrentStreak } from '../../modules/user/user-profile.js';
+import { buildProfileStats } from '../../modules/profile/profile-stats-logic.js';
+import ProfileStats from './ProfileStats.jsx';
 
 const ENGLISH_LEVELS = ['A0', 'A1', 'A2', 'B1', 'B2', 'C1', 'C2', 'Native'];
 
@@ -92,11 +93,10 @@ export default function UserProfile() {
     const shareCode = profile?.shareCode || profile?.share_code || '';
     const rawPic = profile?.profilePictureUrl;
     const profilePic = rawPic || defaultProfilePic;
-    const completedDates = Array.isArray(profile?.completed_dates) ? profile.completed_dates : [];
-    const lessonsCompleted = Number(profile?.lessons_completed || 0);
-    const currentStreak = calculateCurrentStreak(completedDates);
-    const friendCount = Array.isArray(profile?.friends) ? profile.friends.length : 0;
-    const referrals = Number(profile?.referrals || 0);
+    // The statistics table is one shared definition (icons, labels, values)
+    // rendered by ProfileStats, so the private profile, the public profile and
+    // the dashboard cannot drift apart.
+    const stats = buildProfileStats(profile);
 
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
@@ -502,27 +502,8 @@ export default function UserProfile() {
                 </Section>
 
                 <Section title={Strings.get('profile_statistics', lang)}>
-                    <div style={{ ...cardStyle, display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ color: '#ffffff' }}>{Strings.get('profile_streak', lang)}</span>
-                            <span style={{ fontSize: '20px', fontWeight: 700 }}>{currentStreak}</span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ color: '#ffffff' }}>{Strings.get('profile_lessons_completed', lang)}</span>
-                            <span style={{ fontSize: '20px', fontWeight: 700 }}>{lessonsCompleted}</span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ color: '#ffffff' }}>{Strings.get('profile_friend_count', lang)}</span>
-                            <span style={{ fontSize: '20px', fontWeight: 700 }}>{friendCount}</span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ color: '#ffffff' }}>{Strings.get('profile_referrals', lang)}</span>
-                            <span style={{ fontSize: '20px', fontWeight: 700 }}>{referrals}</span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ color: '#ffffff' }}>{Strings.get('profile_days_active', lang)}</span>
-                            <span style={{ fontSize: '20px', fontWeight: 700 }}>{completedDates.length}</span>
-                        </div>
+                    <div style={cardStyle}>
+                        <ProfileStats stats={stats} lang={lang} />
                     </div>
                 </Section>
             </div>

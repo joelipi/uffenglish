@@ -2242,6 +2242,19 @@ describe('recorder auto-render — zero server changes', () => {
             'src/modules/speech/speech-orchestrator.js',
             'src/modules/speech/speech-orchestrator.test.js',
             'src/modules/video/whisper-review-layout.test.js',
+            // Profile/home statistics: icons per stat, one shared two-per-row
+            // table on the profile pages and the /home dashboard.
+            'src/modules/profile/profile-stats-logic.js',
+            'src/modules/profile/profile-stats-logic.test.js',
+            'src/modules/user/streak-logic.js',
+            'src/components/profile/ProfileStats.jsx',
+            'src/components/profile/ProfileStats.test.jsx',
+            'src/components/profile/UserProfile.jsx',
+            'src/components/profile/PublicProfile.jsx',
+            'src/components/homescreen/HomeScreen.jsx',
+            'src/components/homescreen/HomeScreen.test.jsx',
+            'src/modules/user/user-profile.js',
+            'src/assets/css/app.css',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);

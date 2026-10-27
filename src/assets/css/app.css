@@ -582,6 +582,49 @@ body { margin: 0; font-family: var(--font-body); font-size: 1rem; font-weight: 4
     font-size: 1.1rem;
 }
 
+/* =========================================
+   STATISTICS TABLE (profile + /home)
+   Two tiles per row, so the table is a
+   compact strip rather than a tall list.
+   ========================================= */
+.profile-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.profile-stat-tile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 10px 8px;
+    border-radius: 10px;
+    background-color: rgba(255, 255, 255, 0.06);
+    border: 1px solid #2a4a6a;
+    text-align: center;
+}
+
+.profile-stat-tile i {
+    color: #ffd166;
+    font-size: 1.2rem;
+    line-height: 1;
+}
+
+.profile-stat-value {
+    font-size: 1.35rem;
+    font-weight: 700;
+    line-height: 1.15;
+    color: #ffffff;
+}
+
+.profile-stat-label {
+    font-size: 0.75rem;
+    line-height: 1.2;
+    color: #cfe0f2;
+}
+
 .stats-header-label {
     font-size: clamp(0.45rem, 2.3cqi, 0.539rem) !important;  /* mobile-ref: caps desktop to 375px-frame size */
     color: #ffffff !important;
