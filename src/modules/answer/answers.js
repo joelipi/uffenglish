@@ -1,6 +1,7 @@
 // modules/answers.js
 import normalize from '../bilingual/normalize.js';
 import calculateSimilarity from './calculate-similarity.js';
+import { resolveMatchThreshold, isMatchAtThreshold } from './match-threshold.js';
 import swearjar from '../utils/swearjar.js';
 import { evaluateWithAI } from '../api/api.js';
 import Strings from '../../data/strings.js';
@@ -16,12 +17,18 @@ import { getCueText } from '../utils/utils.js';
  *           template strings with [slot] placeholders + stepData.slots,
  *           regex objects { pattern, type: "regex" }.
  *
- * Returns { isCorrect, explanation, normalizeduserResponse, normalizedcue }
- * where normalizedcue is the best-matching candidate (used for hangman/feedback).
+ * Returns { isCorrect, explanation, normalizeduserResponse, normalizedcue, rawCue,
+ *           similarity, threshold }
+ * where normalizedcue is the best-matching candidate (used for hangman/feedback)
+ * and similarity/threshold are the numbers the decision was made on.
+ *
+ * A candidate is judged against the threshold for its OWN length
+ * (match-threshold.js: 85% up to 60 characters, 90% above), so an array cue may
+ * mix a short phrase and a long sentence without either tier leaking onto the
+ * other.
  */
 async function evaluateClosedResponse(userResponse, cue, stepData) {
     const normalizedUser = await normalize(userResponse.trim().toLowerCase());
-    const threshold = 95;
 
     if (!cue) {
         return {
@@ -70,25 +77,52 @@ async function evaluateClosedResponse(userResponse, cue, stepData) {
         candidateStrings.map(c => normalize(c.trim().toLowerCase()))
     );
 
-    // ── Find best match (track the original-cased raw candidate alongside) ──
+    // ── Find the best match ──
+    // `best*` tracks the closest candidate (used for the hangman / feedback
+    // card even when nothing matches); `passing` tracks the closest candidate
+    // that clears the threshold for its own length — the one the answer is
+    // judged on.
     let bestSimilarity = 0;
     let bestMatch = '';
     let bestRaw = '';
+    let passing = null;
+
     for (let k = 0; k < normalizedCandidates.length; k++) {
-        const sim = calculateSimilarity(normalizedUser, normalizedCandidates[k]);
+        const candidate = normalizedCandidates[k];
+        const sim = calculateSimilarity(normalizedUser, candidate);
+
         if (sim > bestSimilarity) {
             bestSimilarity = sim;
-            bestMatch = normalizedCandidates[k];
+            bestMatch = candidate;
             bestRaw = candidateStrings[k];
+        }
+
+        if (isMatchAtThreshold(sim, candidate.length) &&
+            (!passing || sim > passing.similarity)) {
+            passing = {
+                similarity: sim,
+                threshold: resolveMatchThreshold(candidate.length),
+                match: candidate,
+                raw: candidateStrings[k]
+            };
         }
     }
 
+    const decided = passing || {
+        similarity: bestSimilarity,
+        threshold: resolveMatchThreshold(bestMatch.length),
+        match: bestMatch,
+        raw: bestRaw
+    };
+
     return {
-        isCorrect: bestSimilarity >= threshold,
+        isCorrect: Boolean(passing),
+        similarity: decided.similarity,
+        threshold: decided.threshold,
         explanation: stepData.explanation,
         normalizeduserResponse: normalizedUser,
-        normalizedcue: bestMatch || normalizedCandidates[0] || '',
-        rawCue: bestRaw || candidateStrings[0] || ''
+        normalizedcue: decided.match || normalizedCandidates[0] || '',
+        rawCue: decided.raw || candidateStrings[0] || ''
     };
 }
 
@@ -98,7 +132,9 @@ async function evaluateClosedResponse(userResponse, cue, stepData) {
  * canonical display text.
  *
  * - Array / template: expands to all raw candidates, normalises each, finds the
- *   best similarity match above the 95% threshold, returns the RAW form.
+ *   best similarity match above the length-dependent threshold
+ *   (match-threshold.js: 85% for a cue up to 60 characters, 90% above), and
+ *   returns the RAW form.
  * - Regex: reconstructs canonical form from the pattern using $1..$N
  *   backreferences — e.g. pattern "I (love|like|adore) English" + user
  *   "i love english" → "I love English".
@@ -110,7 +146,6 @@ export async function findMatchingCueText(userResponse, cue, stepData) {
     if (!cue || !userResponse) return null;
 
     const normalizedUser = await normalize(userResponse.trim().toLowerCase());
-    const threshold = 95;
 
     // ── Regex cue: reconstruct canonical form from pattern + captured groups ──
     if (cue && typeof cue === 'object' && cue.type === 'regex' && cue.pattern) {
@@ -152,18 +187,17 @@ export async function findMatchingCueText(userResponse, cue, stepData) {
         }))
     );
 
-    // ── Find best raw match above threshold ──
-    let bestSimilarity = 0;
-    let bestRaw = null;
+    // ── Find the closest candidate that clears its own length's threshold ──
+    let passing = null;
     for (const { raw, normalized } of candidates) {
         const sim = calculateSimilarity(normalizedUser, normalized);
-        if (sim > bestSimilarity) {
-            bestSimilarity = sim;
-            bestRaw = raw;
+        if (isMatchAtThreshold(sim, normalized.length) &&
+            (!passing || sim > passing.similarity)) {
+            passing = { similarity: sim, raw };
         }
     }
 
-    return bestSimilarity >= threshold ? bestRaw : null;
+    return passing ? passing.raw : null;
 }
 
 /**

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getCurrentStepIndex, validateAnswerPrecheck, processAnswerLogic } from './answers.js';
+import { getCurrentStepIndex, validateAnswerPrecheck, processAnswerLogic, findMatchingCueText } from './answers.js';
 import swearjar from '../utils/swearjar.js';
 import * as api from '../api/api.js';
 
@@ -393,6 +393,123 @@ describe('Answers Module', () => {
                 cue: { en: 'Do you have rolls, too?', es: '¿Tienes panes de molde también?' },
             });
             expect(result.isCorrect).toBe(true);
+        });
+
+        // ── Length-dependent threshold (match-threshold.js) ──
+        // The score is a character ratio, so a fixed percentage allowed a single
+        // character on a 20-character cue. Short cues get 85%, long cues 90%.
+        describe('closed-response threshold is a function of cue length', () => {
+            const LONG_CUE = 'Getting a million dollars today is better than getting five million dollars in five years.';
+
+            const evaluate = (userResponse, cue, responseType = 'closedResponse') =>
+                processAnswerLogic({
+                    stepData: { responseType, explanation: 'explain' },
+                    userResponse,
+                    cue,
+                });
+
+            it('accepts a 20-character cue at 87%: a word form the learner cannot repeat exactly', async () => {
+                const result = await evaluate('Speaking every language', 'Speak every language.');
+                expect(result.similarity).toBeCloseTo(87, 1);
+                expect(result.threshold).toBe(85);
+                expect(result.isCorrect).toBe(true);
+            });
+
+            it('accepts a 32-character cue at 87.5% on a friendClosedResponse', async () => {
+                const result = await evaluate(
+                    'A job you love with a low pay',
+                    'A job you love with a low salary.',
+                    'friendClosedResponse'
+                );
+                expect(result.similarity).toBeCloseTo(87.5, 1);
+                expect(result.threshold).toBe(85);
+                expect(result.isCorrect).toBe(true);
+            });
+
+            it('rejects a short cue at 83.3% — the extra word costs more than three characters', async () => {
+                const result = await evaluate('Rich but with no privacy', 'Rich with no privacy.');
+                expect(result.similarity).toBeCloseTo(83.3, 1);
+                expect(result.threshold).toBe(85);
+                expect(result.isCorrect).toBe(false);
+            });
+
+            it('rejects a short cue below 85%', async () => {
+                const result = await evaluate('I want funny friends.', 'I want honest friends.');
+                expect(result.similarity).toBeCloseTo(76.2, 1);
+                expect(result.threshold).toBe(85);
+                expect(result.isCorrect).toBe(false);
+            });
+
+            it('accepts a long cue (>60 chars) at 90%: a spoken prefix no longer fails it', async () => {
+                const result = await evaluate(`I think ${LONG_CUE}`, LONG_CUE);
+                expect(result.similarity).toBeCloseTo(91.9, 1);
+                expect(result.threshold).toBe(90);
+                expect(result.isCorrect).toBe(true);
+            });
+
+            it('rejects a long cue at 89.2%, just under its own 90% tier', async () => {
+                const result = await evaluate(`${LONG_CUE} I think so`, LONG_CUE);
+                expect(result.similarity).toBeCloseTo(89.2, 1);
+                expect(result.threshold).toBe(90);
+                expect(result.isCorrect).toBe(false);
+            });
+
+            it('rejects a long cue at 84.6% even though a short cue would have been accepted', async () => {
+                // Dropping the tail of the sentence scores 84.6% — above the short
+                // tier, below the long tier. A single hard-coded threshold would
+                // either accept this or reject the 87.5% short case above.
+                const result = await evaluate(
+                    'Getting a million dollars today is better than getting five million dollars',
+                    LONG_CUE
+                );
+                expect(result.similarity).toBeCloseTo(84.6, 1);
+                expect(result.threshold).toBe(90);
+                expect(result.isCorrect).toBe(false);
+            });
+
+            it('judges each array candidate by its own length', async () => {
+                const cue = [
+                    'Speaking every language',
+                    'Given the choice between being able to speak every language in the world and being able to play every musical instrument, I would rather be able to speak every language.',
+                ];
+                const result = await evaluate('Speak every language', cue);
+                expect(result.isCorrect).toBe(true);
+                expect(result.threshold).toBe(85);
+                expect(result.rawCue).toBe('Speaking every language');
+                expect(result.normalizedcue).toBe('speaking every language');
+            });
+        });
+
+        describe('findMatchingCueText uses the same length-dependent threshold', () => {
+            const LONG_CUE = 'Getting a million dollars today is better than getting five million dollars in five years.';
+
+            it('returns the canonical cue for a short cue at 87%', async () => {
+                await expect(
+                    findMatchingCueText('Speaking every language', 'Speak every language.', {})
+                ).resolves.toBe('Speak every language.');
+            });
+
+            it('returns null for a short cue at 83.3%', async () => {
+                await expect(
+                    findMatchingCueText('Rich but with no privacy', 'Rich with no privacy.', {})
+                ).resolves.toBeNull();
+            });
+
+            it('returns the canonical cue for a long cue at 91.9%', async () => {
+                await expect(
+                    findMatchingCueText(`I think ${LONG_CUE}`, LONG_CUE, {})
+                ).resolves.toBe(LONG_CUE);
+            });
+
+            it('returns null for a long cue at 84.6%', async () => {
+                await expect(
+                    findMatchingCueText(
+                        'Getting a million dollars today is better than getting five million dollars',
+                        LONG_CUE,
+                        {}
+                    )
+                ).resolves.toBeNull();
+            });
         });
 
         it('should return vocab_error for vocab-only input', async () => {

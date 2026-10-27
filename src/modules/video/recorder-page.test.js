@@ -2242,6 +2242,14 @@ describe('recorder auto-render — zero server changes', () => {
             'src/modules/speech/speech-orchestrator.js',
             'src/modules/speech/speech-orchestrator.test.js',
             'src/modules/video/whisper-review-layout.test.js',
+            // Closed-response matching: the cue-similarity threshold is a
+            // function of the cue's length (90% above 60 characters, 85% at or
+            // below) instead of a flat 95%, so short model sentences tolerate a
+            // transcription slip. See src/modules/answer/match-threshold.js.
+            'src/modules/answer/match-threshold.js',
+            'src/modules/answer/match-threshold.test.js',
+            'src/modules/answer/answers.js',
+            'src/modules/answer/answers.test.js',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);
