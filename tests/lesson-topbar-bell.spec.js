@@ -7,7 +7,7 @@ import {
     waitForLessonReady,
 } from './helpers/lesson-e2e.js';
 
-// Lesson top bar: the notification bell sits with the trophy/streak icons.
+// Lesson top bar: the notification bell sits with the streak icon.
 const LESSON_URL = '/course/model/lesson/m-g';
 
 test.describe('Lesson top bar bell', () => {
@@ -35,7 +35,7 @@ test.describe('Lesson top bar bell', () => {
         }, loggedIn);
     }
 
-    test('logged-in lesson shows bell inline with trophy and streak', async ({ page }) => {
+    test('logged-in lesson shows the bell inline with the streak', async ({ page }) => {
         await setupLesson(page, { loggedIn: true });
 
         const bell = page.locator('[data-testid="notification-bell"]');
@@ -43,22 +43,19 @@ test.describe('Lesson top bar bell', () => {
         const bellIcon = bell.locator('i');
         await expect(bellIcon).toHaveClass(/bi-bell-fill/);
 
-        // Same size as the stats icons (1.1rem) and on the same line: the
-        // three icons' vertical bands all overlap.
-        const trophy = page.locator('.bi-trophy-fill');
+        // The trophy + total-days counter is gone from the lesson top bar.
+        await expect(page.locator('.bi-trophy-fill')).toHaveCount(0);
+        await expect(page.locator('#dayCountSpan')).toHaveCount(0);
+
+        // The bell sits on the same line as the streak icon: their vertical
+        // bands overlap and both render at the stats icon size (1.1rem).
         const fire = page.locator('.bi-fire');
-        const [tBox, fBox, bBox] = await Promise.all([
-            trophy.boundingBox(), fire.boundingBox(), bellIcon.boundingBox(),
-        ]);
-        for (const box of [tBox, fBox, bBox]) expect(box).not.toBeNull();
+        const [fBox, bBox] = await Promise.all([fire.boundingBox(), bellIcon.boundingBox()]);
+        for (const box of [fBox, bBox]) expect(box).not.toBeNull();
         const bandsOverlap = (a, b) => a.y < b.y + b.height && b.y < a.y + a.height;
-        expect(bandsOverlap(tBox, bBox)).toBe(true);
         expect(bandsOverlap(fBox, bBox)).toBe(true);
-        // Same icon size: identical computed font-size on all three icons
-        // (box heights differ by line-height context, not glyph size).
         const fontSizeOf = (locator) => locator.evaluate((el) => getComputedStyle(el).fontSize);
-        expect(await fontSizeOf(bellIcon)).toBe(await fontSizeOf(page.locator('.bi-trophy-fill')));
-        expect(await fontSizeOf(bellIcon)).toBe(await fontSizeOf(page.locator('.bi-fire')));
+        expect(await fontSizeOf(bellIcon)).toBe(await fontSizeOf(fire));
 
         expect(observed.errors).toEqual([]);
     });
@@ -67,7 +64,8 @@ test.describe('Lesson top bar bell', () => {
         await setupLesson(page, { loggedIn: false });
 
         await expect(page.locator('[data-testid="notification-bell"]')).toHaveCount(0);
-        await expect(page.locator('.bi-trophy-fill')).toBeVisible();
+        await expect(page.locator('.bi-fire')).toBeVisible();
+        await expect(page.locator('.bi-trophy-fill')).toHaveCount(0);
 
         expect(observed.errors).toEqual([]);
     });

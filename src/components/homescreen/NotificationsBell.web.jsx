@@ -78,8 +78,8 @@ export default function NotificationsBell({ userId, lang = 'en', compact = false
     // unviewed notifications APPEAR — a friend answered while the app was open,
     // or while it was closed and the learner came back to a waiting inbox.
     const previousUnreadRef = useRef(0);
-    // Compact mode sits inline in the lesson top bar next to the trophy and
-    // streak icons (.stats-container i is 1.1rem): same size, one line.
+    // Compact mode sits inline in the lesson top bar next to the streak icon
+    // (.stats-container i is 1.1rem): same size, one line.
     const buttonStyle = compact
         ? { ...bellButtonStyle, fontSize: '1.1rem', padding: '0 2px' }
         : bellButtonStyle;

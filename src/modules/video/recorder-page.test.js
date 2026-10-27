@@ -2255,6 +2255,12 @@ describe('recorder auto-render — zero server changes', () => {
             'src/components/homescreen/HomeScreen.test.jsx',
             'src/modules/user/user-profile.js',
             'src/assets/css/app.css',
+            // The lesson top bar no longer shows the trophy + total-days
+            // counter; the daily streak and the compact bell remain.
+            'src/components/widgets/ActivityStats.jsx',
+            'src/components/widgets/activity-stats.test.jsx',
+            'src/components/homescreen/NotificationsBell.web.jsx',
+            'tests/lesson-topbar-bell.spec.js',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);
