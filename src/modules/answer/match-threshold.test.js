@@ -93,11 +93,21 @@ describe('answers.js uses the length-dependent threshold (source guard)', () => 
     });
 
     it('goes red when the per-candidate check is replaced by a constant', () => {
-        const mutated = ANSWERS_SRC.replace(
+        // Each call site is mutated on its OWN shape: the two functions call the
+        // module with different arguments, so a mutation of one would leave the
+        // other's blind spot untested.
+        const evaluateMutated = ANSWERS_SRC.replace(
             'isMatchAtThreshold(sim, candidate.length)',
             'true'
         );
-        expect(mutated).not.toBe(ANSWERS_SRC);
-        expect(detectsLengthTieredThreshold(mutated)).toBe(false);
+        expect(evaluateMutated).not.toBe(ANSWERS_SRC);
+        expect(detectsLengthTieredThreshold(evaluateMutated)).toBe(false);
+
+        const findCueMutated = ANSWERS_SRC.replace(
+            'isMatchAtThreshold(sim, normalized.length)',
+            'true'
+        );
+        expect(findCueMutated).not.toBe(ANSWERS_SRC);
+        expect(detectsLengthTieredThreshold(findCueMutated)).toBe(false);
     });
 });
