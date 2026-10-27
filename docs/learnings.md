@@ -361,3 +361,11 @@
 **Takeaway**: (1) A start path must WATCH THE ELEMENT until it has reached the OUTCOME, not trust a media event: `resolveStartRecovery` restarts a paused take and kicks a `paused:false` one whose clock has not moved, and it settles on "played with sound" (or the learner asked for silence), not on `playing`. (2) Never delay the audible pass past the handshake that satisfied autoplay (story 075's `scheduleUnmute(0/100)`), and never leave the technical mute on the element — a pause or a given-up ladder must clear it (state only, no resumed `play()`), or the native control inherits it. (3) ACD: a speculative cause-removal ("unmute later") can regress the exact behaviour it was meant to protect; ship the ADDITIVE repair and keep the proven timing. (4) A Chromium simulation is only a fair repro if the model outlasts the rescue paths — a pause injected right after the unmute was rescued by a late `canplay` and the buggy code passed, so the model must leave the element unplayed past EVERY readiness event. Prove it red in a detached worktree at `origin/main` and green on the branch.
 
 ---
+
+## `pkill -f "vite --port <n>"` in the same shell also kills the shell running it
+**Date**: 2026-10-27
+**Area**: workflow | testing
+**What happened**: Cleaning up a private dev server after a Playwright check, `pkill -f "vite --port 5321" ; rm -rf <artifacts>` was run as one command. `pkill -f` matches against the FULL command line of every process, and the invoking `bash -c` command line contains the pattern — so pkill signalled its own shell (`Killed by SIGTERM`) and the cleanup after the `;` never ran, leaving the untracked artifact directory behind (which the recorder-page no-untracked-files guard would fail on).
+**Takeaway**: Kill the dev server with its PID (`ps aux | grep "[v]ite --port <n>"` → `kill <pid>`, or record `$!` when starting it), never `pkill -f` with a pattern that also appears in the current command line. After a kill, re-check `git status --porcelain` in a SEPARATE command before trusting that cleanup completed.
+
+---
