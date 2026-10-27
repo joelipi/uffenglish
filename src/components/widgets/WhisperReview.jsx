@@ -14,12 +14,15 @@ export default function WhisperReview({ topOffsetPx = 0 }) {
     if (!data) return null;
 
     return (
-        // Anchored to the TOP of the frame, not centred: the recorded take's play
+        // Spacing is inline, never a `p-*` utility: app.css defines those with
+        // `!important`, which beat the measured top offset and pinned this box
+        // 16px from the top (the field report "it's overlapping the progress
+        // bar"). Anchored to the TOP of the frame, not centred: the recorded take's play
         // control sits in the middle of the 9:16 video, and a centred transcript
         // box covered it — so a learner whose autoplay was refused could not
         // even see the play button to tap it (stories/094). pointerEvents stays
         // none so every tap still reaches the video underneath.
-        <div className="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center p-3 text-white text-center" style={{ zIndex: 1050, pointerEvents: 'none', justifyContent: 'flex-start', paddingTop: resolveTranscriptTopOffset(topOffsetPx) }}>
+        <div className="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center text-white text-center" style={{ zIndex: 1050, pointerEvents: 'none', justifyContent: 'flex-start', paddingTop: resolveTranscriptTopOffset(topOffsetPx), paddingLeft: 12, paddingRight: 12 }}>
             <div className="whisper-review-box bg-dark p-3 rounded border border-secondary shadow-lg">
                 <div className="mb-3 text-center fw-bold">Time remaining: {timeLeft}s</div>
                 <div className="mb-3 text-center">{`\"${data.transcript}\"`}</div>

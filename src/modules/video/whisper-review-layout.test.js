@@ -36,6 +36,15 @@ describe('the transcript overlay leaves the centre of the frame free', () => {
         expect(overlay).toContain("justifyContent: 'flex-start'");
     });
 
+    it('never uses an !important spacing utility for its own top offset', () => {
+        // app.css defines .p-* with !important, so a `p-*`/`pt-*` class on the
+        // overlay silently beats the measured paddingTop and pins the box to
+        // 16px — exactly the "overlapping the progress bar" report.
+        expect(overlay).not.toMatch(/className="[^"]*\bp[ txyb]?-?\d/);
+        expect(overlay).toContain('paddingLeft: 12');
+        expect(overlay).toContain('paddingTop: resolveTranscriptTopOffset(topOffsetPx)');
+    });
+
     it('starts flush with the measured bottom of the top overlay', () => {
         expect(overlay).toContain('position-absolute top-0 start-0 w-100 h-100');
         // No fixed top padding: the bar's height varies by step and language.
