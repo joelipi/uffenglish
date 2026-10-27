@@ -7,18 +7,21 @@
 import { calculateCurrentStreak } from '../user/streak-logic.js';
 
 /**
- * Ordered stat definitions. `id` is also the value key and the test hook;
- * `icon` is a Bootstrap Icons class (the set the app already ships), chosen
- * to read as the stat's meaning at a glance: a flame for the daily streak, a
- * graduation cap for lessons, people for friends, a person-plus for
- * referrals, and a calendar-check for active days.
+ * Ordered stat definitions. `id` is also the value key and the test hook.
+ * `label` is deliberately plain English (not a strings-table key): the table is
+ * a single-line-per-stat strip where a translated label would not fit, and the
+ * user asked for these to stay untranslated. `icon` is a Bootstrap Icons class
+ * (the set the app already ships), chosen to read as the stat's meaning at a
+ * glance: a flame for the daily streak, a graduation cap for lessons, people
+ * for friends, a person-plus for referrals, and a calendar-check for active
+ * days. `href` (only the friends stat) makes that tile a quiet link.
  */
 export const PROFILE_STATS = [
-    { id: 'streak', icon: 'bi-fire', labelKey: 'profile_streak' },
-    { id: 'lessons', icon: 'bi-mortarboard-fill', labelKey: 'profile_lessons_completed' },
-    { id: 'friends', icon: 'bi-people-fill', labelKey: 'profile_friend_count' },
-    { id: 'referrals', icon: 'bi-person-plus-fill', labelKey: 'profile_referrals' },
-    { id: 'daysActive', icon: 'bi-calendar-check-fill', labelKey: 'profile_days_active' },
+    { id: 'streak', icon: 'bi-fire', label: 'Streak' },
+    { id: 'lessons', icon: 'bi-mortarboard-fill', label: 'Lessons' },
+    { id: 'friends', icon: 'bi-people-fill', label: 'Friends', href: '/friends' },
+    { id: 'referrals', icon: 'bi-person-plus-fill', label: 'Referrals' },
+    { id: 'daysActive', icon: 'bi-calendar-check-fill', label: 'Days Active' },
 ];
 
 /** Clamp anything the profile/store hands over to a non-negative integer. */

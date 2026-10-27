@@ -99,11 +99,10 @@ describe('PublicProfile localization', () => {
         appStore.setState({ guestNativeLanguage: 'HI', userData: null });
         render();
 
-        expect(container.textContent).toContain(Strings.get('profile_streak', 'hi'));
-        expect(container.textContent).toContain(Strings.get('profile_lessons_completed', 'hi'));
-        expect(container.textContent).toContain(Strings.get('profile_days_active', 'hi'));
+        expect(container.textContent).toContain(Strings.get('public_profile_heading', 'hi'));
+        expect(container.textContent).toContain(Strings.get('public_profile_share_code', 'hi'));
         // The owner's language must not leak into the copy.
-        expect(container.textContent).not.toContain(Strings.get('profile_streak', 'es'));
+        expect(container.textContent).not.toContain(Strings.get('public_profile_heading', 'es'));
     });
 
     it('renders the copy in the visitor language when the visitor is logged in', () => {

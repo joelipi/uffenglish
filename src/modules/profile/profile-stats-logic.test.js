@@ -13,7 +13,6 @@ import {
     profileStatsValues,
     isRegisteredProfile,
 } from './profile-stats-logic.js';
-import { strings } from '../../data/strings.js';
 
 const today = () => new Date().toLocaleDateString('en-CA');
 const daysAgo = (n) => {
@@ -41,17 +40,19 @@ describe('PROFILE_STATS definitions', () => {
         expect(new Set(icons).size).toBe(icons.length);
     });
 
-    it('labels every statistic from the strings table', () => {
-        expect(PROFILE_STATS.map((s) => s.labelKey)).toEqual([
-            'profile_streak',
-            'profile_lessons_completed',
-            'profile_friend_count',
-            'profile_referrals',
-            'profile_days_active',
+    it('labels every statistic in plain English, without a strings-table key', () => {
+        expect(PROFILE_STATS.map((s) => s.label)).toEqual([
+            'Streak', 'Lessons', 'Friends', 'Referrals', 'Days Active',
         ]);
         for (const stat of PROFILE_STATS) {
-            expect(strings[stat.labelKey]?.en, stat.labelKey).toBeTruthy();
+            expect(stat.labelKey, stat.id).toBeUndefined();
         }
+    });
+
+    it('links ONLY the friends stat, to the friends page', () => {
+        const linked = PROFILE_STATS.filter((s) => s.href);
+        expect(linked.map((s) => s.id)).toEqual(['friends']);
+        expect(linked[0].href).toBe('/friends');
     });
 });
 
@@ -90,7 +91,7 @@ describe('buildStatsView', () => {
             ['streak', 4], ['lessons', 9], ['friends', 2], ['referrals', 1], ['daysActive', 7],
         ]);
         expect(view[0].icon).toBe('bi-fire');
-        expect(view[0].labelKey).toBe('profile_streak');
+        expect(view[0].label).toBe('Streak');
     });
 
     it('clamps anything that is not a positive count to 0', () => {

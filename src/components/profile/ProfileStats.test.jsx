@@ -1,15 +1,15 @@
 // Guards the statistics table: the shared definition in the pure logic module
-// (icons + label keys + derived values, covered in
-// modules/profile/profile-stats-logic.test.js), its render on BOTH profile
-// pages and on the /home dashboard, and the two-tiles-per-row styling that
-// keeps it a compact strip.
+// (plain-English labels + icons + derived values + the friends link, covered
+// in modules/profile/profile-stats-logic.test.js), its render on BOTH profile
+// pages and on the /home dashboard, the single-line tile layout, and the quiet
+// link on the friends tile.
 import { describe, it, expect, afterEach } from 'vitest';
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
+import { MemoryRouter } from 'react-router-dom';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { get, strings } from '../../data/strings.js';
 import { buildProfileStats } from '../../modules/profile/profile-stats-logic.js';
 import ProfileStats from './ProfileStats.jsx';
 
@@ -32,7 +32,7 @@ describe.each([
 
     it('renders it with the shared ProfileStats component', () => {
         expect(source).toContain("import ProfileStats from './ProfileStats.jsx'");
-        expect(source).toContain('<ProfileStats stats={stats} lang={lang} />');
+        expect(source).toContain('<ProfileStats stats={stats} />');
     });
 
     it('no longer hand-rolls the rows inline', () => {
@@ -47,7 +47,7 @@ describe.each([
 describe('HomeScreen statistics table', () => {
     it('renders the shared table in a visible block', () => {
         expect(homeScreenSource).toContain('data-testid="home-stats"');
-        expect(homeScreenSource).toContain('<ProfileStats stats={stats} lang={lang} />');
+        expect(homeScreenSource).toContain('<ProfileStats stats={stats} />');
     });
 
     it('derives the home values through buildHomeStats', () => {
@@ -79,11 +79,24 @@ describe('statistics table styling', () => {
         expect(grid).toContain('grid-template-columns: repeat(2, minmax(0, 1fr))');
     });
 
-    it('styles the tile icon, value and label', () => {
-        expect(blockFor('.profile-stat-tile {')).toContain('flex-direction: column');
-        expect(blockFor('.profile-stat-tile i {')).toContain('font-size');
-        expect(blockFor('.profile-stat-value {')).toContain('font-weight: 700');
-        expect(blockFor('.profile-stat-label {')).toContain('font-size');
+    it('puts the icon, label and value on ONE line (row layout, small padding)', () => {
+        const tile = blockFor('.profile-stat-tile {');
+        expect(tile).toContain('flex-direction: row');
+        expect(tile).toContain('align-items: center');
+        const padding = /padding:\s*(\d+)px/.exec(tile);
+        expect(Number(padding[1])).toBeLessThanOrEqual(6);
+        // The value is pushed to the end of the row.
+        expect(blockFor('.profile-stat-value {')).toContain('margin-left: auto');
+    });
+
+    it('renders the icons white, like the app\'s other statistics', () => {
+        expect(blockFor('.profile-stat-tile i {')).toContain('color: #ffffff');
+    });
+
+    it('leaves the friends link undecorated', () => {
+        const linkBlock = blockFor('.profile-stat-link,');
+        expect(linkBlock).toContain('text-decoration: none');
+        expect(linkBlock).toContain('color: #ffffff');
     });
 });
 
@@ -97,12 +110,16 @@ describe('ProfileStats rendering', () => {
         root = null;
     });
 
-    function render(stats, lang) {
+    function render(stats) {
         container = document.createElement('div');
         document.body.appendChild(container);
         root = createRoot(container);
         act(() => {
-            root.render(React.createElement(ProfileStats, { stats, lang }));
+            root.render(
+                React.createElement(MemoryRouter, null,
+                    React.createElement(ProfileStats, { stats })
+                )
+            );
         });
     }
 
@@ -113,24 +130,24 @@ describe('ProfileStats rendering', () => {
         referrals: 3,
     });
 
-    it('renders one tile per statistic with its value and label', () => {
-        render(stats, 'en');
+    it('renders one single-line tile per statistic: icon, label, value', () => {
+        render(stats);
         const tiles = container.querySelectorAll('.profile-stat-tile');
         expect(tiles).toHaveLength(5);
-        expect(container.querySelector('[data-testid="profile-stat-streak"]').textContent)
-            .toContain('1');
-        expect(container.querySelector('[data-testid="profile-stat-lessons"]').textContent)
-            .toContain('7');
-        expect(container.querySelector('[data-testid="profile-stat-friends"]').textContent)
-            .toContain('2');
-        expect(container.querySelector('[data-testid="profile-stat-referrals"]').textContent)
-            .toContain('3');
-        expect(container.textContent).toContain(strings.profile_streak.en);
-        expect(container.textContent).toContain(strings.profile_days_active.en);
+        for (const tile of tiles) {
+            expect(tile.children).toHaveLength(3);
+            expect(tile.children[0].tagName).toBe('I');
+            expect(tile.children[1].className).toBe('profile-stat-label');
+            expect(tile.children[2].className).toBe('profile-stat-value');
+        }
+        expect(container.querySelector('[data-testid="profile-stat-streak"]').textContent).toBe('Streak1');
+        expect(container.querySelector('[data-testid="profile-stat-lessons"]').textContent).toBe('Lessons7');
+        expect(container.querySelector('[data-testid="profile-stat-friends"]').textContent).toBe('Friends2');
+        expect(container.querySelector('[data-testid="profile-stat-referrals"]').textContent).toBe('Referrals3');
     });
 
     it('renders the icon class for each statistic', () => {
-        render(stats, 'en');
+        render(stats);
         const streak = container.querySelector('[data-testid="profile-stat-streak"] i');
         expect(streak.className).toContain('bi');
         expect(streak.className).toContain('bi-fire');
@@ -138,28 +155,15 @@ describe('ProfileStats rendering', () => {
         expect(friendIcon.className).toContain('bi-people-fill');
     });
 
-    it('localizes the labels to the learner language', () => {
-        render(stats, 'es');
-        expect(container.textContent).toContain(strings.profile_streak.es);
-        expect(container.textContent).not.toContain(strings.profile_streak.en);
-    });
-});
-
-describe('profile statistics labels', () => {
-    it.each([
-        ['profile_streak', 'Streak'],
-        ['profile_friend_count', 'Friends'],
-        ['profile_referrals', 'Referrals'],
-    ])('%s has the exact English label', (key, en) => {
-        expect(strings[key].en).toBe(en);
-    });
-
-    it.each(['profile_streak', 'profile_friend_count', 'profile_referrals'])(
-        '%s carries es/pt/fr/hi/bn values', (key) => {
-            for (const lang of ['es', 'pt', 'fr', 'hi', 'bn']) {
-                expect(strings[key][lang], `${key}/${lang}`).toBeTruthy();
-            }
-            expect(get(`missing_${key}`, 'en')).toBe(`missing_${key}`);
+    it('makes ONLY the friends tile a quiet link to /friends', () => {
+        render(stats);
+        const friends = container.querySelector('[data-testid="profile-stat-friends"]');
+        expect(friends.tagName).toBe('A');
+        expect(friends.getAttribute('href')).toBe('/friends');
+        expect(friends.className).toContain('profile-stat-link');
+        for (const id of ['streak', 'lessons', 'referrals', 'daysActive']) {
+            const tile = container.querySelector(`[data-testid="profile-stat-${id}"]`);
+            expect(tile.tagName, id).toBe('DIV');
         }
-    );
+    });
 });

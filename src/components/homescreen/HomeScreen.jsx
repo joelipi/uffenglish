@@ -208,7 +208,7 @@ export default function HomeScreen() {
             <div style={{ flex: 1, overflowY: 'auto' }}>
                 <div style={statsSectionStyle} data-testid="home-stats">
                     <h2 style={statsHeadingStyle}>{Strings.get('profile_statistics', lang)}</h2>
-                    <ProfileStats stats={stats} lang={lang} />
+                    <ProfileStats stats={stats} />
                 </div>
                 {registered && (
                     <>

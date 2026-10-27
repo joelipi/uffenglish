@@ -152,7 +152,7 @@ export default function PublicProfile({ shareCode }) {
                 />
 
                 <div style={cardStyle}>
-                    <ProfileStats stats={stats} lang={lang} />
+                    <ProfileStats stats={stats} />
                 </div>
             </div>
         </div>

@@ -503,7 +503,7 @@ export default function UserProfile() {
 
                 <Section title={Strings.get('profile_statistics', lang)}>
                     <div style={cardStyle}>
-                        <ProfileStats stats={stats} lang={lang} />
+                        <ProfileStats stats={stats} />
                     </div>
                 </Section>
             </div>
