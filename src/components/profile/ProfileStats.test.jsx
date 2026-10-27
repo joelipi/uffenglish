@@ -44,10 +44,22 @@ describe.each([
     });
 });
 
+describe('statistics heading', () => {
+    it('keeps the Statistics section heading on the private profile', () => {
+        expect(userProfileSource).toContain("Strings.get('profile_statistics'");
+    });
+});
+
 describe('HomeScreen statistics table', () => {
     it('renders the shared table in a visible block', () => {
         expect(homeScreenSource).toContain('data-testid="home-stats"');
         expect(homeScreenSource).toContain('<ProfileStats stats={stats} />');
+    });
+
+    it('renders no statistics heading on the dashboard', () => {
+        // The tiles are self-describing; the dashboard goes straight to them.
+        expect(homeScreenSource).not.toContain('profile_statistics');
+        expect(homeScreenSource).not.toContain('statsHeadingStyle');
     });
 
     it('derives the home values through buildHomeStats', () => {
@@ -134,6 +146,15 @@ describe('ProfileStats rendering', () => {
         render(stats);
         const tiles = container.querySelectorAll('.profile-stat-tile');
         expect(tiles).toHaveLength(5);
+        // Row pairing (two per row): Streak + Days Active, then Friends +
+        // Referrals, then Lessons on its own row.
+        expect([...tiles].map((t) => t.dataset.testid)).toEqual([
+            'profile-stat-streak',
+            'profile-stat-daysActive',
+            'profile-stat-friends',
+            'profile-stat-referrals',
+            'profile-stat-lessons',
+        ]);
         for (const tile of tiles) {
             expect(tile.children).toHaveLength(3);
             expect(tile.children[0].tagName).toBe('I');

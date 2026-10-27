@@ -18,10 +18,10 @@ import { calculateCurrentStreak } from '../user/streak-logic.js';
  */
 export const PROFILE_STATS = [
     { id: 'streak', icon: 'bi-fire', label: 'Streak' },
-    { id: 'lessons', icon: 'bi-mortarboard-fill', label: 'Lessons' },
+    { id: 'daysActive', icon: 'bi-calendar-check-fill', label: 'Days Active' },
     { id: 'friends', icon: 'bi-people-fill', label: 'Friends', href: '/friends' },
     { id: 'referrals', icon: 'bi-person-plus-fill', label: 'Referrals' },
-    { id: 'daysActive', icon: 'bi-calendar-check-fill', label: 'Days Active' },
+    { id: 'lessons', icon: 'bi-mortarboard-fill', label: 'Lessons' },
 ];
 
 /** Clamp anything the profile/store hands over to a non-negative integer. */

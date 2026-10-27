@@ -163,19 +163,13 @@ export default function HomeScreen() {
     const statsSectionStyle = {
         // Same column width as the course list below it, so the tiles line up
         // with the cards. Two tiles per row keeps it a compact strip rather
-        // than a full-screen list.
+        // than a full-screen list. No heading: the tiles are self-describing
+        // and the dashboard's first row should be the numbers, not a title.
         padding: '20px 16px 0',
         maxWidth: '640px',
         margin: '0 auto',
         width: '100%',
         boxSizing: 'border-box',
-    };
-
-    const statsHeadingStyle = {
-        fontSize: '16px',
-        fontWeight: 700,
-        color: '#ffffff',
-        margin: '0 0 8px',
     };
 
     // REVISIT LATER: the Continue bar is deliberately hidden for now — there is
@@ -207,7 +201,6 @@ export default function HomeScreen() {
         <div style={containerStyle}>
             <div style={{ flex: 1, overflowY: 'auto' }}>
                 <div style={statsSectionStyle} data-testid="home-stats">
-                    <h2 style={statsHeadingStyle}>{Strings.get('profile_statistics', lang)}</h2>
                     <ProfileStats stats={stats} />
                 </div>
                 {registered && (

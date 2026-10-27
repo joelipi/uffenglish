@@ -24,8 +24,16 @@ const daysAgo = (n) => {
 describe('PROFILE_STATS definitions', () => {
     it('lists exactly the five statistics in display order', () => {
         expect(PROFILE_STATS.map((s) => s.id)).toEqual([
-            'streak', 'lessons', 'friends', 'referrals', 'daysActive',
+            'streak', 'daysActive', 'friends', 'referrals', 'lessons',
         ]);
+    });
+
+    it('puts the streak and days active on the first row, friends and referrals on the second', () => {
+        // Two tiles per row: index 0/1 share the first row, 2/3 the second.
+        expect(PROFILE_STATS[0].id).toBe('streak');
+        expect(PROFILE_STATS[1].id).toBe('daysActive');
+        expect(PROFILE_STATS[2].id).toBe('friends');
+        expect(PROFILE_STATS[3].id).toBe('referrals');
     });
 
     it('gives every statistic a Bootstrap icon', () => {
@@ -42,7 +50,7 @@ describe('PROFILE_STATS definitions', () => {
 
     it('labels every statistic in plain English, without a strings-table key', () => {
         expect(PROFILE_STATS.map((s) => s.label)).toEqual([
-            'Streak', 'Lessons', 'Friends', 'Referrals', 'Days Active',
+            'Streak', 'Days Active', 'Friends', 'Referrals', 'Lessons',
         ]);
         for (const stat of PROFILE_STATS) {
             expect(stat.labelKey, stat.id).toBeUndefined();
@@ -88,7 +96,7 @@ describe('buildStatsView', () => {
             streak: 4, lessons: 9, friends: 2, referrals: 1, daysActive: 7,
         });
         expect(view.map((s) => [s.id, s.value])).toEqual([
-            ['streak', 4], ['lessons', 9], ['friends', 2], ['referrals', 1], ['daysActive', 7],
+            ['streak', 4], ['daysActive', 7], ['friends', 2], ['referrals', 1], ['lessons', 9],
         ]);
         expect(view[0].icon).toBe('bi-fire');
         expect(view[0].label).toBe('Streak');
@@ -98,7 +106,7 @@ describe('buildStatsView', () => {
         const view = buildStatsView({
             streak: -3, lessons: 'nope', friends: null, referrals: undefined, daysActive: 2.9,
         });
-        expect(view.map((s) => s.value)).toEqual([0, 0, 0, 0, 2]);
+        expect(view.map((s) => s.value)).toEqual([0, 2, 0, 0, 0]);
     });
 });
 
@@ -116,13 +124,13 @@ describe('buildHomeStats source selection', () => {
             },
             activity,
         });
-        expect(stats.map((s) => s.value)).toEqual([1, 2, 1, 1, 1]);
+        expect(stats.map((s) => s.value)).toEqual([1, 1, 1, 1, 2]);
     });
 
     it('uses the local activity metrics for a guest stub', () => {
         expect(isRegisteredProfile({ $id: 'guest' })).toBe(false);
         const stats = buildHomeStats({ profile: { $id: 'guest', completed_dates: [] }, activity });
-        expect(stats.map((s) => s.value)).toEqual([5, 8, 0, 0, 11]);
+        expect(stats.map((s) => s.value)).toEqual([5, 11, 0, 0, 8]);
     });
 
     it('uses the local activity metrics before the profile loads', () => {
@@ -141,6 +149,6 @@ describe('buildProfileStats', () => {
             referrals: 4,
         });
         expect(stats).toHaveLength(5);
-        expect(stats.map((s) => s.value)).toEqual([3, 6, 1, 4, 3]);
+        expect(stats.map((s) => s.value)).toEqual([3, 3, 1, 4, 6]);
     });
 });
