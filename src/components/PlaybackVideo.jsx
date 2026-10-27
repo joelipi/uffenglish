@@ -213,6 +213,18 @@ export default function PlaybackVideo() {
         console.warn('[Playback] play attempt ' + attempt + ' refused:', name || error || 'unknown', describeStartState(videoRef.current));
         if (!shouldRetryStart({ attempt, errorName: name })) {
             console.warn('[Playback] autoplay gave up after ' + (attempt + 1) + ' attempts — the learner can tap the clip to start it');
+            // The mute we applied was only ever there to satisfy an autoplay
+            // attempt. Left on a paused clip it makes the NATIVE play control
+            // start silently — it never runs this component's tap handler
+            // (field report: "touching the play button plays muted, touching
+            // anywhere else plays with sound"). Clear it once we stop trying.
+            const el = videoRef.current;
+            if (el && !muteIntentRef.current) {
+                setElementMuted(el, false);
+                appStore.getState().setPlaybackMuted(false);
+                console.log('[Playback] cleared the technical mute after giving up');
+                takeDiagnostics.push('cleared mute after giving up');
+            }
             return;
         }
         scheduleRetry(attempt);
@@ -394,6 +406,23 @@ export default function PlaybackVideo() {
             replayTimerRef.current = null;
             replaySilentLoop(0, replayVideo, replayGen);
         }, 150);
+    };
+
+    /**
+     * A pause ends the autoplay negotiation: the technical mute exists only so
+     * the next play() can be allowed by iOS. Kept on a paused element it makes
+     * the native play control start the take silently, so it is cleared here
+     * unless the learner asked for silence (the silent loop).
+     */
+    const handleVideoPause = () => {
+        audioGuardRef.current?.stop();
+        const video = videoRef.current;
+        if (!video || muteIntentRef.current) return;
+        if (video.muted !== true) return;
+        setElementMuted(video, false);
+        appStore.getState().setPlaybackMuted(false);
+        console.log('[Playback] pause cleared the technical mute — a restart will be audible');
+        takeDiagnostics.push('pause cleared technical mute');
     };
 
     const handleVideoError = () => {
@@ -623,7 +652,7 @@ export default function PlaybackVideo() {
             <video ref={videoRef} id="playback-video" playsInline preload="auto" controls={isIOS} muted={isMuted} onEnded={handleVideoEnded} onError={handleVideoError} onLoadedData={handleReady} onCanPlay={handleReady} onLoadedMetadata={handleLoadedMetadata}
                 onPlay={() => audioGuardRef.current?.start()}
                 onPlaying={handleVideoPlaying}
-                onPause={() => audioGuardRef.current?.stop()}
+                onPause={handleVideoPause}
                 onClick={handleTakeTap}
                 style={{ cursor: 'pointer' }} />
             <VideoSpeedToggle rate={playbackRate} onCycle={handleSpeedCycle} />

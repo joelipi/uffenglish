@@ -2177,6 +2177,8 @@ describe('recorder auto-render — zero server changes', () => {
             'src/modules/video/whisper-review-layout.test.js',
             'src/modules/lesson/transcript-overlay-logic.js',
             'src/modules/lesson/transcript-overlay-logic.test.js',
+            'src/modules/video/waveform-placement.test.js',
+            'src/assets/css/app.css',
             'src/components/LessonContainer.jsx',
             'src/modules/video/playback-start-wiring.test.js',
             'src/modules/video/audio-guard-wiring.test.js',

@@ -2679,9 +2679,15 @@ ul.incorrectWords li::before {
    ========================================= */
 .waveform-container {
     position: absolute;
-    top: 50%;
+    /* Above the bottom control row, NOT centred: the recorded take is visible
+       behind it (the take plays while transcription runs) and its play control
+       lives in the middle of the 9:16 frame. A centred waveform sat on top of
+       that control (z-index 20 vs the player's 10), hiding it exactly when the
+       learner needed to tap it. */
+    top: auto;
+    bottom: 16%;
     left: 50%;
-    transform: translate(-50%, -50%);
+    transform: translateX(-50%);
     z-index: 20;
     width: 80%;
     max-width: 500px;
