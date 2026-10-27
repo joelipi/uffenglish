@@ -36,9 +36,12 @@ describe('the transcript overlay leaves the centre of the frame free', () => {
         expect(overlay).toContain("justifyContent: 'flex-start'");
     });
 
-    it('is anchored to the top of the frame', () => {
+    it('starts flush with the measured bottom of the top overlay', () => {
         expect(overlay).toContain('position-absolute top-0 start-0 w-100 h-100');
-        expect(overlay).toContain('pt-4');
+        // No fixed top padding: the bar's height varies by step and language.
+        expect(overlay).not.toContain('pt-4');
+        expect(overlay).toContain('paddingTop: resolveTranscriptTopOffset(topOffsetPx)');
+        expect(raw).toContain('resolveTranscriptTopOffset');
     });
 
     it('never swallows the tap meant for the video', () => {

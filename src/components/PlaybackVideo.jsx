@@ -427,6 +427,20 @@ export default function PlaybackVideo() {
         muteIntentRef.current = next;
         setElementMuted(video, next);
         appStore.getState().setPlaybackMuted(next);
+
+        if (!next) {
+            // Unmuting a clip that is already PLAYING is a different case from
+            // starting one: clearing `muted` alone can leave iOS's audio output
+            // closed, so the tap sounds silent until the audio guard (or a
+            // second tap) re-issues playback — the field report "the first time
+            // I tapped it played muted, I have to tap again for sound". Issuing
+            // play() here re-opens the output inside the gesture.
+            const { promise, error } = playSafely(video);
+            if (promise) promise.catch((e) => console.warn('[Playback] tap-unmute replay failed:', e && e.name ? e.name : e));
+            if (error) console.warn('[Playback] tap-unmute replay threw:', error && error.message ? error.message : error);
+            console.log('[Playback] tap unmuted — playback re-issued to re-open audio');
+            takeDiagnostics.push('tap unmuted with replay');
+        }
     };
 
     const handleLoadedMetadata = () => {

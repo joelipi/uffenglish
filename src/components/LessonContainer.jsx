@@ -218,6 +218,22 @@ export default function LessonContainer() {
     // column of the bottom control row, exactly like every decision row.
     const showPreviewTutorial = awaitingRecordingStart && isPreviewGateStep(currentStep);
 
+    // The transcript review box sits flush with the BOTTOM of the top overlay
+    // (progress bar + mission). That bar's height depends on the step and the
+    // language, so it is measured rather than assumed: a fixed offset either
+    // overlapped the progress bar or left a gap.
+    const topOverlayRef = useRef(null);
+    const [topOverlayHeightPx, setTopOverlayHeightPx] = useState(0);
+    useEffect(() => {
+        const el = topOverlayRef.current;
+        if (!el || typeof ResizeObserver !== 'function') return undefined;
+        const measure = () => setTopOverlayHeightPx(el.getBoundingClientRect().height);
+        measure();
+        const observer = new ResizeObserver(measure);
+        observer.observe(el);
+        return () => observer.disconnect();
+    }, [currentStep, currentStepIndex, mediaState, labelLang]);
+
     // A dead link (the lesson is gone from the course) answers with the app's
     // not-found page: the copy says the link may no longer be active and the
     // buttons lead to the course list and home. The critical-error screen is
@@ -238,7 +254,7 @@ export default function LessonContainer() {
             )}
 
             {/* Top Overlay */}
-            <div className="top-overlay position-absolute top-0 start-0 w-100 px-3 py-2">
+            <div ref={topOverlayRef} className="top-overlay position-absolute top-0 start-0 w-100 px-3 py-2">
                 <div className="w-100 text-shadow">
                     <div id="top-bar-primary" className="d-flex align-items-center w-100 mb-0">
                         <Link to="/home" id="closePage"
@@ -377,7 +393,7 @@ export default function LessonContainer() {
 
             <StepLoader step={currentStep} lesson={lesson} />
 
-            <WhisperReview />
+            <WhisperReview topOffsetPx={topOverlayHeightPx} />
             <MediaContent />
             <SuccessVideo />
             <SuccessVideoCanvas canvasRef={successCanvasRef} />

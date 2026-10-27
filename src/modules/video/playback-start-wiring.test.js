@@ -334,6 +334,18 @@ describe('a tap starts the take with sound', () => {
         expect(attemptStart).toContain('preferMutedStart: fromGesture ? false : isIOS');
     });
 
+    it('tapping an already-muted clip re-issues playback so iOS re-opens the audio', () => {
+        // A bare `muted = false` can leave the output closed on iOS: the learner
+        // taps, hears nothing, and has to tap again (the field report).
+        const handler = sliceBetween(playbackRaw, 'const handleTakeTap = () => {', '\n    };');
+        const unmuteTail = handler.slice(handler.indexOf('const next = action === \'mute\';'));
+        expect(unmuteTail).toContain('if (!next) {');
+        expect(unmuteTail).toContain('playSafely(video)');
+        expect(unmuteTail.indexOf('setElementMuted(video, next)'))
+            .toBeLessThan(unmuteTail.indexOf('playSafely(video)'));
+        expect(unmuteTail).toContain('tap unmuted with replay');
+    });
+
     it('the silent loop is still the one muted path', () => {
         const ended = sliceBetween(playbackRaw, 'const handleVideoEnded = () => {', '\n    };');
         expect(ended).toContain('muteIntentRef.current = true;');
