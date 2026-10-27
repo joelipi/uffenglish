@@ -57,8 +57,11 @@ describe('the transcript overlay leaves the centre of the frame free', () => {
         expect(overlay).toContain("pointerEvents: 'none'");
     });
 
-    it('still renders the transcript and the countdown', () => {
+    it('still renders the transcript, and the countdown only when it is on', () => {
         expect(raw).toContain('Time remaining: {timeLeft}s');
         expect(raw).toContain('data.transcript');
+        // The countdown is off by default (review-countdown-logic.js). The
+        // markup is pinned anyway, so switching it back on needs no UI work.
+        expect(raw).toContain('shouldShowReviewCountdown(timeLeft)');
     });
 });

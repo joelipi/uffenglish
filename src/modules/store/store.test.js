@@ -375,6 +375,14 @@ describe('Zustand App Store', () => {
             expect(appStore.getState().whisperReviewTimeLeft).toBe(5);
         });
 
+        it('stores no time left when the review has no countdown', () => {
+            // The countdown is off by default (review-countdown-logic.js), so the
+            // orchestrator hands the review a null starting value and the overlay
+            // renders no timer from it.
+            appStore.getState().transitionTo('review', { transcript: 'hello', timeLeft: null });
+            expect(appStore.getState().whisperReviewTimeLeft).toBeNull();
+        });
+
         it('falls back to error mapping for unknown phases', () => {
             appStore.getState().transitionTo('unknown_phase');
             expect(appStore.getState().topState).toBe('hidden');

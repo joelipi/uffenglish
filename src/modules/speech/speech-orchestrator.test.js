@@ -359,6 +359,7 @@ function reviewHooks() {
         onRecordingStart: vi.fn(),
         onMediaError: vi.fn(),
         onReviewStart: vi.fn(),
+        onReviewUpdate: vi.fn(),
         onTranscriptRejected: vi.fn(() => {
             appStore.getState().transitionTo('recording/answering');
         }),
@@ -606,5 +607,83 @@ describe('speech orchestrator — re-record is a single press', () => {
         await vi.advanceTimersByTimeAsync(10);
 
         expect(warnSpy.mock.calls.some((c) => String(c[0]).includes('Unexpected transition'))).toBe(false);
+    });
+});
+
+// The review screen used to auto-accept after a 7-second countdown, which took
+// the choice away from a learner who was still reading their transcript. It is
+// off by default (review-countdown-logic.js): no timer, and the decision waits
+// for the learner.
+describe('speech orchestrator — the review does not count down', () => {
+    let warnSpy;
+
+    beforeEach(() => {
+        vi.useFakeTimers();
+        appStore.setState({
+            appPhase: 'loading',
+            isWhisperReady: true,
+            isWhisperEngineFailed: false,
+            isMicActive: false,
+            userData: { native_language: 'en' },
+            flowScore: 100,
+            recordingCountdown: null,
+        });
+        warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+        warnSpy.mockRestore();
+        vi.clearAllTimers();
+        vi.useRealTimers();
+    });
+
+    it('hands the review no starting time and never ticks it', async () => {
+        const { orchestrator } = makeRecordingOrchestrator();
+        const hooks = reviewHooks();
+        const params = baseParams(hooks);
+
+        await runTakeToReview(orchestrator, params);
+
+        expect(hooks.onReviewStart).toHaveBeenCalledTimes(1);
+        // Argument 1 is the starting time left: null means "no countdown".
+        expect(hooks.onReviewStart.mock.calls[0][1]).toBeNull();
+
+        // Well past the old 7 s window: no tick, no auto-accept, no answer.
+        await vi.advanceTimersByTimeAsync(30000);
+
+        expect(hooks.onReviewUpdate).not.toHaveBeenCalled();
+        expect(hooks.onReviewEnd).not.toHaveBeenCalled();
+        expect(params.handleAnswer).not.toHaveBeenCalled();
+    });
+
+    it('still accepts the moment the learner presses ✓', async () => {
+        const { orchestrator } = makeRecordingOrchestrator();
+        const hooks = reviewHooks();
+        const params = baseParams(hooks);
+
+        await runTakeToReview(orchestrator, params);
+        await vi.advanceTimersByTimeAsync(30000);
+
+        hooks.onReviewStart.mock.calls[0][2](); // ✓ accept, as late as they like
+        await vi.advanceTimersByTimeAsync(10);
+
+        expect(hooks.onReviewEnd).toHaveBeenCalledWith('feedback');
+        expect(params.handleAnswer).toHaveBeenCalledTimes(1);
+        // A decision taken long after the old window must not be ignored.
+        expect(hooks.onReviewUpdate).not.toHaveBeenCalled();
+    });
+
+    it('still re-records the moment the learner presses ✕', async () => {
+        const { orchestrator, deps } = makeRecordingOrchestrator();
+        const hooks = reviewHooks();
+
+        await runTakeToReview(orchestrator, baseParams(hooks));
+        await vi.advanceTimersByTimeAsync(30000);
+
+        hooks.onReviewStart.mock.calls[0][3](); // ✕ record again
+        await vi.advanceTimersByTimeAsync(3000);
+
+        expect(deps.startSpeechCamRecording).toHaveBeenCalledTimes(2); // 1 take + 1 restart
+        expect(hooks.onTranscriptRejected).toHaveBeenCalledTimes(1);
     });
 });

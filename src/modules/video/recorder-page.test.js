@@ -1409,6 +1409,9 @@ describe('recorder auto-render — zero server changes', () => {
             'src/modules/speech/speech.web.js',
             'src/modules/speech/speech-orchestrator.js',
             'src/modules/speech/speech-orchestrator.test.js',
+            'src/modules/speech/rerecord-wiring.test.js',
+            'src/modules/speech/review-countdown-enabled.test.js',
+            'src/modules/store/store.test.js',
             'src/modules/looks/recording-looks-logic.js',
             'src/modules/looks/recording-looks-logic.test.js',
             'src/modules/looks/preview-gate.js',
@@ -2229,6 +2232,16 @@ describe('recorder auto-render — zero server changes', () => {
             'scripts/lib/poster-utils.test.js',
             'src/modules/courses/friend-course-configs.test.js',
             'src/generated/poster-lqips.test.js',
+            // The transcript review's countdown is off by default: the learner
+            // accepts or re-records whenever they are ready.
+            'src/modules/lesson/review-countdown-logic.js',
+            'src/modules/lesson/review-countdown-logic.test.js',
+            'src/modules/lesson/review-countdown-wiring.test.js',
+            'src/components/widgets/WhisperReview.jsx',
+            'src/components/widgets/WhisperReview.test.jsx',
+            'src/modules/speech/speech-orchestrator.js',
+            'src/modules/speech/speech-orchestrator.test.js',
+            'src/modules/video/whisper-review-layout.test.js',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);

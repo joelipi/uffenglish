@@ -6,6 +6,7 @@ import Strings from '../../data/strings.js';
 import { getAppLanguage } from '../bilingual/config-normalizer.js';
 import { decideRerecordAction, RERECORD_DECISIONS } from './rerecord-logic.js';
 import { isPreviewGateStep, applyStepLookOverlaysOnce } from '../looks/recording-looks-logic.js';
+import { resolveReviewCountdownStart, shouldAutoAcceptReview } from '../lesson/review-countdown-logic.js';
 
 function computeWaveformPeaks(audioData, numPeaks = 120) {
     const blockSize = Math.max(1, Math.floor(audioData.length / numPeaks));
@@ -123,13 +124,25 @@ export function createSpeechOrchestrator({
             }
         }
 
-        let timeLeft = 7;
+        // `null` when the countdown is switched off (it is, by default): the
+        // review then has no timer and the learner accepts or re-records when
+        // they are ready. See review-countdown-logic.js.
+        let timeLeft = resolveReviewCountdownStart();
         let reviewActive = true;
+        // The ticker is created only when there is a countdown; every stop site
+        // goes through this, so accepting/rejecting always cancels it.
+        let timerInterval = null;
+        const stopReviewCountdown = () => {
+            if (timerInterval !== null) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+        };
 
         const acceptTranscript = () => {
             if (!reviewActive) return;
             reviewActive = false;
-            clearInterval(timerInterval);
+            stopReviewCountdown();
 
             if (uiHooks?.onReviewEnd) uiHooks.onReviewEnd('feedback');
 
@@ -173,7 +186,7 @@ export function createSpeechOrchestrator({
         const rejectTranscript = () => {
             if (!reviewActive) return;
             reviewActive = false;
-            clearInterval(timerInterval);
+            stopReviewCountdown();
             appStore.getState().clearPlaybackBlob();
             appStore.getState().clearRecordedAudioPeaks();
 
@@ -191,11 +204,19 @@ export function createSpeechOrchestrator({
         console.warn('[PT] CALLING onReviewStart', { displayTranscript: displayTranscript.substring(0, 30), transcriptToReview: transcriptToReview.substring(0, 30), timeLeft });
         if (uiHooks?.onReviewStart) uiHooks.onReviewStart(displayTranscript, timeLeft, acceptTranscript, rejectTranscript);
 
-        const timerInterval = setInterval(() => {
-            if (!reviewActive) return clearInterval(timerInterval);
+        // The countdown is suppressed unless review-countdown-logic.js enables
+        // it: with no timer there is nothing to tick and nothing that accepts on
+        // the learner's behalf, so the decision waits for them.
+        if (timeLeft === null) {
+            console.log('[PT] review countdown disabled — the learner decides when to accept or re-record');
+            return;
+        }
+
+        timerInterval = setInterval(() => {
+            if (!reviewActive) return stopReviewCountdown();
             timeLeft--;
             if (uiHooks?.onReviewUpdate) uiHooks.onReviewUpdate(timeLeft);
-            if (timeLeft <= 0) acceptTranscript();
+            if (shouldAutoAcceptReview({ timeLeft })) acceptTranscript();
         }, 1000);
     }
 

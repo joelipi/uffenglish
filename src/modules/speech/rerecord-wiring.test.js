@@ -33,8 +33,10 @@ const sliceBetween = (text, startMarker, endMarker) => {
 
 // Each region ends at the next declaration in `processTranscript`, never at
 // EOF, so a closure appended later cannot join a slice and satisfy its
-// assertions. `restartRegion` stops at the sibling closure rather than
-// `timerInterval` so it can never span `rejectTranscript` either.
+// assertions. `restartRegion` stops at the sibling closure rather than the
+// review's start marker so it can never span `rejectTranscript` either; the
+// reject closure ends where the review is handed over (which is where the
+// countdown ticker lives, behind its own gate).
 const restartRegion = () => sliceBetween(
     ORCH,
     'const restartTakeAfterReject = () => {',
@@ -43,7 +45,7 @@ const restartRegion = () => sliceBetween(
 const rejectRegion = () => sliceBetween(
     ORCH,
     'const rejectTranscript = () => {',
-    'const timerInterval = setInterval'
+    "console.warn('[PT] CALLING onReviewStart'"
 );
 
 describe('re-record wiring guard', () => {
