@@ -277,6 +277,23 @@ export const PLAYBACK_READINESS_RETRY_MS = 300;
 /** Give up waiting for readiness after this long (the learner can tap instead). */
 export const PLAYBACK_READINESS_MAX_WAIT_MS = 4000;
 
+/**
+ * How long a take may sit paused (or stalled) before it has ever played before
+ * the start path restarts it. The start must not depend on one more media event
+ * arriving: an element the browser paused after the muted start never fires one
+ * again, and the take stays on its first frame (the field report where the take
+ * only played when `?diag=1` changed the timing).
+ */
+export const PLAYBACK_START_WATCHDOG_MS = 400;
+
+/**
+ * How long the muted lead-in may wait for the `playing` event before the audio
+ * is re-opened anyway. `playing` is the first moment playback really began, and
+ * re-opening the audio before it is what lets WebKit revoke the muted-autoplay
+ * allowance; the fallback keeps a browser that never fires `playing` audible.
+ */
+export const PLAYBACK_UNMUTE_FALLBACK_MS = 700;
+
 /** How long after `playing` the clock is checked for movement. */
 export const PLAYBACK_STALL_CHECK_MS = 700;
 
@@ -315,4 +332,65 @@ export function shouldKickStalledPlayback({
     if (!Number.isFinite(elapsedSinceStartMs)) return false;
     if (elapsedSinceStartMs < checkAfterMs) return false;
     return currentTime < minAdvanceS;
+}
+
+// --- A take the element left unplayed before it ever started -----------------
+//
+// The `playing` event is the only confirmation that a start really happened, and
+// the start path used to treat "play() resolved" as good enough. On a device the
+// element can be left PAUSED (or `paused:false` with a clock that never moves)
+// without ever firing `playing`: that is the field report where the recorded
+// take never played, and the take only played with `?diag=1` because the panel's
+// extra work happened to make another readiness event arrive after the element
+// paused. A readiness event is a coincidence, not a recovery — the start path
+// has to look at the element and restart it.
+
+/**
+ * What the start watchdog should do about a take that has not started yet:
+ *
+ *   * `'restart'` — the element is paused. Ask it to play again (this is the
+ *     shape the field log shows: a start succeeded, then the element paused and
+ *     nothing was left to resume it).
+ *   * `'kick'` — `paused:false` but the clock did not move since the previous
+ *     look: the renderer is stalled, so pause and re-issue playback (the same
+ *     repair as `shouldKickStalledPlayback`, but before the first `playing`).
+ *   * `'none'` — leave it alone (not an autoplay step, already started, the
+ *     ladder gave up, past the maximum wait, or nothing observed yet).
+ *
+ * @param {{ paused?: boolean, movedS?: number|null, hasStarted?: boolean,
+ *           autoplay?: boolean, gaveUp?: boolean, waitedMs?: number,
+ *           maxWaitMs?: number, minAdvanceS?: number }} [input]
+ * @returns {'restart'|'kick'|'none'}
+ */
+export function resolveStartRecovery({
+    paused,
+    movedS = null,
+    hasStarted = false,
+    autoplay = false,
+    gaveUp = false,
+    waitedMs = 0,
+    maxWaitMs = PLAYBACK_READINESS_MAX_WAIT_MS,
+    minAdvanceS = PLAYBACK_STALL_MIN_ADVANCE_S,
+} = {}) {
+    if (autoplay !== true) return 'none';
+    if (hasStarted === true) return 'none';
+    if (gaveUp === true) return 'none';
+    if (!Number.isFinite(waitedMs) || waitedMs > maxWaitMs) return 'none';
+    if (paused === true) return 'restart';
+    // Nothing to compare against on the first look: record and look again.
+    if (!Number.isFinite(movedS)) return 'none';
+    return movedS < minAdvanceS ? 'kick' : 'none';
+}
+
+/**
+ * May the muted lead-in be re-opened now? Only once playback really started
+ * (`playing`), and never against a silence the learner asked for. The technical
+ * mute and the learner's mute intent are different things: the first is ours to
+ * undo, the second is theirs.
+ *
+ * @param {{ pendingUnmute?: boolean, muteIntent?: boolean }} [input]
+ * @returns {boolean}
+ */
+export function shouldUnmuteTechnicalMute({ pendingUnmute = false, muteIntent = false } = {}) {
+    return pendingUnmute === true && muteIntent !== true;
 }

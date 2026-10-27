@@ -126,8 +126,10 @@ describe('PlaybackVideo audio guard', () => {
     it('creates the guard inside the effect, watching the video element', () => {
         expect(guardCreation).toContain('createAudioGuard({');
         expect(guardCreation).toContain('getElement: () => videoRef.current');
-        // The guard must stand down when the clip is meant to be silent.
-        expect(guardCreation).toContain('isExpectedAudible: () => !muteIntentRef.current');
+        // The guard must stand down when the clip is meant to be silent: the
+        // learner's own mute, and the muted autoplay lead-in the start path
+        // re-opens itself once playback really began.
+        expect(guardCreation).toContain('isExpectedAudible: () => !muteIntentRef.current && !pendingUnmuteRef.current');
     });
 
     it('starts the guard on play and stops it on pause', () => {
@@ -158,10 +160,10 @@ describe('PlaybackVideo audio guard', () => {
 
     it('restores the audio when the autoplay with sound was blocked', () => {
         // The muted fallback is a rung of the start ladder (stories/094), and
-        // the unmute that follows it lives in unmuteAfterStart.
+        // the unmute that follows it lives in unmuteNow.
         const handleBlocked = sliceBetween(playbackRaw, 'const handleBlockedStart = (attempt, error) => {', '\n    };');
         expect(handleBlocked).toContain('scheduleRetry(attempt);');
-        const unmute = sliceBetween(playbackRaw, 'const unmuteAfterStart = () => {', '\n    };');
+        const unmute = sliceBetween(playbackRaw, 'const unmuteNow = () => {', '\n    };');
         expect(unmute).toContain('setElementMuted(el, false)');
         // The re-issued play() must come AFTER the unmute — re-issuing it
         // while the element is still muted would not re-open the audio output.
@@ -177,7 +179,8 @@ describe('PlaybackVideo audio guard', () => {
         const startPath = [
             sliceBetween(playbackRaw, 'const attemptStart = (attempt = 0, { fromGesture = false } = {}) => {', '\n    };'),
             sliceBetween(playbackRaw, 'const handleBlockedStart = (attempt, error) => {', '\n    };'),
-            sliceBetween(playbackRaw, 'const unmuteAfterStart = () => {', '\n    };'),
+            sliceBetween(playbackRaw, 'const unmuteNow = () => {', '\n    };'),
+            sliceBetween(playbackRaw, 'const scheduleUnmute = (delayMs) => {', '\n    };'),
             sliceBetween(playbackRaw, 'const scheduleRetry = (attempt) => {', '\n    };'),
         ].join('\n');
         const stripped = stripComments(startPath);

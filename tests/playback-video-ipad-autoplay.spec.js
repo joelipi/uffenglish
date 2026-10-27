@@ -15,7 +15,7 @@ const LESSON_URL = '/course/model/lesson/m-g';
 const IPAD_UA = 'Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
 
 /** Record a short WebM in the page — the shape the app records (canvas + audio). */
-async function mountRecordedTake(page, seconds = 3) {
+async function mountRecordedTake(page, seconds = 3, beforeHandover = null) {
     const base64 = await page.evaluate(async (secs) => {
         const canvas = document.createElement('canvas');
         canvas.width = 180;
@@ -59,6 +59,8 @@ async function mountRecordedTake(page, seconds = 3) {
         for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
         return btoa(bin);
     }, seconds);
+
+    if (typeof beforeHandover === 'function') await page.evaluate(beforeHandover);
 
     await page.evaluate((b64) => {
         const bin = atob(b64);
@@ -229,6 +231,52 @@ test.describe('iPad autoplay shapes for the recorded take', () => {
             // The unmuted start is always refused on iPad; asking for it first
             // makes the take depend on the fallback's timing (the ?diag=1 race).
             expect(calls[0]).toMatchObject({ paused: true, muted: true });
+            expect(pageErrors).toEqual([]);
+        });
+    });
+
+    // The field report behind this block: the take "never plays" on an iPad and
+    // plays normally with `?diag=1`. The start had been ACCEPTED (`play()`
+    // resolved) while the element stayed paused, and the only thing that ever
+    // restarted it was another readiness event — which had already fired. The
+    // start path must look at the element instead of waiting for that luck.
+    test.describe('a take the element leaves unplayed', () => {
+        test.use({ userAgent: IPAD_UA });
+
+        test('is restarted by itself instead of waiting for another readiness event', async ({ page }) => {
+            await page.addInitScript(() => {
+                const original = HTMLMediaElement.prototype.play;
+                window.__uffIgnoredStarts = 0;
+                HTMLMediaElement.prototype.play = function patchedPlay() {
+                    // The field shape: the start is accepted and nothing happens,
+                    // long enough for every readiness event to have gone by.
+                    if (this.id === 'playback-video' && Date.now() < (window.__uffIgnoreUntil || 0)) {
+                        window.__uffIgnoredStarts += 1;
+                        return Promise.resolve();
+                    }
+                    return original.apply(this, arguments);
+                };
+            });
+
+            await openLesson(page);
+            await mountRecordedTake(page, 2, () => { window.__uffIgnoreUntil = Date.now() + 900; });
+
+            // The old start path gave up here and left the take on its first
+            // frame with `paused: true`; the watchdog keeps starting it.
+            await expectTakePlaying(page);
+            expect(await page.evaluate(() => window.__uffIgnoredStarts)).toBeGreaterThan(0);
+
+            // …and the rest of the contract still holds: audible once, then the
+            // silent loop.
+            await expect.poll(
+                () => page.evaluate(() => document.querySelector('#playback-video').muted),
+                { timeout: 5000 }
+            ).toBe(false);
+            await page.waitForFunction(
+                () => document.querySelector('#playback-video')?.loop === true,
+                null,
+                { timeout: 20000 }
+            );
             expect(pageErrors).toEqual([]);
         });
     });

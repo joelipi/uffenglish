@@ -15,6 +15,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { PLAYBACK_UNMUTE_FALLBACK_MS } from './playback-start-logic.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '../../..');
@@ -119,7 +120,7 @@ describe('the start path survives WebKit returning undefined from play()', () =>
     });
 
     it('routes every start through playSafely', () => {
-        ['attemptStart', 'replaySilentLoop', 'unmuteAfterStart'].forEach((name) => {
+        ['attemptStart', 'replaySilentLoop', 'unmuteNow'].forEach((name) => {
             const fn = sliceBetween(playbackRaw, `const ${name} = `, '\n    };');
             expect(fn, name).toContain('playSafely(');
         });
@@ -178,7 +179,7 @@ describe('the start ladder asks for sound once then falls back to muted', () => 
     });
 
     it('unmutes only after the muted start succeeded, and re-issues play after the unmute', () => {
-        const unmute = sliceBetween(playbackRaw, 'const unmuteAfterStart = () => {', '\n    };');
+        const unmute = sliceBetween(playbackRaw, 'const unmuteNow = () => {', '\n    };');
         expect(unmute).toContain('if (!el || muteIntentRef.current) return;');
         expect(unmute.indexOf('setElementMuted(el, false)')).toBeLessThan(unmute.indexOf('playSafely(el)'));
         // The muted start was only the autoplay permission handshake: rewind it
@@ -188,7 +189,50 @@ describe('the start ladder asks for sound once then falls back to muted', () => 
         expect(unmute.indexOf('el.currentTime = 0')).toBeLessThan(unmute.indexOf('setElementMuted(el, false)'));
         expect(unmute).toContain("takeDiagnostics.push('rewound before audible start'");
         // Reached only from the muted-start success path.
-        expect(attemptStart).toContain('if (muted && !muteIntentRef.current) unmuteAfterStart();');
+        expect(attemptStart).toContain("pendingUnmuteRef.current = true;");
+    });
+
+    it('re-opens the audio on `playing`, not when play() resolves', () => {
+        // The field report: the take never played unless ?diag=1 changed the
+        // timing. Unmuting before the element has presented a frame is what lets
+        // WebKit revoke the muted-autoplay allowance and pause the take, so the
+        // audible pass hangs off `playing` (with a fallback for a browser that
+        // never fires it) instead of the play() promise.
+        const playing = sliceBetween(playbackRaw, 'const handleVideoPlaying = () => {', '\n    };');
+        expect(playing).toContain('shouldUnmuteTechnicalMute(');
+        expect(playing).toContain('scheduleUnmute(');
+        expect(playing.indexOf('shouldUnmuteTechnicalMute(')).toBeLessThan(playing.indexOf('scheduleUnmute('));
+        expect(videoElement).toContain('onPlaying={handleVideoPlaying}');
+        // The start no longer schedules the unmute itself...
+        expect(attemptStart).not.toContain('unmuteNow()');
+        // ...and the fallback is long enough to be a fallback, not the plan.
+        expect(attemptStart).toContain('scheduleUnmute(PLAYBACK_UNMUTE_FALLBACK_MS)');
+        expect(PLAYBACK_UNMUTE_FALLBACK_MS).toBeGreaterThanOrEqual(500);
+    });
+
+    it('restarts a take the element left paused before it ever played', () => {
+        // Nothing may depend on one more readiness event arriving after the
+        // element paused (the ?diag=1 race): the watchdog looks at the element.
+        const watchdog = sliceBetween(playbackRaw, 'const checkStartWatchdog = () => {', '\n    };');
+        expect(watchdog).toContain('resolveStartRecovery(');
+        expect(watchdog).toContain("if (action === 'restart') {");
+        expect(watchdog).toContain('attemptStart(attemptRef.current);');
+        expect(watchdog).toContain('armStartWatchdog();');
+        expect(watchdog.indexOf('resolveStartRecovery(')).toBeLessThan(watchdog.indexOf('attemptStart(attemptRef.current);'));
+        // Armed by every start attempt, and stood down once playback really began.
+        expect(attemptStart).toContain('armStartWatchdog();');
+        const playing = sliceBetween(playbackRaw, 'const handleVideoPlaying = () => {', '\n    };');
+        expect(playing).toContain('clearStartWatchdog();');
+        // Every timer is cleared with the others, so a watchdog cannot fire into
+        // the next take or a gone element.
+        const blobEffect = sliceBetween(playbackRaw, '// Blob URL management', '// Clear trigger');
+        expect(blobEffect).toContain('clearStartWatchdog();');
+        expect(blobEffect).toContain('startWatchdogBeganRef.current = 0;');
+        const cleanup = sliceBetween(playbackRaw, 'useEffect(() => () => {', '\n    }, []);');
+        expect(cleanup).toContain('clearStartWatchdog();');
+        // A ladder that gave up is left alone: the learner taps instead.
+        const blocked = sliceBetween(playbackRaw, 'const handleBlockedStart = (attempt, error) => {', '\n    };');
+        expect(blocked).toContain('startGaveUpRef.current = true;');
     });
 
     it('nudges load() at most once per element+source, and only when the source is idle', () => {

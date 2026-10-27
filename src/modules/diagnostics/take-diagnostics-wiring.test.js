@@ -73,7 +73,7 @@ describe('every take diagnostic reaches the log', () => {
         expect(playing).toContain("takeDiagnostics.push('playback sample'");
         const metadata = sliceBetween(playback, 'const handleLoadedMetadata = () => {', '\n    };');
         expect(metadata).toContain("takeDiagnostics.push('take media'");
-        const unmute = sliceBetween(playback, 'const unmuteAfterStart = () => {', '\n    };');
+        const unmute = sliceBetween(playback, 'const unmuteNow = () => {', '\n    };');
         expect(unmute).toContain("takeDiagnostics.push('unmuted after muted start')");
     });
 

@@ -5,11 +5,14 @@ import { describe, it, expect } from 'vitest';
 import {
     AUTOPLAY_ERROR_NAMES,
     PLAYBACK_START_RETRY_DELAYS_MS,
+    PLAYBACK_START_WATCHDOG_MS,
     PLAYBACK_STALL_CHECK_MS,
+    PLAYBACK_UNMUTE_FALLBACK_MS,
     describePlaybackSample,
     describeStartState,
     describeTakeMedia,
     playSafely,
+    resolveStartRecovery,
     resolveTapAction,
     retryDelayMs,
     setElementMuted,
@@ -18,6 +21,7 @@ import {
     shouldPauseOffscreen,
     shouldRetryStart,
     shouldStartMuted,
+    shouldUnmuteTechnicalMute,
     shouldWaitForReadiness,
 } from './playback-start-logic.js';
 
@@ -314,5 +318,64 @@ describe('shouldKickStalledPlayback', () => {
         expect(shouldKickStalledPlayback({ paused: false, currentTime: 0, elapsedSinceStartMs: 100 })).toBe(false);
         expect(shouldKickStalledPlayback({ paused: false, currentTime: NaN, elapsedSinceStartMs: 5000 })).toBe(false);
         expect(shouldKickStalledPlayback({})).toBe(false);
+    });
+});
+
+// The take the browser left unplayed (the ?diag=1 race). A start is only real
+// once `playing` arrives; until then the element is watched and restarted.
+describe('resolveStartRecovery', () => {
+    const base = { autoplay: true, hasStarted: false, gaveUp: false, waitedMs: 400 };
+
+    it('restarts a take the element left paused before it ever played', () => {
+        expect(resolveStartRecovery({ ...base, paused: true })).toBe('restart');
+    });
+
+    it('kicks a not-paused element whose clock did not move', () => {
+        expect(resolveStartRecovery({ ...base, paused: false, movedS: 0 })).toBe('kick');
+        expect(resolveStartRecovery({ ...base, paused: false, movedS: 0.01 })).toBe('kick');
+    });
+
+    it('leaves a clip that is actually advancing alone', () => {
+        expect(resolveStartRecovery({ ...base, paused: false, movedS: 0.4 })).toBe('none');
+    });
+
+    it('records the first reading instead of kicking on it', () => {
+        expect(resolveStartRecovery({ ...base, paused: false, movedS: null })).toBe('none');
+    });
+
+    it('never fights a step without autoplay, a started clip, a given-up ladder or the closed window', () => {
+        expect(resolveStartRecovery({ ...base, autoplay: false, paused: true })).toBe('none');
+        expect(resolveStartRecovery({ ...base, hasStarted: true, paused: true })).toBe('none');
+        expect(resolveStartRecovery({ ...base, gaveUp: true, paused: true })).toBe('none');
+        expect(resolveStartRecovery({ ...base, paused: true, waitedMs: 4001 })).toBe('none');
+        expect(resolveStartRecovery({ ...base, paused: true, waitedMs: NaN })).toBe('none');
+    });
+
+    it('is null-safe', () => {
+        expect(resolveStartRecovery()).toBe('none');
+    });
+
+    it('watches sooner than the readiness stall window closes', () => {
+        expect(PLAYBACK_START_WATCHDOG_MS).toBeGreaterThan(0);
+        expect(PLAYBACK_START_WATCHDOG_MS).toBeLessThan(PLAYBACK_STALL_CHECK_MS);
+    });
+});
+
+describe('shouldUnmuteTechnicalMute', () => {
+    it('re-opens the audio once playback really started', () => {
+        expect(shouldUnmuteTechnicalMute({ pendingUnmute: true, muteIntent: false })).toBe(true);
+    });
+
+    it('never overrides the learner\'s own silence', () => {
+        expect(shouldUnmuteTechnicalMute({ pendingUnmute: true, muteIntent: true })).toBe(false);
+    });
+
+    it('does nothing when there is no technical mute to undo', () => {
+        expect(shouldUnmuteTechnicalMute({ pendingUnmute: false, muteIntent: false })).toBe(false);
+        expect(shouldUnmuteTechnicalMute()).toBe(false);
+    });
+
+    it('the fallback is a fallback, not the plan', () => {
+        expect(PLAYBACK_UNMUTE_FALLBACK_MS).toBeGreaterThanOrEqual(500);
     });
 });
