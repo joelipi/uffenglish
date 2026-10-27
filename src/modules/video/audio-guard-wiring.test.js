@@ -175,7 +175,7 @@ describe('PlaybackVideo audio guard', () => {
         // ladder is caught (the earlier slice pointed at loadedmetadata, which no
         // longer holds the start code and would have passed vacuously).
         const startPath = [
-            sliceBetween(playbackRaw, 'const attemptStart = (attempt = 0) => {', '\n    };'),
+            sliceBetween(playbackRaw, 'const attemptStart = (attempt = 0, { fromGesture = false } = {}) => {', '\n    };'),
             sliceBetween(playbackRaw, 'const handleBlockedStart = (attempt, error) => {', '\n    };'),
             sliceBetween(playbackRaw, 'const unmuteAfterStart = () => {', '\n    };'),
             sliceBetween(playbackRaw, 'const scheduleRetry = (attempt) => {', '\n    };'),

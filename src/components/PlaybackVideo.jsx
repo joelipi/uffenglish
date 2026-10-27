@@ -223,7 +223,7 @@ export default function PlaybackVideo() {
      * muted, because iPadOS refuses an unmuted play() that is not in the same
      * task as a gesture and allows the muted start.
      */
-    const attemptStart = (attempt = 0) => {
+    const attemptStart = (attempt = 0, { fromGesture = false } = {}) => {
         const video = videoRef.current;
         if (!video) return;
         if (!video.paused) return;
@@ -246,13 +246,17 @@ export default function PlaybackVideo() {
         }
         waitingSinceRef.current = null;
 
+        // A start the learner asked for (a tap) is always AUDIBLE: the muted
+        // lead-in exists only to satisfy iOS autoplay policy, and a tap is a
+        // gesture, so no policy needs satisfying. This is what stops a re-tapped
+        // clip from playing silently (stories/094).
         const muted = shouldStartMuted({
             attempt,
-            muteIntent: muteIntentRef.current,
+            muteIntent: fromGesture ? false : muteIntentRef.current,
             // iPadOS refuses the unmuted start unconditionally, so ask for the
             // muted start that is actually allowed and re-open the audio after
             // it is playing (stories/094). Desktop/Android still start audible.
-            preferMutedStart: isIOS,
+            preferMutedStart: fromGesture ? false : isIOS,
         });
         const applied = setElementMuted(video, muted);
         if (attempt === 0 && !muted) {
@@ -406,10 +410,16 @@ export default function PlaybackVideo() {
         if (!video) return;
         const action = resolveTapAction({ paused: video.paused, muted: video.muted === true });
         if (action === 'play') {
-            // A tap is a gesture, so this is the one attempt that can start the
-            // clip with sound on iPad (stories/094). The learner's mute intent
-            // is unchanged.
-            attemptStart(0);
+            // A tap is a gesture, so this is the one start that can be audible on
+            // iPad. It also clears the silent-loop intent a previous run left
+            // behind: otherwise a re-tapped clip would start muted and stay muted
+            // (the field report "sometimes they play muted once you've tapped
+            // them"). Muted is for the LOOP only.
+            muteIntentRef.current = false;
+            clearUnmuteTimer();
+            setElementMuted(video, false);
+            appStore.getState().setPlaybackMuted(false);
+            attemptStart(0, { fromGesture: true });
             return;
         }
         const next = action === 'mute';

@@ -146,14 +146,15 @@ describe('the start path survives WebKit returning undefined from play()', () =>
 });
 
 describe('the start ladder asks for sound once then falls back to muted', () => {
-    const attemptStart = sliceBetween(playbackRaw, 'const attemptStart = (attempt = 0) => {', '\n    };');
+    const attemptStart = sliceBetween(playbackRaw, 'const attemptStart = (attempt = 0, { fromGesture = false } = {}) => {', '\n    };');
 
     it('derives the mute state from the ladder rule', () => {
         expect(attemptStart).toContain('shouldStartMuted({');
-        expect(attemptStart).toContain('muteIntent: muteIntentRef.current');
+        expect(attemptStart).toContain('muteIntent: fromGesture ? false : muteIntentRef.current');
         // iPadOS refuses the unmuted start unconditionally, so iOS asks for the
-        // muted start from attempt 0 and re-opens the audio once playing.
-        expect(attemptStart).toContain('preferMutedStart: isIOS');
+        // muted start from attempt 0 and re-opens the audio once playing. A
+        // gesture start is exempt (see the tap tests below).
+        expect(attemptStart).toContain('preferMutedStart: fromGesture ? false : isIOS');
         expect(attemptStart).toContain('setElementMuted(video, muted)');
         // The mute must be applied BEFORE play() is asked for: a muted start is
         // only allowed once the element already carries the muted attribute.
@@ -225,8 +226,8 @@ describe('a tap on a paused take plays it', () => {
 
     it('starts playback for the play action instead of toggling the sound', () => {
         const handler = sliceBetween(playbackRaw, 'const handleTakeTap = () => {', '\n    };');
-        const playBranch = sliceBetween(handler, "if (action === 'play') {", '}');
-        expect(playBranch).toContain('attemptStart(0);');
+        const playBranch = sliceBetween(handler, "if (action === 'play') {", '\n        }');
+        expect(playBranch).toContain('attemptStart(0, { fromGesture: true });');
         // The mute path must be the OTHER branch: a tap that only flips sound
         // leaves the learner looking at a still frame.
         expect(handler.indexOf("if (action === 'play') {"))
@@ -266,7 +267,7 @@ describe('a started take that looks still names its own shape', () => {
 });
 
 describe('a not-yet-ready take is not asked to play, and a stalled one is kicked', () => {
-    const attemptStart = () => sliceBetween(playbackRaw, 'const attemptStart = (attempt = 0) => {', '\n    };');
+    const attemptStart = () => sliceBetween(playbackRaw, 'const attemptStart = (attempt = 0, { fromGesture = false } = {}) => {', '\n    };');
 
     it('waits for HAVE_CURRENT_DATA before calling play()', () => {
         const body = attemptStart();
@@ -304,5 +305,39 @@ describe('a not-yet-ready take is not asked to play, and a stalled one is kicked
         expect(blobEffect).toContain('clearStallTimer();');
         expect(blobEffect).toContain('clearReplayTimer();');
         expect(blobEffect).toContain('stallKickedRef.current = false;');
+    });
+});
+
+
+// stories/094: a tap must be AUDIBLE on every platform. The muted lead-in only
+// exists to satisfy iOS autoplay policy, and a tap is a gesture, so a
+// learner-started clip must never play muted (the field report "sometimes they
+// play muted once you've tapped them"). Muted is for the silent LOOP only.
+describe('a tap starts the take with sound', () => {
+    const handler = sliceBetween(playbackRaw, 'const handleTakeTap = () => {', '\n    };');
+    const playBranch = sliceBetween(handler, "if (action === 'play') {", '\n        }');
+
+    it('clears the silent-loop intent before starting', () => {
+        expect(playBranch).toContain('muteIntentRef.current = false;');
+        expect(playBranch).toContain('setPlaybackMuted(false)');
+        // The intent has to be cleared BEFORE the start is attempted, otherwise
+        // the start still reads the previous run's silence.
+        expect(playBranch.indexOf('muteIntentRef.current = false;'))
+            .toBeLessThan(playBranch.indexOf('attemptStart(0, { fromGesture: true });'));
+        expect(playBranch).toContain('setElementMuted(video, false)');
+        expect(playBranch).toContain('clearUnmuteTimer()');
+    });
+
+    it('a gesture start never asks for the muted iOS lead-in', () => {
+        const attemptStart = sliceBetween(playbackRaw, 'const attemptStart = (attempt = 0, { fromGesture = false } = {}) => {', '\n    };');
+        expect(attemptStart).toContain('muteIntent: fromGesture ? false : muteIntentRef.current');
+        expect(attemptStart).toContain('preferMutedStart: fromGesture ? false : isIOS');
+    });
+
+    it('the silent loop is still the one muted path', () => {
+        const ended = sliceBetween(playbackRaw, 'const handleVideoEnded = () => {', '\n    };');
+        expect(ended).toContain('muteIntentRef.current = true;');
+        expect(ended).toContain('setElementMuted(video, true)');
+        expect(ended).toContain('video.loop = true');
     });
 });

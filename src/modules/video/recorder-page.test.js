@@ -2161,6 +2161,13 @@ describe('recorder auto-render — zero server changes', () => {
             'scripts/verify-build-artifact.test.js',
             'scripts/lib/pwa-build-output.test.js',
             'scripts/cartoon-preferences-person.test.js',
+            // Playback fixes: transcript overlay placement + audible tap start.
+            'src/components/widgets/WhisperReview.jsx',
+            'src/components/PlaybackVideo.jsx',
+            'src/modules/video/whisper-review-layout.test.js',
+            'src/modules/video/playback-start-wiring.test.js',
+            'src/modules/video/audio-guard-wiring.test.js',
+            'src/modules/diagnostics/take-diagnostics-wiring.test.js',
             'package.json',
             // Cartoon-preferences course: the rendered SRT in the master CSV,
             // the generated config (hand-authored courseName translations), and

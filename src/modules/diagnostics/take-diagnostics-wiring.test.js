@@ -67,7 +67,7 @@ describe('the diagnostics panel is mounted and gated', () => {
 describe('every take diagnostic reaches the log', () => {
     it('the player pushes the start attempts and the media samples', () => {
         expect(playback).toContain("import { takeDiagnostics } from '../modules/diagnostics/take-diagnostics.js';");
-        const startAttempt = sliceBetween(playback, 'const attemptStart = (attempt = 0) => {', '\n    };');
+        const startAttempt = sliceBetween(playback, 'const attemptStart = (attempt = 0, { fromGesture = false } = {}) => {', '\n    };');
         expect(startAttempt).toContain("takeDiagnostics.push('start attempt '");
         const playing = sliceBetween(playback, 'const handleVideoPlaying = () => {', '\n    };');
         expect(playing).toContain("takeDiagnostics.push('playback sample'");
