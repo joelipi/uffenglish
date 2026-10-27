@@ -14,6 +14,8 @@ import {
     buildFriendLinksMaps,
 } from '../../modules/home/continue-logic.js';
 import FriendCoursesView from '../courses/FriendCoursesView.jsx';
+import ProfileStats from '../profile/ProfileStats.jsx';
+import { buildHomeStats } from '../../modules/profile/profile-stats-logic.js';
 import PWAInstallBanner from '../pwa/PWAInstallBanner.web.jsx';
 import PushNotificationsOptIn from '../notifications/PushNotificationsOptIn.web.jsx';
 import { isRegisteredViewer } from '../../modules/navigation/app-menu-logic.js';
@@ -28,6 +30,17 @@ export default function HomeScreen() {
     const viewerId = profile?.$id;
     // A guest stub is not an account: no install banner, no push prompt.
     const registered = isRegisteredViewer(viewerId);
+    // Local activity metrics: the source of truth for a GUEST's stats. A
+    // registered learner's profile row is authoritative (see homeStatsValues).
+    const dayCount = useStore(appStore, state => state.dayCount);
+    const currentStreak = useStore(appStore, state => state.currentStreak);
+    const lessonsCompleted = useStore(appStore, state => state.lessonsCompleted);
+    const stats = useMemo(
+        () => buildHomeStats({
+            profile,
+            activity: { streak: currentStreak, lessons: lessonsCompleted, daysActive: dayCount },
+        }),
+        [profile, currentStreak, lessonsCompleted, dayCount]);
 
     // Single-flight config loader shared by both queries below: concurrent
     // mounts await one `loadConfigEntries()` promise per HomeScreen mount
@@ -147,6 +160,18 @@ export default function HomeScreen() {
         flexDirection: 'column',
     };
 
+    const statsSectionStyle = {
+        // Same column width as the course list below it, so the tiles line up
+        // with the cards. Two tiles per row keeps it a compact strip rather
+        // than a full-screen list. No heading: the tiles are self-describing
+        // and the dashboard's first row should be the numbers, not a title.
+        padding: '20px 16px 0',
+        maxWidth: '640px',
+        margin: '0 auto',
+        width: '100%',
+        boxSizing: 'border-box',
+    };
+
     // REVISIT LATER: the Continue bar is deliberately hidden for now — there is
     // too much in the app to test right now, so we are taking this one out of
     // the surface. `display: 'none'` keeps the target resolution (and its
@@ -175,6 +200,9 @@ export default function HomeScreen() {
     return (
         <div style={containerStyle}>
             <div style={{ flex: 1, overflowY: 'auto' }}>
+                <div style={statsSectionStyle} data-testid="home-stats">
+                    <ProfileStats stats={stats} />
+                </div>
                 {registered && (
                     <>
                         <PWAInstallBanner lang={lang} userId={viewerId} />

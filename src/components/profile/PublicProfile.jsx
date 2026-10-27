@@ -1,13 +1,14 @@
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useUserByShareCode, useAuthStatus, useUserProfile, useNotifications, useFriendCompletions } from '../../modules/api/api.js';
-import { calculateCurrentStreak } from '../../modules/user/user-profile.js';
 import { formatProfileJoinDate } from '../../modules/user/public-profile-logic.js';
 import { buildRecordedLessonOrdinals } from '../../modules/user/friend-lesson-link-logic.js';
 import { loadConfigEntries } from '../../modules/courses/friend-course-configs.js';
 import Strings from '../../data/strings.js';
 import defaultProfilePic from '../../assets/img/userprofile.png';
 import FriendLessonLinksSection from './FriendLessonLinksSection.jsx';
+import ProfileStats from './ProfileStats.jsx';
+import { buildProfileStats } from '../../modules/profile/profile-stats-logic.js';
 import { useNativeLanguage } from '../../hooks/use-native-language.js';
 
 export default function PublicProfile({ shareCode }) {
@@ -102,11 +103,9 @@ export default function PublicProfile({ shareCode }) {
     const joinDate = formatProfileJoinDate(profile.joinDate, lang);
     const rawPic = profile.profilePictureUrl;
     const profilePic = rawPic || defaultProfilePic;
-    const completedDates = Array.isArray(profile.completed_dates) ? profile.completed_dates : [];
-    const lessonsCompleted = Number(profile.lessons_completed || 0);
-    const currentStreak = calculateCurrentStreak(completedDates);
-    const friendCount = Array.isArray(profile.friends) ? profile.friends.length : 0;
-    const referrals = Number(profile.referrals || 0);
+    // The statistics table (icons + derived values) is the shared definition
+    // rendered by ProfileStats, exactly as on the viewer's own profile.
+    const stats = buildProfileStats(profile);
     const friendLinks = profile.friendLinks;
     // "Lesson 3 of 6" per link, derived from the course config at read time.
     const lessonOrdinals = buildRecordedLessonOrdinals(friendLinks, configEntries);
@@ -153,28 +152,7 @@ export default function PublicProfile({ shareCode }) {
                 />
 
                 <div style={cardStyle}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ color: '#ffffff' }}>{Strings.get('profile_streak', lang)}</span>
-                            <span style={{ fontSize: '20px', fontWeight: 700 }}>{currentStreak}</span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ color: '#ffffff' }}>{Strings.get('profile_lessons_completed', lang)}</span>
-                            <span style={{ fontSize: '20px', fontWeight: 700 }}>{lessonsCompleted}</span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ color: '#ffffff' }}>{Strings.get('profile_friend_count', lang)}</span>
-                            <span style={{ fontSize: '20px', fontWeight: 700 }}>{friendCount}</span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ color: '#ffffff' }}>{Strings.get('profile_referrals', lang)}</span>
-                            <span style={{ fontSize: '20px', fontWeight: 700 }}>{referrals}</span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ color: '#ffffff' }}>{Strings.get('profile_days_active', lang)}</span>
-                            <span style={{ fontSize: '20px', fontWeight: 700 }}>{completedDates.length}</span>
-                        </div>
-                    </div>
+                    <ProfileStats stats={stats} />
                 </div>
             </div>
         </div>

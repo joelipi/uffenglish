@@ -582,6 +582,67 @@ body { margin: 0; font-family: var(--font-body); font-size: 1rem; font-weight: 4
     font-size: 1.1rem;
 }
 
+/* =========================================
+   STATISTICS TABLE (profile + /home)
+   Two tiles per row; each tile is ONE line
+   (icon + label + value), so the table is a
+   compact strip rather than a tall grid.
+   Colours/font sizes follow the app's stats
+   cluster (.stats-container): white glyphs,
+   bold numbers.
+   ========================================= */
+.profile-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+}
+
+.profile-stat-tile {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.06);
+    border: 1px solid #2a4a6a;
+    min-width: 0;
+    color: #ffffff;
+}
+
+.profile-stat-tile i {
+    color: #ffffff;
+    font-size: 0.95rem;
+    line-height: 1;
+    flex: 0 0 auto;
+}
+
+.profile-stat-label {
+    font-size: 0.85rem;
+    line-height: 1.2;
+    color: #ffffff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.profile-stat-value {
+    margin-left: auto;
+    font-size: 0.85rem;
+    font-weight: 700;
+    line-height: 1.2;
+    color: #ffffff;
+}
+
+/* The friends tile links to the friends page, undecorated. */
+.profile-stat-link,
+.profile-stat-link:visited,
+.profile-stat-link:hover,
+.profile-stat-link:active {
+    color: #ffffff;
+    text-decoration: none;
+}
+
 .stats-header-label {
     font-size: clamp(0.45rem, 2.3cqi, 0.539rem) !important;  /* mobile-ref: caps desktop to 375px-frame size */
     color: #ffffff !important;

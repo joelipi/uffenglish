@@ -2250,6 +2250,25 @@ describe('recorder auto-render — zero server changes', () => {
             'src/modules/answer/match-threshold.test.js',
             'src/modules/answer/answers.js',
             'src/modules/answer/answers.test.js',
+            // Profile/home statistics: icons per stat, one shared two-per-row
+            // table on the profile pages and the /home dashboard.
+            'src/modules/profile/profile-stats-logic.js',
+            'src/modules/profile/profile-stats-logic.test.js',
+            'src/modules/user/streak-logic.js',
+            'src/components/profile/ProfileStats.jsx',
+            'src/components/profile/ProfileStats.test.jsx',
+            'src/components/profile/UserProfile.jsx',
+            'src/components/profile/PublicProfile.jsx',
+            'src/components/homescreen/HomeScreen.jsx',
+            'src/components/homescreen/HomeScreen.test.jsx',
+            'src/modules/user/user-profile.js',
+            'src/assets/css/app.css',
+            // The lesson top bar no longer shows the trophy + total-days
+            // counter; the daily streak and the compact bell remain.
+            'src/components/widgets/ActivityStats.jsx',
+            'src/components/widgets/activity-stats.test.jsx',
+            'src/components/homescreen/NotificationsBell.web.jsx',
+            'tests/lesson-topbar-bell.spec.js',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);
