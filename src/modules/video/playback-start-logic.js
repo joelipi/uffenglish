@@ -286,13 +286,6 @@ export const PLAYBACK_READINESS_MAX_WAIT_MS = 4000;
  */
 export const PLAYBACK_START_WATCHDOG_MS = 400;
 
-/**
- * How long the muted lead-in may wait for the `playing` event before the audio
- * is re-opened anyway. `playing` is the first moment playback really began, and
- * re-opening the audio before it is what lets WebKit revoke the muted-autoplay
- * allowance; the fallback keeps a browser that never fires `playing` audible.
- */
-export const PLAYBACK_UNMUTE_FALLBACK_MS = 700;
 
 /** How long after `playing` the clock is checked for movement. */
 export const PLAYBACK_STALL_CHECK_MS = 700;
@@ -357,7 +350,12 @@ export function shouldKickStalledPlayback({
  *   * `'none'` — leave it alone (not an autoplay step, already started, the
  *     ladder gave up, past the maximum wait, or nothing observed yet).
  *
- * @param {{ paused?: boolean, movedS?: number|null, hasStarted?: boolean,
+ * `settled` is the outcome the start path is actually after, not just a flag: the
+ * take has played WITH SOUND (or the learner asked for silence). `playing` alone
+ * is not enough — the muted lead-in is still open when it fires, so a take the
+ * browser pauses or leaves muted during the hand-off must still be repaired.
+ *
+ * @param {{ paused?: boolean, movedS?: number|null, settled?: boolean,
  *           autoplay?: boolean, gaveUp?: boolean, waitedMs?: number,
  *           maxWaitMs?: number, minAdvanceS?: number }} [input]
  * @returns {'restart'|'kick'|'none'}
@@ -365,7 +363,7 @@ export function shouldKickStalledPlayback({
 export function resolveStartRecovery({
     paused,
     movedS = null,
-    hasStarted = false,
+    settled = false,
     autoplay = false,
     gaveUp = false,
     waitedMs = 0,
@@ -373,24 +371,11 @@ export function resolveStartRecovery({
     minAdvanceS = PLAYBACK_STALL_MIN_ADVANCE_S,
 } = {}) {
     if (autoplay !== true) return 'none';
-    if (hasStarted === true) return 'none';
+    if (settled === true) return 'none';
     if (gaveUp === true) return 'none';
     if (!Number.isFinite(waitedMs) || waitedMs > maxWaitMs) return 'none';
     if (paused === true) return 'restart';
     // Nothing to compare against on the first look: record and look again.
     if (!Number.isFinite(movedS)) return 'none';
     return movedS < minAdvanceS ? 'kick' : 'none';
-}
-
-/**
- * May the muted lead-in be re-opened now? Only once playback really started
- * (`playing`), and never against a silence the learner asked for. The technical
- * mute and the learner's mute intent are different things: the first is ours to
- * undo, the second is theirs.
- *
- * @param {{ pendingUnmute?: boolean, muteIntent?: boolean }} [input]
- * @returns {boolean}
- */
-export function shouldUnmuteTechnicalMute({ pendingUnmute = false, muteIntent = false } = {}) {
-    return pendingUnmute === true && muteIntent !== true;
 }

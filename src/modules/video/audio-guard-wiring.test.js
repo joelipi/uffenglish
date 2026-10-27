@@ -126,10 +126,11 @@ describe('PlaybackVideo audio guard', () => {
     it('creates the guard inside the effect, watching the video element', () => {
         expect(guardCreation).toContain('createAudioGuard({');
         expect(guardCreation).toContain('getElement: () => videoRef.current');
-        // The guard must stand down when the clip is meant to be silent: the
-        // learner's own mute, and the muted autoplay lead-in the start path
-        // re-opens itself once playback really began.
-        expect(guardCreation).toContain('isExpectedAudible: () => !muteIntentRef.current && !pendingUnmuteRef.current');
+        // The guard must stand down when the clip is meant to be silent — the
+        // learner's own mute (tap-mute / the silent loop) — and nothing else. The
+        // muted autoplay lead-in is NOT a reason to stand down: a take that stayed
+        // muted there is exactly the "no audio" report.
+        expect(guardCreation).toContain('isExpectedAudible: () => !muteIntentRef.current');
     });
 
     it('starts the guard on play and stops it on pause', () => {
@@ -137,7 +138,11 @@ describe('PlaybackVideo audio guard', () => {
         // satisfy these assertions.
         const videoElement = sliceBetween(playbackRaw, '<video ref={videoRef}', "style={{ cursor: 'pointer' }} />");
         expect(videoElement).toContain('onPlay={() => audioGuardRef.current?.start()}');
-        expect(videoElement).toContain('onPause={() => audioGuardRef.current?.stop()}');
+        // The pause handler stops the guard AND clears a leftover technical mute,
+        // so iOS's own play control cannot start the take silently.
+        expect(videoElement).toContain('onPause={handleVideoPause}');
+        const pause = sliceBetween(playbackRaw, 'const handleVideoPause = () => {', '\n    };');
+        expect(pause).toContain('audioGuardRef.current?.stop();');
     });
 
     it('records the learner\'s own mute so the guard does not fight it', () => {

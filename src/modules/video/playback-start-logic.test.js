@@ -7,7 +7,6 @@ import {
     PLAYBACK_START_RETRY_DELAYS_MS,
     PLAYBACK_START_WATCHDOG_MS,
     PLAYBACK_STALL_CHECK_MS,
-    PLAYBACK_UNMUTE_FALLBACK_MS,
     describePlaybackSample,
     describeStartState,
     describeTakeMedia,
@@ -21,7 +20,6 @@ import {
     shouldPauseOffscreen,
     shouldRetryStart,
     shouldStartMuted,
-    shouldUnmuteTechnicalMute,
     shouldWaitForReadiness,
 } from './playback-start-logic.js';
 
@@ -324,7 +322,7 @@ describe('shouldKickStalledPlayback', () => {
 // The take the browser left unplayed (the ?diag=1 race). A start is only real
 // once `playing` arrives; until then the element is watched and restarted.
 describe('resolveStartRecovery', () => {
-    const base = { autoplay: true, hasStarted: false, gaveUp: false, waitedMs: 400 };
+    const base = { autoplay: true, settled: false, gaveUp: false, waitedMs: 400 };
 
     it('restarts a take the element left paused before it ever played', () => {
         expect(resolveStartRecovery({ ...base, paused: true })).toBe('restart');
@@ -343,9 +341,12 @@ describe('resolveStartRecovery', () => {
         expect(resolveStartRecovery({ ...base, paused: false, movedS: null })).toBe('none');
     });
 
-    it('never fights a step without autoplay, a started clip, a given-up ladder or the closed window', () => {
+    it('never fights a step without autoplay, a settled clip, a given-up ladder or the closed window', () => {
         expect(resolveStartRecovery({ ...base, autoplay: false, paused: true })).toBe('none');
-        expect(resolveStartRecovery({ ...base, hasStarted: true, paused: true })).toBe('none');
+        // `settled` = the take played WITH SOUND (or the learner asked for
+        // silence). `playing` alone is not enough: the muted lead-in is still
+        // open when it fires, and a pause in that hand-off left the take silent.
+        expect(resolveStartRecovery({ ...base, settled: true, paused: true })).toBe('none');
         expect(resolveStartRecovery({ ...base, gaveUp: true, paused: true })).toBe('none');
         expect(resolveStartRecovery({ ...base, paused: true, waitedMs: 4001 })).toBe('none');
         expect(resolveStartRecovery({ ...base, paused: true, waitedMs: NaN })).toBe('none');
@@ -358,24 +359,5 @@ describe('resolveStartRecovery', () => {
     it('watches sooner than the readiness stall window closes', () => {
         expect(PLAYBACK_START_WATCHDOG_MS).toBeGreaterThan(0);
         expect(PLAYBACK_START_WATCHDOG_MS).toBeLessThan(PLAYBACK_STALL_CHECK_MS);
-    });
-});
-
-describe('shouldUnmuteTechnicalMute', () => {
-    it('re-opens the audio once playback really started', () => {
-        expect(shouldUnmuteTechnicalMute({ pendingUnmute: true, muteIntent: false })).toBe(true);
-    });
-
-    it('never overrides the learner\'s own silence', () => {
-        expect(shouldUnmuteTechnicalMute({ pendingUnmute: true, muteIntent: true })).toBe(false);
-    });
-
-    it('does nothing when there is no technical mute to undo', () => {
-        expect(shouldUnmuteTechnicalMute({ pendingUnmute: false, muteIntent: false })).toBe(false);
-        expect(shouldUnmuteTechnicalMute()).toBe(false);
-    });
-
-    it('the fallback is a fallback, not the plan', () => {
-        expect(PLAYBACK_UNMUTE_FALLBACK_MS).toBeGreaterThanOrEqual(500);
     });
 });

@@ -8,7 +8,6 @@ import {
     PLAYBACK_READINESS_RETRY_MS,
     PLAYBACK_STALL_CHECK_MS,
     PLAYBACK_START_WATCHDOG_MS,
-    PLAYBACK_UNMUTE_FALLBACK_MS,
     describePlaybackSample,
     describeStartState,
     describeTakeMedia,
@@ -22,7 +21,6 @@ import {
     shouldPauseOffscreen,
     shouldRetryStart,
     shouldStartMuted,
-    shouldUnmuteTechnicalMute,
     shouldWaitForReadiness,
 } from '../modules/video/playback-start-logic.js';
 import { takeDiagnostics } from '../modules/diagnostics/take-diagnostics.js';
@@ -91,9 +89,10 @@ export default function PlaybackVideo() {
     const watchdogTimeRef = useRef(null);
     // Set when the autoplay ladder gave up: the watchdog must not outlive it.
     const startGaveUpRef = useRef(false);
-    // True while the muted start's lead-in has not been re-opened yet. The audio
-    // guard must not treat that deliberate mute as a lost audio route.
-    const pendingUnmuteRef = useRef(false);
+    // True once the take has actually played with sound (or the learner asked for
+    // silence): until then the start path keeps repairing it, because a take left
+    // paused or muted is not playing the way the learner expects.
+    const takeAudibleRef = useRef(false);
     // The start path nudges `load()` at most once per element+source: a second
     // load() aborts the resource selection in flight (iPadOS defers loading, so
     // the element can sit at HAVE_NOTHING with no `canplay` coming).
@@ -199,7 +198,6 @@ export default function PlaybackVideo() {
      */
     const unmuteNow = () => {
         clearUnmuteTimer();
-        pendingUnmuteRef.current = false;
         const el = videoRef.current;
         if (!el || muteIntentRef.current) return;
         const rewindFrom = typeof el.currentTime === 'number' ? el.currentTime : null;
@@ -215,14 +213,18 @@ export default function PlaybackVideo() {
         if (error) console.warn('[Playback] could not re-open audio:', error && error.message ? error.message : error);
         console.log('[Playback] unmuted after the muted start');
         takeDiagnostics.push('unmuted after muted start');
+        // The take is now playing with sound (or about to): the audible pass is
+        // done, so the watchdog may stand down and leave the clip to the learner.
+        if (!el.paused) takeAudibleRef.current = true;
     };
 
     /**
-     * Arm the audible pass. `playing` calls this as soon as playback really
-     * began; the fallback delay covers a browser that never fires it. Re-opening
-     * the audio BEFORE the element has presented a frame is what lets WebKit
-     * revoke the muted-autoplay allowance and pause the take, so the lead-in
-     * waits for the start instead of a guessed timeout.
+     * Arm the audible pass for a muted start. It is armed as soon as the muted
+     * start has been accepted (the play() handshake that story 075 shipped) and
+     * also when `playing` confirms it, whichever comes first — never later than
+     * the handshake, or a take whose `playing` event never arrives stays silent.
+     * iOS re-opens the audio on the next task; Android keeps the 100 ms route
+     * settle.
      */
     const scheduleUnmute = (delayMs) => {
         clearUnmuteTimer();
@@ -249,6 +251,12 @@ export default function PlaybackVideo() {
             console.warn('[Playback] autoplay gave up after ' + (attempt + 1) + ' attempts — the learner can tap the clip to start it');
             startGaveUpRef.current = true;
             clearStartWatchdog();
+            // Do not leave the technical muted start on the element: iOS's own
+            // play control (and a native tap) starts playback with the element's
+            // CURRENT mute state, so a leftover mute plays the take silently —
+            // the field report "I pressed play and it played muted".
+            const el = videoRef.current;
+            if (el && !muteIntentRef.current) setElementMuted(el, false);
             return;
         }
         scheduleRetry(attempt);
@@ -271,17 +279,19 @@ export default function PlaybackVideo() {
         const previousTime = watchdogTimeRef.current;
         const movedS = currentTime === null || previousTime === null ? null : currentTime - previousTime;
         watchdogTimeRef.current = currentTime;
+        const settled = takeAudibleRef.current || muteIntentRef.current;
         const action = resolveStartRecovery({
             paused: el.paused === true,
             movedS,
-            hasStarted: hasStartedRef.current,
+            settled,
             autoplay,
             gaveUp: startGaveUpRef.current,
             waitedMs,
         });
         if (action === 'none') {
-            // Keep watching until the take really starts or the window closes.
-            if (!hasStartedRef.current && !startGaveUpRef.current && autoplay
+            // Keep watching until the take really plays with sound (or the
+            // learner takes over) or the window closes.
+            if (!settled && !startGaveUpRef.current && autoplay
                 && waitedMs < PLAYBACK_READINESS_MAX_WAIT_MS) {
                 startWatchdogRef.current = setTimeout(checkStartWatchdog, PLAYBACK_START_WATCHDOG_MS);
             }
@@ -368,13 +378,11 @@ export default function PlaybackVideo() {
             return;
         }
         if (muted && !muteIntentRef.current) {
-            // A muted start is only the autoplay permission handshake. The audio
-            // is re-opened once the element has really begun to play — `playing`
-            // (see handleVideoPlaying) — never on the strength of `play()`
-            // resolving, which on WebKit can be before a frame is presented. The
-            // fallback keeps a browser that never fires `playing` audible.
-            pendingUnmuteRef.current = true;
-            scheduleUnmute(PLAYBACK_UNMUTE_FALLBACK_MS);
+            // A muted start is only the autoplay permission handshake: re-open the
+            // audio as soon as it was accepted. Never later than this — a take
+            // whose `playing` event does not arrive (or arrives after the element
+            // paused) was left silent when the audible pass learned to wait for it.
+            scheduleUnmute(isIOS ? 0 : 100);
         }
         // Nothing has really started until `playing` arrives: watch the element
         // so a take the browser leaves paused/stalled is restarted instead of
@@ -406,17 +414,17 @@ export default function PlaybackVideo() {
         attemptRef.current = 0;
         startGaveUpRef.current = false;
         clearRetry();
-        clearStartWatchdog();
-        startedAtRef.current = { at: Date.now(), time: videoRef.current ? videoRef.current.currentTime : 0 };
+        const video = videoRef.current;
+        startedAtRef.current = { at: Date.now(), time: video ? video.currentTime : 0 };
 
-        // The element has really begun to play: this is the first moment the
-        // muted lead-in may be re-opened. Doing it earlier revokes the
-        // muted-autoplay allowance before a frame is presented, and WebKit
-        // answers that by pausing the take.
-        if (shouldUnmuteTechnicalMute({ pendingUnmute: pendingUnmuteRef.current, muteIntent: muteIntentRef.current })) {
-            pendingUnmuteRef.current = false;
-            scheduleUnmute(isIOS ? 0 : 100);
-        }
+        // `playing` means the clip started, NOT that it is audible: the muted
+        // lead-in is still open at this point. The watchdog therefore keeps
+        // watching until the audio is really open (or the learner asked for
+        // silence), so a take the browser pauses or leaves muted mid-hand-off is
+        // repaired instead of sitting there.
+        if ((video && video.muted !== true) || muteIntentRef.current) takeAudibleRef.current = true;
+        clearStartWatchdog();
+        if (!takeAudibleRef.current) armStartWatchdog();
 
         // A take can report `playing` and then never advance (stories/094). Kick
         // it once if the clock has not moved after the grace period.
@@ -516,6 +524,20 @@ export default function PlaybackVideo() {
         } catch (e) { }
     };
 
+    /**
+     * A pause must not leave the technical (autoplay) mute on the element. iOS's
+     * own play control starts playback with the element's current mute state, so a
+     * leftover mute is the field report "I pressed play and it played muted". The
+     * handler only corrects the STATE — it never resumes playback — and it stays
+     * out of the way of the learner's own silence (a tap-mute, the silent loop).
+     */
+    const handleVideoPause = () => {
+        audioGuardRef.current?.stop();
+        const video = videoRef.current;
+        if (!video || muteIntentRef.current) return;
+        setElementMuted(video, false);
+    };
+
     const handleTakeTap = () => {
         const video = videoRef.current;
         if (!video) return;
@@ -528,7 +550,6 @@ export default function PlaybackVideo() {
             // them"). Muted is for the LOOP only.
             muteIntentRef.current = false;
             clearUnmuteTimer();
-            pendingUnmuteRef.current = false;
             startGaveUpRef.current = false;
             startWatchdogBeganRef.current = 0;
             setElementMuted(video, false);
@@ -539,8 +560,10 @@ export default function PlaybackVideo() {
         const next = action === 'mute';
         // The learner's own choice: the guard must not undo it.
         muteIntentRef.current = next;
-        // A technical lead-in the learner just overrode is no longer pending.
-        if (next) pendingUnmuteRef.current = false;
+        if (next) {
+            // The learner asked for silence: there is nothing left to repair.
+            takeAudibleRef.current = true;
+        }
         setElementMuted(video, next);
         appStore.getState().setPlaybackMuted(next);
 
@@ -593,11 +616,10 @@ export default function PlaybackVideo() {
     useEffect(() => {
         const guard = createAudioGuard({
             getElement: () => videoRef.current,
-            // Silent on purpose in two cases: the learner muted the clip, and the
-            // muted autoplay lead-in (which the start path re-opens itself as
-            // soon as playback really began). Everything else is a lost audio
-            // route the guard must repair (stories/075).
-            isExpectedAudible: () => !muteIntentRef.current && !pendingUnmuteRef.current,
+            // Silent on purpose only when the learner muted it (or the clip has
+            // looped once and now loops silently): every other muted state is a
+            // lost audio route the guard must repair (stories/075).
+            isExpectedAudible: () => !muteIntentRef.current,
             play: () => {
                 const { promise } = playSafely(videoRef.current);
                 if (promise) promise.catch(() => {});
@@ -638,7 +660,7 @@ export default function PlaybackVideo() {
         hasStartedRef.current = false;
         attemptRef.current = 0;
         startGaveUpRef.current = false;
-        pendingUnmuteRef.current = false;
+        takeAudibleRef.current = false;
         startWatchdogBeganRef.current = 0;
         watchdogTimeRef.current = null;
         loadedElementRef.current = { element: null, key: null };
@@ -750,7 +772,7 @@ export default function PlaybackVideo() {
             <video ref={videoRef} id="playback-video" playsInline preload="auto" controls={isIOS} muted={isMuted} onEnded={handleVideoEnded} onError={handleVideoError} onLoadedData={handleReady} onCanPlay={handleReady} onLoadedMetadata={handleLoadedMetadata}
                 onPlay={() => audioGuardRef.current?.start()}
                 onPlaying={handleVideoPlaying}
-                onPause={() => audioGuardRef.current?.stop()}
+                onPause={handleVideoPause}
                 onClick={handleTakeTap}
                 style={{ cursor: 'pointer' }} />
             <VideoSpeedToggle rate={playbackRate} onCycle={handleSpeedCycle} />

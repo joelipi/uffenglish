@@ -280,4 +280,40 @@ test.describe('iPad autoplay shapes for the recorded take', () => {
             expect(pageErrors).toEqual([]);
         });
     });
+
+    // Field report after the countdown ship: "when I pressed play, it played
+    // muted". iOS's own play control starts playback with the element's CURRENT
+    // mute state, so a technical mute left behind by the autoplay handshake makes
+    // a native start silent. A pause must therefore leave the element AUDIBLE —
+    // the state only, never a resumed play() — and the silent loop (the learner's
+    // own silence) is the one case that stays muted.
+    test.describe('the native play control starts the take with sound', () => {
+        test.use({ userAgent: IPAD_UA });
+
+        test('a pause does not leave the technical mute behind', async ({ page }) => {
+            await openLesson(page);
+            await mountRecordedTake(page);
+            await expectTakePlaying(page);
+
+            const after = await page.evaluate(async () => {
+                const video = document.querySelector('#playback-video');
+                video.muted = true;   // the leftover technical mute
+                video.pause();
+                await new Promise((resolve) => setTimeout(resolve, 100));
+                return { paused: video.paused, muted: video.muted };
+            });
+            expect(after.paused).toBe(true);
+            expect(after.muted).toBe(false);
+
+            // What iOS's control does: play() with the element as it stands.
+            const playing = await page.evaluate(async () => {
+                const video = document.querySelector('#playback-video');
+                await video.play();
+                return { paused: video.paused, muted: video.muted };
+            });
+            expect(playing.paused).toBe(false);
+            expect(playing.muted).toBe(false);
+            expect(pageErrors).toEqual([]);
+        });
+    });
 });
