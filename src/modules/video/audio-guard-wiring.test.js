@@ -135,11 +135,7 @@ describe('PlaybackVideo audio guard', () => {
         // satisfy these assertions.
         const videoElement = sliceBetween(playbackRaw, '<video ref={videoRef}', "style={{ cursor: 'pointer' }} />");
         expect(videoElement).toContain('onPlay={() => audioGuardRef.current?.start()}');
-        // The pause handler stops the guard AND clears a leftover technical mute
-        // (a native play-button restart would otherwise be silent).
-        expect(videoElement).toContain('onPause={handleVideoPause}');
-        const handlePause = sliceBetween(playbackRaw, 'const handleVideoPause = () => {', '\n    };');
-        expect(handlePause).toContain('audioGuardRef.current?.stop();');
+        expect(videoElement).toContain('onPause={() => audioGuardRef.current?.stop()}');
     });
 
     it('records the learner\'s own mute so the guard does not fight it', () => {

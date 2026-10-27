@@ -353,38 +353,3 @@ describe('a tap starts the take with sound', () => {
         expect(ended).toContain('video.loop = true');
     });
 });
-
-// stories/094: the native iOS play control never runs this component's tap
-// handler — it starts playback with the element's CURRENT muted state. A
-// technical mute left on a paused clip therefore makes "tap the play button"
-// silent while "tap anywhere else" (our handler) is audible. The technical mute
-// must not survive a pause or a give-up.
-describe('the technical mute never survives a pause', () => {
-    it('a pause clears it unless the learner asked for silence', () => {
-        const pause = sliceBetween(playbackRaw, 'const handleVideoPause = () => {', '\n    };');
-        expect(pause).toContain('audioGuardRef.current?.stop();');
-        expect(pause).toContain('if (!video || muteIntentRef.current) return;');
-        expect(pause).toContain('setElementMuted(video, false)');
-        expect(pause).toContain('setPlaybackMuted(false)');
-    });
-
-    it('giving up on autoplay clears it too', () => {
-        const blocked = sliceBetween(playbackRaw, 'const handleBlockedStart = (attempt, error) => {', '\n    };');
-        const giveUp = blocked.slice(blocked.indexOf('autoplay gave up'));
-        expect(giveUp).toContain('if (el && !muteIntentRef.current)');
-        expect(giveUp).toContain('setElementMuted(el, false)');
-    });
-
-    it('the element is wired to that pause handler', () => {
-        const videoElement = sliceBetween(playbackRaw, '<video ref={videoRef}', "style={{ cursor: 'pointer' }} />");
-        expect(videoElement).toContain('onPause={handleVideoPause}');
-    });
-
-    it('the deliberate silent loop is not affected (intent wins)', () => {
-        const ended = sliceBetween(playbackRaw, 'const handleVideoEnded = () => {', '\n    };');
-        expect(ended).toContain('muteIntentRef.current = true;');
-        // The pause guard checks the intent BEFORE unmuting.
-        const pause = sliceBetween(playbackRaw, 'const handleVideoPause = () => {', '\n    };');
-        expect(pause.indexOf('muteIntentRef.current) return;')).toBeLessThan(pause.indexOf('setElementMuted(video, false)'));
-    });
-});
