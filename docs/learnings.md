@@ -1,5 +1,13 @@
 # Learnings
 
+## A `.webonly.js` filename does NOT silence the browser-globals lint rule, and a proxy Function must re-validate its FINAL url
+**Date**: 2026-10-28
+**Area**: lint | security | build
+**What happened**: Two traps while adding the studio's live background composite (stories/100). (1) A module that touches `document` warns under `no-restricted-syntax` even after being renamed to `*.webonly.js`: `eslint.config.js` ignores `**/*-webonly.*` (a HYPHEN), so `current-site-origin.webonly.js`-style names still warn, and the warning text ("rename to *-webonly.js") is misleading. Five `document.` member expressions stayed flagged after the rename until they were routed through one `safeDocument()` helper — `typeof document === 'undefined'` guards do not satisfy the rule because it matches the *member expression*, not the guard. (2) `/api/pipeline/proxy-image` fetched with `redirect: 'follow'` while validating only the paste-time URL, so a public URL that 302s to `169.254.169.254` or a loopback host returned those bytes same-origin — the code reviewer caught it as an SSRF read primitive.
+**Takeaway**: (1) Keep one `safeDocument()` / `safeWindow()` helper per browser-only module and never write `document.x` directly, or name the file with a hyphen (`foo-webonly.js`) if it genuinely cannot avoid it. (2) Any Function that proxies a caller-supplied URL must re-check the *response* URL (`isAllowedRemoteImageUrl(response.url)`) after the fetch and before reading the body, with a test whose fake response carries a private `url` — the direct-target tests pass either way.
+
+---
+
 ## Overlay art generated with `sharp`: measure after the tilt, and place exotic assets with per-asset geometry
 **Date**: 2026-10-28
 **Area**: architecture | tooling | recording looks
