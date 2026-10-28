@@ -137,7 +137,34 @@ function makeVideo({ width = 1920, height = 1080 } = {}) {
 
 const dims = { width: 1080, height: 1920, fps: 30, maskWidth: 256, maskHeight: 256 };
 
-function build({ background = null, foreground = null, segmenter = null, mask = null, video = null, webgl2 = null, compileOk = true, now = undefined } = {}) {
+function makeFrame({ w = 640, h = 480 } = {}) {
+    return { displayWidth: w, displayHeight: h, close: vi.fn() };
+}
+
+// A MediaStreamTrackProcessor stand-in that serves canned frames, then ends.
+// A real constructor (not vi.fn): the module news it up like the native API.
+function stubTrackProcessor(frames) {
+    const queue = [...frames];
+    const reader = {
+        read: vi.fn(async () => (queue.length
+            ? { value: queue.shift(), done: false }
+            : { value: undefined, done: true })),
+        cancel: vi.fn(async () => {}),
+        releaseLock: vi.fn(),
+    };
+    vi.stubGlobal('MediaStreamTrackProcessor', function () {
+        return { readable: { getReader: () => reader } };
+    });
+    return reader;
+}
+
+async function flushPump(times = 3) {
+    for (let i = 0; i < times; i++) {
+        await new Promise((r) => setTimeout(r, 10));
+    }
+}
+
+function build({ background = null, foreground = null, segmenter = null, mask = null, video = null, webgl2 = null, compileOk = true, now = undefined, track = undefined } = {}) {
     const canvases = [];
     const createCanvas = () => {
         const canvas = makeCanvas({ webgl2 });
@@ -146,7 +173,10 @@ function build({ background = null, foreground = null, segmenter = null, mask = 
     };
     const camera = video || makeVideo();
     const api = createSubstitutedCaptureStream({
-        rawStream: { getAudioTracks: () => [{ kind: 'audio' }], getVideoTracks: () => [] },
+        rawStream: {
+            getAudioTracks: () => [{ kind: 'audio' }],
+            getVideoTracks: () => (track ? [track] : []),
+        },
         createCanvas,
         createVideo: () => camera,
         dimensions: dims,
@@ -429,6 +459,7 @@ describe('createSubstitutedCaptureStream', () => {
     it('reports the hidden camera state in stats', () => {
         const { api } = build();
         expect(api.stats().video).toMatchObject({ w: 1920, h: 1080 });
+        expect(api.stats().source).toBe('element');
         api.dispose();
         // A camera that never decoded its first frame reads as stalled, and a
         // frame with no dimensions paints nothing.
@@ -436,6 +467,72 @@ describe('createSubstitutedCaptureStream', () => {
         expect(stalled.api.stats().video.w).toBe(0);
         expect(stalled.api.paintNow()).toBe(false);
         stalled.api.dispose();
+    });
+
+    it('reads frames straight off the camera track when the reader exists', async () => {
+        const rafCallbacks = [];
+        vi.stubGlobal('requestAnimationFrame', (cb) => { rafCallbacks.push(cb); return rafCallbacks.length; });
+        vi.stubGlobal('cancelAnimationFrame', vi.fn());
+        stubTrackProcessor([makeFrame(), makeFrame(), makeFrame()]);
+        // The phone state: the hidden video never decoded a frame.
+        const { api, camera } = build({
+            track: { kind: 'video' },
+            video: makeVideo({ width: 0, height: 0 }),
+        });
+        await flushPump();
+        expect(api.stats().source).toBe('track');
+        expect(api.stats().framesDrawn).toBe(3);
+        expect(api.stats().sourceAdvances).toBe(3);
+        // Neither the camera callback nor the watchdog painted anything: the
+        // hidden video stays parked and no second decoder spins up.
+        expect(camera.requestVideoFrameCallback).not.toHaveBeenCalled();
+        expect(rafCallbacks).toHaveLength(1);
+        expect(camera.play).not.toHaveBeenCalled();
+        api.dispose();
+    });
+
+    it('paints the track frame into the mask input and the picture', async () => {
+        const frame = makeFrame({ w: 640, h: 480 });
+        stubTrackProcessor([frame]);
+        const { api, canvases } = build({
+            track: { kind: 'video' },
+            video: makeVideo({ width: 0, height: 0 }),
+            segmenter: { id: 'seg' },
+            mask: new Uint8Array(256 * 256).fill(200),
+        });
+        await flushPump();
+        // framesDrawn > 0 with a 0-dimension video proves the crop comes from
+        // the frame's own size, not the starved element.
+        expect(api.stats().framesDrawn).toBe(1);
+        const sources = allDrawCalls(canvases)
+            .filter(([name]) => name === 'drawImage')
+            .map(([, src]) => src);
+        expect(sources).toContain(frame);
+        api.dispose();
+    });
+
+    it('closes each track frame once its replacement arrives', async () => {
+        const [first, second] = [makeFrame(), makeFrame()];
+        stubTrackProcessor([first, second]);
+        const { api } = build({ track: { kind: 'video' } });
+        await flushPump();
+        expect(first.close).toHaveBeenCalledTimes(1);
+        expect(second.close).not.toHaveBeenCalled();
+        api.dispose();
+        expect(second.close).toHaveBeenCalledTimes(1);
+    });
+
+    it('falls back to the hidden video when the track reader blows up', async () => {
+        vi.stubGlobal('MediaStreamTrackProcessor', class {
+            constructor() { throw new Error('nope'); }
+        });
+        const { api, camera } = build({ track: { kind: 'video' } });
+        await flushPump();
+        expect(api.stats().source).toBe('element');
+        expect(camera.requestVideoFrameCallback).toHaveBeenCalledTimes(1);
+        camera.frameCallbacks[0]();
+        expect(api.stats().framesDrawn).toBe(1);
+        api.dispose();
     });
 
     it('lets a layer be swapped without rebuilding the stream', () => {

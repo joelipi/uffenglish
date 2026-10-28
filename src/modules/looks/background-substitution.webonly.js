@@ -374,6 +374,32 @@ export function createSubstitutedCaptureStream({
         }
     } catch (e) { /* test fake without events */ }
 
+    // The camera's frames, read straight off the track. A second <video>
+    // element decoding the same camera is at the mercy of the phone: autoplay
+    // refusals and hidden-video throttling leave it with no frames at all
+    // (readyState 0, zero dimensions) while the visible preview plays fine —
+    // a dead composite with no error anywhere. The track reader needs no
+    // element, no autoplay and no visibility, so it cannot be starved that
+    // way. Where the API is missing the hidden video remains the source.
+    let frameReader = null;
+    let frameSource = 'element';
+    try {
+        const tracks = rawStream && typeof rawStream.getVideoTracks === 'function'
+            ? rawStream.getVideoTracks()
+            : [];
+        const Processor = typeof MediaStreamTrackProcessor !== 'undefined'
+            ? MediaStreamTrackProcessor
+            : null;
+        if (Processor && tracks[0]) {
+            frameReader = new Processor({ track: tracks[0] }).readable.getReader();
+            frameSource = 'track';
+        }
+    } catch (e) {
+        console.warn('[Substitution] track reader unavailable, using the hidden video', e && e.message);
+        frameReader = null;
+        frameSource = 'element';
+    }
+
     // Renderer selection. A canvas has exactly ONE context for its lifetime, so
     // order matters: asking for '2d' first permanently denies 'webgl2' — which is
     // how the shader below could never run and every take fell back to two
@@ -450,6 +476,7 @@ export function createSubstitutedCaptureStream({
         mask: null,
         maskImageData: null,
         maskCoverage: 0,
+        latestFrame: null,
         framesDrawn: 0,
         sourceAdvances: 0,
         lastSourceTime: 0,
@@ -467,10 +494,32 @@ export function createSubstitutedCaptureStream({
         });
     }
 
+    // The camera's live size, preferring the track frame (which exists even when
+    // the hidden video is starved) over the hidden video's dimensions.
+    function cameraSize() {
+        const frame = state.latestFrame;
+        const w = (frame && (frame.displayWidth || frame.codedWidth))
+            || video.videoWidth || 0;
+        const h = (frame && (frame.displayHeight || frame.codedHeight))
+            || video.videoHeight || 0;
+        return { w, h };
+    }
+
+    // Whatever the painter draws: the latest track frame, else the hidden
+    // video once it has decoded its first frame. Both are valid drawImage /
+    // texImage2D sources.
+    function frameImage() {
+        if (state.latestFrame) return state.latestFrame;
+        if (video.videoWidth && video.videoHeight) return video;
+        return null;
+    }
+
     function cameraCropRect() {
+        const { w, h } = cameraSize();
+        if (!w || !h) return null;
         return resolveCoverRect({
-            imageWidth: video.videoWidth,
-            imageHeight: video.videoHeight,
+            imageWidth: w,
+            imageHeight: h,
             canvasWidth: width,
             canvasHeight: height,
         });
@@ -488,9 +537,10 @@ export function createSubstitutedCaptureStream({
     function maskSourceRect() {
         // The MASK input covers the same cropped region as the canvas, so the
         // matte lines up with the picture after both are scaled to the frame.
+        const { w, h } = cameraSize();
         const rect = resolveCoverRect({
-            imageWidth: video.videoWidth,
-            imageHeight: video.videoHeight,
+            imageWidth: w,
+            imageHeight: h,
             canvasWidth: maskWidth,
             canvasHeight: maskHeight,
         });
@@ -551,6 +601,8 @@ export function createSubstitutedCaptureStream({
 
     function paintFrame() {
         if (state.disposed) return false;
+        const source = frameImage();
+        if (!source) return false;
         const crop = cameraCropRect();
         if (!crop) return false;
 
@@ -561,7 +613,7 @@ export function createSubstitutedCaptureStream({
                 segmenter,
                 maskInputCanvas: segmenterInputCanvas,
                 maskInputCtx: segmenterInputCtx,
-                video,
+                video: source,
                 cropRect: maskSourceRect(),
                 maskWidth,
                 maskHeight,
@@ -578,7 +630,7 @@ export function createSubstitutedCaptureStream({
         if (glCompositor) {
             glCompositor.draw({
                 background: state.background,
-                video,
+                video: source,
                 maskCanvas: useMatte ? maskCanvas : null,
                 overlaysCanvas,
                 spill: 0.15,
@@ -595,7 +647,7 @@ export function createSubstitutedCaptureStream({
             if (pctx) {
                 pctx.clearRect(0, 0, width, height);
                 pctx.globalCompositeOperation = 'source-over';
-                pctx.drawImage(video, crop.dx, crop.dy, crop.dw, crop.dh);
+                pctx.drawImage(source, crop.dx, crop.dy, crop.dw, crop.dh);
                 // Cut the person out of the SCRATCH canvas: doing this on the
                 // main canvas would erase the background drawn under it.
                 pctx.globalCompositeOperation = 'destination-in';
@@ -604,17 +656,50 @@ export function createSubstitutedCaptureStream({
                 main2d.drawImage(personCanvas, 0, 0);
             }
         } else {
-            main2d.drawImage(video, crop.dx, crop.dy, crop.dw, crop.dh);
+            main2d.drawImage(source, crop.dx, crop.dy, crop.dw, crop.dh);
         }
         main2d.drawImage(overlaysCanvas, 0, 0);
         state.framesDrawn += 1;
         return true;
     }
 
+    // The track reader IS the frame driver where it exists: frames arrive as
+    // the camera captures them, which is also what keeps the picture from
+    // lagging the live microphone. The camera callback + watchdog below only
+    // drive the fallback element path, so a phone never pays for two drivers.
+    let pumpRunning = false;
+    async function pumpFrames() {
+        if (pumpRunning || !frameReader) return;
+        pumpRunning = true;
+        try {
+            while (!state.disposed && !stopped) {
+                let next = null;
+                try {
+                    const read = await frameReader.read();
+                    if (!read || read.done) break;
+                    next = read.value || null;
+                } catch (e) {
+                    console.warn('[Substitution] frame read failed', e && e.message);
+                    break;
+                }
+                if (!next) continue;
+                const prev = state.latestFrame;
+                state.latestFrame = next;
+                if (prev) {
+                    try { prev.close(); } catch (e) { /* already closed */ }
+                }
+                safePaint();
+                state.sourceAdvances += 1;
+            }
+        } finally {
+            pumpRunning = false;
+        }
+    }
+
     let frameCallbackId = null;
     let rafId = null;
     let stopped = false;
-    const hasFrameCallback = typeof video.requestVideoFrameCallback === 'function';
+    const hasFrameCallback = !frameReader && typeof video.requestVideoFrameCallback === 'function';
     // How long the display loop waits for a camera-frame paint before painting
     // anyway. The camera callback is the steady-state driver (one paint per
     // camera frame, so the picture never lags the live microphone); the display
@@ -646,7 +731,7 @@ export function createSubstitutedCaptureStream({
         if (stopped || state.disposed) return;
         try {
             if (now() - state.lastPaintAtMs > WATCHDOG_PAINT_AFTER_MS) {
-                playHiddenVideo();
+                if (!frameReader) playHiddenVideo();
                 safePaint();
             }
         } catch (e) { /* the watchdog itself must never die */ }
@@ -673,7 +758,10 @@ export function createSubstitutedCaptureStream({
         } catch (e) { /* the watchdog below drives until the camera appears */ }
     }
     state.lastPaintAtMs = now();
-    playHiddenVideo();
+    // In track mode the hidden video stays parked: playing it would spin up a
+    // second decoder for frames nobody reads.
+    if (!frameReader) playHiddenVideo();
+    if (frameReader) pumpFrames();
     tick();
 
     const canvasStream = typeof outputCanvas.captureStream === 'function'
@@ -710,6 +798,9 @@ export function createSubstitutedCaptureStream({
                 hasMatte: !!state.mask,
                 coverage: Math.round((state.maskCoverage || 0) * 100),
                 compositor: glCompositor ? 'webgl2' : '2d',
+                // Which path feeds the painter: 'track' reads the camera track
+                // directly, 'element' decodes it through the hidden video.
+                source: frameSource,
                 // The hidden camera's own state: when the composite shows nothing,
                 // this says whether the camera itself ever arrived (w/h are 0
                 // until its first frame decodes).
@@ -728,6 +819,19 @@ export function createSubstitutedCaptureStream({
             if (state.disposed) return;
             state.disposed = true;
             stopped = true;
+            if (frameReader) {
+                try {
+                    const cancelled = frameReader.cancel();
+                    if (cancelled && typeof cancelled.catch === 'function') {
+                        cancelled.catch(() => {});
+                    }
+                } catch (e) { /* already released */ }
+                try { frameReader.releaseLock(); } catch (e) { /* already released */ }
+            }
+            if (state.latestFrame) {
+                try { state.latestFrame.close(); } catch (e) { /* already closed */ }
+                state.latestFrame = null;
+            }
             if (frameCallbackId !== null && typeof video.cancelVideoFrameCallback === 'function') {
                 try { video.cancelVideoFrameCallback(frameCallbackId); } catch (e) { /* gone */ }
             }
