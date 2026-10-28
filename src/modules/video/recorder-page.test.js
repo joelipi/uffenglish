@@ -2260,6 +2260,8 @@ describe('recorder auto-render — zero server changes', () => {
             'src/modules/theme/preloader-reveal-gate.test.js',
             'tests/preloader-image-animation.spec.js',
             'tests/preloader-reveal.spec.js',
+            // Post-task reflection entries for the preloader work.
+            'docs/learnings.md',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);

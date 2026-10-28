@@ -369,3 +369,17 @@
 **Takeaway**: Kill the dev server with its PID (`ps aux | grep "[v]ite --port <n>"` → `kill <pid>`, or record `$!` when starting it), never `pkill -f` with a pattern that also appears in the current command line. After a kill, re-check `git status --porcelain` in a SEPARATE command before trusting that cleanup completed.
 
 ---
+
+## The giant preloader logo's centering lives in the img, not the animation
+**Date**: 2026-10-28
+**Area**: preloader | css | testing
+**What happened**: The owner reported the giant loading logo off centre (mobile viewports/devices, desktop-with-mobile-viewport). Frame-by-frame auditing showed the centred state is carried by the absolutely-positioned `img`'s own `transform: translate(-50%, -50%)` while the `preloaderImageIn` / `preloaderImageOut` keyframes run on the CONTAINER and only scale + fade opacity — so the fill-forwards finished state keeps the mark centred and a container translate would displace it.
+**Takeaway**: Pin the centred state with (a) a source guard that the img's centering transform exists and the keyframes never translate the container, plus (b) a Playwright geometry test asserting the img's centre equals the container's centre at the held animation frame.
+
+---
+
+## A finished CSS animation reports playState "finished", not "running"
+**Date**: 2026-10-28
+**Area**: testing | playwright
+**What happened**: A waitForFunction polling for the `preloaderImageIn` animation with `playState === 'running'` timed out on the live overlay — by the time the poll ran, the 350 ms entry animation had already finished and fill-forwards held its value.
+**Takeaway**: For animations that hold via `fill: both`, wait for the animation OBJECT to exist (`getAnimations().find(...)`), not for `playState === 'running'`; then pause + seek to the frame you want before sampling.
