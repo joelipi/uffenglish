@@ -1404,6 +1404,37 @@ describe('recorder auto-render — zero server changes', () => {
             // one.
             'stories/091-recording-overlays/story.md',
             'stories/092-look-controls/story.md',
+            // Story 100 (live background/foreground replacement + overlay rail
+            // in the studio): the substitution rules and their browser adapter,
+            // the segmenter adapter, the standalone looks bundle the static page
+            // loads, the operator-key image proxy, the MediaPipe asset sync, the
+            // build entry that emits the bundle, and the Stage-2/Stage-3 rules
+            // that stop the pipeline re-processing a baked take.
+            'stories/100-recorder-live-background-replacement/story.md',
+            '.gitignore',
+            'package.json',
+            'package-lock.json',
+            'vite.config.js',
+            'public/recorder.html',
+            'src/looks-standalone-entry.js',
+            'src/modules/looks/background-substitution-logic.js',
+            'src/modules/looks/background-substitution-logic.test.js',
+            'src/modules/looks/background-substitution.webonly.js',
+            'src/modules/looks/background-substitution.webonly.test.js',
+            'src/modules/looks/segmentation.web.js',
+            'src/modules/looks/segmentation.web.test.js',
+            'functions/api/pipeline/proxy-image.js',
+            'functions/api/pipeline/proxy-image.test.js',
+            'scripts/sync-mediapipe-assets.mjs',
+            'scripts/sync-mediapipe-assets.test.js',
+            'scripts/verify-build-artifact.mjs',
+            'scripts/verify-build-artifact.test.js',
+            'scripts/lib/source-bridge-utils.js',
+            'scripts/lib/source-bridge-utils.test.js',
+            'docs/video-pipeline/video_pipeline.py',
+            'docs/video-pipeline/tests/test_background_removal_wiring.py',
+            'docs/video-pipeline/tests/test_pipeline_source.py',
+            'src/modules/video/recorder-page.test.js',
             'src/modules/speech/portrait-capture-logic.js',
             'src/modules/speech/portrait-capture-logic.test.js',
             'src/modules/speech/speech.web.js',
@@ -2419,5 +2450,293 @@ describe('story 066 product entry', () => {
             expect(mutated).toContain('Lesson-level auto-render in the recorder');
             expect(mutated).toContain('stories/066-recorder-auto-render-lessons/story.md');
         }).toThrow();
+    });
+});
+
+// ---------------------------------------------------------------------------
+// stories/100 — live background/foreground substitution and the overlay rail.
+//
+// The composite itself is unit-tested in
+// src/modules/looks/background-substitution.webonly.test.js. What is tested HERE is
+// the page's wiring, which is where the feature silently breaks: which stream
+// MediaRecorder is handed, whether the preview shows the same one, whether a row
+// whose layer failed can still be recorded, and whether the rail/drag/expand
+// controls reach the bundle at all.
+// ---------------------------------------------------------------------------
+describe('operator studio — live looks wiring (stories/100)', () => {
+    const html = () => fs.readFileSync(PAGE_PATH, 'utf8');
+
+    const installFakeMedia = (pageWindow) => {
+        const recorders = [];
+        class FakeMediaRecorder {
+            constructor(stream, config) {
+                this.stream = stream;
+                this.config = config;
+                this.state = 'inactive';
+                recorders.push(this);
+            }
+            static isTypeSupported() { return true; }
+            start() { this.state = 'recording'; }
+            stop() {
+                this.state = 'inactive';
+                setTimeout(() => {
+                    if (this.ondataavailable) {
+                        this.ondataavailable({ data: new pageWindow.Blob(['b'], { type: 'video/mp4' }) });
+                    }
+                    if (this.onstop) this.onstop();
+                }, 0);
+            }
+        }
+        FakeMediaRecorder.instances = recorders;
+        pageWindow.MediaRecorder = FakeMediaRecorder;
+        const rawStream = {
+            id: 'raw-camera',
+            getTracks: () => [],
+            getAudioTracks: () => [{ kind: 'audio', id: 'mic' }],
+            getVideoTracks: () => [],
+        };
+        pageWindow.navigator.mediaDevices = {
+            getUserMedia: async () => rawStream,
+            enumerateDevices: async () => [],
+        };
+        pageWindow.URL.createObjectURL = () => 'blob:take';
+        pageWindow.URL.revokeObjectURL = () => {};
+        pageWindow.HTMLMediaElement.prototype.play = () => Promise.resolve();
+        pageWindow.HTMLMediaElement.prototype.pause = () => {};
+        return { recorders, rawStream };
+    };
+
+    // A stand-in for the built bundle: it records every call the page makes and
+    // can be told whether the row's layers resolved.
+    const installFakeLooks = (pageWindow, { canStart = true, layerState = null } = {}) => {
+        const calls = [];
+        const compositeStream = {
+            id: 'composite',
+            getTracks: () => [],
+            getAudioTracks: () => [{ kind: 'audio', id: 'mic' }],
+            getVideoTracks: () => [{ kind: 'video', id: 'canvas' }],
+        };
+        const live = {
+            stream: compositeStream,
+            canvas: { width: 1080, height: 1920 },
+            layerState: layerState || { backgroundState: 'ready', foregroundState: 'none' },
+            canStartTake: () => canStart,
+            setLayer: async (kind, value) => {
+                calls.push(['setLayer', kind, value]);
+                return kind === 'background'
+                    ? (layerState ? layerState.backgroundState : 'ready')
+                    : 'none';
+            },
+            setOverlay: async (slot, slug) => { calls.push(['setOverlay', slot, slug]); return slug; },
+            setOverlayTuning: (slot, next) => { calls.push(['setOverlayTuning', slot, next]); },
+            getOverlays: () => ({ face: null, upper: null, lower: null, emoji: null }),
+            getTuning: () => ({
+                face: { dx: 0, dy: 0, scale: 1 },
+                upper: { dx: 0, dy: 0, scale: 1 },
+                lower: { dx: 0, dy: 0, scale: 1 },
+                emoji: { dx: 0, dy: 0, scale: 1 },
+            }),
+            stats: () => ({ framesDrawn: 0, sourceAdvances: 0, hasMatte: true, compositor: 'webgl2' }),
+            dispose: () => { calls.push(['dispose']); },
+        };
+        pageWindow.UFFLooks = {
+            createLiveLooks: async (options) => {
+                calls.push(['createLiveLooks', options]);
+                return live;
+            },
+            overlaySlugsForSlot: () => ['carnival', 'shades'],
+            assetFileForSlug: (slug) => `/overlays/face/${slug}.png`,
+            computeDragOffset: (input) => {
+                calls.push(['computeDragOffset', input]);
+                return { dx: 0.25, dy: -0.1 };
+            },
+            sanitizeTuning: (tuning) => tuning,
+            resolveExpandablePane: ({ isReviewing }) => (isReviewing ? 'playback' : 'preview'),
+        };
+        return { calls, live, compositeStream };
+    };
+
+    const boot = async ({ looks = null, canStart = true, layerState = null } = {}) => {
+        const { JSDOM } = await import('jsdom');
+        const csv = fs.readFileSync(path.join(REPO_ROOT, 'public/wouldyourather.master.csv'), 'utf8');
+        let fake = null;
+        const dom = new JSDOM(html(), {
+            url: 'http://127.0.0.1:9/recorder.html?course=wouldyourather',
+            runScripts: 'dangerously',
+            beforeParse(pageWindow) {
+                pageWindow.fetch = async (url) => {
+                    if (String(url).indexOf('courses.json') !== -1) {
+                        return { ok: true, text: async () => JSON.stringify({ courses: ['wouldyourather'] }) };
+                    }
+                    return { ok: true, text: async () => csv };
+                };
+                const media = installFakeMedia(pageWindow);
+                if (looks !== false) fake = installFakeLooks(pageWindow, { canStart, layerState });
+                pageWindow.__media = media;
+            },
+        });
+        const { window: win } = dom;
+        await new Promise((resolve) => {
+            if (win.document.readyState === 'complete') resolve();
+            else win.addEventListener('load', () => resolve(), { once: true });
+        });
+        const deadline = Date.now() + 5000;
+        while (win.global_script_phrases.length === 0) {
+            if (Date.now() > deadline) throw new Error('timed out waiting for the take list');
+            await new Promise((r) => setTimeout(r, 20));
+        }
+        // The live composite is built from the camera callback, which is async.
+        const looksDeadline = Date.now() + 5000;
+        while (looks !== false && win.global_live_looks === null) {
+            if (Date.now() > looksDeadline) throw new Error('timed out waiting for the live composite');
+            await new Promise((r) => setTimeout(r, 20));
+        }
+        return { win, dom, fake };
+    };
+
+    it('hands the composite stream to BOTH the preview and MediaRecorder', async () => {
+        const { win, dom, fake } = await boot();
+        try {
+            expect(win.global_capture_stream_handle).toBe(fake.compositeStream);
+            // The page passes the current row's layer columns straight through.
+            const created = fake.calls.find(([name]) => name === 'createLiveLooks');
+            expect(created).toBeTruthy();
+            expect(Object.prototype.hasOwnProperty.call(created[1], 'background')).toBe(true);
+            expect(Object.prototype.hasOwnProperty.call(created[1], 'foreground')).toBe(true);
+            // The WYSIWYG invariant: one stream object, two consumers.
+            expect(win.node_video_preview.srcObject).toBe(fake.compositeStream);
+            await win.triggerStartRecording();
+            const recorder = win.MediaRecorder.instances[0];
+            expect(recorder).toBeTruthy();
+            expect(recorder.stream).toBe(fake.compositeStream);
+        } finally {
+            win.close();
+            dom.window.close();
+        }
+    });
+
+    it('falls back to the raw camera stream when the bundle is absent', async () => {
+        const { win, dom } = await boot({ looks: false });
+        try {
+            expect(win.global_live_looks).toBeNull();
+            await win.triggerStartRecording();
+            const recorder = win.MediaRecorder.instances[0];
+            expect(recorder.stream).toBe(win.global_stream_handle);
+            expect(recorder.stream.id).toBe('raw-camera');
+        } finally {
+            win.close();
+            dom.window.close();
+        }
+    });
+
+    it('refuses to start a take whose row names a layer that did not load', async () => {
+        const { win, dom } = await boot({
+            canStart: false,
+            layerState: { backgroundState: 'error', foregroundState: 'none' },
+        });
+        try {
+            win.startPreRollSequence();
+            expect(win.global_countdown_timer).toBeFalsy();
+            expect(win.MediaRecorder.instances || []).toHaveLength(0);
+            expect(win.node_status_bar.textContent).toContain('did not load');
+        } finally {
+            win.close();
+            dom.window.close();
+        }
+    });
+
+    it('sends rail taps to the composite and clears on a second tap', async () => {
+        const { win, dom, fake } = await boot();
+        try {
+            win.document.querySelector('.look-rail-btn[data-slot="face"]').click();
+            const chips = [...win.document.querySelectorAll('#dom-look-panel .look-chip')];
+            expect(chips.length).toBeGreaterThan(1);
+            // Chip 0 is "none", chip 1 is the first slug.
+            chips[1].click();
+            await new Promise((r) => setTimeout(r, 0));
+            expect(fake.calls.some(([name, slot, slug]) =>
+                name === 'setOverlay' && slot === 'face' && slug === 'carnival')).toBe(true);
+
+            // Tapping "none" clears the slot.
+            const refreshed = [...win.document.querySelectorAll('#dom-look-panel .look-chip')];
+            refreshed[0].click();
+            await new Promise((r) => setTimeout(r, 0));
+            expect(fake.calls.some(([name, slot, slug]) =>
+                name === 'setOverlay' && slot === 'face' && slug === null)).toBe(true);
+        } finally {
+            win.close();
+            dom.window.close();
+        }
+    });
+
+    it('routes an emoji drag through the shared computeDragOffset rule', async () => {
+        const { win, dom, fake } = await boot();
+        try {
+            const preview = win.node_video_preview;
+            preview.getBoundingClientRect = () => ({ width: 400, height: 700, top: 0, left: 0 });
+            // Only the emoji slot drags; give the fake one.
+            fake.live.getOverlays = () => ({ face: null, upper: null, lower: null, emoji: 'smiley' });
+            preview.dispatchEvent(new win.MouseEvent('pointerdown', { clientX: 100, clientY: 100 }));
+            preview.dispatchEvent(new win.MouseEvent('pointermove', { clientX: 140, clientY: 130 }));
+            expect(fake.calls.some(([name]) => name === 'computeDragOffset')).toBe(true);
+            expect(fake.calls.some(([name, slot]) => name === 'setOverlayTuning' && slot === 'emoji')).toBe(true);
+        } finally {
+            win.close();
+            dom.window.close();
+        }
+    });
+
+    it('expands the live pane, then the recorded take once reviewing', async () => {
+        const { win, dom } = await boot();
+        try {
+            const button = win.document.getElementById('dom-btn-expand-pane');
+            expect(button).not.toBeNull();
+            button.click();
+            expect(win.document.body.classList.contains('is-pane-expanded')).toBe(true);
+            expect(win.document.body.getAttribute('data-expanded-pane')).toBe('preview');
+            button.click();
+            expect(win.document.body.classList.contains('is-pane-expanded')).toBe(false);
+
+            win.document.body.classList.add('is-reviewing-now');
+            button.click();
+            expect(win.document.body.getAttribute('data-expanded-pane')).toBe('playback');
+        } finally {
+            win.close();
+            dom.window.close();
+        }
+    });
+
+    it('renders the Stage 3 safe zone over the live preview only', () => {
+        const source = html();
+        const guide = source.slice(source.indexOf('id="dom-safe-zone-guide"'));
+        expect(guide).toContain('safe-zone-card');
+        expect(guide).toContain('safe-zone-captions');
+        // The guide belongs to the FIRST video box (the live preview); the take
+        // is the composite canvas, so it can never enter the recorded pixels.
+        const previewBox = source.slice(
+            source.indexOf('class="video-box"'),
+            source.indexOf('id="dom-video-playback"'),
+        );
+        expect(previewBox).toContain('dom-safe-zone-guide');
+        expect(source.indexOf('dom-safe-zone-guide')).toBeLessThan(source.indexOf('id="dom-video-playback"'));
+    });
+
+    it('scopes the expanded pane to fixed/inset/contain', () => {
+        const source = html();
+        const start = source.indexOf('body.is-pane-expanded .aspect-ratio-shield video');
+        const block = source.slice(start, source.indexOf('}', start) + 1);
+        expect(block).toContain('object-fit: contain');
+        const gridBlock = source.slice(
+            source.indexOf('body.is-pane-expanded .video-grid-system'),
+            source.indexOf('}', source.indexOf('body.is-pane-expanded .video-grid-system')) + 1,
+        );
+        expect(gridBlock).toContain('position: fixed');
+        expect(gridBlock).toContain('inset: 0');
+    });
+
+    it('loads the looks bundle without an external script src', () => {
+        const source = html();
+        expect(source).not.toMatch(/<script[^>]+src=/i);
+        expect(source).toContain("import('/recorder-looks.js')");
     });
 });

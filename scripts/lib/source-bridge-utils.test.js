@@ -127,6 +127,84 @@ describe('sourceToRows course hero', () => {
     });
 });
 
+describe('sourceToRows replacement layers (stories/100)', () => {
+    const takesOf = (rows) => rows.filter((r) => String(r.filename || '').trim() !== '');
+
+    it('leaves both layer columns blank when the source names none', () => {
+        const rows = sourceToRows(SOURCE);
+        for (const row of rows) {
+            expect(row.background, row.filename || row.video_file).toBe('');
+            expect(row.foreground, row.filename || row.video_file).toBe('');
+        }
+    });
+
+    it('carries a course default onto every recordable take', () => {
+        const rows = sourceToRows({ ...SOURCE, background: 'studio', foreground: 'desk.png' });
+        const takes = takesOf(rows);
+        expect(takes.length).toBeGreaterThan(0);
+        for (const row of takes) {
+            expect(row.background).toBe('studio');
+            expect(row.foreground).toBe('desk.png');
+        }
+    });
+
+    it('leaves reuse and branching rows without layers (they record nothing)', () => {
+        const rows = sourceToRows({ ...SOURCE, background: 'studio', foreground: 'desk.png' });
+        const nonTakes = rows.filter((r) => String(r.filename || '').trim() === '');
+        expect(nonTakes.length).toBeGreaterThan(0);
+        for (const row of nonTakes) {
+            expect(row.background).toBe('');
+            expect(row.foreground).toBe('');
+        }
+    });
+
+    it('prefers the topic layer over the pair, and the pair over the course', () => {
+        const source = structuredClone(SOURCE);
+        source.background = 'course-bg';
+        source.pairs[0].background = 'pair-bg';
+        // A second topic that names no layer of its own inherits the pair's.
+        source.pairs[0].topics.push({
+            question: ['Q2?', 'Which is better, Q2?'],
+            choices: ['Pick one'],
+            answers: [['A4.', 'A4 is better.']],
+        });
+        source.pairs[0].topics[0].background = 'topic-bg';
+        const byTopic = new Map(takesOf(sourceToRows(source)).map((r) => [r.topic_index, r.background]));
+        // Topic 1 takes carry the topic value; topic 2 takes the pair value.
+        expect(byTopic.get('1')).toBe('topic-bg');
+        expect(byTopic.get('2')).toBe('pair-bg');
+    });
+
+    it('falls back to the course layer when neither the topic nor the pair names one', () => {
+        const source = structuredClone(SOURCE);
+        source.background = 'course-bg';
+        source.pairs[0].background = 'pair-bg';
+        delete source.pairs[0].background;
+        const takes = takesOf(sourceToRows(source));
+        expect(new Set(takes.map((r) => r.background))).toEqual(new Set(['course-bg']));
+    });
+
+    it('accepts a full https URL as a layer value', () => {
+        const url = 'https://r2.ultrafastfluency.com/assets/bg/loft.png';
+        const takes = takesOf(sourceToRows({ ...SOURCE, background: url }));
+        expect(new Set(takes.map((r) => r.background))).toEqual(new Set([url]));
+    });
+
+    it('accepts background/foreground beside the intro kinds', () => {
+        const source = { ...SOURCE, intros: { first: ['Hi there.'], respond: ['Let us go.'], ask: ['Ready?'] } };
+        source.intros.background = 'intro-bg';
+        const rows = sourceToRows(source);
+        const introRows = rows.filter((r) => r.set_role === 'intro');
+        expect(introRows.length).toBe(3);
+        for (const row of introRows) expect(row.background).toBe('intro-bg');
+    });
+
+    it('still rejects an unknown key inside intros', () => {
+        const source = { ...SOURCE, intros: { first: ['Hi there.'], respond: ['Let us go.'], ask: ['Ready?'], nope: [] } };
+        expect(() => sourceToRows(source)).toThrow(/unexpected: nope/);
+    });
+});
+
 describe('sourceToRows routing', () => {
     it('emits positional choice targets and advance-past-group next_steps', () => {
         const rows = sourceToRows(SOURCE);

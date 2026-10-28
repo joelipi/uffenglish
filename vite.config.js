@@ -44,6 +44,11 @@ const WORKBOX_IGNORES = [
     // from the precached SPA shell.
     'recorder.html',
     'landing.html',
+    // The studio's looks bundle and its MediaPipe runtime (stories/100). Both
+    // are loaded by /recorder only; a learner must never download ~41 MB of
+    // segmentation WASM into a service-worker cache.
+    'recorder-looks.js',
+    '**/mediapipe/**',
     // Optional prop art for the recording looks (stories/091): a learner who
     // never picks a prop must not pay for the download, so keep it out of the
     // precache and fetch it on demand.
@@ -159,6 +164,19 @@ export default defineConfig({
         rollupOptions: {
             input: {
                 main: resolve(__dirname, 'index.html'),
+                // The operator studio's looks bundle (stories/100). A static
+                // HTML page cannot import from src/, so Vite builds this entry
+                // to a STABLE name the page can request: `recorder-looks.js`.
+                // A content hash would be unguessable from the page.
+                'recorder-looks': resolve(__dirname, 'src/looks-standalone-entry.js'),
+            },
+            output: {
+                entryFileNames: (chunk) => (chunk.name === 'recorder-looks'
+                    ? 'recorder-looks.js'
+                    // The deploy-time CDN grep depends on this exact shape.
+                    : 'assets/[name]-[hash].js'),
+                chunkFileNames: 'assets/[name]-[hash].js',
+                assetFileNames: 'assets/[name]-[hash][extname]',
             },
         },
     },

@@ -733,13 +733,23 @@ def run_background_removal(background_mapping, mirror_mapping, only=None):
                     print(f"✗ Failed to copy video: {e}")
                 continue
 
-            background_path = os.path.join(BACKGROUNDS_DIRECTORY, background_file)
-            if not os.path.exists(background_path):
-                print(f"ERROR: Background file not found: {background_file}")
-                continue
-
-            result = process_video_background(input_video_path, background_path, output_path)
-            print(f"✓ Successfully processed: {video_file}" if result else f"✗ Failed to process: {video_file}")
+            # stories/100: a named background is composited LIVE in the operator
+            # studio, so the take already carries it (behind the segmented person,
+            # in front of nothing). Running BiRefNet again here would segment that
+            # synthetic background and re-substitute — a second pass over a frame
+            # that is already flat. The studio refuses to record a row whose named
+            # layer did not load, which is what makes "named means baked" true.
+            # `process_video_background` is kept for manual callers.
+            print(
+                f"SKIPPING BACKGROUND REMOVAL for {original_name}: "
+                f"background '{background_file}' is baked at capture."
+            )
+            try:
+                shutil.copy2(input_video_path, output_path)
+                print(f"✓ Copied CFR/silence-removed video to: {output_filename}")
+            except Exception as e:
+                print(f"✗ Failed to copy video: {e}")
+            continue
         finally:
             # Accumulate per-clip wall time so the orchestrator can report a real
             # (not always-zero) GPU term in estimate_cost. Includes local I/O, so
@@ -1390,11 +1400,11 @@ def process_single_video(row):
 
         foreground_filename = safe_get_value(row, 'foreground')
         if foreground_filename:
-            foreground_path = os.path.join(OVERLAYS_DIRECTORY, foreground_filename)
-            if os.path.exists(foreground_path):
-                foreground_clip = ImageClip(foreground_path, duration=base_video_clip.duration)
-                foreground_clip = foreground_clip.with_opacity(1.0).resized(width=video_width, height=video_height)
-                clip_for_effects = CompositeVideoClip([base_video_clip, foreground_clip], size=(video_width, video_height))
+            # stories/100: a foreground is composited LIVE in the operator studio,
+            # in front of the segmented person, so the take already carries it.
+            # Compositing it again here would double it (and the studio's copy is
+            # already inside the recorded frames).
+            print(f"↷ foreground '{foreground_filename}' is baked at capture — not composited again")
 
         dutch_tilt = safe_get_value(row, 'dutch_tilt')
         if dutch_tilt:

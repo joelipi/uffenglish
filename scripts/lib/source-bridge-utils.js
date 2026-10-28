@@ -40,6 +40,13 @@
 export const BLANK_RUNG = '___________';
 
 /**
+ * Keys an `intros` block may carry next to its line lists: replacement-layer
+ * MEDIA for the intro takes (a background behind, a foreground in front), read
+ * by the studio at capture time — never an intro kind (stories/100).
+ */
+export const INTRO_MEDIA_KEYS = ['background', 'foreground'];
+
+/**
  * Validate a source's optional `intros` block and return its lines per kind.
  *
  * Each kind is an ARRAY of short lines: one line is one recorded take and one
@@ -58,7 +65,11 @@ export function introScriptLines(source) {
         throw new Error('"intros" must be an object of line arrays keyed by kind');
     }
     const missing = INTRO_KINDS.filter((kind) => !(kind in intros));
-    const extra = Object.keys(intros).filter((kind) => !INTRO_KINDS.includes(kind));
+    // `background` / `foreground` are per-layer MEDIA for the intro takes, not
+    // intro line lists, so they are allowed next to the kinds (stories/100).
+    const extra = Object.keys(intros).filter(
+        (kind) => !INTRO_KINDS.includes(kind) && !INTRO_MEDIA_KEYS.includes(kind)
+    );
     if (missing.length || extra.length) {
         throw new Error(
             `"intros" must declare exactly ${INTRO_KINDS.join(', ')}` +
@@ -482,6 +493,15 @@ export function sourceToRows(source) {
         }, overrides);
     };
 
+    // Replacement-layer media for a recordable take row: the studio composites
+    // it live (stories/100), so it belongs on the take rows only. A topic's own
+    // layer wins over its pair's, which wins over the course default; a reuse
+    // row or a branching row carries none (it records nothing).
+    const layerCells = (topic, pair) => ({
+        background: String(topic?.background ?? pair?.background ?? source.background ?? '').trim(),
+        foreground: String(topic?.foreground ?? pair?.foreground ?? source.foreground ?? '').trim(),
+    });
+
     for (const [pairIndex, pair] of pairs.entries()) {
         const askId = pair?.ask?.id;
         const ansId = pair?.answer?.id;
@@ -538,6 +558,7 @@ export function sourceToRows(source) {
                     topic_index: String(stepNo),
                     group_index: String(j + 1),
                     variant_index: '1',
+                    ...layerCells(topic, pair),
                 }));
             });
         });
@@ -626,15 +647,16 @@ export function sourceToRows(source) {
                         character: DEFAULT_CHARACTER,
                         phrase,
                         subtitle_text: overlayFor(group, rungs, j, `${ansId} topic ${topicNo} answer ${m + 1}`),
-                        next_step: String(answers.length - m),
-                        recap_sources: 'friend',
-                        recap_overlay: 'shareCta',
-                        pair_index: pairNo,
-                        set_role: 'answer',
-                        topic_index: String(topicNo),
-                        group_index: String(m + 1),
-                        variant_index: String(j + 1),
-                    }));
+                            next_step: String(answers.length - m),
+                            recap_sources: 'friend',
+                            recap_overlay: 'shareCta',
+                            pair_index: pairNo,
+                            set_role: 'answer',
+                            topic_index: String(topicNo),
+                            group_index: String(m + 1),
+                            variant_index: String(j + 1),
+                            ...layerCells(topic, pair),
+                        }));
                 });
             });
         });
@@ -669,6 +691,10 @@ export function sourceToRows(source) {
                     subtitle_text: '',
                     footer_text: '',
                     set_role: 'intro',
+                    // An intro take is recordable too, so it takes the intro
+                    // block's own layer media, else the course default.
+                    background: String(source.intros?.background ?? source.background ?? '').trim(),
+                    foreground: String(source.intros?.foreground ?? source.foreground ?? '').trim(),
                 }));
             });
         }

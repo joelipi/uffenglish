@@ -405,6 +405,165 @@
         }
 
         /**
+         * 9b. LIVE LOOKS: safe-zone guide, overlay rail, pane expansion
+         * (stories/100). The guide is page furniture only — the take is the
+         * composite canvas, so nothing here can be recorded.
+         */
+        #dom-safe-zone-guide {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .safe-zone-card {
+            position: absolute;
+            top: 15%;
+            left: 2%;
+            width: 60%;
+            height: 59%;
+            border: 1px dashed rgba(255, 255, 255, 0.55);
+            border-radius: 6px;
+        }
+
+        .safe-zone-captions {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 20%;
+            border-top: 1px dashed rgba(255, 255, 255, 0.55);
+            background: rgba(0, 0, 0, 0.12);
+        }
+
+        .safe-zone-label {
+            position: absolute;
+            font-size: 0.55rem;
+            letter-spacing: 0.04em;
+            color: rgba(255, 255, 255, 0.75);
+            background: rgba(0, 0, 0, 0.45);
+            padding: 1px 4px;
+            border-radius: 3px;
+        }
+
+        .look-rail {
+            position: fixed;
+            top: 18%;
+            left: 6px;
+            z-index: 40;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .look-rail-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.7);
+            background: rgba(0, 0, 0, 0.55);
+            color: #ffffff;
+            font-size: 1.1rem;
+            line-height: 1;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .look-rail-btn.is-applied {
+            border-color: #4CAF50;
+            box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.45);
+        }
+
+        .look-rail-panel {
+            position: fixed;
+            top: 18%;
+            left: 58px;
+            max-width: 60vw;
+            max-height: 56vh;
+            overflow-y: auto;
+            display: none;
+            grid-template-columns: repeat(4, 52px);
+            gap: 6px;
+            padding: 8px;
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.72);
+            z-index: 41;
+        }
+
+        .look-rail-panel.is-open {
+            display: grid;
+        }
+
+        .look-chip {
+            width: 52px;
+            height: 52px;
+            border-radius: 8px;
+            border: 2px solid transparent;
+            background: rgba(255, 255, 255, 0.08);
+            padding: 0;
+            cursor: pointer;
+            overflow: hidden;
+        }
+
+        .look-chip.is-applied {
+            border-color: #4CAF50;
+        }
+
+        .look-chip img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            pointer-events: none;
+        }
+
+        .btn-expand-pane {
+            position: fixed;
+            top: 6px;
+            right: 6px;
+            z-index: 42;
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            border: 2px solid rgba(255, 255, 255, 0.7);
+            background: rgba(0, 0, 0, 0.55);
+            color: #ffffff;
+            font-size: 1.1rem;
+            line-height: 1;
+            cursor: pointer;
+        }
+
+        /* The active pane takes the whole viewport; `contain` is what stops a
+           9:16 pane from overflowing the way `cover` in a fixed box does. */
+        body.is-pane-expanded .video-grid-system {
+            position: fixed;
+            inset: 0;
+            z-index: 60;
+            background: #000000;
+            grid-template-columns: 1fr;
+            align-content: center;
+        }
+
+        body.is-pane-expanded .video-box {
+            display: none;
+        }
+
+        body.is-pane-expanded[data-expanded-pane="preview"] .video-box:first-of-type,
+        body.is-pane-expanded[data-expanded-pane="playback"] .video-box:last-of-type {
+            display: block;
+        }
+
+        body.is-pane-expanded .aspect-ratio-shield {
+            padding-bottom: 0;
+            height: 100vh;
+        }
+
+        body.is-pane-expanded .aspect-ratio-shield video {
+            object-fit: contain;
+        }
+
+        /**
          * 10. MEDIA QUERIES (DESKTOP ADJUSTMENTS)
          */
         @media (min-width: 1024px) {
@@ -439,10 +598,20 @@
             <div class="video-box">
     <div class="aspect-ratio-shield">
         <video id="dom-camera-preview" autoplay muted playsinline></video>
-        
+
         <div class="guide-line-vertical"></div>
         <div class="guide-line-horizontal"></div>
-        
+
+        <!-- Where the pipeline's burned-in text lands, so a prop or a dragged
+             emoji is never parked underneath it. Page furniture only: the take
+             is the composite canvas, never the page. -->
+        <div id="dom-safe-zone-guide">
+            <div class="safe-zone-card"></div>
+            <div class="safe-zone-captions"></div>
+            <span class="safe-zone-label" style="top:16%;left:4%;">PHRASE CARD</span>
+            <span class="safe-zone-label" style="bottom:21%;left:4%;">CAPTIONS</span>
+        </div>
+
         <div id="dom-huge-countdown" class="huge-countdown-overlay">4</div>
     </div>
 </div>
@@ -462,6 +631,19 @@
             <span id="dom-props-val" class="meta-text-props">PROPS: ---</span>
             <span id="dom-prev-val" class="meta-text-previous">PREVIOUS LINE: ---</span>
         </div>
+
+        <!-- Overlay rail (stories/100): props and emoji only. The chips are
+             built from the shared look library, never from a hardcoded list, and
+             every tap goes straight into the composite so the preview and the
+             take stay identical. -->
+        <div id="dom-look-rail" class="look-rail">
+            <button class="look-rail-btn" data-slot="upper" title="Top">☁️</button>
+            <button class="look-rail-btn" data-slot="face" title="Face">🙂</button>
+            <button class="look-rail-btn" data-slot="lower" title="Bottom">🧱</button>
+            <button class="look-rail-btn" data-slot="emoji" title="Emoji">😀</button>
+        </div>
+        <div id="dom-look-panel" class="look-rail-panel"></div>
+        <button id="dom-btn-expand-pane" class="btn-expand-pane" title="Enlarge this pane">⤢</button>
 
         <!-- One control bar for every take phase, in the order the operator
              reads it: REJECT / RETRY left of the STOP button, ACCEPT & UPLOAD
@@ -546,6 +728,21 @@
 
     </div>
 
+    <!-- The looks bundle is built to a stable name by Vite (see vite.config.js)
+         and attached to window.UFFLooks. It is loaded from an inline module so
+         this page keeps shipping no external <script src> tag, and so a missing
+         bundle (the dev server, a plain file open) degrades to recording the raw
+         camera instead of breaking the page. -->
+    <script type="module">
+        import('/recorder-looks.js')
+            .then(function (mod) {
+                if (mod && mod.UFFLooks) { window.UFFLooks = mod.UFFLooks; }
+            })
+            .catch(function () {
+                // Not built yet (dev server / jsdom): the page records raw.
+            });
+    </script>
+
     <script>
         /**
          * ==========================================
@@ -558,6 +755,12 @@
         var global_recorder_course = '';
         var global_current_index = 0;
         var global_stream_handle = null;
+        // The stream MediaRecorder and the preview SHARE once the live looks
+        // composite exists (stories/100). Null means "record the raw camera".
+        var global_capture_stream_handle = null;
+        var global_live_looks = null;
+        var global_live_looks_row = null;
+        var global_look_slot = null;
         var global_recorder_obj = null;
         var global_data_chunks = [];
         var global_is_recording_flag = false;
@@ -710,12 +913,240 @@
                 }
                 // The first take of the session: express mode starts its
                 // countdown as soon as the camera is actually live.
+                wireLookRail();
+                wireEmojiDrag();
+                wirePaneExpansion();
+                await startLiveLooks();
                 maybeAutoStartTake();
             } catch (fail) {
                 appCoreLog("HARDWARE INITIALIZATION FAILED: " + fail.message);
                 node_status_bar.textContent = "HARDWARE ERROR: " + fail.message;
                 node_status_bar.className = "status-indicator-bar status-recording";
             }
+        }
+
+        /**
+         * ==========================================
+         * LIVE LOOKS: background / foreground substitution + overlay rail
+         * (stories/100)
+         * ==========================================
+         *
+         * The composite canvas is the recorded video, and the preview is handed
+         * the SAME MediaStream, so what the operator sees is what lands in the
+         * file. Everything else here is wiring: the bundle (window.UFFLooks)
+         * owns the pixels and the studio only decides when to call it.
+         */
+        function liveLooksAvailable() {
+            return !!(window.UFFLooks && typeof window.UFFLooks.createLiveLooks === 'function');
+        }
+
+        // The one stream both consumers use. Falls back to the raw camera when
+        // the composite could not be built (no bundle, no WebGL, a slow device).
+        function activeCaptureStream() {
+            return global_capture_stream_handle || global_stream_handle;
+        }
+
+        function currentRowLayerValue(field) {
+            var row = global_script_phrases[global_current_index];
+            return row ? String(row[field] || '') : '';
+        }
+
+        function reportLayerState(state) {
+            if (!state) { return; }
+            var problems = [];
+            if (state.backgroundState === 'error') { problems.push('BACKGROUND'); }
+            if (state.foregroundState === 'error') { problems.push('FOREGROUND'); }
+            if (problems.length) {
+                node_status_bar.textContent = 'LAYER NOT FOUND: ' + problems.join(' + ')
+                    + ' — check the sheet value (the render will not re-remove it)';
+                node_status_bar.className = 'status-indicator-bar status-recording';
+                appCoreLog('Layer state: ' + JSON.stringify(state));
+                return;
+            }
+            appCoreLog('Layer state: ' + JSON.stringify(state));
+            if (global_take_phase === 'idle') {
+                node_status_bar.textContent = 'HARDWARE READY • LIVE LOOKS'
+                    + (state.backgroundState === 'ready' ? ' • BG' : '')
+                    + (state.foregroundState === 'ready' ? ' • FG' : '');
+                node_status_bar.className = 'status-indicator-bar status-ready';
+            }
+        }
+
+        async function startLiveLooks() {
+            if (!liveLooksAvailable() || !global_stream_handle) { return null; }
+            if (global_live_looks) { return global_live_looks; }
+            try {
+                var live = await window.UFFLooks.createLiveLooks({
+                    rawStream: global_stream_handle,
+                    operatorKey: getOperatorKey(),
+                    background: currentRowLayerValue('background'),
+                    foreground: currentRowLayerValue('foreground'),
+                    onLayerState: reportLayerState
+                });
+                global_live_looks = live;
+                global_capture_stream_handle = live.stream;
+                global_live_looks_row = null;
+                // The preview and the recorder share ONE stream object.
+                node_video_preview.srcObject = live.stream;
+                appCoreLog('Live looks ready: ' + JSON.stringify(live.stats()));
+                syncLiveLooksForCurrentRow();
+                return live;
+            } catch (e) {
+                appCoreLog('LIVE LOOKS FAILED: ' + e.message + ' — recording the raw camera');
+                global_live_looks = null;
+                global_capture_stream_handle = null;
+                return null;
+            }
+        }
+
+        // Each row can name its own background/foreground, so the layers are
+        // swapped (not the whole pipeline rebuilt) as the operator walks takes.
+        async function syncLiveLooksForCurrentRow() {
+            if (!global_live_looks) { return; }
+            var row = global_script_phrases[global_current_index];
+            if (!row) { return; }
+            var key = String(row.filename || '') + '|' + String(row.background || '') + '|' + String(row.foreground || '');
+            if (key === global_live_looks_row) { return; }
+            global_live_looks_row = key;
+            try {
+                var bgState = await global_live_looks.setLayer('background', row.background || '');
+                var fgState = await global_live_looks.setLayer('foreground', row.foreground || '');
+                reportLayerState({ backgroundState: bgState, foregroundState: fgState });
+            } catch (e) {
+                appCoreLog('Layer swap failed: ' + e.message);
+            }
+        }
+
+        function renderLookPanel(slot) {
+            var panel = document.getElementById('dom-look-panel');
+            if (!panel || !liveLooksAvailable()) { return; }
+            panel.innerHTML = '';
+            panel.setAttribute('data-slot', slot);
+            panel.appendChild(makeLookChip(slot, null));
+            var slugs = window.UFFLooks.overlaySlugsForSlot(slot);
+            for (var i = 0; i < slugs.length; i++) {
+                panel.appendChild(makeLookChip(slot, slugs[i]));
+            }
+            panel.classList.add('is-open');
+        }
+
+        function makeLookChip(slot, slug) {
+            var chip = document.createElement('button');
+            chip.className = 'look-chip';
+            if (slug) {
+                chip.setAttribute('data-slug', slug);
+                var img = document.createElement('img');
+                img.src = window.UFFLooks.assetFileForSlug(slug);
+                img.alt = slug;
+                chip.appendChild(img);
+            } else {
+                chip.textContent = '∅';
+                chip.title = 'None';
+            }
+            var current = global_live_looks ? global_live_looks.getOverlays()[slot] : null;
+            if ((current || null) === (slug || null)) { chip.classList.add('is-applied'); }
+            chip.onclick = function () { applyLookChip(slot, slug); };
+            return chip;
+        }
+
+        async function applyLookChip(slot, slug) {
+            if (!global_live_looks) {
+                appCoreLog('Look rail needs the live composite (bundle not loaded).');
+                return;
+            }
+            await global_live_looks.setOverlay(slot, slug);
+            updateRailAppliedState();
+            renderLookPanel(slot);
+        }
+
+        function updateRailAppliedState() {
+            var rail = document.getElementById('dom-look-rail');
+            if (!rail || !global_live_looks) { return; }
+            var overlays = global_live_looks.getOverlays();
+            var buttons = rail.querySelectorAll('.look-rail-btn');
+            for (var i = 0; i < buttons.length; i++) {
+                var slot = buttons[i].getAttribute('data-slot');
+                if (overlays[slot]) { buttons[i].classList.add('is-applied'); }
+                else { buttons[i].classList.remove('is-applied'); }
+            }
+        }
+
+        function wireLookRail() {
+            var rail = document.getElementById('dom-look-rail');
+            if (!rail) { return; }
+            var panel = document.getElementById('dom-look-panel');
+            var buttons = rail.querySelectorAll('.look-rail-btn');
+            for (var i = 0; i < buttons.length; i++) {
+                buttons[i].onclick = function () {
+                    var slot = this.getAttribute('data-slot');
+                    if (global_look_slot === slot) {
+                        global_look_slot = null;
+                        if (panel) { panel.classList.remove('is-open'); }
+                        return;
+                    }
+                    global_look_slot = slot;
+                    renderLookPanel(slot);
+                };
+            }
+        }
+
+        // Dragging on the preview moves ONLY the emoji: the three props are
+        // anchored zones, and the delta goes through the shared rule
+        // (computeDragOffset + sanitizeTuning) rather than page arithmetic.
+        function wireEmojiDrag() {
+            if (!node_video_preview || !liveLooksAvailable()) { return; }
+            var drag = null;
+            node_video_preview.addEventListener('pointerdown', function (evt) {
+                if (!global_live_looks) { return; }
+                if (!global_live_looks.getOverlays().emoji) { return; }
+                var rect = node_video_preview.getBoundingClientRect();
+                drag = {
+                    startX: evt.clientX,
+                    startY: evt.clientY,
+                    width: rect.width,
+                    height: rect.height,
+                    startTuning: global_live_looks.getTuning().emoji
+                };
+            });
+            node_video_preview.addEventListener('pointermove', function (evt) {
+                if (!drag || !global_live_looks) { return; }
+                var next = window.UFFLooks.computeDragOffset({
+                    startTuning: drag.startTuning,
+                    startX: drag.startX,
+                    startY: drag.startY,
+                    clientX: evt.clientX,
+                    clientY: evt.clientY,
+                    width: drag.width,
+                    height: drag.height,
+                    mirrored: true
+                });
+                if (next) { global_live_looks.setOverlayTuning('emoji', next); }
+            });
+            var endDrag = function () { drag = null; };
+            node_video_preview.addEventListener('pointerup', endDrag);
+            node_video_preview.addEventListener('pointercancel', endDrag);
+        }
+
+        // One toggle for whichever pane matters now: the live view while a take
+        // is being framed, the recorded take once it exists (the encoded blob is
+        // the only place a soft matte edge is judgeable at full size).
+        function wirePaneExpansion() {
+            var button = document.getElementById('dom-btn-expand-pane');
+            if (!button) { return; }
+            button.onclick = function () {
+                if (document.body.classList.contains('is-pane-expanded')) {
+                    document.body.classList.remove('is-pane-expanded');
+                    document.body.removeAttribute('data-expanded-pane');
+                    return;
+                }
+                var reviewing = document.body.classList.contains('is-reviewing-now');
+                var pane = liveLooksAvailable()
+                    ? window.UFFLooks.resolveExpandablePane({ isReviewing: reviewing })
+                    : (reviewing ? 'playback' : 'preview');
+                document.body.setAttribute('data-expanded-pane', pane);
+                document.body.classList.add('is-pane-expanded');
+                appCoreLog('Expanded pane: ' + pane);
+            };
         }
 
         /**
@@ -745,7 +1176,7 @@
                     videoBitsPerSecond: 15000000 // High Quality 15Mbps
                 };
 
-                global_recorder_obj = new MediaRecorder(global_stream_handle, recorder_config);
+                global_recorder_obj = new MediaRecorder(activeCaptureStream(), recorder_config);
                 global_data_chunks = [];
 
                 global_recorder_obj.ondataavailable = function(evt) {
@@ -951,6 +1382,16 @@ node_video_preview.play(); // Explicitly restart playback
          * ==========================================
          */
         function startPreRollSequence() {
+            // A row that names a background the composite could not load must not
+            // be recorded: the render skips BiRefNet for that row, so a take
+            // without the layer would silently ship the real room.
+            if (global_live_looks && typeof global_live_looks.canStartTake === 'function'
+                && !global_live_looks.canStartTake()) {
+                node_status_bar.textContent = 'CANNOT RECORD: the background/foreground named by this row did not load';
+                node_status_bar.className = 'status-indicator-bar status-recording';
+                appCoreLog('Take blocked: unresolved replacement layer for ' + (currentRowLayerValue('filename') || 'this row'));
+                return;
+            }
             var counter_val = 4;
             node_btn_record.disabled = true;
             node_btn_pause.style.display = "inline-block";
@@ -1013,7 +1454,10 @@ node_video_preview.play(); // Explicitly restart playback
             
             // SYNC DROPDOWN
             node_select_jump.value = global_current_index;
-            
+
+            // Each row can name its own background/foreground.
+            syncLiveLooksForCurrentRow();
+
             appCoreLog("UI Synchronized to Script Line " + current_pos);
         }
 

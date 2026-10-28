@@ -13,6 +13,7 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import {
     FORBIDDEN_MARKER,
+    LOOKS_BUNDLE_REL,
     REQUIRED_MARKER,
     verifyBuildArtifact,
 } from './verify-build-artifact.mjs';
@@ -22,10 +23,11 @@ const SCRIPT = path.join(__dirname, 'verify-build-artifact.mjs');
 
 let dir;
 
-function makeDist({ indexHtml, chunkName = 'assets/main-abc123.js', chunk = null }) {
+function makeDist({ indexHtml, chunkName = 'assets/main-abc123.js', chunk = null, looksBundle = 'window.UFFLooks={};' }) {
     fs.mkdirSync(path.join(dir, 'assets'), { recursive: true });
     if (indexHtml !== null) fs.writeFileSync(path.join(dir, 'index.html'), indexHtml);
     if (chunk !== null) fs.writeFileSync(path.join(dir, chunkName), chunk);
+    if (looksBundle !== null) fs.writeFileSync(path.join(dir, LOOKS_BUNDLE_REL), looksBundle);
     return dir;
 }
 
@@ -67,8 +69,18 @@ describe('verifyBuildArtifact', () => {
         expect(result.problems.join(' ')).toContain(FORBIDDEN_MARKER);
     });
 
-    it('rejects a missing index.html', () => {
-        makeDist({ indexHtml: null, chunk: PROD_CHUNK });
+    it('rejects an artifact with no looks bundle (the studio would record raw)', () => {
+        makeDist({
+            indexHtml: '<script src="/assets/main-abc123.js"></script>',
+            chunk: PROD_CHUNK,
+            looksBundle: null,
+        });
+        const result = verifyBuildArtifact({ distDir: dir });
+        expect(result.ok).toBe(false);
+        expect(result.problems.join(' ')).toContain(LOOKS_BUNDLE_REL);
+    });
+
+    it('rejects a missing index.html', () => {        makeDist({ indexHtml: null, chunk: PROD_CHUNK });
         const result = verifyBuildArtifact({ distDir: dir });
         expect(result.ok).toBe(false);
         expect(result.problems.join(' ')).toContain('missing');

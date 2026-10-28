@@ -566,5 +566,37 @@ class OverlayTitleAndAsideGuardTest(unittest.TestCase):
         self.assertIn("el.scrollWidth > el.clientWidth", overlay)
 
 
+class ForegroundBakedAtCaptureGuardTest(unittest.TestCase):
+    """stories/100: the studio composites the foreground live, in front of the
+    segmented person, so the take already carries it. Stage 3 must not composite
+    it a second time (that would double it and hide the person behind two
+    copies). The guard slices the `foreground` block and proves it no longer
+    builds a clip.
+    """
+
+    def test_foreground_is_not_composited_again(self):
+        text = read()
+        block = slice_between(
+            text,
+            "foreground_filename = safe_get_value(row, 'foreground')",
+            "dutch_tilt = safe_get_value(row, 'dutch_tilt')",
+        )
+        # It still READS the column, so the operator gets the log line...
+        self.assertIn("baked at capture", block)
+        # ...but never builds the overlay clip.
+        self.assertNotIn("ImageClip(", block)
+        self.assertNotIn("CompositeVideoClip(", block)
+        self.assertNotIn("clip_for_effects = CompositeVideoClip", block)
+
+    def test_stage_two_copies_through_a_named_background(self):
+        text = read()
+        block = slice_between(text, "def run_background_removal", "def group_videos_by_prefix")
+        # The BiRefNet call must be gone from Stage 2's body (it is kept as a
+        # module-level function for manual callers).
+        self.assertNotIn("process_video_background(input_video_path", block)
+        self.assertIn("is baked at capture", block)
+        self.assertIn("shutil.copy2(input_video_path, output_path)", block)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -25,6 +25,13 @@ export const FORBIDDEN_MARKER = 'assets/videos/${';
 export const MAIN_CHUNK_PATTERN = /assets\/main-[A-Za-z0-9_-]+\.js/;
 
 /**
+ * The operator studio's looks bundle (stories/100), emitted at a STABLE path
+ * because the static page cannot know a content hash. Missing it means the
+ * studio silently falls back to recording the raw camera.
+ */
+export const LOOKS_BUNDLE_REL = 'recorder-looks.js';
+
+/**
  * Inspect a built `dist/` and report whether it is a production artifact.
  *
  * @param {object} deps
@@ -67,6 +74,11 @@ export function verifyBuildArtifact({
     }
     if (String(chunk).includes(FORBIDDEN_MARKER)) {
         problems.push(`the main chunk contains the dev-relative "${FORBIDDEN_MARKER}" template — this is a development bundle`);
+    }
+    // The studio's bundle must exist, otherwise /recorder quietly records the
+    // unmasked raw camera and the whole feature is invisible in production.
+    if (!fs.existsSync(path.join(distDir, LOOKS_BUNDLE_REL))) {
+        problems.push(`missing ${LOOKS_BUNDLE_REL} — the operator studio would record the raw camera`);
     }
 
     return { ok: problems.length === 0, problems, chunk: chunkName };

@@ -22,7 +22,7 @@ Target: **Android, one device, one operator.** Unlike the learner app, the opera
 
 ## Implementation approach
 
-- **The page owns no pixel maths.** Every rule lives in `src/modules/looks/background-substitution-logic.js` (pure: no React, no DOM, no browser globals) and the browser adapter `src/modules/looks/background-substitution.web.js` beside it. The built bundle `/recorder-looks.js` is loaded by `public/recorder.html` via dynamic `import('/recorder-looks.js')` inside its inline script (preserving the self-contained HTML guard that forbids `<script src=...>` tags) and exposes `window.UFFLooks`.
+- **The page owns no pixel maths.** Every rule lives in `src/modules/looks/background-substitution-logic.js` (pure: no React, no DOM, no browser globals) and the browser adapter `src/modules/looks/background-substitution.webonly.js` beside it. The built bundle `/recorder-looks.js` is loaded by `public/recorder.html` via dynamic `import('/recorder-looks.js')` inside its inline script (preserving the self-contained HTML guard that forbids `<script src=...>` tags) and exposes `window.UFFLooks`.
 - **Full 1080×1920 @ 30 fps geometry on every take.** `resolveSubstitutionDimensions()` returns `{ width: 1080, height: 1920, fps: 30, maskWidth: 256, maskHeight: 256 }`. Even when a row has no replacement background/foreground and no overlay is active, the studio still records through the 1080×1920 @ 30 fps composite canvas (unmasked) so every take in a step group shares identical 1080×1920 portrait dimensions for Stage 3's concatenation, and every `output/social` render stays 1080p30 for TikTok / Instagram Reels.
 - **256×256 segmenter input at 30 Hz — never a 1080p CPU readback.** Passing the 1920×1080 `<video>` directly to MediaPipe `segmentForVideo` would produce a 2,073,600-float (8 MB) mask whose GPU→CPU readback stalls the main thread and causes A/V drift. Instead, the centre-cropped camera frame is drawn into a **256×256 scratch canvas** (`maskWidth: 256, maskHeight: 256` — 65,536 floats, matching the model's native tensor size) and passed to `segmentForVideo` on every painted camera frame (30 Hz). Temporal stabilization applies a light exponential blend (`0.85 × current + 0.15 × previous`) at 256×256 so standing-still hair/shoulder shimmer is suppressed without trailing lag when nodding or gesturing.
 - **4-Layer Sandwich in a WebGL2 shader compositor with light-wrap spill suppression.** On the 1080×1920 output canvas, a WebGL2 fragment shader composites four layers in `< 0.5 ms` per frame:
@@ -81,7 +81,7 @@ Target: **Android, one device, one operator.** Unlike the learner app, the opera
   - → rejects missing, non-HTTPS, or private/loopback `url` query parameters (`400`) via `isAllowedRemoteImageUrl`
   - → rejects upstream responses whose `Content-Type` does not start with `image/` (`415`) or whose body exceeds `15 MB` (`413`)
   - → returns `200` with the upstream image bytes and `Content-Type` on a valid public image URL
-- `loadLayerImage({ url, operatorKey, ImageCtor, fetchImpl })` in `src/modules/looks/background-substitution.web.js` + called in unit test
+- `loadLayerImage({ url, operatorKey, ImageCtor, fetchImpl })` in `src/modules/looks/background-substitution.webonly.js` + called in unit test
   - → sets `img.crossOrigin = 'anonymous'` before setting `img.src` whenever `url` is `https://...`
   - → when direct `img.onerror` fires on an `https://` URL and `operatorKey` is present, fetches `/api/pipeline/proxy-image?url=<encoded>` with `x-operator-key`, creates a blob object URL, and resolves the loaded `Image`
 
@@ -98,7 +98,7 @@ Target: **Android, one device, one operator.** Unlike the learner app, the opera
 
 ### Task 5 - The 1080p30 4-layer WebGL2 / offscreen capture composite
 
-- `createSubstitutedCaptureStream` in `src/modules/looks/background-substitution.web.js` + called in unit test with injected canvas/context fakes
+- `createSubstitutedCaptureStream` in `src/modules/looks/background-substitution.webonly.js` + called in unit test with injected canvas/context fakes
   - → sizes the output canvas to `1080×1920` and calls `canvas.captureStream(30)`
   - → returns a `MediaStream` combining the canvas video track with `rawStream.getAudioTracks()`
   - → composites the 4-layer sandwich in order: (1) `background` behind, (2) segmented camera via offscreen `personCanvas` (`destination-in` on `personCanvas`, never `destination-in` on the main canvas), (3) `foreground` image in front of the person, and (4) `paintLooks` interactive rail props/emoji on top

@@ -195,5 +195,65 @@ class ProcessVideoBackgroundBehaviorTest(unittest.TestCase):
         self.assertIs(remote.remote.call_args.args[2], True)
 
 
+class StageTwoBakesNamedBackgroundTest(unittest.TestCase):
+    """stories/100: a named `background` means "composited live at capture", so
+    Stage 2 copies the clip through and NEVER calls BiRefNet.
+
+    Behavioural, not a source guard: the copy is what makes an already-flat take
+    survive the render, and a stray GPU call is what would re-substitute over it.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.vp = load_video_pipeline()
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.no_silence = Path(self.tmp.name) / "no_silence"
+        self.video_dir = Path(self.tmp.name) / "out"
+        self.no_silence.mkdir()
+        self.video_dir.mkdir()
+        self.addCleanup(setattr, self.vp, "NO_SILENCE_DIRECTORY",
+                        self.vp.NO_SILENCE_DIRECTORY)
+        self.addCleanup(setattr, self.vp, "VIDEO_DIRECTORY", self.vp.VIDEO_DIRECTORY)
+        self.vp.NO_SILENCE_DIRECTORY = str(self.no_silence)
+        self.vp.VIDEO_DIRECTORY = str(self.video_dir)
+
+    def _seed(self, name="take_01"):
+        source = self.no_silence / f"{name}_no_silence.mp4"
+        source.write_bytes(b"TAKE")
+        return source
+
+    def test_named_background_copies_through_without_birefnet(self):
+        self._seed()
+        remote = mock.Mock()
+        with mock.patch.object(self.vp, "process_video_background", remote):
+            self.vp.run_background_removal({"take_01": "studio.png"}, {})
+        remote.assert_not_called()
+        output = self.video_dir / "take_01_no_silence_bg_removed.mp4"
+        self.assertTrue(output.exists())
+        self.assertEqual(output.read_bytes(), b"TAKE")
+
+    def test_empty_none_and_skip_still_copy_through(self):
+        for index, value in enumerate(["", "none", "skip"]):
+            name = f"take_{index}"
+            self._seed(name)
+            remote = mock.Mock()
+            with mock.patch.object(self.vp, "process_video_background", remote):
+                self.vp.run_background_removal({name: value}, {})
+            remote.assert_not_called()
+            self.assertTrue((self.video_dir / f"{name}_no_silence_bg_removed.mp4").exists())
+
+    def test_remote_background_url_is_also_baked(self):
+        self._seed()
+        remote = mock.Mock()
+        with mock.patch.object(self.vp, "process_video_background", remote):
+            self.vp.run_background_removal(
+                {"take_01": "https://r2.ultrafastfluency.com/bg/loft.png"}, {})
+        remote.assert_not_called()
+        self.assertTrue((self.video_dir / "take_01_no_silence_bg_removed.mp4").exists())
+
+
 if __name__ == "__main__":
     unittest.main()

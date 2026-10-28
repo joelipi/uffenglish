@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --port 3000",
-    "build": "vite build && node scripts/verify-build-artifact.mjs",
+    "build": "node scripts/sync-mediapipe-assets.mjs && vite build && node scripts/verify-build-artifact.mjs",
     "preview": "vite preview",
     "test": "vitest",
     "pretest": "npm run test:python",
@@ -51,6 +51,7 @@
     "@block65/webcrypto-web-push": "^2.0.0",
     "@huggingface/transformers": "^3.8.1",
     "@khmyznikov/pwa-install": "^0.7.0",
+    "@mediapipe/tasks-vision": "^1.2.0",
     "@popperjs/core": "^2.11.8",
     "@rive-app/react-canvas": "^4.29.0",
     "@supabase/supabase-js": "^2.112.4",
