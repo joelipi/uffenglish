@@ -337,3 +337,44 @@ describe('buildCaptionEdits', () => {
         ).rejects.toThrow(/Translation validation failed/);
     });
 });
+// stories/099-course-intro-clips: a new config may reference a clip the
+// operator has not recorded/uploaded yet. The caption run must leave those
+// steps alone and report them, not fail the whole file.
+describe('authored-but-not-uploaded videos are skipped, not fatal', () => {
+    const beforeText = JSON.stringify({ lessons: [{ steps: [] }] });
+    const afterText = JSON.stringify(
+        { lessons: [{ steps: [{ simpleVideoUrl: 'not_recorded_yet' }] }] },
+        null,
+        2,
+    );
+
+    it('buildCaptionEdits reports the slug as skipped and writes nothing', async () => {
+        const transcribe = vi.fn(async () => null);
+        const translate = vi.fn(async () => 'unused');
+
+        const { text, generated, skipped } = await buildCaptionEdits({
+            beforeText,
+            afterText,
+            transcribe,
+            translate,
+            languages: ['en', 'es'],
+        });
+
+        expect(transcribe).toHaveBeenCalledWith('not_recorded_yet');
+        expect(translate).not.toHaveBeenCalled();
+        expect(generated).toEqual([]);
+        expect(skipped).toEqual(['not_recorded_yet']);
+        expect(JSON.parse(text).lessons[0].steps[0].subtitles).toBeUndefined();
+    });
+
+    it('applyCaptionsToText leaves a skipped step untouched', () => {
+        const targets = [{ slug: 'not_recorded_yet', lessonIndex: 0, stepKey: 'steps', stepIndex: 0 }];
+        const out = applyCaptionsToText(afterText, targets, {}, new Set(['not_recorded_yet']));
+        expect(JSON.parse(out).lessons[0].steps[0].subtitles).toBeUndefined();
+    });
+
+    it('still throws for a missing caption that was NOT reported as skipped', () => {
+        const targets = [{ slug: 'not_recorded_yet', lessonIndex: 0, stepKey: 'steps', stepIndex: 0 }];
+        expect(() => applyCaptionsToText(afterText, targets, {})).toThrow(/not_recorded_yet/);
+    });
+});

@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { HERO_RELATIONS } from '../../modules/home/hero-headline-logic.js';
 
 // Static guard for the public homepage's marketing sections + carousel wiring.
 // The components pull in the router/asset graph, so this locks the wiring by raw
@@ -11,6 +12,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const read = (rel) => readFileSync(path.join(__dirname, rel), 'utf8');
 
 const homeLanding = read('./HomeLanding.jsx');
+const heroHeadlineComponent = read('./HeroHeadline.jsx');
+const heroHeadlineLogic = read('../../modules/home/hero-headline-logic.js');
+const heroHeadlineWebonly = read('../../modules/home/hero-headline-webonly.js');
 const container = read('./HomeLandingContainer.jsx');
 const carousel = read('./ConversationCarousel.jsx');
 const showcaseVideos = read('../../modules/video/showcase-videos.js');
@@ -112,6 +116,130 @@ describe('HomeLanding app-matched styling + scroll contract', () => {
         const block = homeLandingCss.slice(at, homeLandingCss.indexOf('}', at));
         expect(block).toContain('max-width');
         expect(carousel).toContain('uff-showcase-card');
+    });
+});
+
+describe('HomeLanding rotating hero headline', () => {
+    it('mounts the rotating headline inside the hero h1', () => {
+        expect(homeLanding).toContain("import HeroHeadline from './HeroHeadline.jsx'");
+        const at = homeLanding.indexOf('data-testid="share-code-headline"');
+        expect(at).toBeGreaterThan(-1);
+        const heading = homeLanding.slice(at, homeLanding.indexOf('</h1>', at));
+        expect(heading).toContain('<HeroHeadline lang={lang} />');
+    });
+
+    it('no longer reads the retired plain headline or its subheading', () => {
+        // The rotating sentence states both facts the subheading used to carry
+        // (the level difference and "not online at the same time"), so the keys
+        // are gone from strings.js and nothing may read them again.
+        for (const key of ['home_landing_headline', 'home_landing_headline_sub']) {
+            expect(homeLanding, key).not.toContain(key);
+        }
+    });
+
+    it('renders both pills above the headline, from the strings table', () => {
+        const pills = homeLanding.indexOf('data-testid="hero-pills"');
+        const heading = homeLanding.indexOf('data-testid="share-code-headline"');
+        expect(pills).toBeGreaterThan(-1);
+        expect(pills).toBeLessThan(heading);
+        expect(homeLanding).toContain("Strings.get('home_landing_pill_free', lang)");
+        expect(homeLanding).toContain("Strings.get('home_landing_pill_no_zoom', lang)");
+    });
+});
+
+describe('hero headline logic module purity', () => {
+    it('carries no React and touches no DOM', () => {
+        expect(heroHeadlineLogic).not.toMatch(/from ['"]react/);
+        expect(heroHeadlineLogic).not.toContain('window.');
+        expect(heroHeadlineLogic).not.toContain('document.');
+    });
+
+    it('keeps the browser read in the web-only module', () => {
+        // eslint's browser-only rule plus this guard: the renderer and the pure
+        // module never name `window`, the `-webonly` module does.
+        expect(heroHeadlineComponent).not.toContain('window.');
+        expect(heroHeadlineComponent).toContain("from '../../modules/home/hero-headline-webonly.js'");
+        expect(heroHeadlineWebonly).toContain('typeof window');
+    });
+
+    it('leaves the copy, the word lists and the interval to the module', () => {
+        expect(heroHeadlineComponent)
+            .toContain("from '../../modules/home/hero-headline-logic.js'");
+        // No localized copy and no CEFR band in the renderer: it only maps what
+        // the module resolved.
+        expect(heroHeadlineComponent).not.toContain('your mom');
+        expect(heroHeadlineComponent).not.toContain('A0');
+        expect(heroHeadlineComponent).not.toContain("'(prefers-reduced-motion");
+    });
+});
+
+describe('rotating hero headline styling', () => {
+    const block = (selector) => {
+        const at = homeLandingCss.indexOf(selector);
+        expect(at, `missing ${selector}`).toBeGreaterThan(-1);
+        return homeLandingCss.slice(at, homeLandingCss.indexOf('}', at));
+    };
+
+    it('underlines the rotating words in the app brand accent', () => {
+        const rot = block('.uff-hero-rot {');
+        for (const prop of [
+            'text-decoration-line: underline',
+            'text-decoration-color: #00c0d8',
+            'text-decoration-thickness',
+            'text-underline-offset',
+            'text-decoration-skip-ink: none',
+        ]) {
+            expect(rot, prop).toContain(prop);
+        }
+    });
+
+    it('stacks the candidates in one centred grid cell so the line cannot reflow', () => {
+        // The cell is as wide as the LONGEST candidate: that keeps the share-code
+        // card below from moving, and centring pads a shorter word on both sides
+        // instead of leaving a hole to one side.
+        const rot = block('.uff-hero-rot {');
+        expect(rot).toContain('display: inline-grid');
+        expect(rot).toContain('justify-items: center');
+        expect(rot).toContain('max-width: 100%');
+        const item = block('.uff-hero-rot__item {');
+        expect(item).toContain('grid-area: 1 / 1');
+        expect(item).toContain('opacity: 0');
+        expect(block('.uff-hero-rot__item.is-on')).toContain('opacity: 1');
+        expect(heroHeadlineComponent).toContain('segment.values.map((value, valueIndex)');
+    });
+
+    it('keeps every relationship short enough for the cell', () => {
+        // A multi-word value made the cell two thirds of a phone line and pushed
+        // the word onto its own line (measured at 320/390px), so the lists are
+        // single short words plus the possessive.
+        for (const [lang, relations] of Object.entries(HERO_RELATIONS)) {
+            for (const relation of relations) {
+                expect(relation.split(' ').length, `${lang}: ${relation}`).toBeLessThanOrEqual(2);
+                expect(relation.length, `${lang}: ${relation}`).toBeLessThanOrEqual(16);
+            }
+        }
+    });
+
+    it('drops the fade under prefers-reduced-motion', () => {
+        const at = homeLandingCss.indexOf('@media (prefers-reduced-motion: reduce) {');
+        expect(at).toBeGreaterThan(-1);
+        const media = homeLandingCss.slice(at, homeLandingCss.indexOf('\n}', at));
+        expect(media).toContain('.uff-hero-rot__item {');
+        expect(media).toContain('transition: none');
+    });
+
+    it('never copies the marketing sample palette', () => {
+        // The sample page's greens/greys must not leak into the app's palette.
+        for (const colour of ['#0a0c11', '#7cf5a8', '#98a2b3']) {
+            expect(homeLandingCss, colour).not.toContain(colour);
+        }
+    });
+
+    it('styles the pills from the app palette, not the sample', () => {
+        const pills = block('.uff-hero-pill {');
+        expect(pills).toContain('border-radius: 999px');
+        expect(pills).toContain('var(--bs-border-color)');
+        expect(block('.uff-hero-pill--accent')).toContain('#00c0d8');
     });
 });
 

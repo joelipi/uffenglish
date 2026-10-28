@@ -4,10 +4,13 @@
 // lesson (b, d, f, ...); the app still receives them as separate lessons.
 //
 // Authored here (plain English strings; translations are the translator script's
-// job and live outside this file): course header, per-pair lesson ids/titles, and
-// per topic the question variants, the branch labels, and the answer variants. Nothing else.
+// job and live outside this file): course header, per-pair lesson ids/titles,
+// per topic the question variants, the branch labels, and the answer variants,
+// and the optional `intros` scripts (three short course-level opener clips).
+// Nothing else.
 // Everything else is derived — never written here:
 //   step video slugs:   {course}-{askId|ansId}-{step:02}
+//   intro clip slugs:   {course}-intro-{first|respond|ask} (from `intros`)
 //   take slugs:         {video}-{take:02}
 //   UGC clips:          {recorder}-{inviter}-{course}-{lesson}-{step:02}  (share
 //                       codes; recorder first, the code that invited them second —
@@ -68,6 +71,22 @@
     "B1",
     "B2"
   ],
+  "intros": {
+    "first": [
+      "You're asking your friend which cartoon character you most resemble.",
+      "We are going to practice talking about similarities and describing ourselves.",
+      "Have fun. Let's start."
+    ],
+    "respond": [
+      "Your friend is asking you what cartoon character they resemble.",
+      "When you answer, you're going to practice talking about similarities.",
+      "Let's have fun."
+    ],
+    "ask": [
+      "Now it's your turn to ask your friend the same questions.",
+      "What cartoon characters do you resemble?"
+    ]
+  },
   "pairs": [
     {
       "ask": {

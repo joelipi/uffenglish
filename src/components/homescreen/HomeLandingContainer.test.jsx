@@ -22,6 +22,7 @@ vi.mock('../../modules/api/api.js', () => ({
 import HomeLandingContainer from './HomeLandingContainer.jsx';
 import { appStore } from '../../modules/store/store.js';
 import { get } from '../../data/strings.js';
+import { heroHeadlineText } from '../../modules/home/hero-headline-logic.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -145,7 +146,7 @@ describe('HomeLandingContainer', () => {
     it('localizes the headline from the guest language', async () => {
         appStore.setState({ guestNativeLanguage: 'es' });
         await render();
-        expect(q('share-code-headline').textContent).toBe(get('home_landing_headline', 'es'));
+        expect(q('hero-headline-accessible').textContent).toBe(heroHeadlineText('es', 0));
     });
 
     it('navigates to the welcome page (choose your topic) when no code is available', async () => {
@@ -178,13 +179,13 @@ describe('HomeLandingContainer', () => {
     it('renders in the adopted (uppercase) guest language', async () => {
         appStore.setState({ guestNativeLanguage: 'ES', userData: null });
         await render();
-        expect(q('share-code-headline').textContent).toBe(get('home_landing_headline', 'es'));
+        expect(q('hero-headline-accessible').textContent).toBe(heroHeadlineText('es', 0));
     });
 
     it('falls back to English when no language was adopted', async () => {
         appStore.setState({ guestNativeLanguage: null, userData: null });
         await render();
-        expect(q('share-code-headline').textContent).toBe(get('home_landing_headline', 'en'));
+        expect(q('hero-headline-accessible').textContent).toBe(heroHeadlineText('en', 0));
     });
 
     it('adopts the language chosen in the homepage selector', async () => {
@@ -196,6 +197,6 @@ describe('HomeLandingContainer', () => {
             select.dispatchEvent(new Event('change', { bubbles: true }));
         });
         expect(appStore.getState().guestNativeLanguage).toBe('ES');
-        expect(q('share-code-headline').textContent).toBe(get('home_landing_headline', 'es'));
+        expect(q('hero-headline-accessible').textContent).toBe(heroHeadlineText('es', 0));
     });
 });

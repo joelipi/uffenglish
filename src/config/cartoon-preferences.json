@@ -74,6 +74,7 @@
         },
         {
           "responseType": "branching",
+          "simpleVideoUrl": "cartoon-preferences-intro-first",
           "chooseStep": [
             {
               "nextStep": 1,
@@ -533,6 +534,10 @@
         {
           "responseType": "lessonIntro",
           "introBackgroundVideoUrl": "{friendCode}{selfCode}-cartoon-preferences-a-01"
+        },
+        {
+          "responseType": "viewAndContinue",
+          "simpleVideoUrl": "cartoon-preferences-intro-respond"
         },
         {
           "responseType": "branching",
@@ -1442,6 +1447,7 @@
         },
         {
           "responseType": "branching",
+          "simpleVideoUrl": "cartoon-preferences-intro-ask",
           "chooseStep": [
             {
               "nextStep": 1,
@@ -1915,6 +1921,10 @@
           "introBackgroundVideoUrl": "{friendCode}{selfCode}-cartoon-preferences-a-01"
         },
         {
+          "responseType": "viewAndContinue",
+          "simpleVideoUrl": "cartoon-preferences-intro-respond"
+        },
+        {
           "responseType": "branching",
           "simpleVideoUrl": "{friendCode}{selfCode}-cartoon-preferences-a-01",
           "chooseStep": [
@@ -2846,6 +2856,7 @@
         },
         {
           "responseType": "branching",
+          "simpleVideoUrl": "cartoon-preferences-intro-ask",
           "chooseStep": [
             {
               "nextStep": 1,
@@ -3305,6 +3316,10 @@
         {
           "responseType": "lessonIntro",
           "introBackgroundVideoUrl": "{friendCode}{selfCode}-cartoon-preferences-c-01"
+        },
+        {
+          "responseType": "viewAndContinue",
+          "simpleVideoUrl": "cartoon-preferences-intro-respond"
         },
         {
           "responseType": "branching",
@@ -4214,6 +4229,7 @@
         },
         {
           "responseType": "branching",
+          "simpleVideoUrl": "cartoon-preferences-intro-ask",
           "chooseStep": [
             {
               "nextStep": 1,
@@ -4687,6 +4703,10 @@
           "introBackgroundVideoUrl": "{friendCode}{selfCode}-cartoon-preferences-c-01"
         },
         {
+          "responseType": "viewAndContinue",
+          "simpleVideoUrl": "cartoon-preferences-intro-respond"
+        },
+        {
           "responseType": "branching",
           "simpleVideoUrl": "{friendCode}{selfCode}-cartoon-preferences-c-01",
           "chooseStep": [
@@ -5618,6 +5638,7 @@
         },
         {
           "responseType": "branching",
+          "simpleVideoUrl": "cartoon-preferences-intro-ask",
           "chooseStep": [
             {
               "nextStep": 1,
@@ -6077,6 +6098,10 @@
         {
           "responseType": "lessonIntro",
           "introBackgroundVideoUrl": "{friendCode}{selfCode}-cartoon-preferences-e-01"
+        },
+        {
+          "responseType": "viewAndContinue",
+          "simpleVideoUrl": "cartoon-preferences-intro-respond"
         },
         {
           "responseType": "branching",
@@ -6986,6 +7011,7 @@
         },
         {
           "responseType": "branching",
+          "simpleVideoUrl": "cartoon-preferences-intro-ask",
           "chooseStep": [
             {
               "nextStep": 1,
@@ -7457,6 +7483,10 @@
         {
           "responseType": "lessonIntro",
           "introBackgroundVideoUrl": "{friendCode}{selfCode}-cartoon-preferences-e-01"
+        },
+        {
+          "responseType": "viewAndContinue",
+          "simpleVideoUrl": "cartoon-preferences-intro-respond"
         },
         {
           "responseType": "branching",

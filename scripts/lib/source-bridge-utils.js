@@ -12,6 +12,10 @@
 //   take slugs:         {video}-{take:02}
 //   friend refs:        {friendCode}{selfCode}-{course}-{askId}-{topic:02}
 //                       (topic = the question's 1-based index in the ask lesson)
+//   intro clips:        {course}-intro-{first|respond|ask}; an optional
+//                       `intros` block of SHORT LINES becomes one take row per
+//                       line (recorder take + SRT cue), and the generator
+//                       places the concatenated clip in the lessons that use it
 //   overlay HTML:       rungs template; take N shows rungs 1..N-1 plain, rung N
 //                       filled + bold (the spoken line), the rest blank
 //                       (`___________`, 11 underscores — the sheet's marker)
@@ -35,11 +39,73 @@
 /** Blank rung marker: 11 underscores (measured from the sheet, not recalled). */
 export const BLANK_RUNG = '___________';
 
+/**
+ * Validate a source's optional `intros` block and return its lines per kind.
+ *
+ * Each kind is an ARRAY of short lines: one line is one recorded take and one
+ * subtitle cue, because the recorder's teleprompter shows a single line and the
+ * render concatenates the takes into the one clip. Absent → `null`.
+ * Pure; throws on a partial block, an empty/over-long list, a blank line, or a
+ * line over the per-line word cap.
+ *
+ * @param {object} source parsed source config
+ * @returns {Record<string, string[]>|null}
+ */
+export function introScriptLines(source) {
+    const intros = source?.intros;
+    if (intros === undefined || intros === null) return null;
+    if (typeof intros !== 'object' || Array.isArray(intros)) {
+        throw new Error('"intros" must be an object of line arrays keyed by kind');
+    }
+    const missing = INTRO_KINDS.filter((kind) => !(kind in intros));
+    const extra = Object.keys(intros).filter((kind) => !INTRO_KINDS.includes(kind));
+    if (missing.length || extra.length) {
+        throw new Error(
+            `"intros" must declare exactly ${INTRO_KINDS.join(', ')}` +
+            ` (missing: ${missing.join(', ') || 'none'}; unexpected: ${extra.join(', ') || 'none'})`
+        );
+    }
+    const out = {};
+    for (const kind of INTRO_KINDS) {
+        const lines = intros[kind];
+        if (!Array.isArray(lines) || lines.length === 0) {
+            throw new Error(`"intros.${kind}" must be a non-empty array of short lines`);
+        }
+        if (lines.length > INTRO_MAX_LINES) {
+            throw new Error(
+                `"intros.${kind}" has ${lines.length} lines; keep an intro clip to ${INTRO_MAX_LINES} lines or fewer`
+            );
+        }
+        out[kind] = lines.map((line, index) => {
+            if (typeof line !== 'string' || !line.trim()) {
+                throw new Error(`"intros.${kind}[${index}]" must be a non-empty line`);
+            }
+            const value = line.trim();
+            const words = value.split(/\s+/).length;
+            if (words > INTRO_MAX_WORDS_PER_LINE) {
+                throw new Error(
+                    `"intros.${kind}[${index}]" is ${words} words; keep a teleprompter line to ` +
+                    `${INTRO_MAX_WORDS_PER_LINE} words or fewer`
+                );
+            }
+            return value;
+        });
+    }
+    return out;
+}
+
 /** Recorder teleprompter default (the pipeline never reads this column). */
 export const DEFAULT_CHARACTER = 'CasualTeacher';
 
 import { LOCALIZATION_FIELDS, SHEET_LANGUAGES, TRANSLATABLE_FIELDS, localizedColumn } from './sheet-translate-utils.js';
-import { LEVEL_PATTERN_COLUMNS, csvField as sharedCsvField, serializeCsv } from './sheet-config-utils.js';
+import {
+    INTRO_KINDS,
+    INTRO_MAX_LINES,
+    INTRO_MAX_WORDS_PER_LINE,
+    LEVEL_PATTERN_COLUMNS,
+    csvField as sharedCsvField,
+    serializeCsv,
+} from './sheet-config-utils.js';
 
 // Re-exported (single implementation lives in sheet-config-utils.js) so the
 // bridge CLI and existing importers keep working unchanged.
@@ -389,6 +455,9 @@ export function sourceToRows(source) {
     if (!course) throw new Error('source config is missing "course"');
     if (!Array.isArray(pairs) || pairs.length === 0) throw new Error('source config needs at least one pair');
     if (!levels || typeof levels !== 'object') throw new Error('source config is missing "levels"');
+    // Validated before any row is built, so a malformed `intros` block fails
+    // the whole regeneration instead of silently dropping the clips.
+    const introLines = introScriptLines(source);
 
     const rows = [];
     const cell = (overrides) => {
@@ -572,6 +641,34 @@ export function sourceToRows(source) {
         // point it at each lesson's first video (the new design has no intro key).
         for (const row of pairRows) {
             row.intro_video = row.lesson_id === askId ? askFirstVideo : ansFirstVideo;
+        }
+    }
+
+    // Course-level intro clips: real takes, one row per short line, so the
+    // recorder prompts them and the render concatenates + captions the group.
+    // They are attached to the chain's FIRST lesson only (every row needs a
+    // lesson header); the generator places the resulting clip in the lessons
+    // that play it. No burned text: the app renders the pipeline-written srt.
+    if (introLines) {
+        const firstAsk = pairs[0].ask;
+        for (const kind of INTRO_KINDS) {
+            const video = `${course}-intro-${kind}`;
+            introLines[kind].forEach((line, index) => {
+                rows.push(cell({
+                    lesson_id: firstAsk.id,
+                    lesson_title: firstAsk.title || '',
+                    response_type: 'viewAndContinue',
+                    video_file: video,
+                    filename: `${video}-${pad2(index + 1)}`,
+                    order: String(index + 1),
+                    character: DEFAULT_CHARACTER,
+                    phrase: line,
+                    title_text: '',
+                    subtitle_text: '',
+                    footer_text: '',
+                    set_role: 'intro',
+                }));
+            });
         }
     }
     return rows;

@@ -57,6 +57,43 @@ columns reported):
 - **`next_step` must be an integer ≥ 1** when set. A `branching` step with no `choose_step_*`
   still generates (the app falls back to a Continue button, which honors `next_step`).
 
+## Course intro clips (`intros`)
+
+A course may declare three short, course-level opener clips in its source file
+(`sources/<course>.source.txt`). Each is an **array of short lines** — one line
+is one recorder take and one subtitle cue, because the teleprompter shows a
+single line at a time:
+
+```json
+"intros": {
+  "first":   ["You're asking your friend which cartoon character you most resemble.", "Have fun. Let's start."],
+  "respond": ["Your friend is asking you what cartoon character they resemble.", "Let's have fun."],
+  "ask":     ["Now it's your turn to ask your friend the same questions.", "What cartoon characters do you resemble?"]
+}
+```
+
+- **All three or none.** A partial block, a blank line, more than 6 lines, or a
+  line over 20 words (the recorder renders it at `9vw`) fails the source
+  regeneration instead of dropping clips silently.
+- **Slugs are derived, never authored:** `{course}-intro-first`,
+  `{course}-intro-respond`, `{course}-intro-ask`.
+- **The bridge writes one take row per line** (`set_role: intro`,
+  `video_file` = the slug, `filename` = `<slug>-NN`, and blank
+  `title_text`/`subtitle_text`/`footer_text` so no overlay is burned onto a
+  selfie opener). The lines appear in the recorder like any other take.
+- **The render owns the clip.** It concatenates each slug's takes into one
+  video, publishes `assets/videos/<slug>.mp4`, and writes the step's `srt` —
+  **one cue per line**, with the timings measured from the concatenated clip.
+  The translate run fills `srt_<lang>`, and the generator emits the timed
+  `subtitles`, so there is no manual upload and no separate caption run.
+- The generator places the clip:
+
+  | Clip | Where it plays |
+  |---|---|
+  | `-intro-first` | Lesson A's first ask branch (frames the whole course). |
+  | `-intro-respond` | Every answer lesson (B onward), as a `viewAndContinue` step immediately after the lesson intro and before the friend's clip. |
+  | `-intro-ask` | Every later lesson's first ask-phase branch ("now it's your turn"). The closing lesson has no ask phase, so it never plays this clip. |
+
 ## Overlay master → config fields
 
 The **overlay master** (`title_text, Order, phrase, subtitle_text, join, video_file, …`, the
