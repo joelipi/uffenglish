@@ -1435,6 +1435,14 @@ describe('recorder auto-render — zero server changes', () => {
             'docs/video-pipeline/tests/test_background_removal_wiring.py',
             'docs/video-pipeline/tests/test_pipeline_source.py',
             'src/modules/video/recorder-page.test.js',
+            // Story 100 follow-up: the generated studio backdrop the preview's
+            // `background` cell resolves to, its generator, and the one topic
+            // whose takes carry it.
+            'scripts/generate-studio-background.mjs',
+            'scripts/generate-studio-background.test.js',
+            'public/overlays/backgrounds/studio.png',
+            'sources/wouldyourather.source.txt',
+            'public/wouldyourather.master.csv',
             'src/modules/speech/portrait-capture-logic.js',
             'src/modules/speech/portrait-capture-logic.test.js',
             'src/modules/speech/speech.web.js',
