@@ -1450,6 +1450,7 @@ describe('recorder auto-render — zero server changes', () => {
             'src/modules/looks/emoji-picker-logic.test.js',
             'src/modules/looks/twemoji-collection.js',
             'src/modules/looks/twemoji-collection.test.js',
+            'src/modules/looks/twemoji-attribution.test.js',
             'public/overlays/TWEMOJI-ATTRIBUTION.md',
             'index.html',
             // Retired by the 092 folder layout (deleted paths still appear in the
@@ -2288,6 +2289,15 @@ describe('recorder auto-render — zero server changes', () => {
             'scripts/lib/caption-utils.test.js',
             'scripts/generate-captions.test.js',
             'docs/product.md',
+            // Bottom band overlays: a fruit strip and a vegetable strip along the
+            // frame's bottom edge, generated from Twemoji produce.
+            'scripts/generate-bottom-overlays.mjs',
+            'src/modules/looks/bottom-overlays.test.js',
+            'src/modules/looks/recording-looks-logic.js',
+            'public/overlays/props/fruits-bottom.png',
+            'public/overlays/props/veggies-bottom.png',
+            'public/overlays/TWEMOJI-ATTRIBUTION.md',
+            'src/modules/video/recorder-page.test.js',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);
