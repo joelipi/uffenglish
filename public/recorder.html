@@ -965,9 +965,15 @@
             }
             appCoreLog('Layer state: ' + JSON.stringify(state));
             if (global_take_phase === 'idle') {
+                var stats = global_live_looks && global_live_looks.stats ? global_live_looks.stats() : null;
+                // Say WHICH renderer is running: a silent 2D fallback is the
+                // difference between a smooth take and a drifting one, and it
+                // used to be invisible outside the console.
+                var renderer = stats ? String(stats.compositor).toUpperCase() : 'RAW';
                 node_status_bar.textContent = 'HARDWARE READY • LIVE LOOKS'
                     + (state.backgroundState === 'ready' ? ' • BG' : '')
-                    + (state.foregroundState === 'ready' ? ' • FG' : '');
+                    + (state.foregroundState === 'ready' ? ' • FG' : '')
+                    + ' • ' + renderer;
                 node_status_bar.className = 'status-indicator-bar status-ready';
             }
         }

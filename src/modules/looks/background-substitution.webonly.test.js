@@ -42,13 +42,72 @@ function makeContext() {
     return ctx;
 }
 
+const GL_CONSTANTS = {
+    VERTEX_SHADER: 35633,
+    FRAGMENT_SHADER: 35632,
+    COMPILE_STATUS: 35713,
+    LINK_STATUS: 35714,
+    ARRAY_BUFFER: 34962,
+    STATIC_DRAW: 35044,
+    FLOAT: 5126,
+    TEXTURE_2D: 3553,
+    TEXTURE0: 33984,
+    LINEAR: 9729,
+    CLAMP_TO_EDGE: 33071,
+    RGBA: 6408,
+    UNSIGNED_BYTE: 5121,
+    TRIANGLE_STRIP: 5,
+    UNPACK_FLIP_Y_WEBGL: 37440,
+};
+
+function makeFakeGl({ compileOk = true } = {}) {
+    const calls = [];
+    const gl = { ...GL_CONSTANTS, calls };
+    for (const name of [
+        'shaderSource', 'compileShader', 'attachShader', 'linkProgram', 'useProgram', 'bindBuffer',
+        'bufferData', 'enableVertexAttribArray', 'vertexAttribPointer', 'activeTexture',
+        'bindTexture', 'texParameteri', 'uniform1i', 'pixelStorei', 'viewport',
+        'uniform1f', 'drawArrays', 'deleteTexture', 'deleteBuffer', 'deleteProgram',
+    ]) {
+        gl[name] = vi.fn((...args) => calls.push([name, ...args]));
+    }
+    gl.createShader = vi.fn(() => ({}));
+    gl.createProgram = vi.fn(() => ({}));
+    gl.createBuffer = vi.fn(() => ({}));
+    gl.createTexture = vi.fn(() => ({}));
+    gl.getShaderParameter = vi.fn(() => compileOk);
+    gl.getShaderInfoLog = vi.fn(() => 'shader error');
+    gl.getProgramParameter = vi.fn(() => compileOk);
+    gl.getProgramInfoLog = vi.fn(() => 'link error');
+    gl.getAttribLocation = vi.fn(() => 0);
+    gl.getUniformLocation = vi.fn((_, name) => ({ name }));
+    gl.texImage2D = vi.fn((...args) => calls.push(['texImage2D', ...args]));
+    return gl;
+}
+
+/**
+ * A canvas that enforces the real "one context for life" rule: once `webgl2` is
+ * handed out, `getContext('2d')` returns null (and vice versa). Modelling this is
+ * the point — a fake that happily returns both hides the bug that made the
+ * shader unreachable.
+ */
 function makeCanvas({ webgl2 = null } = {}) {
     const ctx = makeContext();
+    let taken = null;
     const canvas = {
         width: 0,
         height: 0,
         ctx,
-        getContext: vi.fn((type) => (type === 'webgl2' ? webgl2 : ctx)),
+        getContext: vi.fn((type) => {
+            if (type === 'webgl2') {
+                if (taken === '2d') return null;
+                taken = 'webgl2';
+                return webgl2;
+            }
+            if (taken === 'webgl2') return null;
+            taken = '2d';
+            return ctx;
+        }),
         captureStream: vi.fn(() => ({ getVideoTracks: () => [{ kind: 'video', stop: vi.fn() }] })),
     };
     ctx.canvas = canvas;
@@ -76,10 +135,10 @@ function makeVideo({ width = 1920, height = 1080 } = {}) {
 
 const dims = { width: 1080, height: 1920, fps: 30, maskWidth: 256, maskHeight: 256 };
 
-function build({ background = null, foreground = null, segmenter = null, mask = null, video = null } = {}) {
+function build({ background = null, foreground = null, segmenter = null, mask = null, video = null, webgl2 = null, compileOk = true } = {}) {
     const canvases = [];
     const createCanvas = () => {
-        const canvas = makeCanvas();
+        const canvas = makeCanvas({ webgl2 });
         canvases.push(canvas);
         return canvas;
     };
@@ -171,20 +230,25 @@ describe('createSubstitutedCaptureStream', () => {
         api.paintNow();
 
         const output = outputCanvas(api);
-        // Canvas creation order: [0] output, [1] person scratch, [2] overlays, [3] mask input.
-        const personCanvas = canvases[1];
-        const overlaysCanvas = canvases[2];
         const paintedOnOutput = output.ctx.calls
             .filter(([name]) => name === 'drawImage')
             .map(([, source]) => source);
 
+        // Background first, then the cut-out person layer, then the overlay layer.
         expect(paintedOnOutput[0]).toBe(background);
-        expect(paintedOnOutput[1]).toBe(personCanvas);
-        expect(paintedOnOutput[2]).toBe(overlaysCanvas);
+        expect(paintedOnOutput).toHaveLength(3);
+        const personLayer = paintedOnOutput[1];
+        const overlayLayer = paintedOnOutput[2];
+        // Both are canvases the factory made (not the output, not the image).
+        expect(canvases).toContain(personLayer);
+        expect(canvases).toContain(overlayLayer);
+        expect(personLayer).not.toBe(output);
+        // The scratch layer is the one that was cut out with destination-in.
+        expect(personLayer.ctx.calls).toContainEqual(['composite', 'destination-in']);
 
         // The foreground lives INSIDE the overlay layer, so it lands on top of
         // the cut-out person rather than behind it.
-        const overlayDraws = overlaysCanvas.ctx.calls
+        const overlayDraws = overlayLayer.ctx.calls
             .filter(([name]) => name === 'drawImage')
             .map(([, source]) => source);
         expect(overlayDraws).toContain(foreground);
@@ -200,12 +264,13 @@ describe('createSubstitutedCaptureStream', () => {
         });
         api.paintNow();
         const output = outputCanvas(api);
-        const personCanvas = canvases[1];
         // The main canvas never enters `destination-in` (that would erase the
         // background it just painted)...
         expect(output.ctx.calls.filter(([n, v]) => n === 'composite' && v === 'destination-in')).toHaveLength(0);
-        // ...the scratch canvas is where the cut-out happens.
-        expect(personCanvas.ctx.calls).toContainEqual(['composite', 'destination-in']);
+        // ...a scratch canvas is where the cut-out happens.
+        const scratched = canvases.filter((c) => c !== output
+            && c.ctx.calls.some(([n, v]) => n === 'composite' && v === 'destination-in'));
+        expect(scratched).toHaveLength(1);
         api.dispose();
     });
 
@@ -271,8 +336,58 @@ describe('createSubstitutedCaptureStream', () => {
     });
 
     it('falls back to 2D when webgl2 is unavailable', () => {
-        const { api } = build();
+        const { api, canvases } = build();
         expect(api.stats().compositor).toBe('2d');
+        // The probe canvas is throwaway; the output took a 2D context.
+        expect(outputCanvas(api).getContext).toHaveBeenCalledWith('2d');
+        expect(canvases.length).toBeGreaterThan(1);
+        api.dispose();
+    });
+});
+
+describe('renderer selection (a canvas keeps its first context type)', () => {
+    it('uses WebGL2 when it is available and never asks the output for 2D', () => {
+        const gl = makeFakeGl();
+        const { api } = build({ webgl2: gl });
+        expect(api.stats().compositor).toBe('webgl2');
+        const output = outputCanvas(api);
+        // THE BUG this covers: asking for '2d' first permanently denies 'webgl2',
+        // so the shader could never run and every take paid two full-resolution
+        // 2D draws per frame instead of one GPU draw call.
+        expect(output.getContext.mock.calls.map(([type]) => type)).not.toContain('2d');
+        expect(output.getContext).toHaveBeenCalledWith('webgl2', expect.anything());
+        api.dispose();
+    });
+
+    it('draws through the shader once per frame when WebGL2 is active', () => {
+        const gl = makeFakeGl();
+        const { api } = build({
+            webgl2: gl,
+            background: { naturalWidth: 1080, naturalHeight: 1920 },
+            segmenter: { id: 'seg' },
+            mask: new Uint8Array(256 * 256).fill(200),
+        });
+        api.paintNow();
+        expect(gl.texImage2D).toHaveBeenCalled();
+        expect(gl.drawArrays).toHaveBeenCalled();
+        // Four layer textures are bound every frame.
+        expect(gl.activeTexture.mock.calls.length).toBeGreaterThanOrEqual(4);
+        api.dispose();
+    });
+
+    it('moves the output to a fresh canvas when the shader fails to build', () => {
+        // WebGL2 is present but unusable: the first canvas is permanently a
+        // WebGL2 canvas, so painting must continue on a different one — the
+        // stream is captured after this decision, so the take still works.
+        const { api, canvases } = build({ webgl2: makeFakeGl({ compileOk: false }) });
+        const output = outputCanvas(api);
+        expect(api.stats().compositor).toBe('2d');
+        expect(canvases.length).toBeGreaterThan(2);
+        expect(output.getContext).toHaveBeenCalledWith('2d');
+        expect(api.paintNow()).toBe(true);
+        expect(api.stats().framesDrawn).toBe(1);
+        // The stream is captured from the canvas actually being painted.
+        expect(output.captureStream).toHaveBeenCalledWith(30);
         api.dispose();
     });
 });

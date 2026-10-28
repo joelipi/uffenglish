@@ -49,6 +49,23 @@ function appendToBody(node) {
     }
 }
 
+/**
+ * Whether this browser can build a WebGL2 context at all.
+ *
+ * Probed on a THROWAWAY canvas because a canvas keeps the first context type it
+ * is asked for: testing on the real one would lock it to WebGL2 and destroy the
+ * 2D fallback.
+ */
+function webgl2Available(createCanvas) {
+    try {
+        const probe = createCanvas();
+        if (!probe || typeof probe.getContext !== 'function') return false;
+        return !!probe.getContext('webgl2');
+    } catch (e) {
+        return false;
+    }
+}
+
 /** Cover-fit rect for an image inside a 9:16 canvas (no letterboxing). */export function resolveCoverRect({ imageWidth, imageHeight, canvasWidth, canvasHeight }) {
     if (!(imageWidth > 0) || !(imageHeight > 0) || !(canvasWidth > 0) || !(canvasHeight > 0)) return null;
     const scale = Math.max(canvasWidth / imageWidth, canvasHeight / imageHeight);
@@ -337,18 +354,44 @@ export function createSubstitutedCaptureStream({
         playResult.catch((e) => console.warn('[Substitution] camera playback failed', e && e.message));
     }
 
-    const twoD = canvas.getContext ? canvas.getContext('2d') : null;
+    // Renderer selection. A canvas has exactly ONE context for its lifetime, so
+    // order matters: asking for '2d' first permanently denies 'webgl2' — which is
+    // how the shader below could never run and every take fell back to two
+    // full-resolution 2D draws per frame (the path that drifts). WebGL2 is
+    // probed on a THROWAWAY canvas before this one commits to a context, and a
+    // shader that fails to build after the real context exists moves the output
+    // to a fresh 2D canvas rather than painting nothing at all.
+    let outputCanvas = canvas;
     let glCompositor = null;
-    try {
-        const gl = canvas.getContext ? canvas.getContext('webgl2', { alpha: false, desynchronized: true }) : null;
-        if (gl) glCompositor = createGlCompositor(gl, dimensions);
-    } catch (e) {
-        console.warn('[Substitution] WebGL2 compositor unavailable, using 2D', e && e.message);
-        glCompositor = null;
+    let main2d = null;
+    if (webgl2Available(createCanvas)) {
+        try {
+            const gl = outputCanvas.getContext
+                ? outputCanvas.getContext('webgl2', { alpha: false, desynchronized: true })
+                : null;
+            if (gl) glCompositor = createGlCompositor(gl, dimensions);
+        } catch (e) {
+            console.warn('[Substitution] WebGL2 compositor unavailable, using 2D', e && e.message);
+            glCompositor = null;
+        }
     }
-    // A canvas has ONE context: creating webgl2 may have consumed it, so the 2D
-    // fallback gets its own scratch canvas rather than a null context.
-    const main2d = glCompositor ? null : twoD;
+    if (!glCompositor) {
+        // If this canvas already holds an unusable WebGL2 context it can never
+        // give us 2D, so the output moves to a clean canvas. This happens before
+        // captureStream, so the recorded track comes from the canvas we paint.
+        const stuckOnWebgl2 = typeof outputCanvas.getContext === 'function'
+            && !outputCanvas.getContext('2d');
+        if (stuckOnWebgl2) {
+            outputCanvas = createCanvas();
+            outputCanvas.width = width;
+            outputCanvas.height = height;
+            if (outputCanvas.style) {
+                outputCanvas.style.cssText = 'position:fixed;top:0;left:0;width:2px;height:2px;opacity:0.01;pointer-events:none;';
+            }
+            appendToBody(outputCanvas);
+        }
+        main2d = outputCanvas.getContext ? outputCanvas.getContext('2d') : null;
+    }
     const personCanvas = glCompositor ? null : createCanvas();
     if (personCanvas) {
         personCanvas.width = width;
@@ -548,7 +591,9 @@ export function createSubstitutedCaptureStream({
         tick();
     }
 
-    const canvasStream = typeof canvas.captureStream === 'function' ? canvas.captureStream(fps) : null;
+    const canvasStream = typeof outputCanvas.captureStream === 'function'
+        ? outputCanvas.captureStream(fps)
+        : null;
     const videoTracks = canvasStream ? canvasStream.getVideoTracks() : [];
     const audioTracks = rawStream && typeof rawStream.getAudioTracks === 'function'
         ? rawStream.getAudioTracks()
@@ -557,7 +602,7 @@ export function createSubstitutedCaptureStream({
 
     return {
         stream,
-        canvas,
+        canvas: outputCanvas,
         /** Replace one layer (a decoded image, or null to clear it). */
         setLayer(kind, image) {
             if (kind === 'background') state.background = image || null;
@@ -601,7 +646,7 @@ export function createSubstitutedCaptureStream({
             video.srcObject = null;
             if (glCompositor) glCompositor.dispose();
             glCompositor = null;
-            for (const node of [canvas, video]) {
+            for (const node of [outputCanvas, canvas, video]) {
                 if (node && node.parentNode) node.parentNode.removeChild(node);
             }
         },
