@@ -301,6 +301,33 @@ describe('createSubstitutedCaptureStream', () => {
         api.dispose();
     });
 
+    it('hands the segmenter a real drawImage SOURCE rect, not the dest rect', () => {
+        // `resolveCoverRect` returns `{dx,dy,dw,dh}` for the output canvas; the
+        // mask input needs `{sx,sy,sw,sh}`. Passing the dest shape straight
+        // through made drawImage a no-op (undefined source rect) and the model
+        // answered with an all-zero mask on every frame — a clean backdrop with
+        // the person missing, and nothing logged.
+        const paintMask = vi.fn(() => new Uint8Array(256 * 256).fill(128));
+        const api = createSubstitutedCaptureStream({
+            rawStream: { getAudioTracks: () => [], getVideoTracks: () => [] },
+            createCanvas: () => makeCanvas(),
+            createVideo: () => makeVideo({ width: 1920, height: 1080 }),
+            dimensions: dims,
+            segmenter: { id: 'seg' },
+            background: { naturalWidth: 1080, naturalHeight: 1920 },
+            paintMask,
+        });
+        api.paintNow();
+        const { cropRect } = paintMask.mock.calls[0][0];
+        expect(Object.keys(cropRect).sort()).toEqual(['sh', 'sw', 'sx', 'sy']);
+        expect(cropRect.sw).toBeGreaterThan(0);
+        expect(cropRect.sh).toBeGreaterThan(0);
+        // A landscape camera into a portrait mask crop overflows horizontally.
+        expect(cropRect.sx).toBeLessThan(0);
+        expect(cropRect.sh).toBe(256);
+        api.dispose();
+    });
+
     it('paints per camera frame via requestVideoFrameCallback when available', () => {
         const { api, camera } = build();
         expect(camera.requestVideoFrameCallback).toHaveBeenCalledTimes(1);

@@ -157,6 +157,27 @@ describe('segmentFrameToMask', () => {
         expect(close).toHaveBeenCalledTimes(1);
     });
 
+    it('refuses an empty source rect instead of returning an all-zero mask', () => {
+        const { ctx, drawImage } = fakeMaskInput();
+        const { handle, segmentForVideo } = fakeSegmenter();
+        // The `{dx,dy,dw,dh}` shape: drawImage treats a missing source rect as
+        // 0×0, so the model would see a blank frame and answer with zeros.
+        const previous = new Uint8Array([5]);
+        for (const cropRect of [
+            { dx: -1166, dy: 0, dw: 3413, dh: 1920 },
+            { sx: 0, sy: 0, sw: 0, sh: 0 },
+            { sx: 0, sy: 0, sw: 100, sh: 0 },
+        ]) {
+            const mask = segmentFrameToMask({
+                segmenter: handle, maskInputCtx: ctx, video: {}, cropRect,
+                maskWidth: 1, maskHeight: 1, previousMask: previous,
+            });
+            expect(mask, JSON.stringify(cropRect)).toBe(previous);
+        }
+        expect(drawImage).not.toHaveBeenCalled();
+        expect(segmentForVideo).not.toHaveBeenCalled();
+    });
+
     it('does nothing without a segmenter or a crop rect', () => {
         const { ctx, drawImage } = fakeMaskInput();
         expect(segmentFrameToMask({ segmenter: null, maskInputCtx: ctx, video: {}, cropRect: CROP })).toBeNull();

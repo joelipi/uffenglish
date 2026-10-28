@@ -441,15 +441,26 @@ export function createSubstitutedCaptureStream({
         });
     }
 
-    function maskCropRect() {
+    /**
+     * The mask input's SOURCE rect (`sx/sy/sw/sh`, the drawImage crop form).
+     *
+     * `resolveCoverRect` speaks destination coordinates (`dx/dy/dw/dh`) because
+     * that is what the output canvas needs. Reading `.sx` off it yields
+     * `undefined`, `drawImage` then treats an undefined source rect as 0×0,
+     * nothing is drawn, the model sees a blank frame and returns an all-zero
+     * mask — a take that looks like a clean backdrop with no person in it.
+     */
+    function maskSourceRect() {
         // The MASK input covers the same cropped region as the canvas, so the
         // matte lines up with the picture after both are scaled to the frame.
-        return resolveCoverRect({
+        const rect = resolveCoverRect({
             imageWidth: video.videoWidth,
             imageHeight: video.videoHeight,
             canvasWidth: maskWidth,
             canvasHeight: maskHeight,
         });
+        if (!rect) return null;
+        return { sx: rect.dx, sy: rect.dy, sw: rect.dw, sh: rect.dh };
     }
 
     function paintMaskTexture() {
@@ -509,7 +520,7 @@ export function createSubstitutedCaptureStream({
                 maskInputCanvas: maskCanvas,
                 maskInputCtx: maskCtx,
                 video,
-                cropRect: maskCropRect(),
+                cropRect: maskSourceRect(),
                 maskWidth,
                 maskHeight,
                 timestampMs: now(),

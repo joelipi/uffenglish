@@ -106,6 +106,15 @@ export function segmentFrameToMask({
     previousMask = null,
 }) {
     if (!segmenter || !video || !cropRect) return previousMask;
+    // A source rect with a missing or zero dimension draws NOTHING, so the model
+    // sees a blank frame and answers with an all-zero mask — a take that looks
+    // like a clean backdrop with no person in it, and no error anywhere. Fail
+    // loudly instead (this is how a `{dx,dy,dw,dh}` rect once reached here).
+    if (![cropRect.sx, cropRect.sy, cropRect.sw, cropRect.sh]
+        .every((v) => Number.isFinite(v)) || cropRect.sw <= 0 || cropRect.sh <= 0) {
+        console.error('[Segmenter] refusing an empty source rect', cropRect);
+        return previousMask;
+    }
     const { ctx, canvas } = resolveMaskInput({ maskInputCanvas, maskInputCtx });
     if (!ctx || !canvas) return previousMask;
 
