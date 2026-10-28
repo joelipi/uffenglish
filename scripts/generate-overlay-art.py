@@ -202,24 +202,6 @@ def carnival_mask():
 
 # ── Upper props (sit above the face zone) ───────────────────────────────────
 
-def witchhat():
-    W, H = 560, 360
-    px = blank(W, H)
-    purple = (124, 58, 237, 255)
-    dark = (76, 29, 149, 255)
-    gold = (250, 204, 21, 255)
-    poly(px, [(280, 10), (400, 268), (160, 268)], purple)
-    poly(px, [(280, 10), (400, 268), (280, 268)], dark)
-    ellipse(px, 280, 286, 190, 40, dark)
-    ellipse(px, 280, 272, 190, 34, purple)
-    for (sx, sy, r) in ((250, 140, 18), (315, 205, 13), (215, 220, 10)):
-        poly(px, [(sx, sy - r), (sx + r * 0.32, sy - r * 0.32), (sx + r, sy),
-                  (sx + r * 0.32, sy + r * 0.32), (sx, sy + r),
-                  (sx - r * 0.32, sy + r * 0.32), (sx - r, sy),
-                  (sx - r * 0.32, sy - r * 0.32)], gold)
-    png(os.path.join(ROOT, 'props', 'witchhat.png'), W, H, px)
-
-
 def crown():
     W, H = 560, 300
     px = blank(W, H)
@@ -232,21 +214,6 @@ def crown():
 
 
 # ── Lower props (bottom of the frame) ───────────────────────────────────────
-
-def cauldron():
-    W, H = 720, 320
-    px = blank(W, H)
-    iron = (46, 46, 56, 255)
-    rim = (72, 72, 86, 255)
-    brew = (90, 220, 120, 255)
-    ellipse(px, 360, 150, 250, 60, rim)
-    ellipse(px, 360, 150, 220, 46, brew)
-    ellipse(px, 360, 190, 250, 130, iron)
-    rect(px, 110, 60, 610, 150, iron)
-    for i in range(6):  # bubbles
-        ellipse(px, 250 + i * 45, 120 - (i % 3) * 18, 12, 12, (150, 255, 180, 255))
-    png(os.path.join(ROOT, 'props', 'cauldron.png'), W, H, px)
-
 
 def desk():
     W, H = 720, 300
@@ -278,5 +245,5 @@ def frame():
 
 
 if __name__ == '__main__':
-    for fn in (carnival_mask, witchhat, crown, cauldron, desk, frame):
+    for fn in (carnival_mask, crown, desk, frame):
         fn()

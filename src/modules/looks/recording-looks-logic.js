@@ -190,7 +190,6 @@ export const OVERLAY_LIBRARY = {
     'judge-female': { slot: 'face', file: '/overlays/face/judge-female.png', anchor: 'face', label: 'Female judge', labelKey: 'look_overlay_judge_female' },
     'construction-worker': { slot: 'face', file: '/overlays/face/construction-worker.png', anchor: 'face', label: 'Construction worker', labelKey: 'look_overlay_construction_worker' },
     // Above-the-face props.
-    witchhat: { slot: 'upper', file: '/overlays/props/witchhat.png', anchor: 'upper', label: 'Witch hat', labelKey: 'look_overlay_witchhat' },
     crown: { slot: 'upper', file: '/overlays/props/crown.png', anchor: 'upper', label: 'Crown', labelKey: 'look_overlay_crown' },
     'graduationcap-twemoji': { slot: 'upper', file: '/overlays/props/graduationcap-twemoji.png', anchor: 'upper', label: 'Graduation cap', labelKey: 'look_overlay_graduationcap_twemoji' },
     'tophat-twemoji': { slot: 'upper', file: '/overlays/props/tophat-twemoji.png', anchor: 'upper', label: 'Top hat', labelKey: 'look_overlay_tophat_twemoji' },
@@ -209,7 +208,6 @@ export const OVERLAY_LIBRARY = {
     'male-gray-hair': { slot: 'upper', file: '/overlays/props/male-gray-hair.png', anchor: 'upper', label: 'Male gray hair', labelKey: 'look_overlay_male_gray_hair' },
     'female-gray-hair': { slot: 'upper', file: '/overlays/props/female-gray-hair.png', anchor: 'upper', label: 'Female gray hair', labelKey: 'look_overlay_female_gray_hair' },
     // Lower / scene props.
-    cauldron: { slot: 'lower', file: '/overlays/props/cauldron.png', anchor: 'lower', label: 'Cauldron', labelKey: 'look_overlay_cauldron' },
     desk: { slot: 'lower', file: '/overlays/props/desk.png', anchor: 'lower', label: 'Desk', labelKey: 'look_overlay_desk' },
     frame: { slot: 'lower', file: '/overlays/props/frame.png', anchor: 'lower', label: 'Frame', labelKey: 'look_overlay_frame' },
     // Bottom bands: a wide strip of produce laid along the frame's bottom edge.
@@ -381,7 +379,7 @@ export function overlaySlugsForSlot(slot) {
     return OVERLAY_SLUGS.filter((slug) => OVERLAY_LIBRARY[slug].slot === slot);
 }
 
-/** A slug is usable only in its own slot — `cauldron` can never become a face cover. */
+/** A slug is usable only in its own slot — `desk` can never become a face cover. */
 export function isSlugValidForSlot(slug, slot) {
     if (slug === null || slug === undefined) return true;
     if (isTwemojiSlug(slug)) {

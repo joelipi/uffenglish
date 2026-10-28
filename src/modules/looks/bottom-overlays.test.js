@@ -81,9 +81,9 @@ describe('bottom bands are registered as lower-slot overlays', () => {
         expect(OVERLAY_LIBRARY['gifts-bottom'].label).toBe('Gifts');
         // The existing lower props keep the generic anchor: an override must not
         // leak into the slot's other assets.
-        expect(OVERLAY_LIBRARY.cauldron.baseWidth).toBeUndefined();
         expect(OVERLAY_LIBRARY.desk.baseWidth).toBeUndefined();
         expect(OVERLAY_LIBRARY.desk.anchorY).toBeUndefined();
+        expect(OVERLAY_LIBRARY.frame.baseWidth).toBeUndefined();
         expect(OVERLAY_LIBRARY.frame.anchorY).toBeUndefined();
     });
 });
@@ -112,7 +112,7 @@ describe('the band is 80% wide and sits on the bottom edge of the frame', () => 
     it('leaves the other lower props where they were', () => {
         const rect = resolveSlotDrawRect({
             slot: 'lower',
-            slug: 'cauldron',
+            slug: 'desk',
             imageWidth: 800,
             imageHeight: 800,
             ...CANVAS,

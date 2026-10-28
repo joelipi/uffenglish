@@ -1562,7 +1562,7 @@ describe('withCarriedTags', () => {
 });
 
 describe('withCarriedTags — step overlays (stories/092)', () => {
-    const overlays = { face: { asset: 'smiley' }, lower: { asset: 'cauldron' } };
+    const overlays = { face: { asset: 'smiley' }, lower: { asset: 'desk' } };
     const generated = {
         courseId: 'wvr',
         courseName: 'WVR',

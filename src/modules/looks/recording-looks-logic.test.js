@@ -57,6 +57,7 @@ import {
     FILTER_PRESETS,
     LENS_PRESETS,
     SLOT_ANCHORS,
+    OVERLAY_LIBRARY,
 } from './recording-looks-logic.js';
 
 describe('resolveFilterId', () => {
@@ -92,13 +93,23 @@ describe('isPreviewGateStep', () => {
 describe('overlay library', () => {
     it('each slot lists only its own assets', () => {
         expect(overlaySlugsForSlot('face')).toContain('carnival');
-        expect(overlaySlugsForSlot('face')).not.toContain('cauldron');
-        expect(overlaySlugsForSlot('upper')).toContain('witchhat');
-        expect(overlaySlugsForSlot('lower')).toContain('cauldron');
+        expect(overlaySlugsForSlot('face')).not.toContain('desk');
+        expect(overlaySlugsForSlot('upper')).toContain('crown');
+        expect(overlaySlugsForSlot('lower')).toContain('desk');
+    });
+    it('no longer offers the cauldron or the witch hat', () => {
+        // Removed from the picker on request; the art and its generator are
+        // gone too, so a stale config naming either slug degrades to no prop.
+        expect(OVERLAY_LIBRARY.cauldron).toBeUndefined();
+        expect(OVERLAY_LIBRARY.witchhat).toBeUndefined();
+        expect(assetFileForSlug('cauldron')).toBeNull();
+        expect(assetFileForSlug('witchhat')).toBeNull();
+        expect(isSlugValidForSlot('cauldron', 'lower')).toBe(false);
+        expect(isSlugValidForSlot('witchhat', 'upper')).toBe(false);
     });
     it('a slug cannot be used in the wrong slot', () => {
-        expect(isSlugValidForSlot('cauldron', 'face')).toBe(false);
-        expect(isSlugValidForSlot('cauldron', 'lower')).toBe(true);
+        expect(isSlugValidForSlot('desk', 'face')).toBe(false);
+        expect(isSlugValidForSlot('desk', 'lower')).toBe(true);
         expect(isSlugValidForSlot(null, 'face')).toBe(true);
     });
     it('Twemoji slugs belong only to the emoji slot', () => {
@@ -115,13 +126,14 @@ describe('overlay library', () => {
 
 describe('sanitizeSelection', () => {
     it('unknown filter + unknown slugs fall back safely', () => {
-        const safe = sanitizeSelection({ filterId: 'neon', slots: { face: 'nope', upper: 'witchhat', lower: 'cauldron' } });
+        const safe = sanitizeSelection({ filterId: 'neon', slots: { face: 'nope', upper: 'crown', lower: 'desk' } });
         expect(safe.filterId).toBe(DEFAULT_FILTER_ID);
         expect(safe.slots.face).toBeNull();
-        expect(safe.slots.upper).toBe('witchhat');
+        expect(safe.slots.upper).toBe('crown');
+        expect(safe.slots.lower).toBe('desk');
     });
     it('a prop in the face slot is dropped', () => {
-        const safe = sanitizeSelection({ filterId: 'mono', slots: { face: 'cauldron' } });
+        const safe = sanitizeSelection({ filterId: 'mono', slots: { face: 'desk' } });
         expect(safe.slots.face).toBeNull();
     });
     it('null / undefined never throws', () => {
@@ -721,15 +733,15 @@ describe('parseStepOverlays', () => {
     it('reads the documented object shape', () => {
         expect(parseStepOverlays({
             face: { asset: 'carnival' },
-            upper: { asset: 'witchhat' },
-            lower: { asset: 'cauldron' },
-        })).toEqual({ face: 'carnival', upper: 'witchhat', lower: 'cauldron', emoji: null });
+            upper: { asset: 'crown' },
+            lower: { asset: 'desk' },
+        })).toEqual({ face: 'carnival', upper: 'crown', lower: 'desk', emoji: null });
     });
     it('accepts a bare slug string per slot', () => {
         expect(parseStepOverlays({ upper: 'crown' }).upper).toBe('crown');
     });
     it('drops an unknown slug and an asset in the wrong slot', () => {
-        expect(parseStepOverlays({ face: { asset: 'nope' }, upper: { asset: 'cauldron' } }))
+        expect(parseStepOverlays({ face: { asset: 'nope' }, upper: { asset: 'desk' } }))
             .toEqual({ face: null, upper: null, lower: null, emoji: null });
     });
     it('missing / non-object → all null', () => {
@@ -741,10 +753,10 @@ describe('parseStepOverlays', () => {
 describe('applyStepOverlays', () => {
     it('fills only the declared slots and keeps the learner’s others', () => {
         const selection = { filterId: 'mono', slots: { face: 'carnival', upper: null, lower: null } };
-        const merged = applyStepOverlays(selection, { lower: { asset: 'cauldron' } });
+        const merged = applyStepOverlays(selection, { lower: { asset: 'desk' } });
         expect(merged.slots.face).toBe('carnival');
         expect(merged.slots.upper).toBeNull();
-        expect(merged.slots.lower).toBe('cauldron');
+        expect(merged.slots.lower).toBe('desk');
         expect(merged.filterId).toBe('mono');
     });
     it('a later step with no overlays changes nothing', () => {
