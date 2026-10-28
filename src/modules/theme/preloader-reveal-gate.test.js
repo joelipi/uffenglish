@@ -269,6 +269,23 @@ describe('preloader reveal gate', () => {
             expect(SCRIPT_CODE).toMatch(/function startExit\(\)\s*\{\s*html\.classList\.add\('app-revealing'\)/);
         });
 
+        it('keeps the logo centred through the entry and exit keyframes', () => {
+            // The giant logo is centred by the absolutely-positioned img's own
+            // `transform: translate(-50%, -50%)`. The grow/fade animations run on
+            // the CONTAINER and only scale it (opacity + scale), so the keyframes
+            // must never translate the container — a translate there would be the
+            // one thing that could push the finished/filled logo off centre.
+            expect(CODE).toMatch(/\.appLoadingImage img\s*\{[^}]*transform:\s*translate\(-50%\s*,\s*-50%\)/);
+
+            const inFrames = CODE.match(/@keyframes preloaderImageIn\s*\{([\s\S]*?)\n\s{8}\}/);
+            expect(inFrames, 'no @keyframes preloaderImageIn').not.toBeNull();
+            expect(inFrames[1]).not.toMatch(/translate\(/);
+
+            const outFrames = CODE.match(/@keyframes preloaderImageOut\s*\{([\s\S]*?)\n\s{8}\}/);
+            expect(outFrames, 'no @keyframes preloaderImageOut').not.toBeNull();
+            expect(outFrames[1]).not.toMatch(/translate\(/);
+        });
+
         it('keeps ENTRY_FADE_MS in step with the entry animation duration', () => {
             const css = CODE.match(/preloaderImageIn\s+(\d+)ms/);
             const js = SCRIPT_CODE.match(/ENTRY_FADE_MS\s*=\s*(\d+)/);

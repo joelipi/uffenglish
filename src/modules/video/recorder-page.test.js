@@ -2255,6 +2255,11 @@ describe('recorder auto-render — zero server changes', () => {
             'src/components/homescreen/HomeScreen.test.jsx',
             'src/modules/user/user-profile.js',
             'src/assets/css/app.css',
+            // Preloader brand-loading screen: the giant centred-logo source
+            // guards, the grow/fade animation spec and the stale cover assertions.
+            'src/modules/theme/preloader-reveal-gate.test.js',
+            'tests/preloader-image-animation.spec.js',
+            'tests/preloader-reveal.spec.js',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);

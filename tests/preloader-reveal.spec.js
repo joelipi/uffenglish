@@ -73,23 +73,22 @@ test.describe('preloader reveal gate', () => {
     test('the cover is the large brand preloader image', async ({ page }) => {
         await page.goto('/');
         const image = page.locator('.appLoadingImage');
-        await expect(image).toHaveCSS('background-image', /u-f-f\.png/);
+        const img = page.locator('.appLoadingImage img');
 
-        // The stylesheet sizes it `80vw x 80vh` with an 800px cap, so on a
-        // desktop viewport it saturates at the cap in one axis and scales in
-        // the other. Assert the CSS-derived size exactly rather than a hard
-        // pixel floor — the default viewport is 1280x720, so the height is
-        // 80vh = 576, not 700.
+        // The cover is the giant brand mark: an <img> pointed at the genuine
+        // UFF asset (uff-big.png) inside the .appLoadingImage box, which the
+        // stylesheet sizes at 95vw x 95vh (the "giant" cover).
+        const src = await img.getAttribute('src');
+        expect(src, 'preloader logo img src').toMatch(/uff-big\.png/);
+
         const box = await image.boundingBox();
         const viewport = page.viewportSize();
-        expect(box.width).toBe(Math.min(viewport.width * 0.8, 800));
-        expect(box.height).toBe(Math.min(viewport.height * 0.8, 800));
-
-        // …and it is genuinely a large cover, not a spinner. On the default
-        // 1280x720 viewport the 800px cap clamps the width while the height
-        // stays at 80vh, giving exactly half the viewport.
+        // 95vw x 95vh -> ~90% coverage of any viewport (the old 80vw x 80vh with
+        // an 800px cap has since been replaced by the giant sizing).
+        expect(box.width).toBeGreaterThan(viewport.width * 0.9);
+        expect(box.height).toBeGreaterThan(viewport.height * 0.9);
         const covered = (box.width * box.height) / (viewport.width * viewport.height);
-        expect(covered).toBeGreaterThanOrEqual(0.5);
+        expect(covered).toBeGreaterThan(0.8);
     });
 
     test('the reveal does not depend on the app finishing a lesson load', async ({ page }) => {

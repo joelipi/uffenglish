@@ -101,6 +101,46 @@ test.describe('preloader image animation', () => {
         expect(midOpacity).toBeLessThan(1);
     });
 
+    test('the logo image stays centred while the grow/fade animation holds', async ({ page }) => {
+        await page.goto('/');
+        const image = page.locator('.appLoadingImage');
+
+        // Wait for the entry animation to exist on the live overlay (it holds
+        // — via fill-forwards — until the reveal gate lifts the cover, so this
+        // is the state the user actually sees).
+        await page.waitForFunction(() => {
+            const el = document.querySelector('#appLoadingImageDiv .appLoadingImage');
+            const anim = el && el.getAnimations().find((a) => a.animationName === 'preloaderImageIn');
+            return !!anim;
+        });
+
+        const geo = await page.evaluate(() => {
+            const el = document.querySelector('#appLoadingImageDiv .appLoadingImage');
+            const anim = el.getAnimations().find((a) => a.animationName === 'preloaderImageIn');
+            if (anim) {
+                anim.pause();
+                anim.currentTime = 350;
+            }
+            const er = el.getBoundingClientRect();
+            const ir = el.querySelector('img').getBoundingClientRect();
+            return {
+                elCenter: { x: er.left + er.width / 2, y: er.top + er.height / 2 },
+                imgCenter: { x: ir.left + ir.width / 2, y: ir.top + ir.height / 2 },
+            };
+        });
+
+        // The giant logo must sit on the container's centre — an off-centre logo
+        // is what the user reported on the loading screen.
+        expect(
+            Math.abs(geo.imgCenter.x - geo.elCenter.x),
+            `logo x centre ${geo.imgCenter.x} != container centre ${geo.elCenter.x}`
+        ).toBeLessThan(1);
+        expect(
+            Math.abs(geo.imgCenter.y - geo.elCenter.y),
+            `logo y centre ${geo.imgCenter.y} != container centre ${geo.elCenter.y}`
+        ).toBeLessThan(1);
+    });
+
     test('the gradient behind the transparent PNG is never transformed', async ({ page }) => {
         await page.goto('/');
         const transform = await page
