@@ -734,10 +734,12 @@
          bundle (the dev server, a plain file open) degrades to recording the raw
          camera instead of breaking the page. -->
     <script type="module">
+        // NOTE: the bundle assigns window.UFFLooks itself as a side effect (it is
+        // an IIFE build with no module exports), so presence is read off window,
+        // not off the import namespace — `mod.UFFLooks` is always undefined.
         import('/recorder-looks.js')
-            .then(function (mod) {
-                if (mod && mod.UFFLooks) {
-                    window.UFFLooks = mod.UFFLooks;
+            .then(function () {
+                if (window.UFFLooks && typeof window.UFFLooks.createLiveLooks === 'function') {
                     // The camera init may have run before the bundle arrived: it
                     // skips live looks silently in that case (nothing to await),
                     // so retry once now that the pixels are here. Only while
