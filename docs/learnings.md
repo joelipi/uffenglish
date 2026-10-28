@@ -375,3 +375,11 @@
 **Takeaway**: Kill the dev server with its PID (`ps aux | grep "[v]ite --port <n>"` → `kill <pid>`, or record `$!` when starting it), never `pkill -f` with a pattern that also appears in the current command line. After a kill, re-check `git status --porcelain` in a SEPARATE command before trusting that cleanup completed.
 
 ---
+
+## A rotating word stacked in an inline-grid cell is an atomic box as wide as its LONGEST candidate
+**Date**: 2026-10-28
+**Area**: architecture | testing
+**What happened**: The landing hero rotates a relationship word mid-sentence. The first implementation stacked every candidate in one `inline-grid` cell (the reference sample's technique) so the line would never reflow: at 390px the cell was as wide as `tu compañero de clase`, could not fit after `con`, jumped onto its own line and left the following comma stranded at the start of the next line — the sentence read as broken. Rendering only the active candidate wrapped naturally, but then the `h1` changed height as the word changed and the share-code card below jumped by up to 64px mid-read (PT at 320px: 5 → 7 lines). Neither failure is visible in jsdom.
+**Takeaway**: For a rotating word inside a sentence, keep every candidate SHORT (one short word plus its possessive) and stack them in a CENTRED inline-grid cell: the cell is only as wide as the longest candidate, so the block height is constant (the CTA below never moves) and the padding around a shorter word stays symmetric instead of leaving a one-sided hole. Verify in a real browser: sample the CTA's `getBoundingClientRect().top` over a full rotation (it must be a single value) and force every candidate into the cell to record the `h1`'s set of heights (also a single value) at 320/390/768px. `max-width: 100%` on the cell is the overflow safety net, not the fix.
+
+---
