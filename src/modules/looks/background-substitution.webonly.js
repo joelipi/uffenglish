@@ -671,6 +671,9 @@ export function createSubstitutedCaptureStream({
     async function pumpFrames() {
         if (pumpRunning || !frameReader) return;
         pumpRunning = true;
+        // done:true means the track itself ended (the element on the same track
+        // would get nothing either), so only a failed read degrades to it.
+        let readFailed = false;
         try {
             while (!state.disposed && !stopped) {
                 let next = null;
@@ -680,6 +683,7 @@ export function createSubstitutedCaptureStream({
                     next = read.value || null;
                 } catch (e) {
                     console.warn('[Substitution] frame read failed', e && e.message);
+                    readFailed = true;
                     break;
                 }
                 if (!next) continue;
@@ -693,6 +697,13 @@ export function createSubstitutedCaptureStream({
             }
         } finally {
             pumpRunning = false;
+            // The reader broke while the track may still be live: degrade to
+            // the hidden video so the composite still has a source to try.
+            if (readFailed && !state.disposed && !stopped && frameReader) {
+                frameReader = null;
+                frameSource = 'element';
+                playHiddenVideo();
+            }
         }
     }
 
@@ -758,10 +769,16 @@ export function createSubstitutedCaptureStream({
         } catch (e) { /* the watchdog below drives until the camera appears */ }
     }
     state.lastPaintAtMs = now();
-    // In track mode the hidden video stays parked: playing it would spin up a
-    // second decoder for frames nobody reads.
-    if (!frameReader) playHiddenVideo();
-    if (frameReader) pumpFrames();
+    // In track mode the hidden video stays parked: a muted playsinline video
+    // can autoplay on its own, which would spin up the second decoder for
+    // frames nobody reads (and double-count the source clock). If the track
+    // later dies the pump degrades back to the element.
+    if (!frameReader) {
+        playHiddenVideo();
+    } else {
+        try { video.pause(); } catch (e) { /* already parked */ }
+        pumpFrames();
+    }
     tick();
 
     const canvasStream = typeof outputCanvas.captureStream === 'function'

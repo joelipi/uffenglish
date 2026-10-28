@@ -488,6 +488,7 @@ describe('createSubstitutedCaptureStream', () => {
         expect(camera.requestVideoFrameCallback).not.toHaveBeenCalled();
         expect(rafCallbacks).toHaveLength(1);
         expect(camera.play).not.toHaveBeenCalled();
+        expect(camera.pause).toHaveBeenCalled();
         api.dispose();
     });
 
@@ -532,6 +533,22 @@ describe('createSubstitutedCaptureStream', () => {
         expect(camera.requestVideoFrameCallback).toHaveBeenCalledTimes(1);
         camera.frameCallbacks[0]();
         expect(api.stats().framesDrawn).toBe(1);
+        api.dispose();
+    });
+
+    it('degrades to the hidden video when the track reader dies mid-take', async () => {
+        const reader = stubTrackProcessor([]);
+        reader.read = vi.fn()
+            .mockResolvedValueOnce({ value: makeFrame(), done: false })
+            .mockRejectedValueOnce(new Error('track gone'));
+        const camera = makeVideo({ width: 1920, height: 1080 });
+        camera.paused = true;
+        const { api } = build({ track: { kind: 'video' }, video: camera });
+        await flushPump(5);
+        expect(api.stats().framesDrawn).toBe(1);
+        expect(api.stats().source).toBe('element');
+        // The degraded path replays the parked video.
+        expect(camera.play).toHaveBeenCalled();
         api.dispose();
     });
 
