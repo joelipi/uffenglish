@@ -50,6 +50,9 @@ anchors it (`baseWidth: 0.8`, `anchorY: 0.925`).
   `1f966.svg` (broccoli), `1fad1.svg` (bell pepper), `1f345.svg` (tomato)
 - `gifts-bottom.png` ← `1f381.svg` (wrapped present), the same parcel four
   times at four sizes and tilts
+- `balls-bottom.png` ← `1f3c0.svg` (basketball), `26bd.svg` (soccer ball),
+  `1f3c8.svg` (american football), `1f94e.svg` (softball), `1f3d0.svg`
+  (volleyball)
 
 Nothing but the emoji artwork is painted: the band has no plate, frame or shadow
 behind it.

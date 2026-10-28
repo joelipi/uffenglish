@@ -81,6 +81,21 @@ export const BOTTOM_OVERLAY_STRIPS = {
             { code: '1f381', name: 'wrapped present', height: 335, rotate: 11, overlap: 24, dip: 18 },
         ],
     },
+    balls: {
+        label: 'Balls',
+        labelKey: 'look_overlay_balls_bottom',
+        items: [
+            // A row of balls: round shapes read best with a little air between
+            // them, so the overlaps are smaller than the produce bands can take.
+            { code: '1f3c0', name: 'basketball', height: 250, rotate: -7, overlap: 0, dip: 0 },
+            { code: '26bd', name: 'soccer ball', height: 285, rotate: 0, overlap: 18, dip: 22 },
+            { code: '1f3c8', name: 'american football', height: 215, rotate: 14, overlap: 16, dip: 0 },
+            // The yellow softball rather than the white baseball: a white ball
+            // disappears against a bright recorded frame.
+            { code: '1f94e', name: 'softball', height: 255, rotate: -4, overlap: 18, dip: 20 },
+            { code: '1f3d0', name: 'volleyball', height: 270, rotate: 6, overlap: 20, dip: 0 },
+        ],
+    },
 };
 
 /** The overlay slug a strip is published under (`fruits` → `fruits-bottom`). */
