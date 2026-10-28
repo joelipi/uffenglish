@@ -1,5 +1,13 @@
 # Learnings
 
+## Overlay art generated with `sharp`: measure after the tilt, and place exotic assets with per-asset geometry
+**Date**: 2026-10-28
+**Area**: architecture | tooling | recording looks
+**What happened**: Building the fruit/vegetable bottom bands (`scripts/generate-bottom-overlays.mjs`) exposed two traps. (1) `sharp().rotate()` grows the **axis-aligned bounding box** of a tilted PNG by the keystoning, so a spec that says "this apple is 270px tall" placed a 312px-tall image: every item came out bigger than asked and the row could not fit the band. Trimming *before* the resize is what makes `height` mean "artwork height" (the Twemoji 36×36 box carries its own transparent margin, so a flat melon slice and a tall pineapple otherwise read as different sizes); the tilt then needs a **second** `trim()` after the rotate. (2) An overlay whose placement is not its slot's default must not invent a slot: the two bands needed "80% wide with its bottom edge on the frame's bottom edge", which the generic `lower` anchor (90%, centre 74%) cannot express.
+**Takeaway**: (1) In an art generator, `trim → resize to the target height → rotate → trim again`, and place the result by its measured size, never by the requested size. Give the compositor an auto-fit factor (`available / rowWidth`, re-measured after scaling) so editing one item cannot silently clip the row. (2) `OVERLAY_LIBRARY` entries may now carry `baseWidth` and `anchorY`, resolved through `resolveSlotBaseWidth` / `resolveSlotAnchorY` and threaded through `resolveSlotDrawRect`/`paintSlotOverlay`/`paintLooks` as `slug` — so any new asset whose geometry differs from its slot declares it on its own entry, and the slot's other props are untouched (a 9:16 frame makes "80% wide, 3:1 artwork" exactly the bottom 15%). Guard it by asserting the real draw rect of a full `paintLooks` pass, not just `resolveSlotDrawRect`: dropping `slug` from the paint call left every direct-call test green.
+
+---
+
 ## iOS voice capture requires plain `video/mp4`, a gesture-resumed native-rate `AudioContext`, and playing `WebcamPreview` once visible
 **Date**: 2026-10-22
 **Area**: speech | ios | architecture

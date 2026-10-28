@@ -32,3 +32,22 @@ artwork:
   over the eye band are used as a `dest-out` mask, opening transparent eye
   holes (the original paints closed eye arcs).
 - Both are rasterized to PNG with `sharp`; nothing else is altered.
+
+## Bottom bands (`props/fruits-bottom.png`, `props/veggies-bottom.png`)
+
+Regeneration: `node scripts/generate-bottom-overlays.mjs`.
+
+Each band is a 1200×400 (3:1) PNG with a fully transparent background, built by
+laying several produce emoji side by side on a common floor: varied artwork
+heights, a slight tilt, and a few deliberate overlaps so the row reads as a pile
+rather than a row of stickers. At 80% of the frame width a 3:1 band is exactly
+the bottom 15% of the 9:16 recording frame, which is how the overlay registry
+anchors it (`baseWidth: 0.8`, `anchorY: 0.925`).
+
+- `fruits-bottom.png` ← `1f349.svg` (watermelon), `1f34c.svg` (banana),
+  `1f34e.svg` (red apple), `1f347.svg` (grapes), `1f353.svg` (strawberry)
+- `veggies-bottom.png` ← `1f33d.svg` (ear of maize), `1f955.svg` (carrot),
+  `1f966.svg` (broccoli), `1fad1.svg` (bell pepper), `1f345.svg` (tomato)
+
+Nothing but the emoji artwork is painted: the band has no plate, frame or shadow
+behind it.

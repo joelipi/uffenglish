@@ -2288,6 +2288,15 @@ describe('recorder auto-render — zero server changes', () => {
             'src/data/strings.js',
             'src/data/strings.test.js',
             'src/data/strings-landing-sections.test.js',
+            // Bottom band overlays: a fruit strip and a vegetable strip along the
+            // frame's bottom edge, generated from Twemoji produce.
+            'scripts/generate-bottom-overlays.mjs',
+            'src/modules/looks/bottom-overlays.test.js',
+            'src/modules/looks/recording-looks-logic.js',
+            'public/overlays/props/fruits-bottom.png',
+            'public/overlays/props/veggies-bottom.png',
+            'public/overlays/TWEMOJI-ATTRIBUTION.md',
+            'src/modules/video/recorder-page.test.js',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);
