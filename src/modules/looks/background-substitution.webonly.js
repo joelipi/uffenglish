@@ -430,6 +430,7 @@ export function createSubstitutedCaptureStream({
         images,
         mask: null,
         maskImageData: null,
+        maskCoverage: 0,
         framesDrawn: 0,
         sourceAdvances: 0,
         lastSourceTime: 0,
@@ -481,14 +482,21 @@ export function createSubstitutedCaptureStream({
         if (!state.mask || !maskCanvas) return false;
         if (!maskCtx) return false;
         const data = new Uint8ClampedArray(maskWidth * maskHeight * 4);
+        let covered = 0;
         for (let i = 0; i < state.mask.length; i++) {
             const value = state.mask[i];
+            if (value > 128) covered += 1;
             const o = i * 4;
             data[o] = value;
             data[o + 1] = value;
             data[o + 2] = value;
             data[o + 3] = 255;
         }
+        // How much of the frame the matte calls "person". An all-zero mask (no
+        // subject found, or a blank frame fed to the model) is the difference
+        // between a take with you in it and a clean backdrop with nobody, and it
+        // is otherwise invisible: the composite fails silently and looks fine.
+        state.maskCoverage = state.mask.length ? covered / state.mask.length : 0;
         state.maskImageData = state.maskImageData || maskCtx.createImageData(maskWidth, maskHeight);
         state.maskImageData.data.set(data);
         maskCtx.putImageData(state.maskImageData, 0, 0);
@@ -649,6 +657,7 @@ export function createSubstitutedCaptureStream({
                 framesDrawn: state.framesDrawn,
                 sourceAdvances: state.sourceAdvances,
                 hasMatte: !!state.mask,
+                coverage: Math.round((state.maskCoverage || 0) * 100),
                 compositor: glCompositor ? 'webgl2' : '2d',
             };
         },

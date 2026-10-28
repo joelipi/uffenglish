@@ -761,6 +761,7 @@
         var global_live_looks = null;
         var global_live_looks_row = null;
         var global_look_slot = null;
+        var global_live_stats_timer = null;
         var global_recorder_obj = null;
         var global_data_chunks = [];
         var global_is_recording_flag = false;
@@ -964,18 +965,28 @@
                 return;
             }
             appCoreLog('Layer state: ' + JSON.stringify(state));
-            if (global_take_phase === 'idle') {
-                var stats = global_live_looks && global_live_looks.stats ? global_live_looks.stats() : null;
-                // Say WHICH renderer is running: a silent 2D fallback is the
-                // difference between a smooth take and a drifting one, and it
-                // used to be invisible outside the console.
-                var renderer = stats ? String(stats.compositor).toUpperCase() : 'RAW';
-                node_status_bar.textContent = 'HARDWARE READY • LIVE LOOKS'
-                    + (state.backgroundState === 'ready' ? ' • BG' : '')
-                    + (state.foregroundState === 'ready' ? ' • FG' : '')
-                    + ' • ' + renderer;
-                node_status_bar.className = 'status-indicator-bar status-ready';
-            }
+            refreshLiveStatus(state);
+        }
+
+        // The status bar is the only always-visible evidence that the composite is
+        // doing anything. It names the renderer (a silent 2D fallback is the
+        // difference between a smooth take and a drifting one) and how much of the
+        // frame the matte calls "person" — 0% means the take would be a clean
+        // backdrop with nobody in it, which used to be completely invisible.
+        function refreshLiveStatus(layerState) {
+            if (global_take_phase !== 'idle') { return; }
+            var state = layerState || (global_live_looks ? global_live_looks.layerState : null);
+            if (!global_live_looks || !state) { return; }
+            var stats = global_live_looks.stats ? global_live_looks.stats() : null;
+            var renderer = stats ? String(stats.compositor).toUpperCase() : 'RAW';
+            var coverage = stats && typeof stats.coverage === 'number' ? stats.coverage : null;
+            node_status_bar.textContent = 'HARDWARE READY • LIVE LOOKS'
+                + (state.backgroundState === 'ready' ? ' • BG' : '')
+                + (state.foregroundState === 'ready' ? ' • FG' : '')
+                + ' • ' + renderer
+                + (coverage === null ? '' : ' • MATTE ' + coverage + '%');
+            var matteBlind = coverage !== null && state.backgroundState === 'ready' && coverage === 0;
+            node_status_bar.className = 'status-indicator-bar ' + (matteBlind ? 'status-recording' : 'status-ready');
         }
 
         async function startLiveLooks() {
@@ -996,6 +1007,9 @@
                 node_video_preview.srcObject = live.stream;
                 appCoreLog('Live looks ready: ' + JSON.stringify(live.stats()));
                 syncLiveLooksForCurrentRow();
+                if (!global_live_stats_timer) {
+                    global_live_stats_timer = setInterval(function () { refreshLiveStatus(); }, 1000);
+                }
                 return live;
             } catch (e) {
                 appCoreLog('LIVE LOOKS FAILED: ' + e.message + ' — recording the raw camera');

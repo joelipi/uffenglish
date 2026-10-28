@@ -282,6 +282,30 @@ describe('createSubstitutedCaptureStream', () => {
         api.dispose();
     });
 
+    it('reports how much of the frame the matte calls "person"', () => {
+        // 0% is the tell for "the composite is painting a clean backdrop with
+        // nobody in it" — the failure mode that looked like success.
+        const { api } = build({
+            background: { naturalWidth: 1080, naturalHeight: 1920 },
+            segmenter: { id: 'seg' },
+            mask: new Uint8Array(256 * 256).fill(255),
+        });
+        api.paintNow();
+        expect(api.stats().coverage).toBe(100);
+        api.dispose();
+    });
+
+    it('reports 0% when the matte found nothing', () => {
+        const { api } = build({
+            background: { naturalWidth: 1080, naturalHeight: 1920 },
+            segmenter: { id: 'seg' },
+            mask: new Uint8Array(256 * 256).fill(0),
+        });
+        api.paintNow();
+        expect(api.stats().coverage).toBe(0);
+        api.dispose();
+    });
+
     it('never writes the mask back into the canvas the model reads', () => {
         // The regression: one canvas served as both the segmenter's input and the
         // mask texture, so `putImageData` (the mask) clobbered the camera pixels
