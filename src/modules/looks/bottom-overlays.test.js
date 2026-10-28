@@ -69,8 +69,9 @@ describe('bottom bands are registered as lower-slot overlays', () => {
         // The existing lower props keep the generic anchor: an override must not
         // leak into the slot's other assets.
         expect(OVERLAY_LIBRARY.cauldron.baseWidth).toBeUndefined();
-        expect(OVERLAY_LIBRARY.deska).toBeUndefined();
+        expect(OVERLAY_LIBRARY.desk.baseWidth).toBeUndefined();
         expect(OVERLAY_LIBRARY.desk.anchorY).toBeUndefined();
+        expect(OVERLAY_LIBRARY.frame.anchorY).toBeUndefined();
     });
 });
 
