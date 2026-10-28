@@ -401,6 +401,38 @@ describe('background-substitution.webonly.js shader source guard', () => {
     const end = source.indexOf('function compileShader');
     const fragment = source.slice(start, end);
 
+    // Read the shader text out of the source, one line at a time, exactly as the
+    // GPU sees it. A joined first line (`#version 300 esin vec2 …`) is a compile
+    // error on every device, and it produced a SILENT 2D fallback — the fake GL
+    // context in these tests cannot catch malformed GLSL, so the shape of the
+    // source is asserted directly.
+    const shaderLines = (constName) => {
+        const at = source.indexOf(`const ${constName} = \``);
+        expect(at, constName).toBeGreaterThan(-1);
+        return source.slice(at, source.indexOf('`;', at)).split('\n');
+    };
+
+    it('starts the vertex shader with a well-formed version directive', () => {
+        const lines = shaderLines('VERTEX_SHADER');
+        // Line 0 is `const VERTEX_SHADER = \`#version 300 es`.
+        expect(lines[0].endsWith('`#version 300 es')).toBe(true);
+        expect(lines[1]).toBe('in vec2 a_pos;');
+    });
+
+    it('starts the fragment shader with a well-formed version directive', () => {
+        const lines = shaderLines('FRAGMENT_SHADER');
+        expect(lines[0].endsWith('`#version 300 es')).toBe(true);
+        expect(lines[1]).toBe('precision highp float;');
+    });
+
+    it('never leaves a gl_ token or directive glued to a neighbour', () => {
+        for (const constName of ['VERTEX_SHADER', 'FRAGMENT_SHADER']) {
+            const text = shaderLines(constName).join('\n');
+            expect(text, constName).not.toMatch(/#version 300 es[^\n]/);
+            expect(text, constName).not.toMatch(/es(in|out|precision)\b/);
+        }
+    });
+
     it('feathers the matte with smoothstep over a explicit ramp', () => {
         expect(start).toBeGreaterThan(-1);
         expect(fragment).toContain('smoothstep(0.35, 0.65, raw)');

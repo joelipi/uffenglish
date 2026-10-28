@@ -149,7 +149,8 @@ async function loadLayerImageViaProxy({ url, operatorKey, ImageCtor, fetchImpl, 
     }
 }
 
-const VERTEX_SHADER = `#version 300 esin vec2 a_pos;
+const VERTEX_SHADER = `#version 300 es
+in vec2 a_pos;
 out vec2 v_tex;
 void main() {
     v_tex = (a_pos + 1.0) * 0.5;
