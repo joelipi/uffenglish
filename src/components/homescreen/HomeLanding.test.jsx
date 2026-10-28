@@ -84,7 +84,9 @@ describe('HomeLanding', () => {
         const pills = q('hero-pills');
         expect(pills).not.toBeNull();
         expect(pills.querySelectorAll('.uff-hero-pill')).toHaveLength(2);
-        expect(pills.querySelector('.uff-hero-pill--accent')).toBe(q('hero-pill-free'));
+        // One shared style: the accent modifier is gone, so the "free" pill is
+        // a plain pill led by its dot.
+        expect(q('hero-pill-free').className).toBe('uff-hero-pill');
         expect(pills.nextElementSibling).toBe(q('share-code-headline'));
     });
 

@@ -60,14 +60,22 @@ describe('hero headline segments', () => {
 
     it('renders the original Spanish sentence the feature was conceived in', () => {
         expect(heroHeadlineText('es')).toBe(
-            'Practica inglés 🗣️ en 5 min con tu mamá, aunque sea A0 y tú B1 — ¡sin estar conectados al mismo tiempo!',
+            'Practica inglés 🗣️ en 5 min con tu mamá aunque sea A0 y tú B1, ¡sin estar conectados al mismo tiempo!',
         );
     });
 
     it('renders the English default with the first relationship and band pair', () => {
         expect(heroHeadlineText('en')).toBe(
-            "Practice English 🗣️ in 5 min with your mom, even if they're A0 and you're B1 — without being online at the same time!",
+            "Practice English 🗣️ in 5 min with your mom even if they're A0 and you're B1, without being online at the same time!",
         );
+    });
+
+    it('sets the closing clause off with a comma — never an em dash', () => {
+        // The comma after the relation clause was dropped and the em dash in
+        // front of the closing clause became that comma, in every locale.
+        for (const lang of HERO_HEADLINE_LANGS) {
+            expect(heroHeadlineText(lang), lang).not.toContain('—');
+        }
     });
 
     it('marks the rotating part so the renderer never reflows the line', () => {

@@ -180,17 +180,20 @@ describe('rotating hero headline styling', () => {
         return homeLandingCss.slice(at, homeLandingCss.indexOf('}', at));
     };
 
-    it('underlines the rotating words in the app brand accent', () => {
+    it('underlines the rotating words in black on a white plate', () => {
+        // Line-anchored so every declaration fails on its own: an unanchored
+        // `text-decoration:` would also match the `-webkit-` twin, so deleting
+        // the unprefixed line while keeping the prefixed one would stay green.
         const rot = block('.uff-hero-rot {');
-        for (const prop of [
-            'text-decoration-line: underline',
-            'text-decoration-color: #00c0d8',
-            'text-decoration-thickness',
-            'text-underline-offset',
-            'text-decoration-skip-ink: none',
-        ]) {
-            expect(rot, prop).toContain(prop);
-        }
+        expect(rot).toMatch(/^\s*text-decoration: underline black;$/m);
+        expect(rot).toMatch(/^\s*-webkit-text-decoration: underline black;$/m);
+        expect(rot).toMatch(/^\s*text-decoration-skip-ink: none;$/m);
+        expect(rot).toMatch(/^\s*-webkit-text-decoration-skip-ink: none;$/m);
+        expect(rot).toMatch(/^\s*text-decoration-thickness: 0\.06em;$/m);
+        expect(rot).toMatch(/^\s*text-underline-offset: 0\.18em;$/m);
+        expect(rot).toMatch(/^\s*color: black;$/m);
+        expect(rot).toMatch(/^\s*background-color: white;$/m);
+        expect(rot).toContain('font-variant-numeric: tabular-nums');
     });
 
     it('stacks the candidates in one centred grid cell so the line cannot reflow', () => {
@@ -235,11 +238,16 @@ describe('rotating hero headline styling', () => {
         }
     });
 
-    it('styles the pills from the app palette, not the sample', () => {
+    it('styles both pills with one light treatment, accent modifier gone', () => {
         const pills = block('.uff-hero-pill {');
+        expect(pills).toMatch(/^\s*border: 3px solid black;$/m);
+        expect(pills).toMatch(/^\s*color: black;$/m);
+        expect(pills).toMatch(/^\s*background-color: #e5e4e2;$/m);
         expect(pills).toContain('border-radius: 999px');
-        expect(pills).toContain('var(--bs-border-color)');
-        expect(block('.uff-hero-pill--accent')).toContain('#00c0d8');
+        // The accent variant is REMOVED, not merely unstyled: neither the
+        // stylesheet nor the markup may name it again.
+        expect(homeLandingCss).not.toContain('.uff-hero-pill--accent');
+        expect(homeLanding).not.toContain('uff-hero-pill--accent');
     });
 });
 

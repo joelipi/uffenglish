@@ -204,7 +204,7 @@ export default function HomeLanding({
                                 above it as pills, so the rotating sentence can
                                 stay about people and levels. */}
                             <div className="uff-hero-pills" data-testid="hero-pills">
-                                <span className="uff-hero-pill uff-hero-pill--accent" data-testid="hero-pill-free">
+                                <span className="uff-hero-pill" data-testid="hero-pill-free">
                                     <span className="uff-hero-pill-dot" aria-hidden="true"></span>
                                     {Strings.get('home_landing_pill_free', lang)}
                                 </span>

@@ -130,7 +130,7 @@ describe('HeroHeadline', () => {
     it('localizes through the language code it is given', () => {
         render({ lang: 'es' });
         expect(q('hero-headline-accessible').textContent).toBe(
-            'Practica inglés 🗣️ en 5 min con tu mamá, aunque sea A0 y tú B1 — ¡sin estar conectados al mismo tiempo!',
+            'Practica inglés 🗣️ en 5 min con tu mamá aunque sea A0 y tú B1, ¡sin estar conectados al mismo tiempo!',
         );
         expect(activeText('hero-slot-relation')).toBe('tu mamá');
     });

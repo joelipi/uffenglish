@@ -51,15 +51,16 @@ export const HERO_RELATIONS = {
 //   {relation}    — a HERO_RELATIONS entry (possessive included)
 //   {friendLevel} — the friend's CEFR band
 //   {yourLevel}   — the learner's CEFR band
-// The Spanish sentence is the original the feature was conceived in and is kept
-// verbatim; the other locales say the same thing in their own word order.
+// The Spanish sentence is the original the feature was conceived in; every
+// locale shares its punctuation (no comma after the relation clause, a comma
+// before the closing one) while keeping its own word order.
 export const HERO_HEADLINE_TEMPLATES = {
-    en: "Practice English 🗣️ in 5 min with {relation}, even if they're {friendLevel} and you're {yourLevel} — without being online at the same time!",
-    es: 'Practica inglés 🗣️ en 5 min con {relation}, aunque sea {friendLevel} y tú {yourLevel} — ¡sin estar conectados al mismo tiempo!',
-    pt: 'Pratique inglês 🗣️ em 5 min com {relation}, mesmo que a outra pessoa seja {friendLevel} e você {yourLevel} — sem estarem online ao mesmo tempo!',
-    fr: "Pratiquez l'anglais 🗣️ en 5 min avec {relation}, même si l'autre est {friendLevel} et vous {yourLevel} — sans être en ligne en même temps !",
-    hi: '5 मिनट में अंग्रेज़ी 🗣️ बोलने का अभ्यास करें {relation} के साथ, भले ही वे {friendLevel} हों और आप {yourLevel} — एक ही समय पर ऑनलाइन हुए बिना!',
-    bn: '৫ মিনিটে ইংরেজি 🗣️ বলার চর্চা করুন {relation} সাথে, যদিও তারা {friendLevel} আর আপনি {yourLevel} — একই সময়ে অনলাইন না থেকেই!',
+    en: "Practice English 🗣️ in 5 min with {relation} even if they're {friendLevel} and you're {yourLevel}, without being online at the same time!",
+    es: 'Practica inglés 🗣️ en 5 min con {relation} aunque sea {friendLevel} y tú {yourLevel}, ¡sin estar conectados al mismo tiempo!',
+    pt: 'Pratique inglês 🗣️ em 5 min com {relation} mesmo que a outra pessoa seja {friendLevel} e você {yourLevel}, sem estarem online ao mesmo tempo!',
+    fr: "Pratiquez l'anglais 🗣️ en 5 min avec {relation} même si l'autre est {friendLevel} et vous {yourLevel}, sans être en ligne en même temps !",
+    hi: '5 मिनट में अंग्रेज़ी 🗣️ बोलने का अभ्यास करें {relation} के साथ भले ही वे {friendLevel} हों और आप {yourLevel}, एक ही समय पर ऑनलाइन हुए बिना!',
+    bn: '৫ মিনিটে ইংরেজি 🗣️ বলার চর্চা করুন {relation} সাথে যদিও তারা {friendLevel} আর আপনি {yourLevel}, একই সময়ে অনলাইন না থেকেই!',
 };
 
 // The locales the headline is written in. English is the default and the
