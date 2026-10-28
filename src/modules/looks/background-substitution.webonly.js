@@ -403,10 +403,24 @@ export function createSubstitutedCaptureStream({
     overlaysCanvas.height = height;
     const overlaysCtx = overlaysCanvas.getContext ? overlaysCanvas.getContext('2d') : null;
 
-    const maskCanvas = maskInputCanvas || createCanvas();
+    // TWO canvases, deliberately. MediaPipe's GPU graph may read the input
+    // canvas after `segmentForVideo` returns (the readback is what stalls), so
+    // writing the mask back into the SAME canvas fed the model the previous
+    // frame's mask instead of the camera: the model found no person, answered
+    // with zeros, and the composite painted a clean backdrop with nobody in it.
+    // The input canvas is only ever painted from the camera.
+    const segmenterInputCanvas = maskInputCanvas || createCanvas();
+    segmenterInputCanvas.width = maskWidth;
+    segmenterInputCanvas.height = maskHeight;
+    const segmenterInputCtx = segmenterInputCanvas.getContext
+        ? segmenterInputCanvas.getContext('2d')
+        : null;
+
+    // The mask TEXTURE (RGBA, alpha in .r) the shader samples.
+    const maskCanvas = createCanvas();
     maskCanvas.width = maskWidth;
     maskCanvas.height = maskHeight;
-    const maskCtx = maskCanvas.getContext ? maskInputCanvas ? null : maskCanvas.getContext('2d') : null;
+    const maskCtx = maskCanvas.getContext ? maskCanvas.getContext('2d') : null;
 
     const state = {
         background,
@@ -517,8 +531,8 @@ export function createSubstitutedCaptureStream({
         if (segmenter && typeof paintMask === 'function') {
             const nextMask = paintMask({
                 segmenter,
-                maskInputCanvas: maskCanvas,
-                maskInputCtx: maskCtx,
+                maskInputCanvas: segmenterInputCanvas,
+                maskInputCtx: segmenterInputCtx,
                 video,
                 cropRect: maskSourceRect(),
                 maskWidth,

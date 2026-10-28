@@ -282,6 +282,33 @@ describe('createSubstitutedCaptureStream', () => {
         api.dispose();
     });
 
+    it('never writes the mask back into the canvas the model reads', () => {
+        // The regression: one canvas served as both the segmenter's input and the
+        // mask texture, so `putImageData` (the mask) clobbered the camera pixels
+        // the GPU graph was about to read. The model then saw a mask image, found
+        // no person, and returned zeros — a clean backdrop with nobody in it.
+        const paintMask = vi.fn(() => new Uint8Array(256 * 256).fill(200));
+        const canvases = [];
+        const api = createSubstitutedCaptureStream({
+            rawStream: { getAudioTracks: () => [], getVideoTracks: () => [] },
+            createCanvas: () => { const c = makeCanvas(); canvases.push(c); return c; },
+            createVideo: () => makeVideo({ width: 1280, height: 720 }),
+            dimensions: dims,
+            segmenter: { id: 'seg' },
+            background: { naturalWidth: 1080, naturalHeight: 1920 },
+            paintMask,
+        });
+        api.paintNow();
+        const inputCanvas = paintMask.mock.calls[0][0].maskInputCanvas;
+        const maskTextureCanvas = canvases.find((c) => c.ctx.putImageData.mock.calls.length > 0);
+        expect(inputCanvas).toBeTruthy();
+        expect(maskTextureCanvas).toBeTruthy();
+        expect(inputCanvas).not.toBe(maskTextureCanvas);
+        // The input canvas is only ever painted from the camera.
+        expect(inputCanvas.ctx.putImageData).not.toHaveBeenCalled();
+        api.dispose();
+    });
+
     it('asks the segmenter for one mask per painted frame at 256×256', () => {
         const paintMask = vi.fn(() => new Uint8Array(256 * 256).fill(128));
         const canvases = [];
