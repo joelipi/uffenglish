@@ -25,9 +25,12 @@ function makeEnv({ operatorKey = OPERATOR_KEY } = {}) {
     return operatorKey === null ? {} : { OPERATOR_KEY: operatorKey };
 }
 
-function imageResponse({ bytes = new ArrayBuffer(8), type = 'image/png', contentLength = null, ok = true } = {}) {
+function imageResponse({ bytes = new ArrayBuffer(8), type = 'image/png', contentLength = null, ok = true, finalUrl = null } = {}) {
     return {
         ok,
+        // A real Response carries the URL it ENDED at after redirects; the
+        // Function re-validates it before reading the body.
+        url: finalUrl === null ? 'https://r2.ultrafastfluency.com/bg/studio.png' : finalUrl,
         headers: {
             get: (name) => {
                 const key = String(name).toLowerCase();
@@ -123,8 +126,37 @@ describe('onRequestGet — proxy-image Function', () => {
         expect(res.status).toBe(413);
     });
 
-    it('reports 502 when upstream is unreachable or not ok', async () => {
-        vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('dns')));
+    it('refuses a redirect that lands on a non-public host (SSRF)', async () => {
+        // `redirect: 'follow'` means the bytes can come from a different host
+        // than the one validated: a public URL that 302s to the metadata
+        // endpoint would otherwise hand back its contents.
+        for (const finalUrl of [
+            'http://169.254.169.254/latest/meta-data/',
+            'https://127.0.0.1/admin',
+            'https://10.0.0.7/bg.png',
+            'https://printer.internal/bg.png',
+        ]) {
+            const arrayBuffer = vi.fn();
+            vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+                ...imageResponse({ finalUrl }),
+                arrayBuffer,
+            }));
+            const res = await onRequestGet({ request: makeRequest(), env: makeEnv() });
+            expect(res.status, finalUrl).toBe(502);
+            expect(arrayBuffer).not.toHaveBeenCalled();
+        }
+    });
+
+    it('accepts a redirect that stays on a public https host', async () => {
+        const fetchImpl = vi.fn().mockResolvedValue(imageResponse({
+            finalUrl: 'https://cdn.example.com/moved/studio.png',
+        }));
+        vi.stubGlobal('fetch', fetchImpl);
+        const res = await onRequestGet({ request: makeRequest(), env: makeEnv() });
+        expect(res.status).toBe(200);
+    });
+
+    it('reports 502 when upstream is unreachable or not ok', async () => {        vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('dns')));
         expect((await onRequestGet({ request: makeRequest(), env: makeEnv() })).status).toBe(502);
 
         vi.stubGlobal('fetch', vi.fn().mockResolvedValue(imageResponse({ ok: false })));

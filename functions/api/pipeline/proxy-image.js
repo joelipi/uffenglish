@@ -54,6 +54,15 @@ export async function onRequestGet({ request, env }) {
         return jsonError('Bad Gateway: image fetch failed', 502);
     }
 
+    // `redirect: 'follow'` means the response may come from a DIFFERENT host than
+    // the one validated above, so the final URL is re-checked before a byte is
+    // read: a public URL that 302s to `169.254.169.254` (or a loopback service)
+    // would otherwise turn this proxy into an SSRF read primitive.
+    const finalUrl = typeof upstream.url === 'string' && upstream.url ? upstream.url : target;
+    if (!isAllowedRemoteImageUrl(finalUrl)) {
+        return jsonError('Bad Gateway: refused a redirect to a non-public URL', 502);
+    }
+
     const contentType = String(upstream.headers.get('content-type') || '');
     if (!contentType.toLowerCase().startsWith('image/')) {
         return jsonError('Unsupported Media Type: not an image', 415);
