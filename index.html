@@ -399,6 +399,15 @@
                already holds 2s (see MIN_DISPLAY_MS above), so enlarging this
                only helps — nothing downstream depends on its box size. */
             position: relative;
+            /* Centring is structural (flex on this animated container), not
+               transform-chain based: the grow/fade keyframes animate the
+               container's transform (scale) and hold via fill-forwards, so a
+               centred-by-absolute-positioning img could drift relative to the
+               container across browsers/viewports. Flex keeps the mark dead
+               centre of the cover at every animation frame. */
+            display: flex;
+            align-items: center;
+            justify-content: center;
             width: 95vw;
             height: 95vh;
             max-width: 95vw;
@@ -414,10 +423,6 @@
             animation: preloaderImageIn 350ms ease-out both;
         }
         .appLoadingImage img {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
             max-width: 100%;
             max-height: 100%;
             object-fit: contain;

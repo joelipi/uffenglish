@@ -2255,6 +2255,9 @@ describe('recorder auto-render — zero server changes', () => {
             'src/components/homescreen/HomeScreen.test.jsx',
             'src/modules/user/user-profile.js',
             'src/assets/css/app.css',
+            // Giant preloader logo: structural flex-centring on the animated
+            // container plus the centred-logo source guards.
+            'index.html',
             // Preloader brand-loading screen: the giant centred-logo source
             // guards, the grow/fade animation spec and the stale cover assertions.
             'src/modules/theme/preloader-reveal-gate.test.js',

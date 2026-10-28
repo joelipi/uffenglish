@@ -270,12 +270,27 @@ describe('preloader reveal gate', () => {
         });
 
         it('keeps the logo centred through the entry and exit keyframes', () => {
-            // The giant logo is centred by the absolutely-positioned img's own
-            // `transform: translate(-50%, -50%)`. The grow/fade animations run on
-            // the CONTAINER and only scale it (opacity + scale), so the keyframes
-            // must never translate the container — a translate there would be the
-            // one thing that could push the finished/filled logo off centre.
-            expect(CODE).toMatch(/\.appLoadingImage img\s*\{[^}]*transform:\s*translate\(-50%\s*,\s*-50%\)/);
+            // The giant logo is centred by the animated container's own flex
+            // layout (`display: flex; align-items: center; justify-content:
+            // center`), so the grow/fade animations running on the container
+            // (opacity + scale) hold a centred mark. The img must not carry its
+            // own absolute positioning/translate — that reintroduces a
+            // transform chain that can drift relative to the container across
+            // browsers/viewports.
+            const containerBlock = CODE.match(/\.appLoadingImage\s*\{([\s\S]*?)\n\s{8}\}/);
+            expect(containerBlock, 'no .appLoadingImage block').not.toBeNull();
+            expect(containerBlock[1]).toMatch(/display:\s*flex/);
+            expect(containerBlock[1]).toMatch(/align-items:\s*center/);
+            expect(containerBlock[1]).toMatch(/justify-content:\s*center/);
+            expect(containerBlock[1]).toMatch(/animation:\s*preloaderImageIn/);
+
+            const imgBlock = CODE.match(/\.appLoadingImage img\s*\{([\s\S]*?)\n\s{8}\}/);
+            expect(imgBlock, 'no .appLoadingImage img block').not.toBeNull();
+            expect(imgBlock[1]).not.toMatch(/position:\s*absolute/);
+            expect(imgBlock[1]).not.toMatch(/transform:\s*translate/);
+            expect(imgBlock[1]).toMatch(/max-width:\s*100%/);
+            expect(imgBlock[1]).toMatch(/max-height:\s*100%/);
+            expect(imgBlock[1]).toMatch(/object-fit:\s*contain/);
 
             const inFrames = CODE.match(/@keyframes preloaderImageIn\s*\{([\s\S]*?)\n\s{8}\}/);
             expect(inFrames, 'no @keyframes preloaderImageIn').not.toBeNull();
