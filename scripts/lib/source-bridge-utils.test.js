@@ -630,3 +630,9 @@ describe('ABABAB intro placement', () => {
         expect(() => buildCourseConfig(rows)).toThrow(/intro clip\(s\) missing for ask/);
     });
 });
+
+describe('MASTER_HEADER intro contract', () => {
+    it('has no intro flag column: presence is the take rows, not a flag', () => {
+        expect(MASTER_HEADER).not.toContain('intro_kinds');
+    });
+});
