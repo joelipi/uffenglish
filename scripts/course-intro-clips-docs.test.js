@@ -40,9 +40,9 @@ const PINNED = [
     '{course}-intro-first',
     'viewAndContinue',
     'first ask branch',
-    '80 words',
-    'wrangler r2 object put',
-    'captions.yml',
+    '20 words',
+    'one cue per line',
+    'set_role: intro',
 ];
 
 function assertIntroDocs(text) {
@@ -51,7 +51,7 @@ function assertIntroDocs(text) {
 }
 
 describe('course intro clips are documented', () => {
-    it('documents the intros block, the derived slugs, the placement and the upload step', () => {
+    it('documents the intros block, the derived slugs, the placement and the rendered clip', () => {
         expect(() => assertIntroDocs(read())).not.toThrow();
     });
 

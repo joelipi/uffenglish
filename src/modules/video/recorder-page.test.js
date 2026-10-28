@@ -2270,16 +2270,11 @@ describe('recorder auto-render — zero server changes', () => {
             'src/components/homescreen/NotificationsBell.web.jsx',
             'tests/lesson-topbar-bell.spec.js',
             // Story 099 (course intro clips): three short course-level opener
-            // clips authored in the source and placed by the ABABAB generator.
+            // clips authored as lines in the source; one take row per line so
+            // the recorder prompts them and the render captions them.
             'stories/099-course-intro-clips/story.md',
             'sources/cartoon-preferences.source.txt',
             'public/cartoon-preferences.master.csv',
-            // The new `intro_kinds` column rides every committed master CSV
-            // (the bridge writes the header; blank for courses with no intros).
-            'public/fruit-preferences.master.csv',
-            'public/health.master.csv',
-            'public/money-preferences.master.csv',
-            'public/wouldyourather.master.csv',
             'src/config/cartoon-preferences.json',
             'src/config/cartoon-preferences.test.js',
             'scripts/lib/source-bridge-utils.js',

@@ -80,11 +80,15 @@ export const RESPONSE_TYPES = [
     'branching',
 ];
 // The three course-level intro clips (stories/099-course-intro-clips): one
-// short clip per behaviour the ABABAB chain repeats. The source declares the
-// English scripts; slugs are derived, never authored.
+// short clip per behaviour the ABABAB chain repeats. The source declares each
+// as an array of SHORT LINES — one line is one recorder take and one subtitle
+// cue, because the recorder's teleprompter shows a line at a time and the render
+// concatenates the takes into one clip.
 export const INTRO_KINDS = ['first', 'respond', 'ask'];
-/** A source's intro script may not exceed this many words (the clips are short). */
-export const INTRO_MAX_WORDS = 80;
+/** A teleprompter line may not exceed this many words (it is 9vw on screen). */
+export const INTRO_MAX_WORDS_PER_LINE = 20;
+/** An intro clip is short: at most this many recorded lines. */
+export const INTRO_MAX_LINES = 6;
 
 /** The derived app slug for one intro clip kind (`{course}-intro-{kind}`). */
 function introSlug(course, kind) {
@@ -976,10 +980,13 @@ function abababIndex(rows) {
         pairs: new Map(),           // pair index -> { askId, answerId, topics:Set }
     };
     for (const row of rows) {
+        const role = cell(row, 'set_role').trim();
+        // Intro clips are course-level (they belong to no pair): they carry no
+        // pair/topic coordinates and are read by `abababIntros` instead.
+        if (role === 'intro') continue;
         const pair = abababNum(row, 'pair_index');
         const label = cell(row, 'filename').trim() || cell(row, 'video_file').trim();
         if (!pair) throw new Error(`row "${label}" is missing pair_index`);
-        const role = cell(row, 'set_role').trim();
         const topic = abababNum(row, 'topic_index');
         const group = abababNum(row, 'group_index');
         const variant = abababNum(row, 'variant_index');
@@ -1054,25 +1061,40 @@ function abababAnswerGroups(index, pair, topic) {
 }
 
 /**
- * The intro clips a course declares, as their derived app slugs (`{course}-
- * intro-{kind}`), or `null` when it declares none. The bridge writes the
- * canonical `first|respond|ask` list; a hand-edited sheet must still name the
- * whole set (the placement rules assume all three).
+ * The intro clips a course declares, keyed by kind, as `{ slug, subtitles? }`;
+ * `null` when it declares none. The clips are authored as sheet rows (one line
+ * per take), so presence and the pipeline's per-step SRT both come from those
+ * rows — the derived slug is never authored. A partial set is an error: the
+ * placement rules assume all three.
  */
 function abababIntros(rows, courseId) {
-    const raw = firstNonBlank(rows, 'intro_kinds');
-    if (!raw) return null;
-    const kinds = raw.split('|').map((k) => k.trim()).filter(Boolean);
-    const missing = INTRO_KINDS.filter((k) => !kinds.includes(k));
-    const extra = kinds.filter((k) => !INTRO_KINDS.includes(k));
-    if (missing.length || extra.length) {
-        throw new Error(
-            `course "${courseId}": intro_kinds must name exactly ${INTRO_KINDS.join('|')}` +
-            ` (missing: ${missing.join(', ') || 'none'}; unexpected: ${extra.join(', ') || 'none'})`
-        );
+    const byKind = new Map();
+    for (const row of rows) {
+        if (cell(row, 'set_role').trim() !== 'intro') continue;
+        const slug = cell(row, 'video_file').trim();
+        const kind = INTRO_KINDS.find((k) => slug === introSlug(courseId, k));
+        if (!kind) {
+            throw new Error(
+                `course "${courseId}": intro row "${cell(row, 'filename')}" has an unknown video_file "${slug}"`
+            );
+        }
+        if (!byKind.has(kind)) byKind.set(kind, []);
+        byKind.get(kind).push(row);
+    }
+    if (byKind.size === 0) return null;
+    const missing = INTRO_KINDS.filter((k) => !byKind.has(k));
+    if (missing.length) {
+        throw new Error(`course "${courseId}": intro clip(s) missing for ${missing.join(', ')}`);
     }
     const intros = {};
-    for (const kind of INTRO_KINDS) intros[kind] = introSlug(courseId, kind);
+    for (const kind of INTRO_KINDS) {
+        const kindRows = byKind.get(kind);
+        const subtitles = srtSubtitlesFor(kindRows, `course "${courseId}" intro "${kind}"`);
+        intros[kind] = {
+            slug: introSlug(courseId, kind),
+            ...(subtitles ? { subtitles } : {}),
+        };
+    }
     return intros;
 }
 
@@ -1123,7 +1145,11 @@ function abababLesson({ id, respond, record, closing, course, index, intros }) {
         // The answer-phase opener is its own watch-then-continue step, because
         // the first branch of this phase already carries the friend's clip.
         if (intros) {
-            steps.push({ responseType: 'viewAndContinue', simpleVideoUrl: intros.respond });
+            steps.push({
+                responseType: 'viewAndContinue',
+                simpleVideoUrl: intros.respond.slug,
+                ...(intros.respond.subtitles ? { subtitles: intros.respond.subtitles } : {}),
+            });
         }
         const topics = [...index.pairs.get(respond.pair).topics].sort((a, b) => a - b);
         for (const topic of topics) {
@@ -1187,7 +1213,12 @@ function abababLesson({ id, respond, record, closing, course, index, intros }) {
             : null;
         steps.push({
             responseType: 'branching',
-            ...(recordIntro ? { simpleVideoUrl: recordIntro } : {}),
+            ...(recordIntro
+                ? {
+                    simpleVideoUrl: recordIntro.slug,
+                    ...(recordIntro.subtitles ? { subtitles: recordIntro.subtitles } : {}),
+                }
+                : {}),
             chooseStep: takes.map((take, i) => ({ nextStep: i + 1, text: abababPhrase(take.row) })),
         });
         const nextBranch = steps.length + takes.length;

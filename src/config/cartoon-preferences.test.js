@@ -108,30 +108,57 @@ describe('the cartoon source still declares the three scripts', () => {
             .join('\n')
     );
 
-    it('declares exactly first, respond and ask', () => {
+    it('declares exactly first, respond and ask as arrays of short lines', () => {
         expect(Object.keys(source.intros).sort()).toEqual(['ask', 'first', 'respond']);
-    });
-    it('keeps each script short and non-empty', () => {
-        for (const [kind, script] of Object.entries(source.intros)) {
-            expect(script, kind).toBeTypeOf('string');
-            expect(script.trim(), kind).not.toBe('');
-            expect(script.trim().split(/\s+/).length, kind).toBeLessThanOrEqual(80);
+        for (const [kind, lines] of Object.entries(source.intros)) {
+            expect(lines, kind).toBeInstanceOf(Array);
+            expect(lines.length, kind).toBeGreaterThan(0);
+            expect(lines.length, kind).toBeLessThanOrEqual(6);
+            for (const line of lines) {
+                expect(line.trim(), kind).not.toBe('');
+                // The recorder shows one line at 9vw, so a line must stay short.
+                expect(line.trim().split(/\s+/).length, kind).toBeLessThanOrEqual(20);
+            }
         }
     });
 
-    it('frames the right speaker in each script', () => {
-        expect(source.intros.first).toMatch(/You're asking your friend/i);
-        expect(source.intros.respond).toMatch(/Your friend is asking you/i);
-        expect(source.intros.ask).toMatch(/your turn to ask your friend/i);
+    it('frames the right speaker in each opener', () => {
+        expect(source.intros.first[0]).toMatch(/You're asking your friend/i);
+        expect(source.intros.respond[0]).toMatch(/Your friend is asking you/i);
+        expect(source.intros.ask[0]).toMatch(/your turn to ask your friend/i);
     });
 });
 
-describe('the cartoon master CSV carries the intro_kinds column', () => {
-    it('marks every data row with the full three-kind set', () => {
-        const text = readFileSync(path.join(ROOT, 'public', 'cartoon-preferences.master.csv'), 'utf8');
-        const { headers, rows } = parseCsv(text);
-        expect(headers).toContain('intro_kinds');
-        expect(rows.length).toBeGreaterThan(0);
-        for (const row of rows) expect(row.intro_kinds).toBe('first|respond|ask');
+describe('the cartoon master CSV carries one intro take per line', () => {
+    const text = readFileSync(path.join(ROOT, 'public', 'cartoon-preferences.master.csv'), 'utf8');
+    const { headers, rows } = parseCsv(text);
+    const introRows = rows.filter((row) => row.set_role === 'intro');
+
+    it('has one recordable take per line, grouped by the derived slug', () => {
+        expect(headers).toContain('title_text');
+        expect(introRows.map((row) => row.filename)).toEqual([
+            `${COURSE}-intro-first-01`,
+            `${COURSE}-intro-first-02`,
+            `${COURSE}-intro-first-03`,
+            `${COURSE}-intro-respond-01`,
+            `${COURSE}-intro-respond-02`,
+            `${COURSE}-intro-respond-03`,
+            `${COURSE}-intro-ask-01`,
+            `${COURSE}-intro-ask-02`,
+        ]);
+        for (const row of introRows) {
+            expect(row.video_file, row.filename).toMatch(new RegExp(`^${COURSE}-intro-(first|respond|ask)$`));
+            expect(row.response_type, row.filename).toBe('viewAndContinue');
+            expect(row.phrase.trim(), row.filename).not.toBe('');
+            expect(row.order, row.filename).toMatch(/^[1-9]$/);
+        }
+    });
+
+    it('burns no title/rung text onto a selfie opener', () => {
+        for (const row of introRows) {
+            expect(row.title_text, row.filename).toBe('');
+            expect(row.subtitle_text, row.filename).toBe('');
+            expect(row.footer_text, row.filename).toBe('');
+        }
     });
 });

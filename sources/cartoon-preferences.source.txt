@@ -72,9 +72,20 @@
     "B2"
   ],
   "intros": {
-    "first": "You're asking your friend which cartoon character you most resemble. We are going to practice talking about similarities and describing ourselves. Have fun. Let's start.",
-    "respond": "Your friend is asking you what cartoon character they resemble. When you answer, you're going to practice talking about similarities. Let's have fun.",
-    "ask": "Now it's your turn to ask your friend the same questions. What cartoon characters do you resemble?"
+    "first": [
+      "You're asking your friend which cartoon character you most resemble.",
+      "We are going to practice talking about similarities and describing ourselves.",
+      "Have fun. Let's start."
+    ],
+    "respond": [
+      "Your friend is asking you what cartoon character they resemble.",
+      "When you answer, you're going to practice talking about similarities.",
+      "Let's have fun."
+    ],
+    "ask": [
+      "Now it's your turn to ask your friend the same questions.",
+      "What cartoon characters do you resemble?"
+    ]
   },
   "pairs": [
     {

@@ -474,46 +474,77 @@ describe('bridge round-trip through the real generator', () => {    it('leaves n
 });
 
 // stories/099-course-intro-clips: three short course-level opener clips,
-// authored as English scripts in the source and DERIVED into app slugs.
+// authored as ARRAYS OF SHORT LINES in the source. Each line is one take (one
+// recorder prompt, one subtitle cue); the render concatenates them into the
+// one clip the config references.
 const INTROS = {
-    first: 'Ask your friend which cartoon character you most resemble.',
-    respond: 'Your friend is asking you which cartoon character they resemble.',
-    ask: 'Now it is your turn to ask your friend the same questions.',
+    first: ['Ask your friend which cartoon character you most resemble.', 'Have fun. Let us start.'],
+    respond: ['Your friend is asking which cartoon character they resemble.', 'Let us have fun.'],
+    ask: ['Now it is your turn to ask the same questions.', 'What cartoon characters do you resemble?'],
 };
-const withIntros = () => ({ ...SOURCE, intros: { ...INTROS } });
+const withIntros = () => ({ ...SOURCE, intros: structuredClone(INTROS) });
 
-describe('sourceToRows intro clips', () => {
-    it('emits intro_kinds in canonical order on every row when all three are declared', () => {
-        const rows = sourceToRows(withIntros());
-        expect(rows.length).toBeGreaterThan(0);
-        for (const row of rows) expect(row.intro_kinds).toBe('first|respond|ask');
+describe('sourceToRows intro takes', () => {
+    it('emits one take per line, grouped under the derived slug in canonical order', () => {
+        const intro = sourceToRows(withIntros()).filter((r) => r.set_role === 'intro');
+        expect(intro.map((r) => r.filename)).toEqual([
+            'demo-intro-first-01', 'demo-intro-first-02',
+            'demo-intro-respond-01', 'demo-intro-respond-02',
+            'demo-intro-ask-01', 'demo-intro-ask-02',
+        ]);
+        expect(intro.map((r) => r.video_file)).toEqual([
+            'demo-intro-first', 'demo-intro-first',
+            'demo-intro-respond', 'demo-intro-respond',
+            'demo-intro-ask', 'demo-intro-ask',
+        ]);
+        expect(intro.map((r) => r.phrase)).toEqual([
+            ...INTROS.first, ...INTROS.respond, ...INTROS.ask,
+        ]);
+        expect(intro.map((r) => r.order)).toEqual(['1', '2', '1', '2', '1', '2']);
     });
 
-    it('leaves intro_kinds blank when the source declares no intros (opt-in)', () => {
-        for (const row of sourceToRows(SOURCE)) expect(row.intro_kinds).toBe('');
+    it('gives each take a lesson header but no pair coordinates and no burned overlay', () => {
+        for (const row of sourceToRows(withIntros()).filter((r) => r.set_role === 'intro')) {
+            expect(row.lesson_id).toBe('a');
+            expect(row.lesson_title).toBe('Ask things');
+            expect(row.response_type).toBe('viewAndContinue');
+            expect(row.pair_index).toBe('');
+            expect(row.topic_index).toBe('');
+            expect(row.title_text).toBe('');
+            expect(row.subtitle_text).toBe('');
+            expect(row.footer_text).toBe('');
+        }
+    });
+
+    it('emits no intro rows when the source declares none (opt-in)', () => {
+        expect(sourceToRows(SOURCE).some((r) => r.set_role === 'intro')).toBe(false);
     });
 
     it('throws on a partial block', () => {
         expect(() => sourceToRows({ ...SOURCE, intros: { first: INTROS.first } }))
-            .toThrow(/intros.*missing: respond, ask/);
+            .toThrow(/missing: respond, ask/);
     });
 
     it('throws on an unknown kind', () => {
-        expect(() => sourceToRows({ ...SOURCE, intros: { ...INTROS, outro: 'bye' } }))
-            .toThrow(/intros.*unexpected: outro/);
+        expect(() => sourceToRows({ ...SOURCE, intros: { ...INTROS, outro: ['bye'] } }))
+            .toThrow(/unexpected: outro/);
     });
 
-    it('throws on a blank or non-string script', () => {
-        expect(() => sourceToRows({ ...SOURCE, intros: { ...INTROS, respond: '   ' } }))
-            .toThrow(/intros.respond.*non-empty script/);
-        expect(() => sourceToRows({ ...SOURCE, intros: { ...INTROS, ask: 42 } }))
-            .toThrow(/intros.ask.*non-empty script/);
+    it('throws when a kind is not a non-empty array of lines', () => {
+        expect(() => sourceToRows({ ...SOURCE, intros: { ...INTROS, ask: 'one string' } }))
+            .toThrow(/intros.ask.*non-empty array/);
+        expect(() => sourceToRows({ ...SOURCE, intros: { ...INTROS, ask: [] } }))
+            .toThrow(/intros.ask.*non-empty array/);
+        expect(() => sourceToRows({ ...SOURCE, intros: { ...INTROS, ask: ['ok', '   '] } }))
+            .toThrow(/intros.ask\[1\].*non-empty line/);
     });
 
-    it('throws on an over-long script (the clips must stay short)', () => {
-        const long = Array.from({ length: 81 }, () => 'word').join(' ');
-        expect(() => sourceToRows({ ...SOURCE, intros: { ...INTROS, ask: long } }))
-            .toThrow(/is 81 words.*80 words or fewer/);
+    it('throws on too many lines or an over-long line (the recorder shows one line at a time)', () => {
+        expect(() => sourceToRows({ ...SOURCE, intros: { ...INTROS, ask: ['a', 'b', 'c', 'd', 'e', 'f', 'g'] } }))
+            .toThrow(/7 lines.*6 lines or fewer/);
+        const long = Array.from({ length: 21 }, () => 'word').join(' ');
+        expect(() => sourceToRows({ ...SOURCE, intros: { ...INTROS, ask: [long] } }))
+            .toThrow(/is 21 words.*20 words or fewer/);
     });
 });
 
@@ -525,7 +556,6 @@ describe('ABABAB intro placement', () => {
         const a = build().lessons.find((l) => l.lessonId === 'a');
         const branches = a.steps.filter((s) => s.responseType === 'branching');
         expect(branches[0].simpleVideoUrl).toBe('demo-intro-first');
-        // The other ask branches of lesson A stay silent.
         expect(branches.slice(1).every((s) => s.simpleVideoUrl === undefined)).toBe(true);
         expect(a.steps.some((s) => s.responseType === 'viewAndContinue')).toBe(false);
         expect(JSON.stringify(a.steps)).not.toContain('demo-intro-ask');
@@ -540,7 +570,6 @@ describe('ABABAB intro placement', () => {
                 responseType: 'viewAndContinue',
                 simpleVideoUrl: 'demo-intro-respond',
             });
-            // The branch that follows keeps the friend's clip; the intro never steals it.
             expect(lesson.steps[2].responseType).toBe('branching');
             expect(lesson.steps[2].simpleVideoUrl).toBe('{friendCode}{selfCode}-demo-a-01');
         }
@@ -568,6 +597,26 @@ describe('ABABAB intro placement', () => {
             .toEqual(['demo-intro-ask', 'demo-intro-first', 'demo-intro-respond']);
     });
 
+    it('carries the pipeline SRT onto every intro step, one cue per line', () => {
+        // The render writes one SRT per step (JSON-escaped in the CSV) and the
+        // translator fills srt_<lang>; the config gets timed subtitles.
+        const srt = '1\\n00:00:00,000 --> 00:00:02,000\\nLine one\\n\\n2\\n00:00:02,000 --> 00:00:04,000\\nLine two';
+        const rows = sourceToRows(withIntros()).map((row) => (
+            row.set_role === 'intro' ? { ...row, srt } : row
+        ));
+        const config = buildCourseConfig(rows);
+        const introSteps = config.lessons.flatMap((l) => l.steps).filter(
+            (s) => String(s.simpleVideoUrl || '').includes('-intro-')
+        );
+        expect(introSteps.length).toBeGreaterThan(0);
+        for (const step of introSteps) {
+            expect(step.subtitles.en).toContain('-->');
+            expect(step.subtitles.en.split('\n\n')).toHaveLength(2);
+            expect(step.subtitles.en).toContain('Line one');
+            expect(step.subtitles.en).toContain('Line two');
+        }
+    });
+
     it('emits no intro steps at all when the course declares none', () => {
         const config = buildCourseConfig(sourceToRows(SOURCE));
         expect(JSON.stringify(config)).not.toContain('-intro-');
@@ -576,14 +625,8 @@ describe('ABABAB intro placement', () => {
         }
     });
 
-    it('throws when a hand-edited sheet names only part of the intro set', () => {
-        const rows = sourceToRows(withIntros()).map((row) => ({ ...row, intro_kinds: 'first' }));
-        expect(() => buildCourseConfig(rows)).toThrow(/intro_kinds must name exactly first\|respond\|ask/);
-    });
-});
-
-describe('MASTER_HEADER intro column', () => {
-    it('carries exactly one intro_kinds column', () => {
-        expect(MASTER_HEADER.filter((h) => h === 'intro_kinds')).toHaveLength(1);
+    it('throws when a hand-edited sheet is missing one kind of intro take', () => {
+        const rows = sourceToRows(withIntros()).filter((row) => row.video_file !== 'demo-intro-ask');
+        expect(() => buildCourseConfig(rows)).toThrow(/intro clip\(s\) missing for ask/);
     });
 });
