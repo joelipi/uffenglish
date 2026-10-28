@@ -113,21 +113,25 @@ describe('language code normalization for hi/bn', () => {
 
 describe('public homepage share-code strings', () => {
     const KEYS = {
-        home_landing_headline: {
-            en: 'Practice speaking English with your friends free forever.',
-            es: 'Practica hablar inglés con tus amigos gratis para siempre.',
-            pt: 'Pratique falar inglês com seus amigos grátis para sempre.',
-            fr: "Pratiquez l'anglais parlé avec vos amis gratuitement pour toujours.",
-            hi: 'अपने दोस्तों के साथ हमेशा मुफ़्त में अंग्रेज़ी बोलने का अभ्यास करें।',
-            bn: 'আপনার বন্ধুদের সাথে চিরকাল বিনামূল্যে ইংরেজি বলার চর্চা করুন।',
+        // The hero headline is a rotating template owned by
+        // src/modules/home/hero-headline-logic.js (it carries {placeholders},
+        // which the interpolation guard below would otherwise treat as a
+        // strings.js key). Its locale coverage is guarded there.
+        home_landing_pill_free: {
+            en: 'Free forever',
+            es: 'Gratis para siempre',
+            pt: 'Grátis para sempre',
+            fr: 'Gratuit pour toujours',
+            hi: 'हमेशा के लिए मुफ़्त',
+            bn: 'চিরকাল বিনামূল্যে',
         },
-        home_landing_headline_sub: {
-            en: 'Even if your friends are offline now, no matter your different English levels.',
-            es: 'Aunque tus amigos estén desconectados ahora, sin importar sus diferentes niveles de inglés.',
-            pt: 'Mesmo que seus amigos estejam offline agora, não importa os diferentes níveis de inglês.',
-            fr: "Même si vos amis sont hors ligne, quels que soient vos niveaux d'anglais.",
-            hi: 'भले ही आपके दोस्त अभी ऑफ़लाइन हों, आपके अंग्रेज़ी स्तर कुछ भी हों',
-            bn: 'আপনার বন্ধুরা এখন অফলাইনে থাকলেও, আপনাদের ইংরেজির স্তর যাই হোক না কেন',
+        home_landing_pill_no_zoom: {
+            en: 'No Zoom',
+            es: 'Sin Zoom',
+            pt: 'Sem Zoom',
+            fr: 'Sans Zoom',
+            hi: 'ज़ूम की ज़रूरत नहीं',
+            bn: 'জুমের দরকার নেই',
         },
         home_landing_subheadline: {
             en: "Enter your friend's code or start fresh if you don't have one.",

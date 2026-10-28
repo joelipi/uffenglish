@@ -6,7 +6,7 @@ import Strings, { get, getBilingual, strings } from './strings.js';
 // way to assert every language variant exists (get() falls back to English).
 const KEYS = {
     home_landing_how_1_title: '100% free',
-    home_landing_how_1: 'no subscription, no card needed, ever.',
+    home_landing_how_1: 'No subscription, no card needed, ever.',
     home_landing_how_2_title: 'Any English level',
     home_landing_how_2: 'Each lesson teaches multiple forms of the same basic questions and answers, from a very beginner way to an advanced way. For instance, very beginner: "Coffee or tea?" Intermediate: "Would you like coffee or tea?" Advanced: "Would you prefer a steaming mug of fresh-brewed Arabica coffee or a nice cup of tea?"',
     home_landing_how_3_title: 'Practice anytime, anywhere',
@@ -58,6 +58,24 @@ describe('homepage landing-section strings', () => {
     it('renders Hindi / Bengali copy in the right script', () => {
         expect(get('home_landing_how_2', 'hi')).toMatch(DEVANAGARI);
         expect(get('home_landing_how_1', 'bn')).toMatch(BENGALI);
+    });
+
+    it('opens every How-it-works row with a capital letter', () => {
+        // Every row in that section is a sentence-fragment item, so they all
+        // start with a capital ("No subscription…", "Each lesson…"); the first
+        // row shipped lowercase and read as a typo next to the others. hi/bn
+        // have no letter case, so the rule only applies to the cased locales.
+        const firstCasedChar = (text) => [...text]
+            .find((ch) => ch.toLocaleLowerCase() !== ch.toLocaleUpperCase());
+
+        for (const row of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]) {
+            for (const lang of ['en', 'es', 'pt', 'fr']) {
+                const key = `home_landing_how_${row}`;
+                const first = firstCasedChar(strings[key][lang]);
+                expect(first, `${key}/${lang} starts lowercase`).toBeTruthy();
+                expect(first, `${key}/${lang} starts lowercase`).toBe(first.toLocaleUpperCase());
+            }
+        }
     });
 
     it('leaves no placeholder behind in any language', () => {

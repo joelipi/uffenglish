@@ -183,13 +183,84 @@
     letter-spacing: -0.02em;
 }
 
-/* Subheading under the hero headline: smaller and muted so it reads as a
-   subheading, not a second headline. */
-.uff-hero-sub {
-    font-size: clamp(1.05rem, 2.2vw, 1.4rem);
-    font-weight: 500;
-    color: var(--bs-secondary-color);
-    letter-spacing: 0.01em;
+/* The two promises the headline used to state in words, as pills above it:
+   the "free" pill carries the brand accent so the offer reads first, the second
+   stays neutral so it does not compete. */
+.uff-hero-pills {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+}
+
+.uff-hero-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.3rem 0.85rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 999px;
+    background-color: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+.uff-hero-pill--accent {
+    color: #00c0d8;
+    border-color: rgba(0, 192, 216, 0.45);
+    background-color: rgba(0, 192, 216, 0.12);
+}
+
+.uff-hero-pill-dot {
+    width: 0.4rem;
+    height: 0.4rem;
+    border-radius: 50%;
+    background-color: currentColor;
+}
+
+/* A rotating word is a STACK: every candidate value sits in the same grid cell,
+   so the sentence never reflows as the words change and the CTA below never
+   moves, and only the active value is opaque. The candidates are centred in the
+   cell, so a shorter active word pads symmetrically instead of leaving a hole to
+   one side; that is also why every relationship list is kept to SHORT words (a
+   multi-word value made the cell as wide as itself and pushed the word onto a
+   line of its own, which read as a broken sentence on a phone). The underline
+   marks the changing words as the part that moves. */
+.uff-hero-rot {
+    display: inline-grid;
+    justify-items: center;
+    max-width: 100%;
+    color: #00c0d8;
+    font-variant-numeric: tabular-nums;
+    text-decoration-line: underline;
+    text-decoration-style: solid;
+    text-decoration-color: #00c0d8;
+    text-decoration-thickness: 0.06em;
+    text-underline-offset: 0.18em;
+    text-decoration-skip-ink: none;
+}
+
+.uff-hero-rot__item {
+    grid-area: 1 / 1;
+    opacity: 0;
+    transform: translateY(0.14em);
+    transition: opacity 0.16s ease, transform 0.16s ease;
+}
+
+.uff-hero-rot__item.is-on {
+    opacity: 1;
+    transform: none;
+}
+
+/* A motion preference is a hard stop: the component's tick already stops, and
+   the fade must not be there either way. */
+@media (prefers-reduced-motion: reduce) {
+    .uff-hero-rot__item {
+        transition: none;
+    }
 }
 
 .uff-hero-art {
