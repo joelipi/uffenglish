@@ -107,6 +107,18 @@ describe('locale coverage', () => {
             }
         }
     });
+
+    it('keeps every slot\'s candidates distinct, which the renderer keys on', () => {
+        // HeroHeadline renders one span per candidate with `key={value}`: a
+        // duplicated value would collapse two candidates into one span and the
+        // wrong word could stay marked active.
+        for (const lang of HERO_HEADLINE_LANGS) {
+            for (const slot of ['relation', 'friendLevel', 'yourLevel']) {
+                const values = heroSlotValues(slot, lang);
+                expect(new Set(values).size, `${lang}/${slot}`).toBe(values.length);
+            }
+        }
+    });
 });
 
 describe('CEFR band pairing', () => {
