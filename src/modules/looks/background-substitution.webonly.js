@@ -358,8 +358,10 @@ export function createSubstitutedCaptureStream({
     video.srcObject = rawStream;
     // A paused hidden video is a dead composite: the camera callback only fires
     // on new frames, so this is retried by the watchdog as well as here.
+    // In track mode the video stays parked (the track reader feeds the
+    // painter), so a late metadata event must not replay it.
     function playHiddenVideo() {
-        if (state.disposed) return;
+        if (state.disposed || frameReader) return;
         try {
             if (video.paused === false) return;
             const playResult = video.play ? video.play() : null;

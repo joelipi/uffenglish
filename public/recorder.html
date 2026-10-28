@@ -736,7 +736,18 @@
     <script type="module">
         import('/recorder-looks.js')
             .then(function (mod) {
-                if (mod && mod.UFFLooks) { window.UFFLooks = mod.UFFLooks; }
+                if (mod && mod.UFFLooks) {
+                    window.UFFLooks = mod.UFFLooks;
+                    // The camera init may have run before the bundle arrived: it
+                    // skips live looks silently in that case (nothing to await),
+                    // so retry once now that the pixels are here. Only while
+                    // still idle — never rebuild the pipeline mid-take.
+                    if (window.__retryLiveLooksOnBundle && !window.global_live_looks
+                        && window.global_stream_handle && window.global_take_phase === 'idle') {
+                        window.__retryLiveLooksOnBundle = false;
+                        window.startLiveLooks();
+                    }
+                }
             })
             .catch(function () {
                 // Not built yet (dev server / jsdom): the page records raw.
@@ -997,7 +1008,16 @@
         }
 
         async function startLiveLooks() {
-            if (!liveLooksAvailable() || !global_stream_handle) { return null; }
+            if (!liveLooksAvailable() || !global_stream_handle) {
+                // A missing bundle is usually timing: the camera init beat the
+                // dynamic import. Flag it so the import's .then() retries once
+                // it lands, instead of recording raw for the whole session.
+                if (!liveLooksAvailable()) {
+                    window.__retryLiveLooksOnBundle = true;
+                    appCoreLog('Looks bundle not here yet — will retry when it loads.');
+                }
+                return null;
+            }
             if (global_live_looks) { return global_live_looks; }
             try {
                 var live = await window.UFFLooks.createLiveLooks({

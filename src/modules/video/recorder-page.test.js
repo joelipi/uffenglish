@@ -2623,6 +2623,19 @@ describe('operator studio — live looks wiring (stories/100)', () => {
         }
     });
 
+    it('flags a missing bundle so the late import can retry instead of recording raw forever', async () => {
+        const { win, dom } = await boot({ looks: false });
+        try {
+            expect(win.global_live_looks).toBeNull();
+            expect(win.__retryLiveLooksOnBundle).toBe(true);
+            expect(win.document.getElementById('dom-debug-log').textContent)
+                .toContain('will retry when it loads');
+        } finally {
+            win.close();
+            dom.window.close();
+        }
+    });
+
     it('falls back to the raw camera stream when the bundle is absent', async () => {
         const { win, dom } = await boot({ looks: false });
         try {
