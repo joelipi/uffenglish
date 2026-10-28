@@ -2269,6 +2269,23 @@ describe('recorder auto-render — zero server changes', () => {
             'src/components/widgets/activity-stats.test.jsx',
             'src/components/homescreen/NotificationsBell.web.jsx',
             'tests/lesson-topbar-bell.spec.js',
+            // Public homepage hero: the rotating headline (pure copy/logic
+            // module + renderer), the pills above it, the retired plain-copy
+            // keys, and their guards. No recorder-page code involved — listed
+            // per this file's per-story convention.
+            'src/modules/home/hero-headline-logic.js',
+            'src/modules/home/hero-headline-logic.test.js',
+            'src/modules/home/hero-headline-webonly.js',
+            'src/modules/home/hero-headline-webonly.test.js',
+            'src/components/homescreen/HeroHeadline.jsx',
+            'src/components/homescreen/HeroHeadline.test.jsx',
+            'src/components/homescreen/HomeLanding.jsx',
+            'src/components/homescreen/HomeLanding.test.jsx',
+            'src/components/homescreen/HomeLandingContainer.test.jsx',
+            'src/components/homescreen/home-landing.css',
+            'src/components/homescreen/homepage-landing-wiring.test.js',
+            'src/data/strings.js',
+            'src/data/strings.test.js',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);

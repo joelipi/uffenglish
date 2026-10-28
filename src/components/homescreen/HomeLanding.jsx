@@ -9,6 +9,7 @@ import './home-landing.css';
 import Strings from '../../data/strings.js';
 import LegalFooter from '../legal/LegalFooter.jsx';
 import ConversationCarousel from './ConversationCarousel.jsx';
+import HeroHeadline from './HeroHeadline.jsx';
 import { splitItalicSegments } from './home-landing-logic.js';
 import { HOME_LANGUAGES } from '../../data/languages.js';
 import headerLogo from '../../assets/img/uff-logo.png';
@@ -199,12 +200,21 @@ export default function HomeLanding({
                 <div className="container">
                     <div className="row justify-content-center text-center">
                         <div className="col-12 col-lg-8 col-xl-7">
+                            {/* The two promises the old headline carried now sit
+                                above it as pills, so the rotating sentence can
+                                stay about people and levels. */}
+                            <div className="uff-hero-pills" data-testid="hero-pills">
+                                <span className="uff-hero-pill uff-hero-pill--accent" data-testid="hero-pill-free">
+                                    <span className="uff-hero-pill-dot" aria-hidden="true"></span>
+                                    {Strings.get('home_landing_pill_free', lang)}
+                                </span>
+                                <span className="uff-hero-pill" data-testid="hero-pill-no-zoom">
+                                    {Strings.get('home_landing_pill_no_zoom', lang)}
+                                </span>
+                            </div>
                             <h1 className="uff-hero-title text-white mb-3" data-testid="share-code-headline">
-                                {Strings.get('home_landing_headline', lang)}
+                                <HeroHeadline lang={lang} />
                             </h1>
-                            <p className="uff-hero-sub mb-0" data-testid="hero-subheading">
-                                {Strings.get('home_landing_headline_sub', lang)}
-                            </p>
 
                             <div className="mt-4">
                                 <ShareCodeCta {...ctaProps} />

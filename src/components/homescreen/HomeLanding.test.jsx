@@ -3,6 +3,7 @@ import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { MemoryRouter } from 'react-router-dom';
 import HomeLanding from './HomeLanding.jsx';
+import { heroHeadlineText } from '../../modules/home/hero-headline-logic.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -36,9 +37,9 @@ describe('HomeLanding', () => {
 
     it('renders the English copy, account link and controls by default', () => {
         render();
-        expect(q('share-code-headline').textContent).toBe('Practice speaking English with your friends free forever.');
-        expect(q('hero-subheading').textContent).toBe("Even if your friends are offline now, no matter your different English levels.");
-        expect(q('hero-subheading').className).toContain('uff-hero-sub');
+        expect(q('hero-headline-accessible').textContent).toBe(heroHeadlineText('en', 0));
+        expect(q('hero-pill-free').textContent).toBe('Free forever');
+        expect(q('hero-pill-no-zoom').textContent).toBe('No Zoom');
         expect(q('share-code-subheadline').textContent).toBe("Enter your friend's code or start fresh if you don't have one.");
         expect(q('share-code-go').textContent).toBe("Start with friend's code");
         expect(q('no-code').textContent).toBe("Start without friend's code");
@@ -65,9 +66,26 @@ describe('HomeLanding', () => {
 
     it('localizes the headline and Go button', () => {
         render({ lang: 'es' });
-        expect(q('share-code-headline').textContent).toBe('Practica hablar inglés con tus amigos gratis para siempre.');
-        expect(q('hero-subheading').textContent).toBe('Aunque tus amigos estén desconectados ahora, sin importar sus diferentes niveles de inglés.');
+        expect(q('hero-headline-accessible').textContent).toBe(heroHeadlineText('es', 0));
+        expect(q('hero-pill-free').textContent).toBe('Gratis para siempre');
+        expect(q('hero-pill-no-zoom').textContent).toBe('Sin Zoom');
         expect(q('share-code-go').textContent).toBe('Empezar con el código de un amigo');
+    });
+
+    it('replaces the old subheading with the rotating headline, which already says it', () => {
+        render();
+        // The headline states "without being online at the same time" and the
+        // level difference itself, so a second subheading would repeat it.
+        expect(q('hero-subheading')).toBeNull();
+    });
+
+    it('renders the hero pills above the headline', () => {
+        render();
+        const pills = q('hero-pills');
+        expect(pills).not.toBeNull();
+        expect(pills.querySelectorAll('.uff-hero-pill')).toHaveLength(2);
+        expect(pills.querySelector('.uff-hero-pill--accent')).toBe(q('hero-pill-free'));
+        expect(pills.nextElementSibling).toBe(q('share-code-headline'));
     });
 
     it('renders the UFF logo image in place of the text headline', () => {

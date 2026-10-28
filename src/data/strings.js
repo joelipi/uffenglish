@@ -2721,13 +2721,24 @@ const strings = {
     },
 
     // --- Public homepage (share-code entry) ---
-    'home_landing_headline': {
-        en: "Practice speaking English with your friends free forever.",
-        es: "Practica hablar inglés con tus amigos gratis para siempre.",
-        pt: "Pratique falar inglês com seus amigos grátis para sempre.",
-        fr: "Pratiquez l'anglais parlé avec vos amis gratuitement pour toujours.",
-        hi: "अपने दोस्तों के साथ हमेशा मुफ़्त में अंग्रेज़ी बोलने का अभ्यास करें।",
-        bn: "আপনার বন্ধুদের সাথে চিরকাল বিনামূল্যে ইংরেজি বলার চর্চা করুন।"
+    // The hero headline itself is a rotating template (see
+    // src/modules/home/hero-headline-logic.js); only the pills above it are
+    // plain UI copy.
+    'home_landing_pill_free': {
+        en: "Free forever",
+        es: "Gratis para siempre",
+        pt: "Grátis para sempre",
+        fr: "Gratuit pour toujours",
+        hi: "हमेशा के लिए मुफ़्त",
+        bn: "চিরকাল বিনামূল্যে"
+    },
+    'home_landing_pill_no_zoom': {
+        en: "No Zoom",
+        es: "Sin Zoom",
+        pt: "Sem Zoom",
+        fr: "Sans Zoom",
+        hi: "ज़ूम की ज़रूरत नहीं",
+        bn: "জুমের দরকার নেই"
     },
     'home_landing_devices_heading': {
         en: "Anywhere, Any Device.",
@@ -2744,14 +2755,6 @@ const strings = {
         fr: "Ça marche sur tout appareil récent (depuis environ 2020) : téléphone, tablette ou ordinateur. Vous n'avez même pas besoin d'installer une application !",
         hi: "यह किसी भी हालिया डिवाइस (लगभग 2020 से) पर काम करता है: फ़ोन, टैबलेट या कंप्यूटर। आपको ऐप इंस्टॉल करने की भी ज़रूरत नहीं है!",
         bn: "যেকোনো সাম্প্রতিক ডিভাইসে (প্রায় ২০২০ সাল থেকে) কাজ করে: ফোন, ট্যাবলেট বা কম্পিউটার। আপনাকে অ্যাপ ইনস্টলও করতে হবে না!"
-    },
-    'home_landing_headline_sub': {
-        en: "Even if your friends are offline now, no matter your different English levels.",
-        es: "Aunque tus amigos estén desconectados ahora, sin importar sus diferentes niveles de inglés.",
-        pt: "Mesmo que seus amigos estejam offline agora, não importa os diferentes níveis de inglês.",
-        fr: "Même si vos amis sont hors ligne, quels que soient vos niveaux d'anglais.",
-        hi: "भले ही आपके दोस्त अभी ऑफ़लाइन हों, आपके अंग्रेज़ी स्तर कुछ भी हों",
-        bn: "আপনার বন্ধুরা এখন অফলাইনে থাকলেও, আপনাদের ইংরেজির স্তর যাই হোক না কেন"
     },
     'home_landing_subheadline': {
         en: "Enter your friend's code or start fresh if you don't have one.",
