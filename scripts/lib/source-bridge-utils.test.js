@@ -472,3 +472,118 @@ describe('bridge round-trip through the real generator', () => {    it('leaves n
         expect(() => sourceToRows(twoPairs)).toThrow(/only the LAST pair/);
     });
 });
+
+// stories/099-course-intro-clips: three short course-level opener clips,
+// authored as English scripts in the source and DERIVED into app slugs.
+const INTROS = {
+    first: 'Ask your friend which cartoon character you most resemble.',
+    respond: 'Your friend is asking you which cartoon character they resemble.',
+    ask: 'Now it is your turn to ask your friend the same questions.',
+};
+const withIntros = () => ({ ...SOURCE, intros: { ...INTROS } });
+
+describe('sourceToRows intro clips', () => {
+    it('emits intro_kinds in canonical order on every row when all three are declared', () => {
+        const rows = sourceToRows(withIntros());
+        expect(rows.length).toBeGreaterThan(0);
+        for (const row of rows) expect(row.intro_kinds).toBe('first|respond|ask');
+    });
+
+    it('leaves intro_kinds blank when the source declares no intros (opt-in)', () => {
+        for (const row of sourceToRows(SOURCE)) expect(row.intro_kinds).toBe('');
+    });
+
+    it('throws on a partial block', () => {
+        expect(() => sourceToRows({ ...SOURCE, intros: { first: INTROS.first } }))
+            .toThrow(/intros.*missing: respond, ask/);
+    });
+
+    it('throws on an unknown kind', () => {
+        expect(() => sourceToRows({ ...SOURCE, intros: { ...INTROS, outro: 'bye' } }))
+            .toThrow(/intros.*unexpected: outro/);
+    });
+
+    it('throws on a blank or non-string script', () => {
+        expect(() => sourceToRows({ ...SOURCE, intros: { ...INTROS, respond: '   ' } }))
+            .toThrow(/intros.respond.*non-empty script/);
+        expect(() => sourceToRows({ ...SOURCE, intros: { ...INTROS, ask: 42 } }))
+            .toThrow(/intros.ask.*non-empty script/);
+    });
+
+    it('throws on an over-long script (the clips must stay short)', () => {
+        const long = Array.from({ length: 81 }, () => 'word').join(' ');
+        expect(() => sourceToRows({ ...SOURCE, intros: { ...INTROS, ask: long } }))
+            .toThrow(/is 81 words.*80 words or fewer/);
+    });
+});
+
+describe('ABABAB intro placement', () => {
+    const build = () => buildCourseConfig(sourceToRows(withIntros()));
+    const introSlugs = (config) => new Set(JSON.stringify(config).match(/demo-intro-(?:first|respond|ask)/g) || []);
+
+    it('puts the first-lesson clip on its first ask branch, and nothing else', () => {
+        const a = build().lessons.find((l) => l.lessonId === 'a');
+        const branches = a.steps.filter((s) => s.responseType === 'branching');
+        expect(branches[0].simpleVideoUrl).toBe('demo-intro-first');
+        // The other ask branches of lesson A stay silent.
+        expect(branches.slice(1).every((s) => s.simpleVideoUrl === undefined)).toBe(true);
+        expect(a.steps.some((s) => s.responseType === 'viewAndContinue')).toBe(false);
+        expect(JSON.stringify(a.steps)).not.toContain('demo-intro-ask');
+    });
+
+    it('opens every answer lesson with the respond clip, before the friend-clip branch', () => {
+        const config = build();
+        for (const lessonId of ['b', 'c']) {
+            const lesson = config.lessons.find((l) => l.lessonId === lessonId);
+            expect(lesson.steps[0].responseType).toBe('lessonIntro');
+            expect(lesson.steps[1]).toEqual({
+                responseType: 'viewAndContinue',
+                simpleVideoUrl: 'demo-intro-respond',
+            });
+            // The branch that follows keeps the friend's clip; the intro never steals it.
+            expect(lesson.steps[2].responseType).toBe('branching');
+            expect(lesson.steps[2].simpleVideoUrl).toBe('{friendCode}{selfCode}-demo-a-01');
+        }
+    });
+
+    it('puts the "your turn" clip on the first record branch of a later lesson only', () => {
+        const b = build().lessons.find((l) => l.lessonId === 'b');
+        const introBranches = b.steps
+            .filter((s) => s.responseType === 'branching' && String(s.simpleVideoUrl || '').includes('-intro-'));
+        expect(introBranches).toHaveLength(1);
+        expect(introBranches[0].simpleVideoUrl).toBe('demo-intro-ask');
+    });
+
+    it('gives the closing lesson the respond clip but never the "your turn" clip', () => {
+        const closing = build().lessons.find((l) => l.lessonId === 'c');
+        expect(closing.steps[1]).toEqual({
+            responseType: 'viewAndContinue',
+            simpleVideoUrl: 'demo-intro-respond',
+        });
+        expect(JSON.stringify(closing.steps)).not.toContain('demo-intro-ask');
+    });
+
+    it('emits exactly three distinct intro slugs across the whole config', () => {
+        expect([...introSlugs(build())].sort())
+            .toEqual(['demo-intro-ask', 'demo-intro-first', 'demo-intro-respond']);
+    });
+
+    it('emits no intro steps at all when the course declares none', () => {
+        const config = buildCourseConfig(sourceToRows(SOURCE));
+        expect(JSON.stringify(config)).not.toContain('-intro-');
+        for (const lesson of config.lessons) {
+            expect(lesson.steps.some((s) => s.responseType === 'viewAndContinue')).toBe(false);
+        }
+    });
+
+    it('throws when a hand-edited sheet names only part of the intro set', () => {
+        const rows = sourceToRows(withIntros()).map((row) => ({ ...row, intro_kinds: 'first' }));
+        expect(() => buildCourseConfig(rows)).toThrow(/intro_kinds must name exactly first\|respond\|ask/);
+    });
+});
+
+describe('MASTER_HEADER intro column', () => {
+    it('carries exactly one intro_kinds column', () => {
+        expect(MASTER_HEADER.filter((h) => h === 'intro_kinds')).toHaveLength(1);
+    });
+});

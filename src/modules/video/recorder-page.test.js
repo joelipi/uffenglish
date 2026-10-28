@@ -2269,6 +2269,30 @@ describe('recorder auto-render — zero server changes', () => {
             'src/components/widgets/activity-stats.test.jsx',
             'src/components/homescreen/NotificationsBell.web.jsx',
             'tests/lesson-topbar-bell.spec.js',
+            // Story 099 (course intro clips): three short course-level opener
+            // clips authored in the source and placed by the ABABAB generator.
+            'stories/099-course-intro-clips/story.md',
+            'sources/cartoon-preferences.source.txt',
+            'public/cartoon-preferences.master.csv',
+            // The new `intro_kinds` column rides every committed master CSV
+            // (the bridge writes the header; blank for courses with no intros).
+            'public/fruit-preferences.master.csv',
+            'public/health.master.csv',
+            'public/money-preferences.master.csv',
+            'public/wouldyourather.master.csv',
+            'src/config/cartoon-preferences.json',
+            'src/config/cartoon-preferences.test.js',
+            'scripts/lib/source-bridge-utils.js',
+            'scripts/lib/source-bridge-utils.test.js',
+            'scripts/lib/sheet-config-utils.js',
+            'scripts/course-intro-clips-docs.test.js',
+            'docs/video-pipeline/authoring-sheet.md',
+            // The caption run skips a slug whose video is not on R2 yet.
+            'scripts/generate-captions.mjs',
+            'scripts/lib/caption-utils.js',
+            'scripts/lib/caption-utils.test.js',
+            'scripts/generate-captions.test.js',
+            'docs/product.md',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);

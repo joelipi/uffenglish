@@ -161,14 +161,17 @@ export function validateTranslatedSrt(englishSrt, translatedSrt) {
 /**
  * Format-preserving injection of caption objects into a config file using
  * jsonc-parser. Steps that already carry a `subtitles` property are left
- * untouched (never overwrite). Throws if a target slug has no captions.
+ * untouched (never overwrite). Throws if a target slug has no captions, unless
+ * the slug is in `skipped` (its media is not on R2 yet — an authored step
+ * waiting on its recording, which must not fail the run).
  *
  * @param {string} text config file text
  * @param {Array<{slug: string, lessonIndex: number, stepKey: string, stepIndex: number}>} targets
  * @param {Record<string, object>} captionsBySlug slug -> { en, es, pt, fr, hi, bn }
+ * @param {Set<string>} [skipped] slugs whose media is not published yet
  * @returns {string} edited text
  */
-export function applyCaptionsToText(text, targets, captionsBySlug) {
+export function applyCaptionsToText(text, targets, captionsBySlug, skipped = new Set()) {
     const parsed = parse(text);
     let result = text;
     for (const target of targets) {
@@ -176,6 +179,7 @@ export function applyCaptionsToText(text, targets, captionsBySlug) {
         if (step && step.subtitles !== undefined) continue;
         const captions = captionsBySlug[target.slug];
         if (!captions) {
+            if (skipped.has(target.slug)) continue;
             throw new Error(`No captions generated for slug "${target.slug}"`);
         }
         const path = ['lessons', target.lessonIndex, target.stepKey, target.stepIndex, 'subtitles'];
@@ -196,10 +200,11 @@ export function applyCaptionsToText(text, targets, captionsBySlug) {
  * @param {object} opts
  * @param {string|null} opts.beforeText before-revision file text (null = new file)
  * @param {string} opts.afterText after-revision file text
- * @param {(slug: string) => Promise<Array>} opts.transcribe
+ * @param {(slug: string) => Promise<Array|null>} opts.transcribe resolves
+ *   `null` when the media is not on R2 yet (authored step, not recorded)
  * @param {(englishSrt: string, lang: string) => Promise<string>} opts.translate
  * @param {string[]} [opts.languages]
- * @returns {Promise<{text: string, generated: string[]}>}
+ * @returns {Promise<{text: string, generated: string[], skipped: string[]}>}
  */
 export async function buildCaptionEdits({ beforeText, afterText, transcribe, translate, languages = CAPTION_LANGUAGES }) {
     const beforeConfig = beforeText ? parse(beforeText) : null;
@@ -208,9 +213,16 @@ export async function buildCaptionEdits({ beforeText, afterText, transcribe, tra
 
     const captionsBySlug = {};
     const generated = [];
+    const skipped = [];
     const uniqueSlugs = [...new Set(targets.map((t) => t.slug))];
     for (const slug of uniqueSlugs) {
         const chunks = await transcribe(slug);
+        // The clip is authored but not uploaded yet: leave its steps without
+        // subtitles and let a later run (after the recording lands) fill them.
+        if (!chunks) {
+            skipped.push(slug);
+            continue;
+        }
         const enSrt = chunksToSrt(chunks);
         const captions = { en: enSrt };
         for (const lang of languages) {
@@ -226,6 +238,6 @@ export async function buildCaptionEdits({ beforeText, afterText, transcribe, tra
         generated.push(slug);
     }
 
-    const text = applyCaptionsToText(afterText, targets, captionsBySlug);
-    return { text, generated };
+    const text = applyCaptionsToText(afterText, targets, captionsBySlug, new Set(skipped));
+    return { text, generated, skipped };
 }

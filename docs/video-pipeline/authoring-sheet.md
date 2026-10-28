@@ -57,6 +57,44 @@ columns reported):
 - **`next_step` must be an integer ≥ 1** when set. A `branching` step with no `choose_step_*`
   still generates (the app falls back to a Continue button, which honors `next_step`).
 
+## Course intro clips (`intros`)
+
+A course may declare three short, course-level opener clips in its source file
+(`sources/<course>.source.txt`). They are ordinary `simpleVideoUrl` slugs, reused
+across the whole ABABAB chain — three clips per course, not per lesson:
+
+```json
+"intros": {
+  "first": "You're asking your friend which cartoon character you most resemble. ...",
+  "respond": "Your friend is asking you what cartoon character they resemble. ...",
+  "ask": "Now it's your turn to ask your friend the same questions. ..."
+}
+```
+
+- **All three or none.** A partial block (or a blank/over-long script — 80 words
+  max) fails the source regeneration instead of dropping clips silently.
+- **Slugs are derived, never authored:** `{course}-intro-first`,
+  `{course}-intro-respond`, `{course}-intro-ask`. A re-record replaces the
+  object at the same URL.
+- The bridge writes one sheet column, `intro_kinds` (`first|respond|ask`), on
+  every row; the generator places the slugs:
+
+  | Clip | Where it plays |
+  |---|---|
+  | `-intro-first` | Lesson A's first ask branch (frames the whole course). |
+  | `-intro-respond` | Every answer lesson (B onward), as a `viewAndContinue` step immediately after the lesson intro and before the friend's clip. |
+  | `-intro-ask` | Every later lesson's first ask-phase branch ("now it's your turn"). The closing lesson has no ask phase, so it never plays this clip. |
+
+- **Record, upload, then merge.** The clips are not sheet rows: record each one,
+  upload it to R2 (`npx wrangler r2 object put
+  uff/assets/videos/<slug>.mp4 --file <path> --content-type video/mp4`), and let
+  `captions.yml` fill the six-language subtitles from the audio on the push that
+  adds the slugs to the config. Until the upload, those steps have no media.
+- `docs/video-pipeline` keeps the media pipeline unchanged: these clips never
+  enter a render plan, so they get no poster from the Modal render. Run
+  `npm run posters:upload` once the object is on R2 if the step's poster is
+  wanted.
+
 ## Overlay master → config fields
 
 The **overlay master** (`title_text, Order, phrase, subtitle_text, join, video_file, …`, the

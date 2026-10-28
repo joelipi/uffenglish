@@ -132,3 +132,42 @@ describe('documentation', () => {
         expect(agents).toMatch(/not.*hand-backfill/i);
     });
 });
+// stories/099-course-intro-clips: a new config may reference a clip the
+// operator has not uploaded yet. Only a 404 is "not recorded yet"; every other
+// failure must still fail the run (an R2 outage is not a missing recording).
+describe('generate-captions.mjs treats a missing video as "not recorded yet"', () => {
+    const source = readFileSync(path.join(ROOT, 'scripts/generate-captions.mjs'), 'utf8');
+    const sliceBetween = (text, start, end) => {
+        const from = text.indexOf(start);
+        const to = text.indexOf(end, from + start.length);
+        if (from === -1 || to === -1) throw new Error(`slice markers not found: ${start} .. ${end}`);
+        return text.slice(from, to);
+    };
+
+    const download = () => sliceBetween(source, 'async function downloadVideo', 'async function extractPcm');
+    const transcribe = () => sliceBetween(source, 'async function transcribeReal', 'function argValue');
+
+    it('returns null on HTTP 404 and still throws on any other failure', () => {
+        const body = download();
+        expect(body).toContain('if (res.status === 404) return null;');
+        expect(body).toContain('if (!res.ok) throw new Error(');
+        // Order matters: the 404 branch must be tested BEFORE the generic !ok throw.
+        expect(body.indexOf('res.status === 404')).toBeLessThan(body.indexOf('if (!res.ok)'));
+    });
+
+    it('logs the skipped slug and returns null so the caption run continues', () => {
+        const body = transcribe();
+        expect(body).toContain('if (!mp4) {');
+        expect(body).toContain('SKIP ${slug}');
+        expect(body.indexOf('if (!mp4)')).toBeLessThan(body.indexOf('await extractPcm(mp4)'));
+    });
+
+    it('can fail: each pinned line turns the guard red when removed', () => {
+        const body = download();
+        const mutated = body.replace('if (res.status === 404) return null;', '');
+        expect(mutated).not.toBe(body);
+        expect(mutated).not.toContain('if (res.status === 404) return null;');
+        const tr = transcribe();
+        expect(tr.replace('SKIP ${slug}', '')).not.toContain('SKIP ${slug}');
+    });
+});

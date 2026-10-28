@@ -81,6 +81,10 @@ async function downloadVideo(slug) {
     const url = `${CDN_VIDEO_BASE}${slug}.mp4`;
     console.log(`DOWNLOAD ${url}`);
     const res = await fetch(url);
+    // 404 = authored but not recorded yet (a new config may reference a clip
+    // the operator has not uploaded). Every other failure still throws, so an
+    // R2 outage or a bad URL cannot masquerade as "not recorded".
+    if (res.status === 404) return null;
     if (!res.ok) throw new Error(`download failed HTTP ${res.status} for ${url}`);
     const buf = Buffer.from(await res.arrayBuffer());
     await fs.writeFile(cached, buf);
@@ -107,6 +111,10 @@ function getAsr() {
 
 async function transcribeReal(slug) {
     const mp4 = await downloadVideo(slug);
+    if (!mp4) {
+        console.log(`SKIP ${slug}: video not on R2 yet (HTTP 404)`);
+        return null;
+    }
     const pcm = await extractPcm(mp4);
     const buf = await fs.readFile(pcm);
     const audio = new Float32Array(buf.buffer, buf.byteOffset, buf.byteLength / 4);
@@ -146,18 +154,19 @@ async function main() {
     for (const file of fileList) {
         const beforeText = await gitShow(base, file);
         const afterText = await fs.readFile(path.join(ROOT, file), 'utf8');
-        const { text, generated } = await buildCaptionEdits({
+        const { text, generated, skipped } = await buildCaptionEdits({
             beforeText,
             afterText,
             transcribe: transcribeReal,
             translate: translateSrt,
             languages: CAPTION_LANGUAGES,
         });
+        const skippedNote = skipped.length ? `; skipped (not on R2 yet): ${skipped.join(', ')}` : '';
         if (dryRun) {
-            console.log(`[dry-run] ${file}: ${generated.length ? `captions for ${generated.join(', ')}` : 'no new simple videos'}`);
+            console.log(`[dry-run] ${file}: ${generated.length ? `captions for ${generated.join(', ')}` : 'no new simple videos'}${skippedNote}`);
         } else {
             await fs.writeFile(path.join(ROOT, file), text);
-            console.log(`WROTE ${file}: captions for ${generated.join(', ') || 'nothing'}`);
+            console.log(`WROTE ${file}: captions for ${generated.join(', ') || 'nothing'}${skippedNote}`);
         }
     }
 }
