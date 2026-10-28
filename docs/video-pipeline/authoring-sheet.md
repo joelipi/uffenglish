@@ -80,7 +80,9 @@ single line at a time:
 - **The bridge writes one take row per line** (`set_role: intro`,
   `video_file` = the slug, `filename` = `<slug>-NN`, and blank
   `title_text`/`subtitle_text`/`footer_text` so no overlay is burned onto a
-  selfie opener). The lines appear in the recorder like any other take.
+  selfie opener). The lines appear in the recorder like any other take, under a
+  synthetic `intro` lesson key so the recorder's auto-render scopes to the
+  intros instead of the chain's first lesson.
 - **The render owns the clip.** It concatenates each slug's takes into one
   video, publishes `assets/videos/<slug>.mp4`, and writes the step's `srt` —
   **one cue per line**, with the timings measured from the concatenated clip.

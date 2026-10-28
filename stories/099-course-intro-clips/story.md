@@ -63,8 +63,9 @@ and off by default.
   `<slug>-NN`, `order` = NN, `phrase` = the line, `response_type`
   `viewAndContinue`, and **blank** `title_text`/`subtitle_text`/`footer_text`
   so no overlay is burned onto a selfie opener. The rows carry no pair/topic
-  coordinates and are attached to the chain's first lesson only (every row needs
-  a lesson header).
+  coordinates and use a synthetic `intro` lesson key: they belong to no pair,
+  and the recorder's auto-render groups by lesson, so a dedicated key renders
+  ONLY the intros rather than re-rendering the chain's first lesson.
 
 - **Recorder.** Rows with a `filename` are recordable takes, so the three clips
   appear in the operator studio one short line at a time — no clipping.
@@ -116,7 +117,7 @@ and off by default.
   - → throws on a blank line, more than 6 lines, or a line over 20 words
 - `sourceToRows(source)` + called in unit test
   - → emits one row per line in canonical kind order, `filename` `<slug>-NN`, `order` `NN`
-  - → every intro row has `set_role: intro`, `video_file` the derived slug, `response_type` `viewAndContinue`, `lesson_id` of the chain's first lesson
+  - → every intro row has `set_role: intro`, `video_file` the derived slug, `response_type` `viewAndContinue`, and the synthetic `intro` lesson key
   - → every intro row has blank `title_text`, `subtitle_text`, `footer_text`, and no `pair_index`/`topic_index`
   - → emits no intro rows when the source declares none
 - `MASTER_HEADER` + called in unit test

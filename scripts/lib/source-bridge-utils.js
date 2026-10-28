@@ -100,6 +100,8 @@ export const DEFAULT_CHARACTER = 'CasualTeacher';
 import { LOCALIZATION_FIELDS, SHEET_LANGUAGES, TRANSLATABLE_FIELDS, localizedColumn } from './sheet-translate-utils.js';
 import {
     INTRO_KINDS,
+    INTRO_LESSON_ID,
+    INTRO_LESSON_TITLE,
     INTRO_MAX_LINES,
     INTRO_MAX_WORDS_PER_LINE,
     LEVEL_PATTERN_COLUMNS,
@@ -646,17 +648,17 @@ export function sourceToRows(source) {
 
     // Course-level intro clips: real takes, one row per short line, so the
     // recorder prompts them and the render concatenates + captions the group.
-    // They are attached to the chain's FIRST lesson only (every row needs a
-    // lesson header); the generator places the resulting clip in the lessons
-    // that play it. No burned text: the app renders the pipeline-written srt.
+    // They belong to no pair, so they carry a synthetic lesson key: the
+    // recorder's auto-render groups by lesson, and this keeps the intro render
+    // scoped to the intros instead of re-rendering the chain's first lesson.
+    // No burned text: the app renders the pipeline-written srt.
     if (introLines) {
-        const firstAsk = pairs[0].ask;
         for (const kind of INTRO_KINDS) {
             const video = `${course}-intro-${kind}`;
             introLines[kind].forEach((line, index) => {
                 rows.push(cell({
-                    lesson_id: firstAsk.id,
-                    lesson_title: firstAsk.title || '',
+                    lesson_id: INTRO_LESSON_ID,
+                    lesson_title: INTRO_LESSON_TITLE,
                     response_type: 'viewAndContinue',
                     video_file: video,
                     filename: `${video}-${pad2(index + 1)}`,

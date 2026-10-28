@@ -503,10 +503,12 @@ describe('sourceToRows intro takes', () => {
         expect(intro.map((r) => r.order)).toEqual(['1', '2', '1', '2', '1', '2']);
     });
 
-    it('gives each take a lesson header but no pair coordinates and no burned overlay', () => {
+    it('gives each take a synthetic intro lesson header, no pair coordinates and no burned overlay', () => {
         for (const row of sourceToRows(withIntros()).filter((r) => r.set_role === 'intro')) {
-            expect(row.lesson_id).toBe('a');
-            expect(row.lesson_title).toBe('Ask things');
+            // A dedicated lesson key keeps the recorder's auto-render scoped to
+            // the intros instead of the chain's first lesson.
+            expect(row.lesson_id).toBe('intro');
+            expect(row.lesson_title).toBe('Course intros');
             expect(row.response_type).toBe('viewAndContinue');
             expect(row.pair_index).toBe('');
             expect(row.topic_index).toBe('');
