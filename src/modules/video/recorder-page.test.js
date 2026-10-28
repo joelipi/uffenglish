@@ -1450,6 +1450,7 @@ describe('recorder auto-render — zero server changes', () => {
             'src/modules/looks/emoji-picker-logic.test.js',
             'src/modules/looks/twemoji-collection.js',
             'src/modules/looks/twemoji-collection.test.js',
+            'src/modules/looks/twemoji-attribution.test.js',
             'public/overlays/TWEMOJI-ATTRIBUTION.md',
             'index.html',
             // Retired by the 092 folder layout (deleted paths still appear in the

@@ -1,87 +1,68 @@
 <!DOCTYPE html>
 <!--
-    Twemoji attribution for the recording overlay artwork.
+    Twemoji — copyright notice, licenses and attribution.
 
-    The overlay images under public/overlays/ are derived from Twemoji:
-    Twemoji by Twitter, Inc. and other contributors, licensed under the
-    Creative Commons Attribution 4.0 International license (CC-BY 4.0).
-    License: https://github.com/jdecked/twemoji/blob/main/LICENSE-GRAPHICS
-    Source, pinned: Twemoji 15.0.3 via jsDelivr
-    (https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.0.3/assets/svg/).
+    The emoji artwork used in this app is Twemoji, the open-source emoji
+    library maintained at https://github.com/jdecked/twemoji (the maintained
+    fork of Twitter's original Twemoji project).
 
-    Emoji used:
-      1F453 eyeglasses
-      1F3AD performing arts (purple mask only)
-      1F47D alien
-      1F921 clown face
-      1F63A grinning cat
-      1F435 monkey face
-      1F436 dog face
-      1F43B bear face
-      1F600 grinning face
-      1F601 beaming face with smiling eyes
-      1F602 face with tears of joy
-      1F603 grinning face with big eyes
-      1F605 grinning face with sweat
-      1F606 grinning squinting face
-      1F60A smiling face with smiling eyes
-      1F60B face savoring food
-      1F973 partying face
-      1F620 angry face
-      1F922 nauseated face
-      1F92E face vomiting
-      1F431 cat face
-      1F437 pig face
-      1F42F tiger face
-      1F98A fox face
-      1F42E cow face
-      1F43C panda face
-      1F430 rabbit face
-      1F42D mouse face
-      1F428 koala
-      1F438 frog
-      1F989 owl
-      1F439 hamster
-      1F385 Santa Claus
-      1F936 Mrs. Claus
-      1F9D9 mage
-      1F934 prince
-      1F478 princess
-      1F477 construction worker
-      1F473 person with turban
-      1F920 cowboy hat face
-      1F9E2 billed cap
-      26D1 rescue worker's helmet
-      1FA96 military helmet
-      1F452 woman's hat
-      1F393 graduation cap
-      1F3A9 top hat
-      1F451 crown
-      1F46E police officer
-      1F468-200D-1F373 man cook
-      1F468-200D-2695-FE0F man health worker
-      1F468-200D-1F692 man firefighter
-      1F468-200D-2708-FE0F man pilot
-      1F468-200D-1F680 man astronaut
-      1F468-200D-1F33E man farmer
-      1F468-200D-1F3ED man factory worker
-      1F468-200D-2696-FE0F man judge
-      1F469-200D-2696-FE0F woman judge
+    Copyright (c) 2022–present Jason Sofonia & Justine De Caires
+    Copyright (c) 2014–2021 Twitter
 
-    Modifications: many overlays were altered by removing parts of the
-    artwork — eye areas, faces, hair, or the centre of a helmet — so the
-    learner's own eyes or face show through the overlay. Hats were extracted
-    from full emoji. These modifications are not endorsed by Twitter,
-    Twemoji, or the emoji's original designers.
+    ATTRIBUTION REQUIREMENTS (quoted from the project's README):
 
-    The in-app Emoji overlay picker also loads the full Twemoji 15.0.3 SVG
-    collection from the pinned jsDelivr CDN. That artwork is covered by the
-    same CC-BY 4.0 license and the same modification note (the picker renders
-    the originals unmodified).
+      "As an open source project, attribution is critical from a legal,
+       practical and motivational perspective in our opinion. The graphics
+       are licensed under the CC-BY 4.0 which has a pretty good guide on
+       best practices for attribution.
 
-    This attribution applies to the Twemoji-derived overlay images under
-    public/overlays/ and to the Twemoji artwork loaded by the emoji picker.
-    It does not apply to any other content in this app.
+       However, we consider the guide a bit onerous and as a project, will
+       accept a mention in a project README or an 'About' section or footer
+       on a website. In mobile applications, a common place would be in the
+       Settings/About section (for example, see the mobile Twitter
+       application Settings->About->Legal section). We would consider a
+       mention in the HTML/JS source sufficient also."
+
+    This notice in the HTML source is that mention.
+
+    LICENSE (quoted from the project's README):
+
+      Code licensed under the MIT License: https://opensource.org/licenses/MIT
+      Graphics licensed under CC-BY 4.0:
+      https://creativecommons.org/licenses/by/4.0/
+
+    Full texts: https://github.com/jdecked/twemoji/blob/main/LICENSE and
+    https://github.com/jdecked/twemoji/blob/main/LICENSE-GRAPHICS
+
+    WHAT THIS APP USES
+
+    The in-app Emoji overlay picker includes the ENTIRE Twemoji artwork
+    collection, not a handful of hand-picked files: all 3,720 SVGs of Twemoji
+    15.0.3, enumerated in src/generated/twemoji-emojis.js and rendered
+    unmodified from the pinned CDN
+    (https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.0.3/assets/svg/), with
+    their names and categories from emoji-datasource 15.1.2. Only the graphic
+    assets are used — the library's code is not bundled.
+
+    The PNGs under public/overlays/ are also derived from that same artwork.
+
+    MODIFICATIONS (CC-BY 4.0 requires that they be indicated)
+
+    Many of those derived overlays were altered so the learner's own eyes or
+    face show through them: eye areas, faces, hair or the centre of a helmet
+    were made transparent, and hats were extracted from the full emoji.
+    Per-file sources and the exact edits are recorded in
+    public/overlays/TWEMOJI-ATTRIBUTION.md (regenerated by
+    scripts/generate-twemoji-overlays.mjs). The SVGs the picker renders are
+    unmodified.
+
+    These modifications are not endorsed by Jason Sofonia, Justine De Caires,
+    Twitter, Twemoji, or the emoji's original designers. Nothing in this
+    notice implies that they sponsor or endorse this app.
+
+    This attribution covers the Twemoji artwork loaded by the emoji picker and
+    the Twemoji-derived images under public/overlays/. It does not apply to
+    any other content in this app.
 -->
 <html lang="en">
 
