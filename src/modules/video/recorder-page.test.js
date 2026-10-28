@@ -2287,6 +2287,7 @@ describe('recorder auto-render — zero server changes', () => {
             'src/components/homescreen/homepage-landing-wiring.test.js',
             'src/data/strings.js',
             'src/data/strings.test.js',
+            'src/data/strings-landing-sections.test.js',
         ];
         for (const file of tracked) {
             expect(allowlist, file).toContain(file);

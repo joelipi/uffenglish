@@ -2823,10 +2823,10 @@ const strings = {
         bn: "১০০% বিনামূল্যে"
     },
     'home_landing_how_1': {
-        en: "no subscription, no card needed, ever.",
-        es: "sin suscripción, no se necesita tarjeta, nunca.",
-        pt: "sem assinatura, sem necessidade de cartão, nunca.",
-        fr: "sans abonnement, sans carte bancaire, jamais.",
+        en: "No subscription, no card needed, ever.",
+        es: "Sin suscripción, no se necesita tarjeta, nunca.",
+        pt: "Sem assinatura, sem necessidade de cartão, nunca.",
+        fr: "Sans abonnement, sans carte bancaire, jamais.",
         hi: "कोई सब्सक्रिप्शन नहीं, कोई कार्ड ज़रूरी नहीं, कभी भी।",
         bn: "কোনো সাবস্ক্রিপশন নয়, কোনো কার্ড দরকার নেই, কখনোই।"
     },

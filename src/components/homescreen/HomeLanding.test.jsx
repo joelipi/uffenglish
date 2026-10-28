@@ -229,7 +229,7 @@ describe('HomeLanding', () => {
         expect(items.every(Boolean)).toBe(true);
         expect(list.querySelectorAll('[data-testid^="how-it-works-item-"]')).toHaveLength(11);
         const expected = [
-            'no subscription, no card needed, ever.',
+            'No subscription, no card needed, ever.',
             'Each lesson teaches multiple forms of the same basic questions and answers, from a very beginner way to an advanced way. For instance, very beginner: "Coffee or tea?" Intermediate: "Would you like coffee or tea?" Advanced: "Would you prefer a steaming mug of fresh-brewed Arabica coffee or a nice cup of tea?"',
             "You don't need to be online at the same time as your friends.",
             "Find out what you said right or wrong. You have an infinite number of attempts to get it right, no pressure.",
@@ -285,7 +285,7 @@ describe('HomeLanding', () => {
     it('localizes the How it works section', () => {
         render({ lang: 'es' });
         expect(q('how-it-works-item-1').querySelector('span').textContent)
-            .toBe('sin suscripción, no se necesita tarjeta, nunca.');
+            .toBe('Sin suscripción, no se necesita tarjeta, nunca.');
         expect(q('how-it-works-title-1').textContent).toBe('100% gratis');
         expect(q('how-it-works-title-2').textContent).toBe('Cualquier nivel de inglés');
         expect(q('how-it-works-title-3').textContent).toBe('Practica cuando quieras, donde quieras');
