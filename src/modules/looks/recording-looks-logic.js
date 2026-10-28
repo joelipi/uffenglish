@@ -219,6 +219,7 @@ export const OVERLAY_LIBRARY = {
     // frame's bottom edge instead of the generic `lower` anchor.
     'fruits-bottom': { slot: 'lower', file: '/overlays/props/fruits-bottom.png', anchor: 'lower', label: 'Fruits', labelKey: 'look_overlay_fruits_bottom', baseWidth: 0.8, anchorY: 0.925 },
     'veggies-bottom': { slot: 'lower', file: '/overlays/props/veggies-bottom.png', anchor: 'lower', label: 'Veggies', labelKey: 'look_overlay_veggies_bottom', baseWidth: 0.8, anchorY: 0.925 },
+    'gifts-bottom': { slot: 'lower', file: '/overlays/props/gifts-bottom.png', anchor: 'lower', label: 'Gifts', labelKey: 'look_overlay_gifts_bottom', baseWidth: 0.8, anchorY: 0.925 },
 };
 
 export const OVERLAY_SLUGS = Object.keys(OVERLAY_LIBRARY);

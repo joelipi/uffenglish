@@ -33,7 +33,7 @@ artwork:
   holes (the original paints closed eye arcs).
 - Both are rasterized to PNG with `sharp`; nothing else is altered.
 
-## Bottom bands (`props/fruits-bottom.png`, `props/veggies-bottom.png`)
+## Bottom bands (`props/*-bottom.png`)
 
 Regeneration: `node scripts/generate-bottom-overlays.mjs`.
 
@@ -48,6 +48,8 @@ anchors it (`baseWidth: 0.8`, `anchorY: 0.925`).
   `1f34e.svg` (red apple), `1f347.svg` (grapes), `1f353.svg` (strawberry)
 - `veggies-bottom.png` ← `1f33d.svg` (ear of maize), `1f955.svg` (carrot),
   `1f966.svg` (broccoli), `1fad1.svg` (bell pepper), `1f345.svg` (tomato)
+- `gifts-bottom.png` ← `1f381.svg` (wrapped present), the same parcel four
+  times at four sizes and tilts
 
 Nothing but the emoji artwork is painted: the band has no plate, frame or shadow
 behind it.

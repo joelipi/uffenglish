@@ -68,18 +68,33 @@ export const BOTTOM_OVERLAY_STRIPS = {
             { code: '1f345', name: 'tomato', height: 215, rotate: -9, overlap: 28, dip: 0 },
         ],
     },
+    gifts: {
+        label: 'Gifts',
+        labelKey: 'look_overlay_gifts_bottom',
+        items: [
+            // The same wrapped present four times: only its size and tilt change,
+            // so the band reads as several parcels piled up rather than one
+            // sticker repeated.
+            { code: '1f381', name: 'wrapped present', height: 285, rotate: -9, overlap: 0, dip: 0 },
+            { code: '1f381', name: 'wrapped present', height: 325, rotate: 7, overlap: 22, dip: 22 },
+            { code: '1f381', name: 'wrapped present', height: 295, rotate: -4, overlap: 20, dip: 0 },
+            { code: '1f381', name: 'wrapped present', height: 335, rotate: 11, overlap: 24, dip: 18 },
+        ],
+    },
 };
 
-/** The committed file for each strip. */
-export const BOTTOM_OVERLAY_FILES = {
-    fruits: 'fruits-bottom.png',
-    veggies: 'veggies-bottom.png',
-};
+/** The overlay slug a strip is published under (`fruits` → `fruits-bottom`). */
+export function bottomOverlaySlug(stripKey) {
+    return `${stripKey}-bottom`;
+}
 
-export const BOTTOM_OVERLAY_SLUGS = {
-    fruits: 'fruits-bottom',
-    veggies: 'veggies-bottom',
-};
+/** The committed file name for a strip. */
+export function bottomOverlayFile(stripKey) {
+    return `${bottomOverlaySlug(stripKey)}.png`;
+}
+
+/** Every strip's overlay slug, in declaration order. */
+export const BOTTOM_OVERLAY_SLUGS = Object.keys(BOTTOM_OVERLAY_STRIPS).map(bottomOverlaySlug);
 
 export async function fetchTwemojiSvg(code) {
     if (svgCache.has(code)) return svgCache.get(code);
@@ -194,11 +209,11 @@ export function stripCodes(stripKey) {
 async function main() {
     for (const [stripKey, strip] of Object.entries(BOTTOM_OVERLAY_STRIPS)) {
         const buf = await buildBottomStrip(strip.items);
-        const file = path.join(PROPS_DIR, BOTTOM_OVERLAY_FILES[stripKey]);
+        const file = path.join(PROPS_DIR, bottomOverlayFile(stripKey));
         fs.writeFileSync(file, buf);
         const meta = await sharp(buf).metadata();
         console.log(
-            `props/${BOTTOM_OVERLAY_FILES[stripKey]} ${meta.width}x${meta.height} ${buf.length}B (${strip.items.length} items: ${strip.items.map((i) => i.name).join(', ')})`,
+            `props/${bottomOverlayFile(stripKey)} ${meta.width}x${meta.height} ${buf.length}B (${strip.items.length} items: ${strip.items.map((i) => i.name).join(', ')})`,
         );
     }
     console.log('bottom overlays generated');
