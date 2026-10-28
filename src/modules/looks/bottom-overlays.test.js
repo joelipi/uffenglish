@@ -1,6 +1,7 @@
-// Bottom band overlays: a wide strip of produce laid along the bottom edge of
-// the recording frame. Two things have to be true for that to work, and each is
-// asserted against the real artifact rather than the registry:
+// Bottom band overlays: a wide strip (produce, gifts, balls, baked goods) laid
+// along the bottom edge of the recording frame. Two things have to be true for
+// that to work, and each is asserted against the real artifact rather than the
+// registry:
 //
 //  - the PNG is a 3:1 strip whose only opaque pixels are the produce (a plate
 //    behind it would cover the learner's chest), and
@@ -26,13 +27,19 @@ import {
     BOTTOM_OVERLAY_HEIGHT,
     BOTTOM_OVERLAY_STRIPS,
     BOTTOM_OVERLAY_WIDTH,
+    bottomOverlayFile,
+    bottomOverlaySlug,
     stripCodes,
 } from '../../../scripts/generate-bottom-overlays.mjs';
+import { TWEMOJI_EMOJIS } from '../../generated/twemoji-emojis.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const PROPS_DIR = path.resolve(HERE, '../../../public/overlays/props');
 
-const SLUGS = ['fruits-bottom', 'veggies-bottom'];
+// Derived from the generator's own strip table, so a new band is covered by
+// every guard below the moment it is declared (never a hand-kept list).
+const STRIP_KEYS = Object.keys(BOTTOM_OVERLAY_STRIPS);
+const SLUGS = STRIP_KEYS.map(bottomOverlaySlug);
 
 // The composite is always this shape (portrait-capture-logic), so "80% wide"
 // and "bottom 15%" are exact numbers here, not approximations.
@@ -45,9 +52,10 @@ function pngBuffer(slug) {
 }
 
 describe('bottom bands are registered as lower-slot overlays', () => {
-    it('both strips live in the lower slot with their own file', () => {
-        expect(assetFileForSlug('fruits-bottom')).toBe('/overlays/props/fruits-bottom.png');
-        expect(assetFileForSlug('veggies-bottom')).toBe('/overlays/props/veggies-bottom.png');
+    it('every strip lives in the lower slot with its own file', () => {
+        for (const key of STRIP_KEYS) {
+            expect(assetFileForSlug(bottomOverlaySlug(key))).toBe(`/overlays/props/${bottomOverlayFile(key)}`);
+        }
         for (const slug of SLUGS) {
             expect(OVERLAY_LIBRARY[slug].slot).toBe('lower');
             expect(OVERLAY_LIBRARY[slug].anchor).toBe('lower');
@@ -60,12 +68,17 @@ describe('bottom bands are registered as lower-slot overlays', () => {
     });
 
     it('the picker gets a label and the option is in the Bottom tray beside the props', () => {
-        for (const slug of SLUGS) {
-            expect(OVERLAY_LIBRARY[slug].label).toBeTruthy();
-            expect(OVERLAY_LIBRARY[slug].labelKey).toBeTruthy();
+        for (const key of STRIP_KEYS) {
+            const entry = OVERLAY_LIBRARY[bottomOverlaySlug(key)];
+            expect(entry.label).toBeTruthy();
+            expect(entry.labelKey).toBeTruthy();
+            // the registry and the generator name the same thing
+            expect(entry.label).toBe(BOTTOM_OVERLAY_STRIPS[key].label);
+            expect(entry.labelKey).toBe(BOTTOM_OVERLAY_STRIPS[key].labelKey);
         }
         expect(OVERLAY_LIBRARY['fruits-bottom'].label).toBe('Fruits');
         expect(OVERLAY_LIBRARY['veggies-bottom'].label).toBe('Veggies');
+        expect(OVERLAY_LIBRARY['gifts-bottom'].label).toBe('Gifts');
         // The existing lower props keep the generic anchor: an override must not
         // leak into the slot's other assets.
         expect(OVERLAY_LIBRARY.cauldron.baseWidth).toBeUndefined();
@@ -194,39 +207,57 @@ describe('the committed strips are see-through wide bands of produce', () => {
         }
     });
 
-    it('ships two different pictures, one per group', async () => {
-        const fruits = pngBuffer('fruits-bottom');
-        const veggies = pngBuffer('veggies-bottom');
-        expect(fruits.equals(veggies)).toBe(false);
-        // Different produce, not one recoloured copy: the alpha silhouettes differ.
+    it('ships one different picture per group (not one recoloured copy)', async () => {
         const mask = async (buf) => {
             const { data, info } = await sharp(buf).raw().toBuffer({ resolveWithObject: true });
             const out = new Uint8Array(info.width * info.height);
             for (let p = 0; p < out.length; p++) out[p] = data[p * info.channels + 3] > 200 ? 1 : 0;
             return out;
         };
-        const [a, b] = [await mask(fruits), await mask(veggies)];
-        let differing = 0;
-        for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) differing++;
-        expect(differing / a.length).toBeGreaterThan(0.1);
+        const masks = new Map();
+        for (const slug of SLUGS) masks.set(slug, await mask(pngBuffer(slug)));
+        for (let i = 0; i < SLUGS.length; i++) {
+            for (let j = i + 1; j < SLUGS.length; j++) {
+                const [a, b] = [masks.get(SLUGS[i]), masks.get(SLUGS[j])];
+                let differing = 0;
+                for (let p = 0; p < a.length; p++) if (a[p] !== b[p]) differing++;
+                expect(differing / a.length, `${SLUGS[i]} vs ${SLUGS[j]}`).toBeGreaterThan(0.1);
+            }
+        }
     });
 });
 
 describe('the compositions combine real emoji from the library', () => {
-    it('paints at least five distinct items per strip', () => {
-        for (const key of Object.keys(BOTTOM_OVERLAY_STRIPS)) {
+    it('paints at least four items per strip, every code a real Twemoji', () => {
+        const known = new Set(TWEMOJI_EMOJIS.map((emoji) => emoji.code));
+        for (const key of STRIP_KEYS) {
             const codes = stripCodes(key);
-            expect(codes.length).toBeGreaterThanOrEqual(5);
-            expect(new Set(codes).size).toBe(codes.length);
+            expect(codes.length, key).toBeGreaterThanOrEqual(4);
+            for (const code of codes) {
+                expect(known.has(code), `${key} uses ${code}, which is not in the Twemoji collection`).toBe(true);
+            }
         }
     });
 
-    it('fruits and vegetables are different sets (no item appears in both)', () => {
-        const fruits = new Set(stripCodes('fruits'));
-        const veggies = new Set(stripCodes('veggies'));
-        for (const code of veggies) {
-            expect(fruits.has(code), `item ${code} is in both strips`).toBe(false);
+    it('no emoji is shared between two strips', () => {
+        const seen = new Map();
+        for (const key of STRIP_KEYS) {
+            for (const code of new Set(stripCodes(key))) {
+                expect(seen.has(code), `${code} is in both ${seen.get(code)} and ${key}`).toBe(false);
+                seen.set(code, key);
+            }
         }
+    });
+
+    it('the gift band is the same wrapped present four times, varied rather than stamped', () => {
+        const codes = stripCodes('gifts');
+        expect(codes).toEqual(['1f381', '1f381', '1f381', '1f381']);
+        // A repeated emoji still reads as a pile: no two parcels are placed the
+        // same way.
+        const poses = new Set(
+            BOTTOM_OVERLAY_STRIPS.gifts.items.map((item) => `${item.height}/${item.rotate}/${item.dip}`),
+        );
+        expect(poses.size).toBe(codes.length);
     });
 
     it('gives every item a composed position (height, tilt, overlap)', () => {

@@ -2314,6 +2314,8 @@ describe('recorder auto-render — zero server changes', () => {
             'src/modules/looks/recording-looks-logic.js',
             'public/overlays/props/fruits-bottom.png',
             'public/overlays/props/veggies-bottom.png',
+            'public/overlays/props/gifts-bottom.png',
+            'public/overlays/props/balls-bottom.png',
             'public/overlays/TWEMOJI-ATTRIBUTION.md',
             'src/modules/video/recorder-page.test.js',
         ];
