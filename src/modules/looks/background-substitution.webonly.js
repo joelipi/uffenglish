@@ -340,8 +340,14 @@ export function createSubstitutedCaptureStream({
 
     const video = createVideo();
     video.muted = true;
+    // The ATTRIBUTE form matters: some mobile browsers gate autoplay on it,
+    // and a hidden video that never plays means no frames, no mask, no take.
+    if ('defaultMuted' in video) {
+        try { video.defaultMuted = true; } catch (e) { /* test fake */ }
+    }
     video.playsInline = true;
     if (video.setAttribute) {
+        video.setAttribute('muted', '');
         video.setAttribute('playsinline', '');
         video.setAttribute('webkit-playsinline', '');
     }
@@ -350,10 +356,23 @@ export function createSubstitutedCaptureStream({
     }
     appendToBody(video);
     video.srcObject = rawStream;
-    const playResult = video.play ? video.play() : null;
-    if (playResult && typeof playResult.catch === 'function') {
-        playResult.catch((e) => console.warn('[Substitution] camera playback failed', e && e.message));
+    // A paused hidden video is a dead composite: the camera callback only fires
+    // on new frames, so this is retried by the watchdog as well as here.
+    function playHiddenVideo() {
+        if (state.disposed) return;
+        try {
+            if (video.paused === false) return;
+            const playResult = video.play ? video.play() : null;
+            if (playResult && typeof playResult.catch === 'function') {
+                playResult.catch((e) => console.warn('[Substitution] camera playback failed', e && e.message));
+            }
+        } catch (e) { /* the watchdog retries on its next pass */ }
     }
+    try {
+        if (typeof video.addEventListener === 'function') {
+            video.addEventListener('loadedmetadata', playHiddenVideo);
+        }
+    } catch (e) { /* test fake without events */ }
 
     // Renderer selection. A canvas has exactly ONE context for its lifetime, so
     // order matters: asking for '2d' first permanently denies 'webgl2' — which is
@@ -435,6 +454,7 @@ export function createSubstitutedCaptureStream({
         sourceAdvances: 0,
         lastSourceTime: 0,
         lastMaskAtMs: -Infinity,
+        lastPaintAtMs: 0,
         disposed: false,
     };
 
@@ -595,14 +615,41 @@ export function createSubstitutedCaptureStream({
     let rafId = null;
     let stopped = false;
     const hasFrameCallback = typeof video.requestVideoFrameCallback === 'function';
+    // How long the display loop waits for a camera-frame paint before painting
+    // anyway. The camera callback is the steady-state driver (one paint per
+    // camera frame, so the picture never lags the live microphone); the display
+    // loop is the watchdog that gets the first frame out and recovers a camera
+    // that never fires its first callback. Either one alone deadlocks on a
+    // phone: no callback means no paint, and one throwing frame used to stop
+    // every future frame because the re-arm sat after the paint.
+    const WATCHDOG_PAINT_AFTER_MS = 500;
+
+    function noteSourceAdvance() {
+        try {
+            if (video.currentTime > state.lastSourceTime) {
+                state.lastSourceTime = video.currentTime;
+                state.sourceAdvances += 1;
+            }
+        } catch (e) { /* test fake */ }
+    }
+
+    function safePaint() {
+        try {
+            if (paintFrame()) state.lastPaintAtMs = now();
+        } catch (e) {
+            console.warn('[Substitution] frame failed', e && e.message);
+        }
+        noteSourceAdvance();
+    }
 
     function tick() {
         if (stopped || state.disposed) return;
-        paintFrame();
-        if (video.currentTime > state.lastSourceTime) {
-            state.lastSourceTime = video.currentTime;
-            state.sourceAdvances += 1;
-        }
+        try {
+            if (now() - state.lastPaintAtMs > WATCHDOG_PAINT_AFTER_MS) {
+                playHiddenVideo();
+                safePaint();
+            }
+        } catch (e) { /* the watchdog itself must never die */ }
         rafId = typeof requestAnimationFrame === 'function' ? requestAnimationFrame(tick) : null;
     }
 
@@ -613,17 +660,21 @@ export function createSubstitutedCaptureStream({
     if (hasFrameCallback) {
         const onSourceFrame = () => {
             if (stopped || state.disposed) return;
-            paintFrame();
-            if (video.currentTime > state.lastSourceTime) {
-                state.lastSourceTime = video.currentTime;
-                state.sourceAdvances += 1;
+            try {
+                safePaint();
+            } finally {
+                try {
+                    frameCallbackId = video.requestVideoFrameCallback(onSourceFrame);
+                } catch (e) { /* camera gone; the watchdog keeps trying */ }
             }
-            frameCallbackId = video.requestVideoFrameCallback(onSourceFrame);
         };
-        frameCallbackId = video.requestVideoFrameCallback(onSourceFrame);
-    } else {
-        tick();
+        try {
+            frameCallbackId = video.requestVideoFrameCallback(onSourceFrame);
+        } catch (e) { /* the watchdog below drives until the camera appears */ }
     }
+    state.lastPaintAtMs = now();
+    playHiddenVideo();
+    tick();
 
     const canvasStream = typeof outputCanvas.captureStream === 'function'
         ? outputCanvas.captureStream(fps)
@@ -659,6 +710,15 @@ export function createSubstitutedCaptureStream({
                 hasMatte: !!state.mask,
                 coverage: Math.round((state.maskCoverage || 0) * 100),
                 compositor: glCompositor ? 'webgl2' : '2d',
+                // The hidden camera's own state: when the composite shows nothing,
+                // this says whether the camera itself ever arrived (w/h are 0
+                // until its first frame decodes).
+                video: {
+                    w: video.videoWidth || 0,
+                    h: video.videoHeight || 0,
+                    readyState: typeof video.readyState === 'number' ? video.readyState : -1,
+                    paused: video.paused !== false,
+                },
             };
         },
         paintNow() {

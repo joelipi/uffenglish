@@ -980,13 +980,20 @@
             var stats = global_live_looks.stats ? global_live_looks.stats() : null;
             var renderer = stats ? String(stats.compositor).toUpperCase() : 'RAW';
             var coverage = stats && typeof stats.coverage === 'number' ? stats.coverage : null;
+            // The hidden camera can stall on a phone (autoplay refused, the
+            // browser throttling a 2px video): the composite then paints nothing
+            // and framesDrawn freezes at 0. Say so outright instead of showing a
+            // confident READY over a dead picture.
+            var cam = stats && stats.video ? stats.video : null;
+            var camStalled = !cam || !cam.w || cam.readyState < 2;
             node_status_bar.textContent = 'HARDWARE READY • LIVE LOOKS'
                 + (state.backgroundState === 'ready' ? ' • BG' : '')
                 + (state.foregroundState === 'ready' ? ' • FG' : '')
                 + ' • ' + renderer
-                + (coverage === null ? '' : ' • MATTE ' + coverage + '%');
+                + (camStalled ? ' • WAITING FOR CAMERA'
+                    : (coverage === null ? '' : ' • MATTE ' + coverage + '%'));
             var matteBlind = coverage !== null && state.backgroundState === 'ready' && coverage === 0;
-            node_status_bar.className = 'status-indicator-bar ' + (matteBlind ? 'status-recording' : 'status-ready');
+            node_status_bar.className = 'status-indicator-bar ' + ((matteBlind || camStalled) ? 'status-recording' : 'status-ready');
         }
 
         async function startLiveLooks() {

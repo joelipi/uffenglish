@@ -121,10 +121,12 @@ function makeVideo({ width = 1920, height = 1080 } = {}) {
         videoHeight: height,
         currentTime: 0,
         muted: false,
-        playsInline: false,
+        paused: false,
+        readyState: 4,
         srcObject: null,
         style: { cssText: '' },
         setAttribute: vi.fn(),
+        addEventListener: vi.fn(),
         play: vi.fn(() => Promise.resolve()),
         pause: vi.fn(),
         requestVideoFrameCallback: vi.fn((cb) => frameCallbacks.push(cb)),
@@ -135,7 +137,7 @@ function makeVideo({ width = 1920, height = 1080 } = {}) {
 
 const dims = { width: 1080, height: 1920, fps: 30, maskWidth: 256, maskHeight: 256 };
 
-function build({ background = null, foreground = null, segmenter = null, mask = null, video = null, webgl2 = null, compileOk = true } = {}) {
+function build({ background = null, foreground = null, segmenter = null, mask = null, video = null, webgl2 = null, compileOk = true, now = undefined } = {}) {
     const canvases = [];
     const createCanvas = () => {
         const canvas = makeCanvas({ webgl2 });
@@ -158,6 +160,7 @@ function build({ background = null, foreground = null, segmenter = null, mask = 
         paintMask: segmenter
             ? vi.fn(() => mask)
             : null,
+        ...(now ? { now } : {}),
     });
     return { api, canvases, camera };
 }
@@ -387,6 +390,52 @@ describe('createSubstitutedCaptureStream', () => {
         expect(api.stats().framesDrawn).toBe(before + 1);
         expect(camera.requestVideoFrameCallback).toHaveBeenCalledTimes(2);
         api.dispose();
+    });
+
+    it('re-arms the camera callback after a throwing frame', () => {
+        // One bad frame (a not-ready video handed to texImage2D on a phone)
+        // used to stop every future frame: the re-registration sat after the
+        // paint, so the loop died with nothing logged and framesDrawn frozen.
+        const gl = makeFakeGl();
+        gl.drawArrays = vi.fn(() => { throw new Error('phone gl blew up'); });
+        const { api, camera } = build({
+            webgl2: gl,
+            background: { naturalWidth: 1080, naturalHeight: 1920 },
+        });
+        expect(camera.requestVideoFrameCallback).toHaveBeenCalledTimes(1);
+        camera.frameCallbacks[0]();
+        expect(camera.requestVideoFrameCallback).toHaveBeenCalledTimes(2);
+        expect(api.stats().framesDrawn).toBe(0);
+        api.dispose();
+    });
+
+    it('paints via the display loop when the camera callback never fires', () => {
+        // On a phone the hidden video can sit unplayed (autoplay refused, the
+        // browser throttling a 2px video): requestVideoFrameCallback then never
+        // fires, and without the watchdog framesDrawn stays 0 forever.
+        const rafCallbacks = [];
+        vi.stubGlobal('requestAnimationFrame', (cb) => { rafCallbacks.push(cb); return rafCallbacks.length; });
+        vi.stubGlobal('cancelAnimationFrame', vi.fn());
+        let t = 1000;
+        const { api, camera } = build({ now: () => t });
+        expect(camera.requestVideoFrameCallback).toHaveBeenCalledTimes(1);
+        expect(api.stats().framesDrawn).toBe(0);
+        t += 600;
+        rafCallbacks[rafCallbacks.length - 1]();
+        expect(api.stats().framesDrawn).toBe(1);
+        api.dispose();
+    });
+
+    it('reports the hidden camera state in stats', () => {
+        const { api } = build();
+        expect(api.stats().video).toMatchObject({ w: 1920, h: 1080 });
+        api.dispose();
+        // A camera that never decoded its first frame reads as stalled, and a
+        // frame with no dimensions paints nothing.
+        const stalled = build({ video: makeVideo({ width: 0, height: 0 }) });
+        expect(stalled.api.stats().video.w).toBe(0);
+        expect(stalled.api.paintNow()).toBe(false);
+        stalled.api.dispose();
     });
 
     it('lets a layer be swapped without rebuilding the stream', () => {
