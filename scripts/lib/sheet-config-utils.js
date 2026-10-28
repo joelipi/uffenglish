@@ -89,6 +89,15 @@ export const INTRO_KINDS = ['first', 'respond', 'ask'];
 export const INTRO_MAX_WORDS_PER_LINE = 20;
 /** An intro clip is short: at most this many recorded lines. */
 export const INTRO_MAX_LINES = 6;
+/**
+ * The synthetic lesson the intro takes are listed under. They belong to no
+ * pair, and the recorder's auto-render groups takes by `lesson_id`: a dedicated
+ * key means recording the intros renders ONLY the intros (not the chain's first
+ * lesson, whose takes share the row set and would otherwise be re-rendered).
+ * The config generator ignores the key — intro rows are read by `abababIntros`.
+ */
+export const INTRO_LESSON_ID = 'intro';
+export const INTRO_LESSON_TITLE = 'Course intros';
 
 /** The derived app slug for one intro clip kind (`{course}-intro-{kind}`). */
 function introSlug(course, kind) {
