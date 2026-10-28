@@ -221,6 +221,7 @@ export const OVERLAY_LIBRARY = {
     'veggies-bottom': { slot: 'lower', file: '/overlays/props/veggies-bottom.png', anchor: 'lower', label: 'Veggies', labelKey: 'look_overlay_veggies_bottom', baseWidth: 0.8, anchorY: 0.925 },
     'gifts-bottom': { slot: 'lower', file: '/overlays/props/gifts-bottom.png', anchor: 'lower', label: 'Gifts', labelKey: 'look_overlay_gifts_bottom', baseWidth: 0.8, anchorY: 0.925 },
     'balls-bottom': { slot: 'lower', file: '/overlays/props/balls-bottom.png', anchor: 'lower', label: 'Balls', labelKey: 'look_overlay_balls_bottom', baseWidth: 0.8, anchorY: 0.925 },
+    'baked-bottom': { slot: 'lower', file: '/overlays/props/baked-bottom.png', anchor: 'lower', label: 'Baked goods', labelKey: 'look_overlay_baked_bottom', baseWidth: 0.8, anchorY: 0.925 },
 };
 
 export const OVERLAY_SLUGS = Object.keys(OVERLAY_LIBRARY);

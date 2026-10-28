@@ -96,6 +96,20 @@ export const BOTTOM_OVERLAY_STRIPS = {
             { code: '1f3d0', name: 'volleyball', height: 270, rotate: 6, overlap: 20, dip: 0 },
         ],
     },
+    baked: {
+        label: 'Baked goods',
+        labelKey: 'look_overlay_baked_bottom',
+        items: [
+            // A bakery shelf: the loaf and the baguette-shaped croissant sit at
+            // the ends, the sweets in the middle where the eye lands.
+            { code: '1f35e', name: 'loaf of bread', height: 225, rotate: -7, overlap: 0, dip: 0 },
+            { code: '1f950', name: 'croissant', height: 240, rotate: 9, overlap: 12, dip: 10 },
+            { code: '1f369', name: 'doughnut', height: 265, rotate: -5, overlap: 24, dip: 0 },
+            { code: '1f370', name: 'cake', height: 275, rotate: 0, overlap: 26, dip: 20 },
+            { code: '1f9c1', name: 'cupcake', height: 235, rotate: 6, overlap: 24, dip: 0 },
+            { code: '1f968', name: 'pretzel', height: 205, rotate: -10, overlap: 22, dip: 16 },
+        ],
+    },
 };
 
 /** The overlay slug a strip is published under (`fruits` → `fruits-bottom`). */

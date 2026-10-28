@@ -53,6 +53,9 @@ anchors it (`baseWidth: 0.8`, `anchorY: 0.925`).
 - `balls-bottom.png` ← `1f3c0.svg` (basketball), `26bd.svg` (soccer ball),
   `1f3c8.svg` (american football), `1f94e.svg` (softball), `1f3d0.svg`
   (volleyball)
+- `baked-bottom.png` ← `1f35e.svg` (bread), `1f950.svg` (croissant),
+  `1f369.svg` (doughnut), `1f370.svg` (shortcake), `1f9c1.svg` (cupcake),
+  `1f968.svg` (pretzel)
 
 Nothing but the emoji artwork is painted: the band has no plate, frame or shadow
 behind it.
