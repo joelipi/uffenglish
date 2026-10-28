@@ -110,6 +110,46 @@ export const BOTTOM_OVERLAY_STRIPS = {
             { code: '1f968', name: 'pretzel', height: 205, rotate: -10, overlap: 22, dip: 16 },
         ],
     },
+    flowers: {
+        label: 'Flowers',
+        labelKey: 'look_overlay_flowers_bottom',
+        items: [
+            // A meadow row: the tall sunflower is the middle anchor, the tulip
+            // leans in from the left and the blossoms fill the gaps.
+            { code: '1f337', name: 'tulip', height: 255, rotate: -9, overlap: 0, dip: 0 },
+            { code: '1f339', name: 'rose', height: 235, rotate: 7, overlap: 20, dip: 20 },
+            { code: '1f33b', name: 'sunflower', height: 280, rotate: 0, overlap: 24, dip: 0 },
+            { code: '1f33a', name: 'hibiscus', height: 240, rotate: -7, overlap: 22, dip: 18 },
+            { code: '1f338', name: 'cherry blossom', height: 220, rotate: 9, overlap: 20, dip: 0 },
+            { code: '1f33c', name: 'blossom', height: 200, rotate: -5, overlap: 18, dip: 14 },
+        ],
+    },
+    shrubs: {
+        label: 'Shrubbery',
+        labelKey: 'look_overlay_shrubs_bottom',
+        items: [
+            // Green things that grow low: a potted bush, leafy sprigs, clovers
+            // and one cactus, all sitting on the floor.
+            { code: '1fab4', name: 'potted plant', height: 300, rotate: -5, overlap: 0, dip: 0 },
+            { code: '1f33f', name: 'herb', height: 270, rotate: 8, overlap: 26, dip: 22 },
+            { code: '2618', name: 'shamrock', height: 235, rotate: -8, overlap: 24, dip: 0 },
+            { code: '1f335', name: 'cactus', height: 285, rotate: 4, overlap: 26, dip: 18 },
+            { code: '1f331', name: 'seedling', height: 215, rotate: -9, overlap: 24, dip: 0 },
+        ],
+    },
+    office: {
+        label: 'Office',
+        labelKey: 'look_overlay_office_bottom',
+        items: [
+            // The office corner: a chair at the end, the filing cabinet and its
+            // wastebasket in the middle, then books and a folder leaning in.
+            { code: '1fa91', name: 'chair', height: 310, rotate: -4, overlap: 0, dip: 0 },
+            { code: '1f5c4', name: 'filing cabinet', height: 340, rotate: 0, overlap: 26, dip: 18 },
+            { code: '1f5d1', name: 'wastebasket', height: 262, rotate: 5, overlap: 30, dip: 0 },
+            { code: '1f4da', name: 'books', height: 208, rotate: -8, overlap: 26, dip: 0 },
+            { code: '1f4c1', name: 'file folder', height: 250, rotate: 8, overlap: 24, dip: 0 },
+        ],
+    },
 };
 
 /** The overlay slug a strip is published under (`fruits` → `fruits-bottom`). */

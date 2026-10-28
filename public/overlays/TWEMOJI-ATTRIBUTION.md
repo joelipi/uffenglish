@@ -56,6 +56,13 @@ anchors it (`baseWidth: 0.8`, `anchorY: 0.925`).
 - `baked-bottom.png` ← `1f35e.svg` (bread), `1f950.svg` (croissant),
   `1f369.svg` (doughnut), `1f370.svg` (shortcake), `1f9c1.svg` (cupcake),
   `1f968.svg` (pretzel)
+- `flowers-bottom.png` ← `1f337.svg` (tulip), `1f339.svg` (rose), `1f33b.svg`
+  (sunflower), `1f33a.svg` (hibiscus), `1f338.svg` (cherry blossom),
+  `1f33c.svg` (blossom)
+- `shrubs-bottom.png` ← `1fab4.svg` (potted plant), `1f33f.svg` (herb),
+  `2618.svg` (shamrock), `1f335.svg` (cactus), `1f331.svg` (seedling)
+- `office-bottom.png` ← `1fa91.svg` (chair), `1f5c4.svg` (file cabinet),
+  `1f5d1.svg` (wastebasket), `1f4da.svg` (books), `1f4c1.svg` (file folder)
 
 Nothing but the emoji artwork is painted: the band has no plate, frame or shadow
 behind it.
