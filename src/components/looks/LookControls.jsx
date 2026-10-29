@@ -8,9 +8,6 @@ import {
     OVERLAY_LIBRARY,
     overlaySlugsForSlot,
     assetFileForSlug,
-    resolveFilterPreset,
-    resolveLensPreset,
-    resolveScreenPreset,
     DEFAULT_FILTER_ID,
     DEFAULT_LENS_ID,
     DEFAULT_SCREEN_ID,
@@ -43,12 +40,41 @@ const UA_RESET = {
     WebkitTapHighlightColor: 'transparent',
 };
 
+function FiltersIcon() {
+    return (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={styles.railIconSvg}>
+            <circle cx="8" cy="9" r="5" />
+            <circle cx="16" cy="9" r="5" />
+            <circle cx="12" cy="15" r="5" />
+        </svg>
+    );
+}
+
+function LensIcon() {
+    return (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" style={styles.railIconSvg}>
+            <circle cx="12" cy="12" r="9" />
+            <circle cx="12" cy="12" r="5" />
+            <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+        </svg>
+    );
+}
+
+function TophatIcon() {
+    return (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style={styles.railIconSvg}>
+            <rect x="3" y="17" width="18" height="3" rx="1.5" />
+            <path d="M7 17 L8.5 7 L15.5 7 L17 17 Z" />
+            <rect x="8.5" y="5" width="7" height="2.5" rx="1" />
+        </svg>
+    );
+}
+
 const SLOT_RAIL_META = [
-    // A cloud (a thing that sits above a head), not a magic wand.
-    { slot: 'upper', label: 'Top', icon: 'bi-cloud-fill' },
-    { slot: 'face', label: 'Face', icon: 'bi-emoji-smile' },
-    { slot: 'lower', label: 'Bottom', icon: 'bi-layers' },
-    { slot: 'emoji', label: 'Emoji', icon: 'bi-emoji-laughing' },
+    { slot: 'upper', icon: <TophatIcon /> },
+    { slot: 'face', icon: 'bi-mask' },
+    { slot: 'lower', icon: 'bi-layers' },
+    { slot: 'emoji', icon: 'bi-emoji-laughing' },
 ];
 
 // iOS Safari keeps its native focus ring on the tapped <button> until focus
@@ -332,13 +358,10 @@ export default function LookControls() {
 
     if (!awaiting) return null;
 
-    const currentPreset = resolveFilterPreset(filterId);
     const filterOpen = openDrawer === 'filter';
     const filterActive = filterId !== DEFAULT_FILTER_ID;
-    const currentLens = resolveLensPreset(lensId);
     const lensOpen = openDrawer === 'lens';
     const lensActive = lensId !== DEFAULT_LENS_ID;
-    const currentScreen = resolveScreenPreset(screenId);
     const screenOpen = openDrawer === 'screen';
     const screenActive = screenId !== DEFAULT_SCREEN_ID;
 
@@ -359,8 +382,7 @@ export default function LookControls() {
                         ...(filterOpen ? styles.railBtnOpen : filterActive ? styles.railBtnActive : null),
                     }}
                 >
-                    <span style={{ ...styles.railSwatch, background: currentPreset.swatch }} />
-                    <span style={styles.railLabel}>Filter</span>
+                    <FiltersIcon />
                 </button>
                 {filterOpen && <FilterStrip />}
             </div>
@@ -380,8 +402,7 @@ export default function LookControls() {
                         ...(lensOpen ? styles.railBtnOpen : lensActive ? styles.railBtnActive : null),
                     }}
                 >
-                    <span style={{ ...styles.railSwatch, background: currentLens.swatch }} />
-                    <span style={styles.railLabel}>Lens</span>
+                    <LensIcon />
                 </button>
                 {lensOpen && <LensStrip />}
             </div>
@@ -401,13 +422,12 @@ export default function LookControls() {
                         ...(screenOpen ? styles.railBtnOpen : screenActive ? styles.railBtnActive : null),
                     }}
                 >
-                    <span style={{ ...styles.railSwatch, background: currentScreen.swatch }} />
-                    <span style={styles.railLabel}>Screen</span>
+                    <i className="bi bi-wind" style={styles.railIcon}></i>
                 </button>
                 {screenOpen && <ScreenStrip />}
             </div>
 
-            {SLOT_RAIL_META.map(({ slot, label, icon }) => {
+            {SLOT_RAIL_META.map(({ slot, icon }) => {
                 const isOpen = openDrawer === slot;
                 const slug = slots[slot];
                 const isActive = activeSlot === slot && !!slug;
@@ -430,9 +450,8 @@ export default function LookControls() {
                             {slug ? (
                                 <img src={assetFileForSlug(slug)} alt="" draggable={false} style={styles.railThumb} />
                             ) : (
-                                <i className={`bi ${icon}`} style={styles.railIcon}></i>
+                                typeof icon === 'string' ? <i className={`bi ${icon}`} style={styles.railIcon}></i> : icon
                             )}
-                            <span style={styles.railLabel}>{label}</span>
                         </button>
                         {isOpen && <OverlayFoldout slot={slot} />}
                     </div>
@@ -496,13 +515,6 @@ const styles = {
     railBtnActive: {
         borderColor: '#4ade80',
     },
-    railSwatch: {
-        width: 20,
-        height: 20,
-        borderRadius: '50%',
-        boxShadow: '0 0 0 1px rgba(0,0,0,0.45)',
-        display: 'block',
-    },
     railThumb: {
         width: 22,
         height: 22,
@@ -516,11 +528,8 @@ const styles = {
         fontSize: 18,
         lineHeight: 1,
     },
-    railLabel: {
-        fontSize: 9,
-        lineHeight: 1,
-        letterSpacing: '0.02em',
-        color: 'rgba(255,255,255,0.88)',
+    railIconSvg: {
+        display: 'block',
     },
     // The prop rows (Face/Top/Bottom) are a VERTICAL tray pinned to the TOP of
     // the rail — not dangling from their own button. A tray that opens at the

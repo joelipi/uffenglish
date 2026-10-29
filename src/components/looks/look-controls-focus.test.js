@@ -240,12 +240,12 @@ describe('prop rows are a grid tray pinned to the rail top', () => {
 });
 
 describe('look control icons and categories', () => {
-    it('the Top slot shows something that sits above a head, not a magic wand', () => {
+    it('the Top slot shows a hat, not a magic wand', () => {
         const source = read(COMPONENT);
         const start = source.indexOf("slot: 'upper'");
         expect(start).toBeGreaterThan(-1);
         const line = source.slice(start, source.indexOf('},', start));
-        expect(line).toContain('bi-cloud-fill');
+        expect(line).toContain('TophatIcon');
         expect(line).not.toContain('bi-magic');
     });
 
