@@ -10,11 +10,11 @@
 
 import { isTwemojiSlug, twemojiAssetUrl, twemojiCodeFromSlug } from './twemoji-collection.js';
 
-export const OVERLAY_SLOTS = ['face', 'upper', 'lower', 'emoji'];
+export const OVERLAY_SLOTS = ['face', 'upper', 'outfit', 'lower', 'emoji'];
 
-// Draw order: a lower prop must never paint over a face cover; the free-floating
+// Draw order: a lower prop must never paint over a face cover/outfit; the free-floating
 // emoji is an object in the scene, so it paints after the slot props.
-export const SLOT_DRAW_ORDER = ['face', 'upper', 'lower', 'emoji'];
+export const SLOT_DRAW_ORDER = ['face', 'upper', 'outfit', 'lower', 'emoji'];
 
 /**
  * The "nothing applied" swatch, shared with the overlay pickers' None chip so
@@ -72,6 +72,9 @@ export const LENS_PRESETS = [
     // neck. `hole` tells the painter to cut that ellipse out of the blur, so
     // the subject stays sharp while everything around them goes soft.
     { id: 'closeup', label: 'Close-up', labelKey: 'look_lens_close_up', beautyMode: 'lensCloseUp', hole: true, swatch: 'radial-gradient(ellipse 34% 30% at 50% 38%, #ffffff 0%, #f2f6ff 62%, #8b95a8 74%, #232936 100%)' },
+    // Keyhole: same as close-up framing but with a keyhole shape (taller),
+    // solid black outside the shape instead of blur/frost.
+    { id: 'keyhole', label: 'Keyhole', labelKey: 'look_lens_keyhole', beautyMode: 'lensKeyhole', hole: true, holeShape: 'keyhole', swatch: 'radial-gradient(ellipse 28% 38% at 50% 42%, #ffffff 0%, #cccccc 40%, #000000 70%)' },
 ];
 
 /**
@@ -82,13 +85,25 @@ export const LENS_PRESETS = [
  */
 export const CLOSE_UP_HOLE = { cx: 0.5, cy: 0.4, rx: 0.37, ry: 0.24 };
 
-/** The same oval in canvas pixels (the frame is always the same 9:16 shape). */
+// Keyhole is taller than the close-up oval.
+export const KEYHOLE_HOLE = { cx: 0.5, cy: 0.42, rx: 0.28, ry: 0.38 };
+
+/** The same shape in canvas pixels (the frame is always the same 9:16 shape). */
 export function resolveCloseUpHole(canvasWidth, canvasHeight) {
     return {
         cx: CLOSE_UP_HOLE.cx * canvasWidth,
         cy: CLOSE_UP_HOLE.cy * canvasHeight,
         rx: CLOSE_UP_HOLE.rx * canvasWidth,
         ry: CLOSE_UP_HOLE.ry * canvasHeight,
+    };
+}
+
+export function resolveKeyholeHole(canvasWidth, canvasHeight) {
+    return {
+        cx: KEYHOLE_HOLE.cx * canvasWidth,
+        cy: KEYHOLE_HOLE.cy * canvasHeight,
+        rx: KEYHOLE_HOLE.rx * canvasWidth,
+        ry: KEYHOLE_HOLE.ry * canvasHeight,
     };
 }
 
@@ -189,6 +204,18 @@ export const OVERLAY_LIBRARY = {
     judge: { slot: 'face', file: '/overlays/face/judge.png', anchor: 'face', label: 'Judge', labelKey: 'look_overlay_judge' },
     'judge-female': { slot: 'face', file: '/overlays/face/judge-female.png', anchor: 'face', label: 'Female judge', labelKey: 'look_overlay_judge_female' },
     'construction-worker': { slot: 'face', file: '/overlays/face/construction-worker.png', anchor: 'face', label: 'Construction worker', labelKey: 'look_overlay_construction_worker' },
+    // Outfits (torso)
+    'police-officer-outfit': { slot: 'outfit', file: '/overlays/face/police-officer.png', anchor: 'outfit', label: 'Police officer outfit', labelKey: 'look_overlay_police_officer' },
+    'chef-outfit': { slot: 'outfit', file: '/overlays/face/chef.png', anchor: 'outfit', label: 'Chef outfit', labelKey: 'look_overlay_chef' },
+    'doctor-outfit': { slot: 'outfit', file: '/overlays/face/doctor.png', anchor: 'outfit', label: 'Doctor outfit', labelKey: 'look_overlay_doctor' },
+    'firefighter-outfit': { slot: 'outfit', file: '/overlays/face/firefighter.png', anchor: 'outfit', label: 'Firefighter outfit', labelKey: 'look_overlay_firefighter' },
+    'pilot-outfit': { slot: 'outfit', file: '/overlays/face/pilot.png', anchor: 'outfit', label: 'Pilot outfit', labelKey: 'look_overlay_pilot' },
+    'astronaut-outfit': { slot: 'outfit', file: '/overlays/face/astronaut.png', anchor: 'outfit', label: 'Astronaut outfit', labelKey: 'look_overlay_astronaut' },
+    'farmer-outfit': { slot: 'outfit', file: '/overlays/face/farmer.png', anchor: 'outfit', label: 'Farmer outfit', labelKey: 'look_overlay_farmer' },
+    'factory-worker-outfit': { slot: 'outfit', file: '/overlays/face/factory-worker.png', anchor: 'outfit', label: 'Factory worker outfit', labelKey: 'look_overlay_factory_worker' },
+    'judge-outfit': { slot: 'outfit', file: '/overlays/face/judge.png', anchor: 'outfit', label: 'Judge outfit', labelKey: 'look_overlay_judge' },
+    'judge-female-outfit': { slot: 'outfit', file: '/overlays/face/judge-female.png', anchor: 'outfit', label: 'Female judge outfit', labelKey: 'look_overlay_judge_female' },
+    'construction-worker-outfit': { slot: 'outfit', file: '/overlays/face/construction-worker.png', anchor: 'outfit', label: 'Construction worker outfit', labelKey: 'look_overlay_construction_worker' },
     // Above-the-face props.
     crown: { slot: 'upper', file: '/overlays/props/crown.png', anchor: 'upper', label: 'Crown', labelKey: 'look_overlay_crown' },
     'graduationcap-twemoji': { slot: 'upper', file: '/overlays/props/graduationcap-twemoji.png', anchor: 'upper', label: 'Graduation cap', labelKey: 'look_overlay_graduationcap_twemoji' },
@@ -196,9 +223,20 @@ export const OVERLAY_LIBRARY = {
     'santa-hat': { slot: 'upper', file: '/overlays/props/santa-hat.png', anchor: 'upper', label: 'Santa hat', labelKey: 'look_overlay_santa_hat' },
     'mrs-claus-hat': { slot: 'upper', file: '/overlays/props/mrs-claus-hat.png', anchor: 'upper', label: "Mrs Claus hat", labelKey: 'look_overlay_mrs_claus_hat' },
     'mage-hat': { slot: 'upper', file: '/overlays/props/mage-hat.png', anchor: 'upper', label: 'Mage hat', labelKey: 'look_overlay_mage_hat' },
-    'prince-hat': { slot: 'upper', file: '/overlays/props/prince-hat.png', anchor: 'upper', label: 'Prince hat', labelKey: 'look_overlay_prince_hat' },
-    'princess-hat': { slot: 'upper', file: '/overlays/props/princess-hat.png', anchor: 'upper', label: 'Princess hat', labelKey: 'look_overlay_princess_hat' },
-    'construction-hat': { slot: 'upper', file: '/overlays/props/construction-hat.png', anchor: 'upper', label: 'Construction hat', labelKey: 'look_overlay_construction_hat' },
+    'prince-hat': { slot: 'upper', file: '/overlays/props/prince-hat.png', anchor: 'upper', label: 'Small crown', labelKey: 'look_overlay_prince_hat' },
+    'princess-hat': { slot: 'upper', file: '/overlays/props/princess-hat.png', anchor: 'upper', label: 'Tiara', labelKey: 'look_overlay_princess_hat' },
+    'construction-hat': { slot: 'upper', file: '/overlays/props/construction-hat.png', anchor: 'upper', label: 'Hard hat', labelKey: 'look_overlay_construction_hat' },
+    'police-officer-hat': { slot: 'upper', file: '/overlays/face/police-officer.png', anchor: 'upper', label: 'Police hat', labelKey: 'look_overlay_police_officer' },
+    'chef-hat': { slot: 'upper', file: '/overlays/face/chef.png', anchor: 'upper', label: 'Chef hat', labelKey: 'look_overlay_chef' },
+    'doctor-hat': { slot: 'upper', file: '/overlays/face/doctor.png', anchor: 'upper', label: 'Doctor hat', labelKey: 'look_overlay_doctor' },
+    'firefighter-hat': { slot: 'upper', file: '/overlays/face/firefighter.png', anchor: 'upper', label: 'Firefighter hat', labelKey: 'look_overlay_firefighter' },
+    'pilot-hat': { slot: 'upper', file: '/overlays/face/pilot.png', anchor: 'upper', label: 'Pilot hat', labelKey: 'look_overlay_pilot' },
+    'astronaut-hat': { slot: 'upper', file: '/overlays/face/astronaut.png', anchor: 'upper', label: 'Astronaut hat', labelKey: 'look_overlay_astronaut' },
+    'farmer-hat': { slot: 'upper', file: '/overlays/face/farmer.png', anchor: 'upper', label: 'Farmer hat', labelKey: 'look_overlay_farmer' },
+    'factory-worker-hat': { slot: 'upper', file: '/overlays/face/factory-worker.png', anchor: 'upper', label: 'Factory worker hat', labelKey: 'look_overlay_factory_worker' },
+    'judge-hat': { slot: 'upper', file: '/overlays/face/judge.png', anchor: 'upper', label: 'Judge hat', labelKey: 'look_overlay_judge' },
+    'judge-female-hat': { slot: 'upper', file: '/overlays/face/judge-female.png', anchor: 'upper', label: 'Female judge hat', labelKey: 'look_overlay_judge_female' },
+    'construction-worker-hat': { slot: 'upper', file: '/overlays/face/construction-worker.png', anchor: 'upper', label: 'Construction worker hat', labelKey: 'look_overlay_construction_worker' },
     'turban-hat': { slot: 'upper', file: '/overlays/props/turban-hat.png', anchor: 'upper', label: 'Turban', labelKey: 'look_overlay_turban_hat' },
     'cowboy-hat': { slot: 'upper', file: '/overlays/props/cowboy-hat.png', anchor: 'upper', label: 'Cowboy hat', labelKey: 'look_overlay_cowboy_hat' },
     'billed-cap': { slot: 'upper', file: '/overlays/props/billed-cap.png', anchor: 'upper', label: 'Billed cap', labelKey: 'look_overlay_billed_cap' },
@@ -235,13 +273,14 @@ export const OVERLAY_SLUGS = Object.keys(OVERLAY_LIBRARY);
 export const SLOT_ANCHORS = {
     face: { cx: 0.5, cy: 0.42 },
     upper: { cx: 0.5, cy: 0.22 },
+    outfit: { cx: 0.5, cy: 0.62 },
     lower: { cx: 0.5, cy: 0.74 },
     // A selected Twemoji starts in the middle of the frame and is dragged from
     // there; it is not tied to the body zones.
     emoji: { cx: 0.5, cy: 0.5 },
 };
 
-export const LOOK_DRAWERS = ['filter', 'lens', 'screen', 'upper', 'face', 'lower', 'emoji'];
+export const LOOK_DRAWERS = ['filter', 'lens', 'screen', 'upper', 'face', 'outfit', 'lower', 'emoji'];
 
 /** Toggle a left-rail fold-out drawer: tapping the open drawer folds it back in. */
 export function toggleLookDrawer(currentDrawer, clickedDrawer) {
@@ -283,6 +322,7 @@ export function computeDragOffset({
 export const SLOT_BASE_WIDTH = {
     face: 0.62,
     upper: 0.5,
+    outfit: 0.7,
     lower: 0.9,
     // A Twemoji is an object, not a face cover: start small and let the size
     // slider grow it.
@@ -1348,9 +1388,10 @@ export function paintLooks({
             mode: lensPreset.beautyMode,
             // Close-up gets a feathered mask of its sharp oval; every other lens
             // treats the whole frame.
-            hole: lensPreset.hole ? resolveCloseUpHole(canvasWidth, canvasHeight) : null,
+            hole: lensPreset.hole ? (lensPreset.holeShape === 'keyhole' ? resolveKeyholeHole(canvasWidth, canvasHeight) : resolveCloseUpHole(canvasWidth, canvasHeight)) : null,
             maskCanvas: lensPreset.hole ? maskCanvas : null,
             sourceDraw,
+            shape: lensPreset.holeShape || null,
         });
         lensPainted = painted === 'none' ? 'none' : lensPreset.id;
     }

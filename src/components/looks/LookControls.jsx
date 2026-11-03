@@ -52,10 +52,8 @@ function FiltersIcon() {
 
 function LensIcon() {
     return (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" style={styles.railIconSvg}>
-            <circle cx="12" cy="12" r="9" />
-            <circle cx="12" cy="12" r="5" />
-            <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+        <svg width="18" height="18" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" style={styles.railIconSvg}>
+            <path d="M200.12,55.88A102,102,0,0,0,55.87,200.12,102,102,0,1,0,200.12,55.88Zm-102,66.67,19.65-23.14,29.86,5.46,10.21,28.58-19.65,23.14-29.86-5.46ZM209.93,90.69a90.24,90.24,0,0,1-2,78.63l-56.14-10.24Zm-6.16-11.28-36.94,43.48L136.66,38.42a89.31,89.31,0,0,1,55,25.94A91.33,91.33,0,0,1,203.77,79.41Zm-139.41-15A89.37,89.37,0,0,1,123.81,38.1L143,91.82,54.75,75.71A91.2,91.2,0,0,1,64.36,64.36ZM48,86.68l56.14,10.24L46.07,165.31a90.24,90.24,0,0,1,2-78.63Zm4.21,89.91,36.94-43.48,30.17,84.47a89.31,89.31,0,0,1-55-25.94A91.33,91.33,0,0,1,52.23,176.59Zm139.41,15a89.32,89.32,0,0,1-59.45,26.26L113,164.18l88.24,16.11A91.2,91.2,0,0,1,191.64,191.64Z"/>
         </svg>
     );
 }
@@ -70,9 +68,26 @@ function TophatIcon() {
     );
 }
 
+function TragedyMaskIcon() {
+    return (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style={styles.railIconSvg}>
+            <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-4 8c.6 0 1 .4 1 1s-.4 1-1 1-1-.4-1-1 .4-1 1-1zm8 0c.6 0 1 .4 1 1s-.4 1-1 1-1-.4-1-1 .4-1 1-1zm-4 7c-2.3 0-4.3-1.5-5.1-3.6-.1-.4.1-.9.5-1 .4-.1.9.1 1 .5.5 1.6 2 2.6 3.6 2.6s3.1-1 3.6-2.6c.1-.4.6-.6 1-.5.4.1.6.6.5 1-.8 2.1-2.8 3.6-5.1 3.6z"/>
+        </svg>
+    );
+}
+
+function ShirtIcon() {
+    return (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={styles.railIconSvg}>
+            <path d="M16 3l4 3-1 6h-2v10H7V12H5L4 6l4-3h2v2h6V3h0z"/>
+        </svg>
+    );
+}
+
 const SLOT_RAIL_META = [
     { slot: 'upper', icon: <TophatIcon /> },
-    { slot: 'face', icon: 'bi-mask' },
+    { slot: 'face', icon: <TragedyMaskIcon /> },
+    { slot: 'outfit', icon: <ShirtIcon /> },
     { slot: 'lower', icon: 'bi-layers' },
     { slot: 'emoji', icon: 'bi-emoji-laughing' },
 ];

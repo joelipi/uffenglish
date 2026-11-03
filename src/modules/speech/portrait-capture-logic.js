@@ -225,6 +225,8 @@ export const BEAUTY_PRESETS = {
     // full strength plus a white veil over it (both cut around the same
     // `hole`), so what is behind the glass is still there but indistinct.
     lensCloseUp: { softFocus: 0.95, frost: 0.55, fillLight: 0, warmth: 0, vignette: 0 },
+    // Keyhole: tall keyhole shape, solid black outside, keep inside sharp.
+    lensKeyhole: { softFocus: 0, frost: 0, fillLight: 0, warmth: 0, vignette: 0, keyhole: true },
 };
 
 /** Placement is a rule, not baked pixel math: top / bottom / full cover-fit. */
@@ -328,7 +330,7 @@ export function resolveCloseUpBox({ hole, canvasWidth, canvasHeight }) {
  * back over the blurred frame is what makes the close-up lens fade into the
  * frost instead of being cut out of it with a crisp edge.
  */
-export function prepareCloseUpMask({ source, maskCanvas, hole, canvasWidth, canvasHeight }) {
+export function prepareCloseUpMask({ source, maskCanvas, hole, canvasWidth, canvasHeight, shape = 'ellipse' }) {
     if (!source || !maskCanvas || !hole) return false;
     const box = resolveCloseUpBox({ hole, canvasWidth, canvasHeight });
     if (!box) return false;
@@ -340,6 +342,22 @@ export function prepareCloseUpMask({ source, maskCanvas, hole, canvasWidth, canv
         mctx.globalCompositeOperation = 'source-over';
         mctx.clearRect(0, 0, box.w, box.h);
         mctx.drawImage(source, box.x, box.y, box.w, box.h, 0, 0, box.w, box.h);
+        if (shape === 'keyhole') {
+            const lcx = hole.cx - box.x;
+            const lcy = hole.cy - box.y;
+            const r = Math.min(hole.rx, hole.ry * 0.55);
+            const rectH = hole.ry * 0.9;
+            mctx.globalCompositeOperation = 'destination-in';
+            mctx.beginPath();
+            mctx.arc(lcx, lcy - hole.ry * 0.05, r, Math.PI, 0);
+            mctx.lineTo(lcx + r, lcy - hole.ry * 0.05 + rectH);
+            mctx.arc(lcx, lcy - hole.ry * 0.05 + rectH, r, 0, Math.PI);
+            mctx.closePath();
+            mctx.fillStyle = '#000';
+            mctx.fill();
+            mctx.globalCompositeOperation = 'source-over';
+            return true;
+        }
         // `destination-in` multiplies the copied pixels' alpha by the gradient's,
         // so the rim fades to nothing and the layer has no hard edge.
         const lcx = hole.cx - box.x;
@@ -505,14 +523,26 @@ export function paintBeautyPass({
     mode,
     hole = null,
     sourceDraw = null,
+    shape = null,
 }) {
     const preset = BEAUTY_PRESETS[mode];
     if (!preset || mode === 'none') return 'none';
     const painted = [];
+    if (preset.keyhole && hole && maskCanvas) {
+        painted.push(prepareCloseUpMask({ source, maskCanvas, hole, canvasWidth, canvasHeight, shape: 'keyhole' }));
+        // Paint solid black outside the keyhole
+        ctx.save();
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+        // Reveal the sharp keyhole shape
+        painted.push(paintCloseUpSharp({ ctx, maskCanvas, hole, canvasWidth, canvasHeight }));
+        ctx.restore();
+        return 'lensKeyhole';
+    }
     // Snapshot the sharp oval FIRST: after the blur is painted there is nothing
     // sharp left to restore.
     if (hole && maskCanvas) {
-        painted.push(prepareCloseUpMask({ source, maskCanvas, hole, canvasWidth, canvasHeight }));
+        painted.push(prepareCloseUpMask({ source, maskCanvas, hole, canvasWidth, canvasHeight, shape }));
     }
     painted.push(paintSoftFocus({ ctx, source, scratch, canvasWidth, canvasHeight, strength: preset.softFocus, sourceDraw }));
     painted.push(paintFrost({ ctx, canvasWidth, canvasHeight, alpha: preset.frost }));
