@@ -564,6 +564,90 @@ export function resolveSlotDrawRect({ slot, slug, imageWidth, imageHeight, canva
     };
 }
 
+/**
+ * The on-screen rectangle + corner positions for the active overlay's
+ * selection box. `#webcam-preview` is CSS-mirrored (`transform: scaleX(-1)`),
+ * so a rect painted at `dx` in canvas space appears at `width - dx - dw` on
+ * screen; the DOM box must be flipped the same way to sit over the overlay.
+ */
+export function resolveSlotScreenRect({ rect, displayWidth, displayHeight, mirrored = true }) {
+    if (!rect || !(displayWidth > 0) || !(displayHeight > 0)) return null;
+    const left = mirrored ? displayWidth - rect.dx - rect.dw : rect.dx;
+    const top = rect.dy;
+    const corners = {
+        nw: { x: left, y: top },
+        ne: { x: left + rect.dw, y: top },
+        sw: { x: left, y: top + rect.dh },
+        se: { x: left + rect.dw, y: top + rect.dh },
+    };
+    return { left, top, width: rect.dw, height: rect.dh, corners };
+}
+
+/**
+ * Resize the active slot by dragging one of its corner handles, the standard
+ * way: the opposite corner stays put and the asset keeps its aspect (only
+ * `scale` is a real lever). `corner` is the SCREEN corner the learner grabbed
+ * (`nw`/`ne`/`sw`/`se`); on a mirrored preview it maps to the opposite
+ * horizontal corner in canvas space. `pointer` is in screen pixels, the
+ * returned tuning is unmirrored canvas fractions.
+ */
+export function computeCornerResize({
+    corner,
+    startTuning,
+    startRect,
+    pointer,
+    displayWidth,
+    displayHeight,
+    slot,
+    slug,
+    imageWidth,
+    imageHeight,
+    mirrored = true,
+    minScale = MIN_SCALE,
+    maxScale = MAX_SCALE,
+}) {
+    if (!startRect || !pointer) return null;
+    if (!(displayWidth > 0) || !(displayHeight > 0)) return null;
+    if (!(imageWidth > 0) || !(imageHeight > 0)) return null;
+    // A CSS-mirrored preview shows canvas left on screen right: the screen
+    // corner the learner grabbed is the opposite horizontal corner in canvas.
+    const canvasCorner = mirrored
+        ? { nw: 'ne', ne: 'nw', sw: 'se', se: 'sw' }[corner]
+        : corner;
+    const fixed = {
+        se: { x: startRect.dx, y: startRect.dy },
+        sw: { x: startRect.dx + startRect.dw, y: startRect.dy },
+        ne: { x: startRect.dx, y: startRect.dy + startRect.dh },
+        nw: { x: startRect.dx + startRect.dw, y: startRect.dy + startRect.dh },
+    }[canvasCorner];
+    if (!fixed) return null;
+    const startScale = clamp(Number(startTuning?.scale), minScale, maxScale) || 1;
+    // The pointer is in screen pixels; work in the unmirrored canvas space.
+    const px = mirrored ? displayWidth - pointer.x : pointer.x;
+    const py = pointer.y;
+    const sx = (canvasCorner === 'ne' || canvasCorner === 'se') ? 1 : -1;
+    const sy = (canvasCorner === 'sw' || canvasCorner === 'se') ? 1 : -1;
+    // Project the pointer onto the fixed-corner → dragged-corner diagonal, so
+    // the resize tracks the gesture while the aspect stays fixed.
+    const ux = sx * startRect.dw;
+    const uy = sy * startRect.dh;
+    const len2 = ux * ux + uy * uy;
+    if (!(len2 > 0)) return null;
+    const proj = ((px - fixed.x) * ux + (py - fixed.y) * uy) / len2;
+    const nextScale = clamp(startScale * proj, minScale, maxScale);
+    const ratio = nextScale / startScale;
+    const newDw = startRect.dw * ratio;
+    const newDh = startRect.dh * ratio;
+    const centreX = fixed.x + (sx * newDw) / 2;
+    const centreY = fixed.y + (sy * newDh) / 2;
+    const anchor = resolveSlotAnchor(slot, displayWidth, displayHeight, slug);
+    return {
+        dx: clamp((centreX - anchor.cx) / displayWidth, -1, 1),
+        dy: clamp((centreY - anchor.cy) / displayHeight, -1, 1),
+        scale: nextScale,
+    };
+}
+
 /** Human-facing file name for a slug (used by pickers and logs). */
 export function assetFileForSlug(slug) {
     if (isTwemojiSlug(slug)) return twemojiAssetUrl(twemojiCodeFromSlug(slug));

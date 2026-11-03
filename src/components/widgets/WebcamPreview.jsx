@@ -5,7 +5,14 @@ import { getBilingual } from '../../data/strings.js';
 import { useNativeLanguage } from '../../hooks/use-native-language.js';
 import { getRecordingPhraseOverlay } from '../../modules/video/recording-subtitle-logic.js';
 import { syncWebcamPreviewElement } from '../../modules/speech/portrait-capture-logic.js';
-import { isPreviewGateStep, computeDragOffset } from '../../modules/looks/recording-looks-logic.js';
+import {
+    isPreviewGateStep,
+    computeDragOffset,
+    resolveSlotDrawRect,
+    resolveSlotScreenRect,
+    computeCornerResize,
+    assetFileForSlug,
+} from '../../modules/looks/recording-looks-logic.js';
 import LookControls from '../looks/LookControls.jsx';
 
 export default function WebcamPreview() {
@@ -79,6 +86,125 @@ export default function WebcamPreview() {
     };
     const handlePointerUp = () => { dragRef.current = null; };
 
+    // Corner-handle resizing (the standard drag-the-corners way). The overlay
+    // itself is painted into the mirrored composite stream, so the DOM only
+    // draws a selection box over it; the handles update `lookTuning.scale` and
+    // nudge `dx`/`dy` so the opposite corner stays put. The menu slider keeps
+    // working from the same tuning.
+    const lookActiveSlot = useStore(appStore, (state) => state.lookActiveSlot);
+    const lookSelection = useStore(appStore, (state) => state.lookSelection);
+    const lookTuning = useStore(appStore, (state) => state.lookTuning);
+    const activeSlug = lookControlsVisible ? lookSelection.slots[lookActiveSlot] : null;
+    const [previewSize, setPreviewSize] = useState({ width: 0, height: 0 });
+    const [imageMeta, setImageMeta] = useState(null);
+    const resizeRef = useRef(null);
+
+    useEffect(() => {
+        const el = wrapperRef.current;
+        if (!el || typeof ResizeObserver === 'undefined') return undefined;
+        const measure = () => {
+            const r = el.getBoundingClientRect();
+            setPreviewSize((prev) => (
+                Math.abs(prev.width - r.width) < 0.5 && Math.abs(prev.height - r.height) < 0.5
+                    ? prev
+                    : { width: r.width, height: r.height }
+            ));
+        };
+        measure();
+        const ro = new ResizeObserver(measure);
+        ro.observe(el);
+        return () => ro.disconnect();
+    }, []);
+
+    useEffect(() => {
+        if (!activeSlug) { setImageMeta(null); return undefined; }
+        const src = assetFileForSlug(activeSlug);
+        if (!src) { setImageMeta(null); return undefined; }
+        let cancelled = false;
+        const img = new Image();
+        img.onload = () => {
+            if (!cancelled) {
+                setImageMeta({ slug: activeSlug, width: img.naturalWidth, height: img.naturalHeight });
+            }
+        };
+        img.onerror = () => { if (!cancelled) setImageMeta(null); };
+        img.src = src;
+        return () => { cancelled = true; };
+    }, [activeSlug]);
+
+    const startResize = (corner) => (e) => {
+        if (!lookControlsVisible) return;
+        e.stopPropagation();
+        e.preventDefault();
+        const state = appStore.getState();
+        const slot = state.lookActiveSlot;
+        const slug = state.lookSelection.slots[slot];
+        if (!slug || !imageMeta || imageMeta.slug !== slug) return;
+        if (!(previewSize.width > 0) || !(previewSize.height > 0)) return;
+        const t = state.lookTuning[slot] || {};
+        resizeRef.current = {
+            corner,
+            slot,
+            slug,
+            startTuning: { dx: t.dx || 0, dy: t.dy || 0, scale: t.scale || 1 },
+            startRect: resolveSlotDrawRect({
+                slot, slug,
+                imageWidth: imageMeta.width,
+                imageHeight: imageMeta.height,
+                canvasWidth: previewSize.width,
+                canvasHeight: previewSize.height,
+                tuning: t,
+            }),
+            width: previewSize.width,
+            height: previewSize.height,
+            imageWidth: imageMeta.width,
+            imageHeight: imageMeta.height,
+        };
+        e.currentTarget.setPointerCapture?.(e.pointerId);
+    };
+    const moveResize = (e) => {
+        const drag = resizeRef.current;
+        if (!drag || !drag.startRect) return;
+        const rect = wrapperRef.current?.getBoundingClientRect();
+        if (!rect) return;
+        const next = computeCornerResize({
+            corner: drag.corner,
+            startTuning: drag.startTuning,
+            startRect: drag.startRect,
+            pointer: { x: e.clientX - rect.left, y: e.clientY - rect.top },
+            displayWidth: drag.width,
+            displayHeight: drag.height,
+            slot: drag.slot,
+            slug: drag.slug,
+            imageWidth: drag.imageWidth,
+            imageHeight: drag.imageHeight,
+        });
+        if (next) appStore.getState().setLookTuning(drag.slot, next);
+    };
+    const endResize = () => { resizeRef.current = null; };
+
+    const selectionBox = (() => {
+        if (!lookControlsVisible || !activeSlug) return null;
+        if (!imageMeta || imageMeta.slug !== activeSlug) return null;
+        if (!(previewSize.width > 0) || !(previewSize.height > 0)) return null;
+        const drawRect = resolveSlotDrawRect({
+            slot: lookActiveSlot,
+            slug: activeSlug,
+            imageWidth: imageMeta.width,
+            imageHeight: imageMeta.height,
+            canvasWidth: previewSize.width,
+            canvasHeight: previewSize.height,
+            tuning: lookTuning[lookActiveSlot],
+        });
+        if (!drawRect) return null;
+        return resolveSlotScreenRect({
+            rect: drawRect,
+            displayWidth: previewSize.width,
+            displayHeight: previewSize.height,
+            mirrored: true,
+        });
+    })();
+
     useEffect(() => {
         if (fullScreen) {
             setTakeover(true);
@@ -128,6 +254,51 @@ export default function WebcamPreview() {
                 muted
                 playsInline
             ></video>
+            {selectionBox && (
+                <>
+                    <div
+                        data-testid="look-selection-box"
+                        style={{
+                            position: 'absolute',
+                            left: selectionBox.left,
+                            top: selectionBox.top,
+                            width: selectionBox.width,
+                            height: selectionBox.height,
+                            border: '1.5px dashed rgba(255, 255, 255, 0.85)',
+                            borderRadius: 4,
+                            pointerEvents: 'none',
+                            zIndex: 85,
+                        }}
+                    />
+                    {['nw', 'ne', 'sw', 'se'].map((corner) => {
+                        const point = selectionBox.corners[corner];
+                        return (
+                            <div
+                                key={corner}
+                                data-testid={`look-resize-${corner}`}
+                                onPointerDown={startResize(corner)}
+                                onPointerMove={moveResize}
+                                onPointerUp={endResize}
+                                onPointerCancel={endResize}
+                                style={{
+                                    position: 'absolute',
+                                    left: point.x - 8,
+                                    top: point.y - 8,
+                                    width: 16,
+                                    height: 16,
+                                    borderRadius: '50%',
+                                    background: '#fff',
+                                    border: '2px solid #1f9d55',
+                                    boxShadow: '0 0 0 1px rgba(0, 0, 0, 0.35)',
+                                    pointerEvents: 'auto',
+                                    touchAction: 'none',
+                                    zIndex: 90,
+                                }}
+                            />
+                        );
+                    })}
+                </>
+            )}
             {recordingCountdown !== null && (
                 <div
                     data-testid="recording-countdown-overlay"

@@ -41,6 +41,9 @@ import {
     sanitizeTuning,
     resolveSlotAnchor,
     resolveSlotDrawRect,
+    resolveSlotScreenRect,
+    computeCornerResize,
+    MAX_SCALE,
     isSlugValidForSlot,
     overlaySlugsForSlot,
     assetFileForSlug,
@@ -860,5 +863,108 @@ describe('computeDragOffset', () => {
         });
         expect(res.dx).toBeCloseTo(-0.1, 5);
         expect(res.dy).toBeCloseTo(0.05, 5);
+    });
+});
+
+describe('corner-handle resizing', () => {
+    const displayWidth = 720;
+    const displayHeight = 1280;
+    const imageWidth = 560;
+    const imageHeight = 653;
+    const tuning = { dx: 0, dy: 0, scale: 1 };
+
+    const drawRect = (t) => resolveSlotDrawRect({
+        slot: 'face',
+        slug: 'carnival',
+        imageWidth,
+        imageHeight,
+        canvasWidth: displayWidth,
+        canvasHeight: displayHeight,
+        tuning: t,
+    });
+
+    it('mirrors the selection box to match the CSS-mirrored preview', () => {
+        const rect = { dx: 108, dy: 200, dw: 216, dh: 300 };
+        const screen = resolveSlotScreenRect({ rect, displayWidth, displayHeight, mirrored: true });
+        expect(screen.left).toBe(displayWidth - 108 - 216);
+        expect(screen.top).toBe(200);
+        expect(screen.width).toBe(216);
+        expect(screen.height).toBe(300);
+        expect(screen.corners.se.x).toBe(screen.left + 216);
+        expect(screen.corners.se.y).toBe(200 + 300);
+    });
+
+    it('unmirrored screen rect equals the canvas rect', () => {
+        const rect = { dx: 108, dy: 200, dw: 216, dh: 300 };
+        const screen = resolveSlotScreenRect({ rect, displayWidth, displayHeight, mirrored: false });
+        expect(screen.left).toBe(108);
+        expect(screen.corners.nw.x).toBe(108);
+    });
+
+    it('dragging a screen corner outward grows the overlay and pins the opposite corner', () => {
+        const start = drawRect(tuning);
+        const screen = resolveSlotScreenRect({ rect: start, displayWidth, displayHeight, mirrored: true });
+        const grabbed = screen.corners.se;
+        const next = computeCornerResize({
+            corner: 'se',
+            startTuning: tuning,
+            startRect: start,
+            pointer: { x: grabbed.x + 40, y: grabbed.y + 40 },
+            displayWidth,
+            displayHeight,
+            slot: 'face',
+            slug: 'carnival',
+            imageWidth,
+            imageHeight,
+        });
+        expect(next).not.toBeNull();
+        expect(next.scale).toBeGreaterThan(1);
+        const resized = drawRect(next);
+        // Screen 'se' maps to canvas 'sw'; its fixed corner is canvas ne.
+        expect(Math.abs((resized.dx + resized.dw) - (start.dx + start.dw))).toBeLessThanOrEqual(1);
+        expect(Math.abs(resized.dy - start.dy)).toBeLessThanOrEqual(1);
+    });
+
+    it('dragging inward shrinks it', () => {
+        const start = drawRect(tuning);
+        const screen = resolveSlotScreenRect({ rect: start, displayWidth, displayHeight, mirrored: true });
+        const grabbed = screen.corners.nw;
+        const next = computeCornerResize({
+            corner: 'nw',
+            startTuning: tuning,
+            startRect: start,
+            pointer: { x: grabbed.x + 80, y: grabbed.y + 80 },
+            displayWidth,
+            displayHeight,
+            slot: 'face',
+            slug: 'carnival',
+            imageWidth,
+            imageHeight,
+        });
+        expect(next).not.toBeNull();
+        expect(next.scale).toBeLessThan(1);
+    });
+
+    it('clamps the scale to the slider range', () => {
+        const start = drawRect({ dx: 0, dy: 0, scale: 2 });
+        const screen = resolveSlotScreenRect({ rect: start, displayWidth, displayHeight, mirrored: true });
+        const next = computeCornerResize({
+            corner: 'se',
+            startTuning: { dx: 0, dy: 0, scale: 2 },
+            startRect: start,
+            pointer: { x: screen.corners.se.x + 5000, y: screen.corners.se.y + 5000 },
+            displayWidth,
+            displayHeight,
+            slot: 'face',
+            slug: 'carnival',
+            imageWidth,
+            imageHeight,
+        });
+        expect(next.scale).toBeLessThanOrEqual(MAX_SCALE);
+    });
+
+    it('returns null without a usable rect or pointer', () => {
+        expect(computeCornerResize({ corner: 'se', startTuning: tuning, startRect: null, pointer: { x: 0, y: 0 }, displayWidth, displayHeight, slot: 'face', slug: 'carnival', imageWidth, imageHeight })).toBeNull();
+        expect(computeCornerResize({ corner: 'bogus', startTuning: tuning, startRect: drawRect(tuning), pointer: { x: 0, y: 0 }, displayWidth, displayHeight, slot: 'face', slug: 'carnival', imageWidth, imageHeight })).toBeNull();
     });
 });
