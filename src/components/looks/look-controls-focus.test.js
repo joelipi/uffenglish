@@ -236,6 +236,10 @@ describe('prop rows are a grid tray pinned to the rail top', () => {
         expect(source).toMatch(/style=\{styles\.trayStrip\}/);
         expect(source.match(/style=\{\{\s*\.\.\.styles\.trayChip,/g)?.length).toBeGreaterThanOrEqual(3);
         expect(source).toMatch(/testidPrefix="look-filter"/);
+        // Both the slot trays and the swatch trays (Filter/Lens/Screen) must sit
+        // in the anchored foldout column: an in-flow tray would push every row
+        // below it down when opened.
+        expect(source.match(/style=\{styles\.foldoutColumn\}/g)?.length).toBeGreaterThanOrEqual(2);
     });
 });
 

@@ -113,38 +113,41 @@ function releaseFocusAfterPointerTap(event) {
 
 // One radio-group strip, reused by the filter picker and the lens-effect
 // picker: the two are independent choices, so they share the chrome, not the
-// state.
+// state. The tray is absolutely positioned at the rail top (the same anchored
+// column the slot trays use), so opening it never pushes the rail rows down.
 function ChoiceStrip({ testidPrefix, presets, selectedId, onPick }) {
     return (
-        <div className="look-strip" data-testid={`${testidPrefix}-strip`} style={styles.trayStrip}>
-            {presets.map((preset) => {
-                const selected = preset.id === selectedId;
-                return (
-                    <button
-                        key={preset.id}
-                        type="button"
-                        className="look-tap"
-                        data-testid={`${testidPrefix}-${preset.id}`}
-                        aria-pressed={selected}
-                        onClick={(e) => {
-                            releaseFocusAfterPointerTap(e);
-                            onPick(preset.id);
-                        }}
-                        style={{
-                            ...styles.trayChip,
-                            ...(selected ? styles.chipSelected : null),
-                        }}
-                    >
-                        <span style={styles.swatchWrap}>
-                            <span style={{ ...styles.swatch, background: preset.swatch }} />
-                            {selected && <i className="bi bi-check-circle-fill" style={styles.chipCheck}></i>}
-                        </span>
-                        <span style={styles.trayChipLabel}>
-                            {preset.label}
-                        </span>
-                    </button>
-                );
-            })}
+        <div style={styles.foldoutColumn}>
+            <div className="look-strip" data-testid={`${testidPrefix}-strip`} style={styles.trayStrip}>
+                {presets.map((preset) => {
+                    const selected = preset.id === selectedId;
+                    return (
+                        <button
+                            key={preset.id}
+                            type="button"
+                            className="look-tap"
+                            data-testid={`${testidPrefix}-${preset.id}`}
+                            aria-pressed={selected}
+                            onClick={(e) => {
+                                releaseFocusAfterPointerTap(e);
+                                onPick(preset.id);
+                            }}
+                            style={{
+                                ...styles.trayChip,
+                                ...(selected ? styles.chipSelected : null),
+                            }}
+                        >
+                            <span style={styles.swatchWrap}>
+                                <span style={{ ...styles.swatch, background: preset.swatch }} />
+                                {selected && <i className="bi bi-check-circle-fill" style={styles.chipCheck}></i>}
+                            </span>
+                            <span style={styles.trayChipLabel}>
+                                {preset.label}
+                            </span>
+                        </button>
+                    );
+                })}
+            </div>
         </div>
     );
 }
