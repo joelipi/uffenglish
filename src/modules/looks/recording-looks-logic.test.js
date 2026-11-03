@@ -58,6 +58,7 @@ import {
     LENS_PRESETS,
     SLOT_ANCHORS,
     OVERLAY_LIBRARY,
+    OVERLAY_SLOTS,
 } from './recording-looks-logic.js';
 
 describe('resolveFilterId', () => {
@@ -139,6 +140,28 @@ describe('sanitizeSelection', () => {
     it('null / undefined never throws', () => {
         expect(sanitizeSelection(null)).toEqual(emptySelection());
         expect(sanitizeSelection(undefined)).toEqual(emptySelection());
+    });
+});
+
+describe('every overlay slot has a tuning + selection entry', () => {
+    // Regression: adding a slot to OVERLAY_SLOTS / SLOT_RAIL_META without also
+    // adding it to emptyTuning() / emptySelection() crashed the rail's size
+    // slider (`state.lookTuning[slot].scale` on undefined).
+    it('emptyTuning covers every slot', () => {
+        const tuning = emptyTuning();
+        for (const slot of OVERLAY_SLOTS) {
+            expect(tuning[slot]).toEqual({ dx: 0, dy: 0, scale: 1 });
+        }
+    });
+    it('emptySelection covers every slot', () => {
+        const selection = emptySelection();
+        for (const slot of OVERLAY_SLOTS) {
+            expect(selection.slots).toHaveProperty(slot);
+        }
+    });
+    it('sanitizeTuning re-adds a slot a partial object omits', () => {
+        const safe = sanitizeTuning({ face: { dx: 0.1, dy: 0, scale: 1.2 } });
+        for (const slot of OVERLAY_SLOTS) expect(safe[slot]).toBeTruthy();
     });
 });
 
@@ -237,7 +260,7 @@ describe('toggleFilterId', () => {
 
 describe('lens effects — a category of their own, independent of the filter', () => {
     it('offers None, Soft focus and Chiaroscuro, and starts on None', () => {
-        expect(LENS_PRESETS.map((p) => p.id)).toEqual(['none', 'softfocus', 'chiaroscuro', 'closeup']);
+        expect(LENS_PRESETS.map((p) => p.id)).toEqual(['none', 'softfocus', 'chiaroscuro', 'closeup', 'keyhole']);
         expect(DEFAULT_LENS_ID).toBe('none');
         expect(emptySelection().lensId).toBe('none');
         expect(resolveLensId('bogus')).toBe('none');
