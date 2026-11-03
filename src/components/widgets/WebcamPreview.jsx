@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useStore } from 'zustand';
 import { appStore, getWebcamStream } from '../../modules/store/store.js';
 import { getBilingual } from '../../data/strings.js';
@@ -11,7 +11,9 @@ import {
     resolveSlotDrawRect,
     resolveSlotScreenRect,
     computeCornerResize,
+    hitTestOverlays,
     assetFileForSlug,
+    SLOT_DRAW_ORDER,
 } from '../../modules/looks/recording-looks-logic.js';
 import LookControls from '../looks/LookControls.jsx';
 
@@ -57,15 +59,109 @@ export default function WebcamPreview() {
     // of a friendClosedResponse step, and only before the take starts.
     const awaitingStart = useStore(appStore, (state) => state.awaitingRecordingStart);
     const lookControlsVisible = awaitingStart && isPreviewGateStep(currentStep);
+    // Look tuning + selection: shared by drag, corner-resize and hit-testing.
+    const lookActiveSlot = useStore(appStore, (state) => state.lookActiveSlot);
+    const lookSelection = useStore(appStore, (state) => state.lookSelection);
+    const lookTuning = useStore(appStore, (state) => state.lookTuning);
+
+    // Every slot that currently has an overlay, in draw order (back to front),
+    // so a tap on the preview can pick the overlay under the pointer instead of
+    // forcing the learner to open the rail drawer first.
+    const selectedOverlays = useMemo(() => {
+        const list = [];
+        for (const slot of SLOT_DRAW_ORDER) {
+            const slug = lookSelection.slots[slot];
+            if (slug) list.push({ slot, slug });
+        }
+        return list;
+    }, [lookSelection]);
+
+    const [previewSize, setPreviewSize] = useState({ width: 0, height: 0 });
+    const [imageDims, setImageDims] = useState({});
     const dragRef = useRef(null);
+    const resizeRef = useRef(null);
+
+    // Natural size of every selected asset: needed to lay out the selection box
+    // and to hit-test a tap against each overlay's drawn rectangle.
+    const selectedSlugKey = selectedOverlays.map((overlay) => overlay.slug).join('|');
+    useEffect(() => {
+        const missing = selectedOverlays.filter(({ slug }) => !imageDims[slug]);
+        if (!missing.length) return undefined;
+        let cancelled = false;
+        const loaded = {};
+        let pending = 0;
+        const finish = () => {
+            if (pending === 0 && !cancelled && Object.keys(loaded).length > 0) {
+                setImageDims((prev) => ({ ...prev, ...loaded }));
+            }
+        };
+        for (const { slug } of missing) {
+            const src = assetFileForSlug(slug);
+            if (!src) continue;
+            pending += 1;
+            const img = new Image();
+            img.onload = () => {
+                loaded[slug] = { width: img.naturalWidth, height: img.naturalHeight };
+                pending -= 1;
+                finish();
+            };
+            img.onerror = () => { pending -= 1; finish(); };
+            img.src = src;
+        }
+        return () => { cancelled = true; };
+        // selectedSlugKey captures the selection; imageDims is a cache we merge
+        // into, so re-running on it would only re-scan the same slugs.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedSlugKey]);
+
+    useEffect(() => {
+        const el = wrapperRef.current;
+        if (!el || typeof ResizeObserver === 'undefined') return undefined;
+        const measure = () => {
+            const r = el.getBoundingClientRect();
+            setPreviewSize((prev) => (
+                Math.abs(prev.width - r.width) < 0.5 && Math.abs(prev.height - r.height) < 0.5
+                    ? prev
+                    : { width: r.width, height: r.height }
+            ));
+        };
+        measure();
+        const ro = new ResizeObserver(measure);
+        ro.observe(el);
+        return () => ro.disconnect();
+    }, []);
+
+    const overlaysForHitTest = selectedOverlays
+        .map(({ slot, slug }) => {
+            const dims = imageDims[slug];
+            if (!dims) return null;
+            return { slot, slug, imageWidth: dims.width, imageHeight: dims.height, tuning: lookTuning[slot] };
+        })
+        .filter(Boolean);
+
     const handlePointerDown = (e) => {
         if (!lookControlsVisible) return;
         const state = appStore.getState();
         if (state.lookOpenDrawer) state.setLookOpenDrawer(null);
-        const slot = state.lookActiveSlot;
-        const slug = state.lookSelection.slots[slot];
-        if (!slug) return;
-        dragRef.current = { slot, x: e.clientX, y: e.clientY, tuning: { ...(state.lookTuning[slot] || {}) } };
+        const rect = wrapperRef.current?.getBoundingClientRect();
+        if (!rect || !(rect.width > 0) || !(rect.height > 0)) return;
+        // Tap-to-select: whichever overlay is under the pointer becomes the
+        // active slot, then the same gesture moves it.
+        const hit = hitTestOverlays({
+            point: { x: e.clientX - rect.left, y: e.clientY - rect.top },
+            overlays: overlaysForHitTest,
+            displayWidth: rect.width,
+            displayHeight: rect.height,
+            mirrored: true,
+        });
+        if (!hit) return;
+        state.setLookActiveSlot(hit.slot);
+        dragRef.current = {
+            slot: hit.slot,
+            x: e.clientX,
+            y: e.clientY,
+            tuning: { ...(state.lookTuning[hit.slot] || {}) },
+        };
         e.currentTarget.setPointerCapture?.(e.pointerId);
     };
     const handlePointerMove = (e) => {
@@ -86,52 +182,6 @@ export default function WebcamPreview() {
     };
     const handlePointerUp = () => { dragRef.current = null; };
 
-    // Corner-handle resizing (the standard drag-the-corners way). The overlay
-    // itself is painted into the mirrored composite stream, so the DOM only
-    // draws a selection box over it; the handles update `lookTuning.scale` and
-    // nudge `dx`/`dy` so the opposite corner stays put. The menu slider keeps
-    // working from the same tuning.
-    const lookActiveSlot = useStore(appStore, (state) => state.lookActiveSlot);
-    const lookSelection = useStore(appStore, (state) => state.lookSelection);
-    const lookTuning = useStore(appStore, (state) => state.lookTuning);
-    const activeSlug = lookControlsVisible ? lookSelection.slots[lookActiveSlot] : null;
-    const [previewSize, setPreviewSize] = useState({ width: 0, height: 0 });
-    const [imageMeta, setImageMeta] = useState(null);
-    const resizeRef = useRef(null);
-
-    useEffect(() => {
-        const el = wrapperRef.current;
-        if (!el || typeof ResizeObserver === 'undefined') return undefined;
-        const measure = () => {
-            const r = el.getBoundingClientRect();
-            setPreviewSize((prev) => (
-                Math.abs(prev.width - r.width) < 0.5 && Math.abs(prev.height - r.height) < 0.5
-                    ? prev
-                    : { width: r.width, height: r.height }
-            ));
-        };
-        measure();
-        const ro = new ResizeObserver(measure);
-        ro.observe(el);
-        return () => ro.disconnect();
-    }, []);
-
-    useEffect(() => {
-        if (!activeSlug) { setImageMeta(null); return undefined; }
-        const src = assetFileForSlug(activeSlug);
-        if (!src) { setImageMeta(null); return undefined; }
-        let cancelled = false;
-        const img = new Image();
-        img.onload = () => {
-            if (!cancelled) {
-                setImageMeta({ slug: activeSlug, width: img.naturalWidth, height: img.naturalHeight });
-            }
-        };
-        img.onerror = () => { if (!cancelled) setImageMeta(null); };
-        img.src = src;
-        return () => { cancelled = true; };
-    }, [activeSlug]);
-
     const startResize = (corner) => (e) => {
         if (!lookControlsVisible) return;
         e.stopPropagation();
@@ -139,7 +189,8 @@ export default function WebcamPreview() {
         const state = appStore.getState();
         const slot = state.lookActiveSlot;
         const slug = state.lookSelection.slots[slot];
-        if (!slug || !imageMeta || imageMeta.slug !== slug) return;
+        const dims = slug ? imageDims[slug] : null;
+        if (!slug || !dims) return;
         if (!(previewSize.width > 0) || !(previewSize.height > 0)) return;
         const t = state.lookTuning[slot] || {};
         resizeRef.current = {
@@ -149,16 +200,16 @@ export default function WebcamPreview() {
             startTuning: { dx: t.dx || 0, dy: t.dy || 0, scale: t.scale || 1 },
             startRect: resolveSlotDrawRect({
                 slot, slug,
-                imageWidth: imageMeta.width,
-                imageHeight: imageMeta.height,
+                imageWidth: dims.width,
+                imageHeight: dims.height,
                 canvasWidth: previewSize.width,
                 canvasHeight: previewSize.height,
                 tuning: t,
             }),
             width: previewSize.width,
             height: previewSize.height,
-            imageWidth: imageMeta.width,
-            imageHeight: imageMeta.height,
+            imageWidth: dims.width,
+            imageHeight: dims.height,
         };
         e.currentTarget.setPointerCapture?.(e.pointerId);
     };
@@ -183,15 +234,16 @@ export default function WebcamPreview() {
     };
     const endResize = () => { resizeRef.current = null; };
 
+    const activeSlug = lookControlsVisible ? lookSelection.slots[lookActiveSlot] : null;
+    const activeDims = activeSlug ? imageDims[activeSlug] : null;
     const selectionBox = (() => {
-        if (!lookControlsVisible || !activeSlug) return null;
-        if (!imageMeta || imageMeta.slug !== activeSlug) return null;
+        if (!lookControlsVisible || !activeSlug || !activeDims) return null;
         if (!(previewSize.width > 0) || !(previewSize.height > 0)) return null;
         const drawRect = resolveSlotDrawRect({
             slot: lookActiveSlot,
             slug: activeSlug,
-            imageWidth: imageMeta.width,
-            imageHeight: imageMeta.height,
+            imageWidth: activeDims.width,
+            imageHeight: activeDims.height,
             canvasWidth: previewSize.width,
             canvasHeight: previewSize.height,
             tuning: lookTuning[lookActiveSlot],

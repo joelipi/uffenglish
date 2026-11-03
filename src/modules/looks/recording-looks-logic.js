@@ -647,6 +647,38 @@ export function computeCornerResize({
     };
 }
 
+/**
+ * Which overlay is under a point on the preview. `overlays` must be ordered
+ * back-to-front (the draw order); the search runs the other way so the overlay
+ * painted on top wins. The point is in screen pixels of the mirrored preview,
+ * the same space the selection box uses. Returns `{ slot, slug, screen }` or
+ * null. Overlays whose image size is not known yet are skipped.
+ */
+export function hitTestOverlays({ point, overlays, displayWidth, displayHeight, mirrored = true }) {
+    if (!point || !Array.isArray(overlays)) return null;
+    if (!(displayWidth > 0) || !(displayHeight > 0)) return null;
+    for (let i = overlays.length - 1; i >= 0; i--) {
+        const overlay = overlays[i];
+        if (!overlay || !overlay.slug) continue;
+        const rect = resolveSlotDrawRect({
+            slot: overlay.slot,
+            slug: overlay.slug,
+            imageWidth: overlay.imageWidth,
+            imageHeight: overlay.imageHeight,
+            canvasWidth: displayWidth,
+            canvasHeight: displayHeight,
+            tuning: overlay.tuning,
+        });
+        if (!rect) continue;
+        const screen = resolveSlotScreenRect({ rect, displayWidth, displayHeight, mirrored });
+        if (!screen) continue;
+        const insideX = point.x >= screen.left && point.x <= screen.left + screen.width;
+        const insideY = point.y >= screen.top && point.y <= screen.top + screen.height;
+        if (insideX && insideY) return { slot: overlay.slot, slug: overlay.slug, screen };
+    }
+    return null;
+}
+
 /** Human-facing file name for a slug (used by pickers and logs). */
 export function assetFileForSlug(slug) {
     if (isTwemojiSlug(slug)) return twemojiAssetUrl(twemojiCodeFromSlug(slug));

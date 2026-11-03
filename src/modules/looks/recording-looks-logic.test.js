@@ -43,6 +43,7 @@ import {
     resolveSlotDrawRect,
     resolveSlotScreenRect,
     computeCornerResize,
+    hitTestOverlays,
     MAX_SCALE,
     isSlugValidForSlot,
     overlaySlugsForSlot,
@@ -966,5 +967,56 @@ describe('corner-handle resizing', () => {
     it('returns null without a usable rect or pointer', () => {
         expect(computeCornerResize({ corner: 'se', startTuning: tuning, startRect: null, pointer: { x: 0, y: 0 }, displayWidth, displayHeight, slot: 'face', slug: 'carnival', imageWidth, imageHeight })).toBeNull();
         expect(computeCornerResize({ corner: 'bogus', startTuning: tuning, startRect: drawRect(tuning), pointer: { x: 0, y: 0 }, displayWidth, displayHeight, slot: 'face', slug: 'carnival', imageWidth, imageHeight })).toBeNull();
+    });
+});
+
+describe('hitTestOverlays — tap an overlay on the preview to select it', () => {
+    const displayWidth = 720;
+    const displayHeight = 1280;
+    const base = { imageWidth: 640, imageHeight: 640, canvasWidth: displayWidth, canvasHeight: displayHeight };
+    const tuning = { dx: 0, dy: 0, scale: 1 };
+
+    it('returns the topmost (last-drawn) overlay under the point', () => {
+        const overlays = [
+            { slot: 'face', slug: 'carnival', ...base, tuning },
+            { slot: 'face', slug: 'shades-twemoji', ...base, tuning },
+        ];
+        const rect = resolveSlotDrawRect({ slot: 'face', slug: 'carnival', ...base, tuning });
+        const screen = resolveSlotScreenRect({ rect, displayWidth, displayHeight, mirrored: true });
+        const hit = hitTestOverlays({
+            point: { x: screen.left + screen.width / 2, y: screen.top + screen.height / 2 },
+            overlays,
+            displayWidth,
+            displayHeight,
+        });
+        expect(hit.slug).toBe('shades-twemoji');
+    });
+
+    it('returns null when the point misses every overlay', () => {
+        const overlays = [{ slot: 'face', slug: 'carnival', ...base, tuning }];
+        const hit = hitTestOverlays({ point: { x: 1, y: 1 }, overlays, displayWidth, displayHeight });
+        expect(hit).toBeNull();
+    });
+
+    it('hit-tests in mirrored screen space', () => {
+        const offCentre = { dx: 0.3, dy: 0, scale: 1 };
+        const overlays = [{ slot: 'face', slug: 'carnival', ...base, tuning: offCentre }];
+        const rect = resolveSlotDrawRect({ slot: 'face', slug: 'carnival', ...base, tuning: offCentre });
+        const screen = resolveSlotScreenRect({ rect, displayWidth, displayHeight, mirrored: true });
+        // Pushed right in canvas space, so it appears left of centre on screen.
+        expect(screen.left).toBeLessThan(rect.dx);
+        const hit = hitTestOverlays({
+            point: { x: Math.max(1, screen.left) + 5, y: screen.top + 5 },
+            overlays,
+            displayWidth,
+            displayHeight,
+        });
+        expect(hit.slug).toBe('carnival');
+    });
+
+    it('skips an overlay whose image size is not known yet', () => {
+        const overlays = [{ slot: 'face', slug: 'carnival', imageWidth: 0, imageHeight: 0, tuning }];
+        const hit = hitTestOverlays({ point: { x: 360, y: 640 }, overlays, displayWidth, displayHeight });
+        expect(hit).toBeNull();
     });
 });
