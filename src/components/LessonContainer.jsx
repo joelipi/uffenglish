@@ -24,6 +24,7 @@ import MissionSection from './widgets/MissionSection.jsx';
 import Hints from './widgets/Hints.jsx';
 import AnswerInput from './widgets/AnswerInput.jsx';
 import WebcamPreview from './widgets/WebcamPreview.jsx';
+import LookControls from './looks/LookControls.jsx';
 import PreviewTutorialButton from './widgets/PreviewTutorialButton.jsx';
 import WhisperReview from './widgets/WhisperReview.jsx';
 import MediaContent from './widgets/MediaContent.jsx';
@@ -302,7 +303,11 @@ export default function LessonContainer() {
             </div>
 
             <Hints />
-            <WebcamPreview railTop={topBarBottomPx} />
+            <WebcamPreview />
+            {/* The look rail is a frame-level layer, not a child of the camera
+                wrapper: the wrapper is z-index 30 (below the header blur at 34),
+                so a rail inside it can never rise above the blur. */}
+            {showPreviewTutorial && <LookControls topOffset={topBarBottomPx} />}
 
             {/* Chat Window */}
             <div id="chat-window-container" className={`chat-window-container ${mediaState === 'chat' ? '' : 'chat-hidden'}`}>
