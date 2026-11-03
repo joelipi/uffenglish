@@ -793,6 +793,15 @@ describe('applyStepOverlays', () => {
 });
 
 describe('resolveSlotAnchor', () => {
+    it('honours a per-asset anchor override', () => {
+        const chef = resolveSlotAnchor('upper', 1000, 2000, 'chef-hat');
+        expect(chef.cx).toBeCloseTo(555.5, 1);
+        expect(chef.cy).toBeCloseTo(260.8, 1);
+        const crown = resolveSlotAnchor('upper', 1000, 2000, 'crown');
+        expect(crown.cx).toBe(500);
+        expect(crown.cy).toBe(440);
+    });
+
     it('returns the documented default centre per slot', () => {
         expect(resolveSlotAnchor('face', 1000, 2000)).toEqual({ cx: 500, cy: 840 });
         expect(resolveSlotAnchor('upper', 1000, 2000)).toEqual({ cx: 500, cy: 440 });

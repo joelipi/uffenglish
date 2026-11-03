@@ -194,17 +194,17 @@ export const OVERLAY_LIBRARY = {
     // The full-body costume covers were split into an Outfit (torso) and a
     // Top (hat) piece, so they are no longer offered as a whole-face mask.
     // Outfits (torso)
-    'police-officer-outfit': { slot: 'outfit', file: '/overlays/face/police-officer-torso.png', anchor: 'outfit', label: 'Police officer', labelKey: 'look_overlay_police_officer' },
-    'chef-outfit': { slot: 'outfit', file: '/overlays/face/chef-torso.png', anchor: 'outfit', label: 'Chef', labelKey: 'look_overlay_chef' },
-    'doctor-outfit': { slot: 'outfit', file: '/overlays/face/doctor-torso.png', anchor: 'outfit', label: 'Doctor', labelKey: 'look_overlay_doctor' },
-    'firefighter-outfit': { slot: 'outfit', file: '/overlays/face/firefighter-torso.png', anchor: 'outfit', label: 'Firefighter', labelKey: 'look_overlay_firefighter' },
-    'pilot-outfit': { slot: 'outfit', file: '/overlays/face/pilot-torso.png', anchor: 'outfit', label: 'Pilot', labelKey: 'look_overlay_pilot' },
-    'astronaut-outfit': { slot: 'outfit', file: '/overlays/face/astronaut-torso.png', anchor: 'outfit', label: 'Astronaut', labelKey: 'look_overlay_astronaut' },
-    'farmer-outfit': { slot: 'outfit', file: '/overlays/face/farmer-torso.png', anchor: 'outfit', label: 'Farmer', labelKey: 'look_overlay_farmer' },
-    'factory-worker-outfit': { slot: 'outfit', file: '/overlays/face/factory-worker-torso.png', anchor: 'outfit', label: 'Factory worker', labelKey: 'look_overlay_factory_worker' },
-    'judge-outfit': { slot: 'outfit', file: '/overlays/face/judge-torso.png', anchor: 'outfit', label: 'Male judge', labelKey: 'look_overlay_judge' },
-    'judge-female-outfit': { slot: 'outfit', file: '/overlays/face/judge-female-torso.png', anchor: 'outfit', label: 'Female judge', labelKey: 'look_overlay_judge_female' },
-    'construction-worker-outfit': { slot: 'outfit', file: '/overlays/face/construction-worker-torso.png', anchor: 'outfit', label: 'Construction worker', labelKey: 'look_overlay_construction_worker' },
+    'police-officer-outfit': { slot: 'outfit', file: '/overlays/face/police-officer-torso.png', anchor: 'outfit', baseWidth: 0.5447, anchorY: 0.7652, anchorX: 0.5, label: 'Police officer', labelKey: 'look_overlay_police_officer' },
+    'chef-outfit': { slot: 'outfit', file: '/overlays/face/chef-torso.png', anchor: 'outfit', baseWidth: 0.6814, anchorY: 0.7157, anchorX: 0.5093, label: 'Chef', labelKey: 'look_overlay_chef' },
+    'doctor-outfit': { slot: 'outfit', file: '/overlays/face/doctor-torso.png', anchor: 'outfit', baseWidth: 0.5447, anchorY: 0.751, anchorX: 0.5, label: 'Doctor', labelKey: 'look_overlay_doctor' },
+    'firefighter-outfit': { slot: 'outfit', file: '/overlays/face/firefighter-torso.png', anchor: 'outfit', baseWidth: 0.5447, anchorY: 0.756, anchorX: 0.5, label: 'Firefighter', labelKey: 'look_overlay_firefighter' },
+    'pilot-outfit': { slot: 'outfit', file: '/overlays/face/pilot-torso.png', anchor: 'outfit', baseWidth: 0.5447, anchorY: 0.7652, anchorX: 0.5, label: 'Pilot', labelKey: 'look_overlay_pilot' },
+    'astronaut-outfit': { slot: 'outfit', file: '/overlays/face/astronaut-torso.png', anchor: 'outfit', baseWidth: 0.6945, anchorY: 0.7544, anchorX: 0.5027, label: 'Astronaut', labelKey: 'look_overlay_astronaut' },
+    'farmer-outfit': { slot: 'outfit', file: '/overlays/face/farmer-torso.png', anchor: 'outfit', baseWidth: 0.7, anchorY: 0.6938, anchorX: 0.5, label: 'Farmer', labelKey: 'look_overlay_farmer' },
+    'factory-worker-outfit': { slot: 'outfit', file: '/overlays/face/factory-worker-torso.png', anchor: 'outfit', baseWidth: 0.7, anchorY: 0.7092, anchorX: 0.5, label: 'Factory worker', labelKey: 'look_overlay_factory_worker' },
+    'judge-outfit': { slot: 'outfit', file: '/overlays/face/judge-torso.png', anchor: 'outfit', baseWidth: 0.6978, anchorY: 0.7347, anchorX: 0.5011, label: 'Male judge', labelKey: 'look_overlay_judge' },
+    'judge-female-outfit': { slot: 'outfit', file: '/overlays/face/judge-female-torso.png', anchor: 'outfit', baseWidth: 0.6792, anchorY: 0.7397, anchorX: 0.4918, label: 'Female judge', labelKey: 'look_overlay_judge_female' },
+    'construction-worker-outfit': { slot: 'outfit', file: '/overlays/face/construction-worker-torso.png', anchor: 'outfit', baseWidth: 0.5458, anchorY: 0.7661, anchorX: 0.5005, label: 'Construction worker', labelKey: 'look_overlay_construction_worker' },
     // Above-the-face props.
     crown: { slot: 'upper', file: '/overlays/props/crown.png', anchor: 'upper', label: 'Crown', labelKey: 'look_overlay_crown' },
     'graduationcap-twemoji': { slot: 'upper', file: '/overlays/props/graduationcap-twemoji.png', anchor: 'upper', label: 'Graduation cap', labelKey: 'look_overlay_graduationcap_twemoji' },
@@ -215,12 +215,12 @@ export const OVERLAY_LIBRARY = {
     'prince-hat': { slot: 'upper', file: '/overlays/props/prince-hat.png', anchor: 'upper', label: 'Small crown', labelKey: 'look_overlay_prince_hat' },
     'princess-hat': { slot: 'upper', file: '/overlays/props/princess-hat.png', anchor: 'upper', label: 'Tiara', labelKey: 'look_overlay_princess_hat' },
     'construction-hat': { slot: 'upper', file: '/overlays/props/construction-hat.png', anchor: 'upper', label: 'Hard hat', labelKey: 'look_overlay_construction_hat' },
-    'police-officer-hat': { slot: 'upper', file: '/overlays/props/police-officer-hat.png', anchor: 'upper', label: 'Police hat', labelKey: 'look_overlay_police_officer' },
-    'chef-hat': { slot: 'upper', file: '/overlays/props/chef-hat.png', anchor: 'upper', label: 'Chef hat', labelKey: 'look_overlay_chef' },
-    'firefighter-hat': { slot: 'upper', file: '/overlays/props/firefighter-hat.png', anchor: 'upper', label: 'Firefighter hat', labelKey: 'look_overlay_firefighter' },
-    'pilot-hat': { slot: 'upper', file: '/overlays/props/pilot-hat.png', anchor: 'upper', label: 'Pilot hat', labelKey: 'look_overlay_pilot' },
-    'farmer-hat': { slot: 'upper', file: '/overlays/props/farmer-hat.png', anchor: 'upper', label: 'Farmer hat', labelKey: 'look_overlay_farmer' },
-    'factory-worker-hat': { slot: 'upper', file: '/overlays/props/factory-worker-hat.png', anchor: 'upper', label: 'Factory worker hat', labelKey: 'look_overlay_factory_worker' },
+    'police-officer-hat': { slot: 'upper', file: '/overlays/props/police-officer-hat.png', anchor: 'upper', baseWidth: 0.3344, anchorY: 0.138, anchorX: 0.5, label: 'Police hat', labelKey: 'look_overlay_police_officer' },
+    'chef-hat': { slot: 'upper', file: '/overlays/props/chef-hat.png', anchor: 'upper', baseWidth: 0.3484, anchorY: 0.1304, anchorX: 0.5555, label: 'Chef hat', labelKey: 'look_overlay_chef' },
+    'firefighter-hat': { slot: 'upper', file: '/overlays/props/firefighter-hat.png', anchor: 'upper', baseWidth: 0.3891, anchorY: 0.1325, anchorX: 0.5, label: 'Firefighter hat', labelKey: 'look_overlay_firefighter' },
+    'pilot-hat': { slot: 'upper', file: '/overlays/props/pilot-hat.png', anchor: 'upper', baseWidth: 0.3344, anchorY: 0.138, anchorX: 0.5, label: 'Pilot hat', labelKey: 'look_overlay_pilot' },
+    'farmer-hat': { slot: 'upper', file: '/overlays/props/farmer-hat.png', anchor: 'upper', baseWidth: 0.3891, anchorY: 0.1341, anchorX: 0.5547, label: 'Farmer hat', labelKey: 'look_overlay_farmer' },
+    'factory-worker-hat': { slot: 'upper', file: '/overlays/props/factory-worker-hat.png', anchor: 'upper', baseWidth: 0.3422, anchorY: 0.1567, anchorX: 0.5555, label: 'Factory worker hat', labelKey: 'look_overlay_factory_worker' },
     'turban-hat': { slot: 'upper', file: '/overlays/props/turban-hat.png', anchor: 'upper', label: 'Turban', labelKey: 'look_overlay_turban_hat' },
     'cowboy-hat': { slot: 'upper', file: '/overlays/props/cowboy-hat.png', anchor: 'upper', label: 'Cowboy hat', labelKey: 'look_overlay_cowboy_hat' },
     'billed-cap': { slot: 'upper', file: '/overlays/props/billed-cap.png', anchor: 'upper', label: 'Billed cap', labelKey: 'look_overlay_billed_cap' },
@@ -229,7 +229,7 @@ export const OVERLAY_LIBRARY = {
     'womans-hat': { slot: 'upper', file: '/overlays/props/womans-hat.png', anchor: 'upper', label: "Woman's hat", labelKey: 'look_overlay_womans_hat' },
     'male-gray-hair': { slot: 'upper', file: '/overlays/props/male-gray-hair.png', anchor: 'upper', label: 'Male gray hair', labelKey: 'look_overlay_male_gray_hair' },
     'female-gray-hair': { slot: 'upper', file: '/overlays/props/female-gray-hair.png', anchor: 'upper', label: 'Female gray hair', labelKey: 'look_overlay_female_gray_hair' },
-    'doctor-hat': { slot: 'upper', file: '/overlays/props/doctor-hat.png', anchor: 'upper', label: 'Short yellow hair', labelKey: 'look_overlay_short_yellow_hair' },
+    'doctor-hat': { slot: 'upper', file: '/overlays/props/doctor-hat.png', anchor: 'upper', baseWidth: 0.2562, anchorY: 0.1365, anchorX: 0.5, label: 'Short yellow hair', labelKey: 'look_overlay_short_yellow_hair' },
     // Lower / scene props.
     desk: { slot: 'lower', file: '/overlays/props/desk.png', anchor: 'lower', label: 'Desk', labelKey: 'look_overlay_desk' },
     frame: { slot: 'lower', file: '/overlays/props/frame.png', anchor: 'lower', label: 'Frame', labelKey: 'look_overlay_frame' },
@@ -327,6 +327,14 @@ export function resolveSlotAnchorY(slot, slug) {
     if (entry && Number.isFinite(entry.anchorY)) return entry.anchorY;
     const anchor = SLOT_ANCHORS[slot] || SLOT_ANCHORS.face;
     return anchor.cy;
+}
+
+/** The horizontal anchor fraction a specific asset draws at (its override, else the slot's). */
+export function resolveSlotAnchorX(slot, slug) {
+    const entry = slug ? OVERLAY_LIBRARY[slug] : null;
+    if (entry && Number.isFinite(entry.anchorX)) return entry.anchorX;
+    const anchor = SLOT_ANCHORS[slot] || SLOT_ANCHORS.face;
+    return anchor.cx;
 }
 
 export const DEFAULT_TUNING = { dx: 0, dy: 0, scale: 1 };
@@ -526,8 +534,10 @@ export function applyStepOverlays(selection, stepOverlays) {
 
 /** Centre point of a slot's default position, in canvas pixels. */
 export function resolveSlotAnchor(slot, canvasWidth, canvasHeight, slug) {
-    const anchor = SLOT_ANCHORS[slot] || SLOT_ANCHORS.face;
-    return { cx: anchor.cx * canvasWidth, cy: resolveSlotAnchorY(slot, slug) * canvasHeight };
+    return {
+        cx: resolveSlotAnchorX(slot, slug) * canvasWidth,
+        cy: resolveSlotAnchorY(slot, slug) * canvasHeight,
+    };
 }
 
 /**

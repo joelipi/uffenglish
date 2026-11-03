@@ -132,3 +132,41 @@ describe('twemoji overlay eye areas are transparent in the PNG bytes', () => {
         expect(px.a).toBeGreaterThan(24);
     });
 });
+
+describe('split costume assets are trimmed to their art', () => {
+    // The split torso/headwear PNGs used to keep the whole 640×640 costume
+    // canvas with the unused area transparent, so their selection box (and the
+    // drag/resize target) was far larger than the visible art and overlapped
+    // other overlays. Every edge must now touch an opaque pixel.
+    const PUBLIC_DIR = path.resolve(HERE, '../../../public');
+
+    async function edgesTouchArt(slug) {
+        const file = assetFileForSlug(slug);
+        expect(file).toBeTruthy();
+        const { data, info } = await sharp(path.join(PUBLIC_DIR, file.replace(/^\//, '')))
+            .ensureAlpha()
+            .raw()
+            .toBuffer({ resolveWithObject: true });
+        const { width, height, channels } = info;
+        const alphaAt = (x, y) => data[(y * width + x) * channels + (channels - 1)];
+        const rowHas = (y) => {
+            for (let x = 0; x < width; x += 1) if (alphaAt(x, y) > 8) return true;
+            return false;
+        };
+        const colHas = (x) => {
+            for (let y = 0; y < height; y += 1) if (alphaAt(x, y) > 8) return true;
+            return false;
+        };
+        return rowHas(0) && rowHas(height - 1) && colHas(0) && colHas(width - 1);
+    }
+
+    it('has no transparent margins on any torso or headwear piece', async () => {
+        const slugs = [
+            ...COSTUME_SLUGS.map((slug) => `${slug}-outfit`),
+            ...HAT_COSTUMES.map((slug) => `${slug}-hat`),
+        ];
+        for (const slug of slugs) {
+            expect(await edgesTouchArt(slug), `${slug} has transparent margins`).toBe(true);
+        }
+    });
+});
