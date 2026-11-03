@@ -428,11 +428,11 @@ export function isSlugValidForSlot(slug, slot) {
 }
 
 export function emptySelection() {
-    return { filterId: DEFAULT_FILTER_ID, lensId: DEFAULT_LENS_ID, screenId: DEFAULT_SCREEN_ID, slots: { face: null, upper: null, lower: null, emoji: null } };
+    return { filterId: DEFAULT_FILTER_ID, lensId: DEFAULT_LENS_ID, screenId: DEFAULT_SCREEN_ID, slots: { face: null, upper: null, outfit: null, lower: null, emoji: null } };
 }
 
 export function emptyTuning() {
-    return { face: { ...DEFAULT_TUNING }, upper: { ...DEFAULT_TUNING }, lower: { ...DEFAULT_TUNING }, emoji: { ...DEFAULT_TUNING } };
+    return { face: { ...DEFAULT_TUNING }, upper: { ...DEFAULT_TUNING }, outfit: { ...DEFAULT_TUNING }, lower: { ...DEFAULT_TUNING }, emoji: { ...DEFAULT_TUNING } };
 }
 
 /** True when the learner's look differs from a plain camera frame. */
@@ -512,7 +512,7 @@ export function sanitizeTuning(tuning) {
  * bare slug string per slot. Unknown slugs are dropped, never carried forward.
  */
 export function parseStepOverlays(stepOverlays) {
-    const result = { face: null, upper: null, lower: null, emoji: null };
+    const result = { face: null, upper: null, outfit: null, lower: null, emoji: null };
     if (!stepOverlays || typeof stepOverlays !== 'object') return result;
     for (const slot of OVERLAY_SLOTS) {
         const raw = stepOverlays[slot];

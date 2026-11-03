@@ -176,7 +176,7 @@ function ScreenStrip() {
 }
 
 function SizeSlider({ slot }) {
-    const scale = useStore(appStore, (state) => state.lookTuning[slot].scale);
+    const scale = useStore(appStore, (state) => (state.lookTuning[slot] && state.lookTuning[slot].scale) || 1);
     return (
         <div style={styles.sliderRow} data-testid="look-size-slider">
             <span style={styles.sliderLabel}>Size</span>

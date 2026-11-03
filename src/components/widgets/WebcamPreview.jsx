@@ -58,7 +58,7 @@ export default function WebcamPreview() {
         const slot = state.lookActiveSlot;
         const slug = state.lookSelection.slots[slot];
         if (!slug) return;
-        dragRef.current = { slot, x: e.clientX, y: e.clientY, tuning: { ...state.lookTuning[slot] } };
+        dragRef.current = { slot, x: e.clientX, y: e.clientY, tuning: { ...(state.lookTuning[slot] || {}) } };
         e.currentTarget.setPointerCapture?.(e.pointerId);
     };
     const handlePointerMove = (e) => {
