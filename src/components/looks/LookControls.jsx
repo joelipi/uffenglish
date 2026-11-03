@@ -372,7 +372,7 @@ function SlotOverlayFoldout({ slot }) {
     );
 }
 
-export default function LookControls() {
+export default function LookControls({ topOffset = 0 }) {
     const awaiting = useStore(appStore, (state) => state.awaitingRecordingStart);
     const openDrawer = useStore(appStore, (state) => state.lookOpenDrawer);
     const filterId = useStore(appStore, (state) => state.lookSelection.filterId);
@@ -391,7 +391,7 @@ export default function LookControls() {
     const screenActive = screenId !== DEFAULT_SCREEN_ID;
 
     return (
-        <div style={styles.rail} data-testid="look-controls" onPointerDown={(e) => e.stopPropagation()}>
+        <div style={{ ...styles.rail, top: topOffset > 0 ? topOffset : styles.rail.top }} data-testid="look-controls" onPointerDown={(e) => e.stopPropagation()}>
             <div style={styles.railRow}>
                 <button
                     type="button"
@@ -491,10 +491,11 @@ const styles = {
         position: 'absolute',
         left: 12,
         right: 12,
-        // The pinned tray opens at the rail top, so the rail top IS the tray
-        // top: just under the header blur (the blurred band is the top ~18.5%
-        // of the frame — see .video-header-blur), with the whole menu ending
-        // well above the mic band on every screen.
+        // The rail starts flush under the top overlay (the div that holds the
+        // progress bar); LessonContainer measures that overlay and passes its
+        // height down as `topOffset`. The percentage is only the pre-measure
+        // fallback. The pinned tray opens at the rail top, so this is also the
+        // tray top.
         top: '19%',
         display: 'flex',
         flexDirection: 'column',

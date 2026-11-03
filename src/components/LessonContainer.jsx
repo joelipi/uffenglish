@@ -290,7 +290,7 @@ export default function LessonContainer() {
             </div>
 
             <Hints />
-            <WebcamPreview />
+            <WebcamPreview topOverlayHeight={topOverlayHeightPx} />
 
             {/* Chat Window */}
             <div id="chat-window-container" className={`chat-window-container ${mediaState === 'chat' ? '' : 'chat-hidden'}`}>

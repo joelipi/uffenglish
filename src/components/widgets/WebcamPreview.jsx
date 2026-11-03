@@ -17,7 +17,7 @@ import {
 } from '../../modules/looks/recording-looks-logic.js';
 import LookControls from '../looks/LookControls.jsx';
 
-export default function WebcamPreview() {
+export default function WebcamPreview({ topOverlayHeight = 0 }) {
     // Subscribe to the key counter (bumped by setWebcamStream) for reactivity,
     // then read the actual stream from the module-level getter.
     const webcamStreamKey = useStore(appStore, (state) => state._webcamStreamKey);
@@ -429,7 +429,7 @@ export default function WebcamPreview() {
                     <div className="recording-phrase-text">{phraseText}</div>
                 </div>
             )}
-            {lookControlsVisible && <LookControls />}
+            {lookControlsVisible && <LookControls topOffset={topOverlayHeight} />}
         </div>
     );
 }
