@@ -71,16 +71,16 @@ function TophatIcon() {
 function TragedyMaskIcon() {
     return (
         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style={styles.railIconSvg}>
-            {/* A classic tragedy mask: the mask outline in currentColor with the
-                two eyes and the downturned mouth punched out via evenodd, so the
-                holes stay transparent on the dark rail button. */}
+            {/* The tragedy-mask overlay's own silhouette: a wide mask with two
+                large oval eye holes and a downturned mouth, punched out via
+                evenodd so the holes stay transparent on the dark rail button. */}
             <path
                 fillRule="evenodd"
                 clipRule="evenodd"
-                d="M12 2C6.9 2 3 5.3 3 9.6v4.8C3 19.1 7 22 12 22s9-2.9 9-7.6V9.6C21 5.3 17.1 2 12 2Z
-                   M8.05 10.4a1.25 1.25 0 1 0 2.5 0a1.25 1.25 0 1 0-2.5 0Z
-                   M13.45 10.4a1.25 1.25 0 1 0 2.5 0a1.25 1.25 0 1 0-2.5 0Z
-                   M7.8 17.4C9 15.6 10.4 14.6 12 14.6s3 .9 4.2 2.8c-1.1-1-2.5-1.5-4.2-1.5s-3.1.5-4.2 1.5Z"
+                d="M3 6.3C3 3.4 5.5 2.2 8.2 2.2c1.5 0 2.6.6 3.8.6s2.3-.6 3.8-.6C18.5 2.2 21 3.4 21 6.3c0 5.8-1.4 10.7-4 13.1-1.6 1.5-3.5 2.4-5 2.4s-3.4-.9-5-2.4C4.4 17 3 12.1 3 6.3Z
+                   M5.2 9.4a3.1 2.1 0 1 0 6.2 0a3.1 2.1 0 1 0-6.2 0Z
+                   M12.6 9.4a3.1 2.1 0 1 0 6.2 0a3.1 2.1 0 1 0-6.2 0Z
+                   M7.2 15.7c1.2-2.7 2.8-4.1 4.8-4.1s3.6 1.4 4.8 4.1c-1.3-1.6-2.9-2.4-4.8-2.4s-3.5.8-4.8 2.4Z"
             />
         </svg>
     );

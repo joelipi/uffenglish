@@ -191,19 +191,8 @@ export const OVERLAY_LIBRARY = {
     'frog-twemoji': { slot: 'face', file: '/overlays/face/frog-twemoji.png', anchor: 'face', label: 'Frog', labelKey: 'look_overlay_frog_twemoji' },
     'owl-twemoji': { slot: 'face', file: '/overlays/face/owl-twemoji.png', anchor: 'face', label: 'Owl', labelKey: 'look_overlay_owl_twemoji' },
     'hamster-twemoji': { slot: 'face', file: '/overlays/face/hamster-twemoji.png', anchor: 'face', label: 'Hamster', labelKey: 'look_overlay_hamster_twemoji' },
-    // Full-body costume covers: the face is punched out, so the learner's own
-    // face fills the opening while the uniform and headwear stay.
-    'police-officer': { slot: 'face', file: '/overlays/face/police-officer.png', anchor: 'face', label: 'Police officer', labelKey: 'look_overlay_police_officer' },
-    chef: { slot: 'face', file: '/overlays/face/chef.png', anchor: 'face', label: 'Chef', labelKey: 'look_overlay_chef' },
-    doctor: { slot: 'face', file: '/overlays/face/doctor.png', anchor: 'face', label: 'Doctor', labelKey: 'look_overlay_doctor' },
-    firefighter: { slot: 'face', file: '/overlays/face/firefighter.png', anchor: 'face', label: 'Firefighter', labelKey: 'look_overlay_firefighter' },
-    pilot: { slot: 'face', file: '/overlays/face/pilot.png', anchor: 'face', label: 'Pilot', labelKey: 'look_overlay_pilot' },
-    astronaut: { slot: 'face', file: '/overlays/face/astronaut.png', anchor: 'face', label: 'Astronaut', labelKey: 'look_overlay_astronaut' },
-    farmer: { slot: 'face', file: '/overlays/face/farmer.png', anchor: 'face', label: 'Farmer', labelKey: 'look_overlay_farmer' },
-    'factory-worker': { slot: 'face', file: '/overlays/face/factory-worker.png', anchor: 'face', label: 'Factory worker', labelKey: 'look_overlay_factory_worker' },
-    judge: { slot: 'face', file: '/overlays/face/judge.png', anchor: 'face', label: 'Judge', labelKey: 'look_overlay_judge' },
-    'judge-female': { slot: 'face', file: '/overlays/face/judge-female.png', anchor: 'face', label: 'Female judge', labelKey: 'look_overlay_judge_female' },
-    'construction-worker': { slot: 'face', file: '/overlays/face/construction-worker.png', anchor: 'face', label: 'Construction worker', labelKey: 'look_overlay_construction_worker' },
+    // The full-body costume covers were split into an Outfit (torso) and a
+    // Top (hat) piece, so they are no longer offered as a whole-face mask.
     // Outfits (torso)
     'police-officer-outfit': { slot: 'outfit', file: '/overlays/face/police-officer-torso.png', anchor: 'outfit', label: 'Police officer', labelKey: 'look_overlay_police_officer' },
     'chef-outfit': { slot: 'outfit', file: '/overlays/face/chef-torso.png', anchor: 'outfit', label: 'Chef', labelKey: 'look_overlay_chef' },

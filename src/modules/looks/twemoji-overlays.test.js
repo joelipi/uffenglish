@@ -45,28 +45,40 @@ describe('twemoji overlays are registered as face covers', () => {
     });
 });
 
+// The full-body costume covers were split into a torso (Outfit slot) and a
+// headwear piece (Top slot), and are no longer offered as a single face mask.
 const COSTUME_SLUGS = ['police-officer', 'chef', 'doctor', 'firefighter', 'pilot', 'astronaut', 'farmer', 'factory-worker', 'judge', 'judge-female', 'construction-worker'];
+const HAT_COSTUMES = ['police-officer', 'chef', 'doctor', 'firefighter', 'pilot', 'farmer', 'factory-worker'];
 
-describe('costume covers punch out the whole face, not only the eyes', () => {
-    it('registers every costume as a face cover with its own file', () => {
+describe('split costume covers: torso in Outfit, headwear in Top', () => {
+    it('registers every torso as an outfit with its own file', () => {
         for (const slug of COSTUME_SLUGS) {
-            expect(OVERLAY_LIBRARY[slug].slot).toBe('face');
-            expect(assetFileForSlug(slug)).toBe(`/overlays/face/${slug}.png`);
-            expect(overlaySlugsForSlot('face')).toContain(slug);
+            const outfit = `${slug}-outfit`;
+            expect(OVERLAY_LIBRARY[outfit].slot).toBe('outfit');
+            expect(assetFileForSlug(outfit)).toBe(`/overlays/face/${slug}-torso.png`);
+            expect(overlaySlugsForSlot('outfit')).toContain(outfit);
         }
     });
 
-    it('leaves a face opening transparent and the uniform opaque', async () => {
+    it('registers the headwear pieces in the Top slot', () => {
+        for (const slug of HAT_COSTUMES) {
+            const hat = `${slug}-hat`;
+            expect(OVERLAY_LIBRARY[hat].slot).toBe('upper');
+            expect(assetFileForSlug(hat)).toBe(`/overlays/props/${slug}-hat.png`);
+            expect(overlaySlugsForSlot('upper')).toContain(hat);
+        }
+    });
+
+    it('no longer offers the whole costume as a face mask', () => {
         for (const slug of COSTUME_SLUGS) {
-            const buf = await loadPng(slug);
-            // The opening sits somewhere on the centre line; the exact band
-            // depends on how low the headwear reaches.
-            let opened = false;
-            for (let fy = 0.35; fy <= 0.75; fy += 0.05) {
-                const px = await probePixel(buf, 0.5, fy);
-                if (px.a <= 24) { opened = true; break; }
-            }
-            expect(opened, `${slug} face opening`).toBe(true);
+            expect(OVERLAY_LIBRARY[slug]).toBeUndefined();
+            expect(overlaySlugsForSlot('face')).not.toContain(slug);
+        }
+    });
+
+    it('leaves the torso opaque where the uniform is', async () => {
+        for (const slug of COSTUME_SLUGS) {
+            const buf = await loadPng(`${slug}-outfit`);
             let bodyOpaque = false;
             for (const fx of [0.2, 0.35, 0.5, 0.65, 0.8]) {
                 for (const fy of [0.8, 0.9, 0.98]) {
@@ -75,7 +87,7 @@ describe('costume covers punch out the whole face, not only the eyes', () => {
                 }
                 if (bodyOpaque) break;
             }
-            expect(bodyOpaque, `${slug} uniform body`).toBe(true);
+            expect(bodyOpaque, `${slug} torso body`).toBe(true);
         }
     });
 });
