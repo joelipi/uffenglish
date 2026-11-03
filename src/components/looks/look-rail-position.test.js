@@ -55,3 +55,14 @@ describe('look rail position and stacking', () => {
         expect(zIndexOf('.pip-container--takeover {')).toBeLessThan(blurZ);
     });
 });
+
+describe('selected rail button has no border', () => {
+    it('the applied-state style carries no ring', () => {
+        const start = lookControls.indexOf('railBtnActive: {');
+        expect(start).toBeGreaterThan(-1);
+        const end = lookControls.indexOf('}', start);
+        const block = lookControls.slice(start, end);
+        expect(block).not.toContain('borderColor');
+        expect(block).not.toContain('4ade80');
+    });
+});

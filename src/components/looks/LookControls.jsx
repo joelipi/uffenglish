@@ -519,9 +519,9 @@ const styles = {
         flexShrink: 0,
         pointerEvents: 'auto',
         borderRadius: 14,
-        // No white chrome: on the picker the only outline anywhere is the green
-        // "this is applied" ring, otherwise a previous selection kept looking
-        // active (stories/092 review).
+        // No white chrome: the rail buttons are always borderless. A slot's
+        // applied overlay is shown by its thumbnail; filters/lenses by the check
+        // in the open tray.
         border: '1.5px solid transparent',
         background: 'rgba(15, 17, 24, 0.72)',
         color: '#fff',
@@ -534,14 +534,13 @@ const styles = {
         boxShadow: '0 4px 12px rgba(0,0,0,0.45)',
         ...UA_RESET,
     },
-    // Open = a lifted fill, applied = the green ring. Two separate signals, so
-    // an open drawer never competes with a selection for the same border.
+    // Open = a lifted fill. A selected/applied rail button gets no ring: the
+    // border was removed by request, and the slot thumbnail already shows the
+    // applied overlay.
     railBtnOpen: {
         background: 'rgba(58, 64, 78, 0.95)',
     },
-    railBtnActive: {
-        borderColor: '#4ade80',
-    },
+    railBtnActive: {},
     railThumb: {
         width: 22,
         height: 22,
