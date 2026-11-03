@@ -217,7 +217,6 @@ export const OVERLAY_LIBRARY = {
     'construction-hat': { slot: 'upper', file: '/overlays/props/construction-hat.png', anchor: 'upper', label: 'Hard hat', labelKey: 'look_overlay_construction_hat' },
     'police-officer-hat': { slot: 'upper', file: '/overlays/props/police-officer-hat.png', anchor: 'upper', label: 'Police hat', labelKey: 'look_overlay_police_officer' },
     'chef-hat': { slot: 'upper', file: '/overlays/props/chef-hat.png', anchor: 'upper', label: 'Chef hat', labelKey: 'look_overlay_chef' },
-    'doctor-hat': { slot: 'upper', file: '/overlays/props/doctor-hat.png', anchor: 'upper', label: 'Doctor hat', labelKey: 'look_overlay_doctor' },
     'firefighter-hat': { slot: 'upper', file: '/overlays/props/firefighter-hat.png', anchor: 'upper', label: 'Firefighter hat', labelKey: 'look_overlay_firefighter' },
     'pilot-hat': { slot: 'upper', file: '/overlays/props/pilot-hat.png', anchor: 'upper', label: 'Pilot hat', labelKey: 'look_overlay_pilot' },
     'farmer-hat': { slot: 'upper', file: '/overlays/props/farmer-hat.png', anchor: 'upper', label: 'Farmer hat', labelKey: 'look_overlay_farmer' },
@@ -230,6 +229,7 @@ export const OVERLAY_LIBRARY = {
     'womans-hat': { slot: 'upper', file: '/overlays/props/womans-hat.png', anchor: 'upper', label: "Woman's hat", labelKey: 'look_overlay_womans_hat' },
     'male-gray-hair': { slot: 'upper', file: '/overlays/props/male-gray-hair.png', anchor: 'upper', label: 'Male gray hair', labelKey: 'look_overlay_male_gray_hair' },
     'female-gray-hair': { slot: 'upper', file: '/overlays/props/female-gray-hair.png', anchor: 'upper', label: 'Female gray hair', labelKey: 'look_overlay_female_gray_hair' },
+    'doctor-hat': { slot: 'upper', file: '/overlays/props/doctor-hat.png', anchor: 'upper', label: 'Short yellow hair', labelKey: 'look_overlay_short_yellow_hair' },
     // Lower / scene props.
     desk: { slot: 'lower', file: '/overlays/props/desk.png', anchor: 'lower', label: 'Desk', labelKey: 'look_overlay_desk' },
     frame: { slot: 'lower', file: '/overlays/props/frame.png', anchor: 'lower', label: 'Frame', labelKey: 'look_overlay_frame' },
