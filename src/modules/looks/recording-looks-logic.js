@@ -222,7 +222,6 @@ export const OVERLAY_LIBRARY = {
     'pilot-hat': { slot: 'upper', file: '/overlays/props/pilot-hat.png', anchor: 'upper', label: 'Pilot hat', labelKey: 'look_overlay_pilot' },
     'farmer-hat': { slot: 'upper', file: '/overlays/props/farmer-hat.png', anchor: 'upper', label: 'Farmer hat', labelKey: 'look_overlay_farmer' },
     'factory-worker-hat': { slot: 'upper', file: '/overlays/props/factory-worker-hat.png', anchor: 'upper', label: 'Factory worker hat', labelKey: 'look_overlay_factory_worker' },
-    'construction-worker-hat': { slot: 'upper', file: '/overlays/face/construction-worker.png', anchor: 'upper', label: 'Construction worker hat', labelKey: 'look_overlay_construction_worker' },
     'turban-hat': { slot: 'upper', file: '/overlays/props/turban-hat.png', anchor: 'upper', label: 'Turban', labelKey: 'look_overlay_turban_hat' },
     'cowboy-hat': { slot: 'upper', file: '/overlays/props/cowboy-hat.png', anchor: 'upper', label: 'Cowboy hat', labelKey: 'look_overlay_cowboy_hat' },
     'billed-cap': { slot: 'upper', file: '/overlays/props/billed-cap.png', anchor: 'upper', label: 'Billed cap', labelKey: 'look_overlay_billed_cap' },
