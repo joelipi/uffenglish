@@ -1,6 +1,7 @@
-// The left look rail must sit flush under the top overlay (the div holding the
-// progress bar), not at a fixed percentage that overlaps the subtitles. The
-// offset is measured in LessonContainer and threaded down to LookControls.
+// The left look rail must sit flush under the progress-bar row, not at a
+// fixed percentage (or under the mission space) that pushes it into the
+// subtitles. The offset is measured in LessonContainer and threaded down to
+// LookControls.
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -14,14 +15,15 @@ const webcamPreview = read('../widgets/WebcamPreview.jsx');
 const lookControls = read('./LookControls.jsx');
 
 describe('look rail sits under the progress-bar overlay', () => {
-    it('measures the top overlay and passes its height to the preview', () => {
-        expect(lessonContainer).toContain('const [topOverlayHeightPx, setTopOverlayHeightPx]');
-        expect(lessonContainer).toContain('<WebcamPreview topOverlayHeight={topOverlayHeightPx} />');
+    it('measures the progress-bar row and passes its bottom to the preview', () => {
+        expect(lessonContainer).toContain('const [topBarBottomPx, setTopBarBottomPx]');
+        expect(lessonContainer).toContain('ref={topBarRef}');
+        expect(lessonContainer).toContain('<WebcamPreview railTop={topBarBottomPx} />');
     });
 
     it('forwards the height to the look controls', () => {
-        expect(webcamPreview).toContain('export default function WebcamPreview({ topOverlayHeight = 0 })');
-        expect(webcamPreview).toContain('<LookControls topOffset={topOverlayHeight} />');
+        expect(webcamPreview).toContain('export default function WebcamPreview({ railTop = 0 })');
+        expect(webcamPreview).toContain('<LookControls topOffset={railTop} />');
     });
 
     it('positions the rail at that offset instead of a fixed percentage', () => {

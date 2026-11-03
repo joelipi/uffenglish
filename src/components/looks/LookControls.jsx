@@ -491,11 +491,12 @@ const styles = {
         position: 'absolute',
         left: 12,
         right: 12,
-        // The rail starts flush under the top overlay (the div that holds the
-        // progress bar); LessonContainer measures that overlay and passes its
-        // height down as `topOffset`. The percentage is only the pre-measure
-        // fallback. The pinned tray opens at the rail top, so this is also the
-        // tray top.
+        // The rail starts flush under the top-bar row that holds the progress
+        // bar; LessonContainer measures that row's bottom and passes it down as
+        // `topOffset`. The mission/scoreboard are not shown on the recording
+        // preview, so their space is deliberately ignored. The percentage is
+        // only the pre-measure fallback. The pinned tray opens at the rail top,
+        // so this is also the tray top.
         top: '19%',
         display: 'flex',
         flexDirection: 'column',

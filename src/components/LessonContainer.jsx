@@ -224,13 +224,25 @@ export default function LessonContainer() {
     // overlapped the progress bar or left a gap.
     const topOverlayRef = useRef(null);
     const [topOverlayHeightPx, setTopOverlayHeightPx] = useState(0);
+    // The look rail starts under the top-bar row that holds the progress bar,
+    // NOT under the whole top overlay: the mission/scoreboard are not shown on
+    // the recording preview, and their (empty) space was pushing the rail down
+    // into the subtitles.
+    const topBarRef = useRef(null);
+    const [topBarBottomPx, setTopBarBottomPx] = useState(0);
     useEffect(() => {
-        const el = topOverlayRef.current;
-        if (!el || typeof ResizeObserver !== 'function') return undefined;
-        const measure = () => setTopOverlayHeightPx(el.getBoundingClientRect().height);
+        const overlay = topOverlayRef.current;
+        if (!overlay || typeof ResizeObserver !== 'function') return undefined;
+        const measure = () => {
+            const overlayRect = overlay.getBoundingClientRect();
+            setTopOverlayHeightPx(overlayRect.height);
+            const bar = topBarRef.current;
+            if (bar) setTopBarBottomPx(Math.max(0, bar.getBoundingClientRect().bottom - overlayRect.top));
+        };
         measure();
         const observer = new ResizeObserver(measure);
-        observer.observe(el);
+        observer.observe(overlay);
+        if (topBarRef.current) observer.observe(topBarRef.current);
         return () => observer.disconnect();
     }, [currentStep, currentStepIndex, mediaState, labelLang]);
 
@@ -256,7 +268,7 @@ export default function LessonContainer() {
             {/* Top Overlay */}
             <div ref={topOverlayRef} className="top-overlay position-absolute top-0 start-0 w-100 px-3 py-2">
                 <div className="w-100 text-shadow">
-                    <div id="top-bar-primary" className="d-flex align-items-center w-100 mb-0">
+                    <div ref={topBarRef} id="top-bar-primary" className="d-flex align-items-center w-100 mb-0">
                         <Link to="/home" id="closePage"
                             className="d-flex align-items-center text-decoration-none flex-shrink-0" aria-label="Close">
                             <i className="bi bi-x-lg"></i>
@@ -290,7 +302,7 @@ export default function LessonContainer() {
             </div>
 
             <Hints />
-            <WebcamPreview topOverlayHeight={topOverlayHeightPx} />
+            <WebcamPreview railTop={topBarBottomPx} />
 
             {/* Chat Window */}
             <div id="chat-window-container" className={`chat-window-container ${mediaState === 'chat' ? '' : 'chat-hidden'}`}>
