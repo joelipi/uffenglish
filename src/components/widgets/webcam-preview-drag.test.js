@@ -34,3 +34,19 @@ describe('overlay drag wiring', () => {
         expect(wrapperBlock).toMatch(/lookControlsVisible\s*\?\s*\{\s*touchAction:\s*'none'\s*\}\s*:\s*null/);
     });
 });
+
+describe('overlay delete button', () => {
+    it('sits in the selection box and clears the active slot to None', () => {
+        const start = source.indexOf('data-testid="look-remove-overlay"');
+        expect(start).toBeGreaterThan(-1);
+        const end = source.indexOf('</button>', start);
+        expect(end).toBeGreaterThan(start);
+        const block = source.slice(start, end);
+        // Must not start a move/resize drag on the same pointer gesture.
+        expect(block).toContain('e.stopPropagation()');
+        // Removing means setting the slot back to None.
+        expect(block).toContain('setLookSlot(lookActiveSlot, null)');
+        // Anchored to the box's top-right corner.
+        expect(block).toMatch(/selectionBox\.corners\.ne\.(x|y)/);
+    });
+});

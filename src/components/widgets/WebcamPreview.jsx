@@ -349,6 +349,40 @@ export default function WebcamPreview() {
                             />
                         );
                     })}
+                    {/* Remove the selected overlay: clears its slot back to None. */}
+                    <button
+                        type="button"
+                        data-testid="look-remove-overlay"
+                        aria-label="Remove overlay"
+                        onPointerDown={(e) => { e.stopPropagation(); }}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            appStore.getState().setLookSlot(lookActiveSlot, null);
+                        }}
+                        style={{
+                            position: 'absolute',
+                            left: selectionBox.corners.ne.x - 26,
+                            top: selectionBox.corners.ne.y + 8,
+                            width: 22,
+                            height: 22,
+                            borderRadius: '50%',
+                            background: '#fff',
+                            color: '#d93025',
+                            border: '2px solid #d93025',
+                            boxShadow: '0 0 0 1px rgba(0, 0, 0, 0.35)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            padding: 0,
+                            lineHeight: 1,
+                            cursor: 'pointer',
+                            pointerEvents: 'auto',
+                            touchAction: 'none',
+                            zIndex: 92,
+                        }}
+                    >
+                        <i className="bi bi-x-lg" style={{ fontSize: 11, lineHeight: 1 }}></i>
+                    </button>
                 </>
             )}
             {recordingCountdown !== null && (
