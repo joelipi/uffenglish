@@ -71,7 +71,17 @@ function TophatIcon() {
 function TragedyMaskIcon() {
     return (
         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style={styles.railIconSvg}>
-            <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-4 8c.6 0 1 .4 1 1s-.4 1-1 1-1-.4-1-1 .4-1 1-1zm8 0c.6 0 1 .4 1 1s-.4 1-1 1-1-.4-1-1 .4-1 1-1zm-4 7c-2.3 0-4.3-1.5-5.1-3.6-.1-.4.1-.9.5-1 .4-.1.9.1 1 .5.5 1.6 2 2.6 3.6 2.6s3.1-1 3.6-2.6c.1-.4.6-.6 1-.5.4.1.6.6.5 1-.8 2.1-2.8 3.6-5.1 3.6z"/>
+            {/* A classic tragedy mask: the mask outline in currentColor with the
+                two eyes and the downturned mouth punched out via evenodd, so the
+                holes stay transparent on the dark rail button. */}
+            <path
+                fillRule="evenodd"
+                clipRule="evenodd"
+                d="M12 2C6.9 2 3 5.3 3 9.6v4.8C3 19.1 7 22 12 22s9-2.9 9-7.6V9.6C21 5.3 17.1 2 12 2Z
+                   M8.05 10.4a1.25 1.25 0 1 0 2.5 0a1.25 1.25 0 1 0-2.5 0Z
+                   M13.45 10.4a1.25 1.25 0 1 0 2.5 0a1.25 1.25 0 1 0-2.5 0Z
+                   M7.8 17.4C9 15.6 10.4 14.6 12 14.6s3 .9 4.2 2.8c-1.1-1-2.5-1.5-4.2-1.5s-3.1.5-4.2 1.5Z"
+            />
         </svg>
     );
 }
