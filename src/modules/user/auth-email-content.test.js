@@ -79,6 +79,28 @@ describe('buildAuthEmail — fallbacks', () => {
     });
 });
 
+describe('brand signature', () => {
+    it('names UFF English and the public site in the recovery email (html and text)', () => {
+        const email = buildAuthEmail({ action: 'recovery', language: 'es', tokenHash: 'h', ...base });
+        expect(email.html).toContain('UFF English');
+        expect(email.html).toContain('href="https://ultrafastfluency.com"');
+        expect(email.text).toContain('UFF English — https://ultrafastfluency.com');
+        // The Supabase default templates' generic wording must not be what a
+        // learner sees.
+        expect(email.html).not.toMatch(/supabase website/i);
+    });
+
+    it('carries the signature on code and notification emails too', () => {
+        const code = buildAuthEmail({ action: 'reauthentication', language: 'en', token: '123456' });
+        expect(code.html).toContain('UFF English');
+        expect(code.text).toContain('https://ultrafastfluency.com');
+
+        const note = buildAuthEmail({ action: 'password_changed_notification', language: 'en' });
+        expect(note.html).toContain('UFF English');
+        expect(note.text).toContain('https://ultrafastfluency.com');
+    });
+});
+
 describe('hasAuthEmailCopy completeness', () => {
     const SUPPORTED = [...PROFILE_LANGUAGES.map(({ value }) => value.toLowerCase()), 'tw'];
 

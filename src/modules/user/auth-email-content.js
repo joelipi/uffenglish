@@ -37,6 +37,18 @@ const ACTION_SUBJECT_KEYS = {
 const GENERIC_SUBJECT = 'Action required for your Ultrafast Fluency account';
 const REAUTH_SUBJECT = 'Your Ultrafast Fluency verification code';
 const REAUTH_BODY = 'Use this code to verify your identity. It expires shortly.';
+// Every email we send names the product and the public site. Supabase's own
+// default templates talk about a generic "account" (and the default sender is
+// Supabase itself), which left a learner who received a password reset with no
+// idea where it came from — and with a link to localhost when the project's
+// Site URL was the dev server. See docs/auth-emails.md.
+const BRAND_NAME = 'UFF English';
+const BRAND_URL = 'https://ultrafastfluency.com';
+const SIGNATURE_HTML =
+    '<p style="margin-top:24px;font-size:12px;color:#888">' +
+    `${BRAND_NAME} · <a href="${BRAND_URL}" style="color:#888">ultrafastfluency.com</a>` +
+    '</p>';
+const SIGNATURE_TEXT = `\n\n${BRAND_NAME} — ${BRAND_URL}`;
 const NOTIFICATION_EMAILS = {
     password_changed_notification: {
         subject: 'Your Ultrafast Fluency password was changed',
@@ -82,14 +94,27 @@ export function buildAuthEmail({ action, language, tokenHash, token, redirectTo,
     // Notification emails are informational: no link, no action.
     if (NOTIFICATION_EMAILS[action]) {
         const { subject, body } = NOTIFICATION_EMAILS[action];
-        return { subject, language: 'en', html: `<p>${body}</p>`, text: body };
+        return {
+            subject,
+            language: 'en',
+            html: `<p>${body}</p>${SIGNATURE_HTML}`,
+            text: `${body}${SIGNATURE_TEXT}`,
+        };
     }
 
     // Reauthentication carries a 6-digit code, not a link.
     if (action === 'reauthentication') {
         const code = escapeHtml(token || '');
-        const html = `<h2>${REAUTH_SUBJECT}</h2><p>${REAUTH_BODY}</p><p style="font-size:24px;font-weight:bold">${code}</p>`;
-        return { subject: REAUTH_SUBJECT, language: 'en', html, text: `${REAUTH_SUBJECT}\n\n${REAUTH_BODY}\n\n${token || ''}` };
+        const html =
+            `<h2>${REAUTH_SUBJECT}</h2><p>${REAUTH_BODY}</p>` +
+            `<p style="font-size:24px;font-weight:bold">${code}</p>` +
+            SIGNATURE_HTML;
+        return {
+            subject: REAUTH_SUBJECT,
+            language: 'en',
+            html,
+            text: `${REAUTH_SUBJECT}\n\n${REAUTH_BODY}\n\n${token || ''}${SIGNATURE_TEXT}`,
+        };
     }
 
     const subjectKey = ACTION_SUBJECT_KEYS[action];
@@ -116,10 +141,9 @@ export function buildAuthEmail({ action, language, tokenHash, token, redirectTo,
               `text-decoration:none;border-radius:6px;font-weight:bold">${cta}</a></p>`
             : '') +
         `<p>${ignore}</p>` +
+        SIGNATURE_HTML +
         '</div>';
-    const text = verifyUrl
-        ? `${body}\n\n${cta}: ${verifyUrl}\n\n${ignore}`
-        : `${body}\n\n${ignore}`;
+    const text = (verifyUrl ? `${body}\n\n${cta}: ${verifyUrl}\n\n${ignore}` : `${body}\n\n${ignore}`) + SIGNATURE_TEXT;
 
     return { subject, html, text, language: useLocalized ? lang : 'en' };
 }

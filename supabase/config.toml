@@ -35,8 +35,20 @@ image_transformation_enabled = true
 [auth]
 enabled = true
 port = 54325
-site_url = "http://localhost:3000"
-additional_redirect_urls = ["https://jbrbmbmupjfangqvaevx.supabase.co"]
+# The PUBLIC site. Supabase falls back to this URL whenever a client-supplied
+# redirect is not on the allow-list below, and GoTrue puts it in the verify link
+# of every auth email — a `http://localhost:3000` here emailed learners a dead
+# link (2026-11). Local dev is served by the localhost entries in
+# additional_redirect_urls, not by site_url.
+site_url = "https://ultrafastfluency.com"
+additional_redirect_urls = [
+  "https://ultrafastfluency.com",
+  "https://www.ultrafastfluency.com",
+  "https://s.ultrafastfluency.com",
+  "https://uffenglish.pages.dev",
+  "http://localhost:3000",
+  "http://localhost:5173",
+]
 jwt_expiry = 3600
 enable_signup = true
 enable_confirmations = false

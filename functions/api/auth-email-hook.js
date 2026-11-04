@@ -15,6 +15,7 @@ import { verifyStandardWebhook } from './standard-webhook.js';
 import { sendViaZoho, resolveApiKey } from './zoho-send.js';
 import { buildAuthEmail } from '../../src/modules/user/auth-email-content.js';
 import { resolveEmailLanguage } from '../../src/modules/user/email-language.js';
+import { resolveAuthEmailRedirectTo } from '../../src/modules/user/auth-redirect-logic.js';
 
 function jsonResponse(body, status = 200) {
     return new Response(JSON.stringify(body), {
@@ -111,6 +112,23 @@ export async function onRequestPost({ request, env }) {
     }
 
     const from = env.EMAIL_FROM || 'Ultrafast Fluency <welcome@ultrafastfluency.com>';
+
+    // The link must land on the public app, never on the machine that happens to
+    // be configured as Supabase's Site URL. GoTrue falls back to that Site URL
+    // whenever the client's `redirectTo` is not on the Redirect-URLs allow-list,
+    // and it used to be `http://localhost:3000` — which emailed a dead link to
+    // every learner (see src/modules/user/auth-redirect-logic.js).
+    const redirectTo = resolveAuthEmailRedirectTo({
+        redirectTo: emailData.redirect_to,
+        siteUrl: env.SITE_URL,
+        action,
+    });
+    if (emailData.redirect_to && emailData.redirect_to !== redirectTo) {
+        console.warn(
+            `[auth-email-hook] replaced unusable redirect_to "${emailData.redirect_to}" with "${redirectTo}" (action ${action})`
+        );
+    }
+
     for (const send of sends) {
         if (!send.to) {
             console.error('[auth-email-hook] no recipient for action', action);
@@ -121,7 +139,7 @@ export async function onRequestPost({ request, env }) {
             language,
             tokenHash: send.tokenHash,
             token: send.token,
-            redirectTo: emailData.redirect_to,
+            redirectTo,
             supabaseUrl,
         });
         const result = await sendViaZoho({

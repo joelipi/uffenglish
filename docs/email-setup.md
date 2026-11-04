@@ -29,6 +29,17 @@ the operational checklist.
 secrets, Supabase dashboard config (redirect URLs + Send Email Hook), and a
 verification pass.
 
+> **Applied 2026-11-04** (via the Supabase Management API + a Pages secret):
+> Site URL = `https://ultrafastfluency.com` (it was the create-project
+> `http://localhost:3000`, which put a dead link in every password reset),
+> Redirect URLs = the exact list in Part 3, and the Send Email Hook **enabled** at
+> `https://ultrafastfluency.com/api/auth-email-hook` with its secret stored as the
+> Pages secret `SEND_EMAIL_HOOK_SECRET`. Verified with a signed webhook POST
+> (`200`) and a real recovery request for a throwaway account (`200`,
+> `recovery_sent_at` set). Part 3 and Part 4 remain the runbook for a new project
+> or a re-do; the dashboard **templates** stay uneditable on the free tier (the
+> hook's copy is what learners receive).
+
 **Two independent email paths** (both send through Zoho CPaaS, so all transactional
 mail is one system):
 
@@ -105,17 +116,30 @@ SITE_URL     = "https://ultrafastfluency.com"
 2. **Keep email confirmations OFF** (`enable_confirmations = false`, already in
    `supabase/config.toml`). This is deliberate: turning it on makes `signUp()`
    withhold the session until the click, which would block signup.
-3. **Authentication → URL Configuration → Redirect URLs**: add (exact URLs, no
-   wildcards):
-   - `https://ultrafastfluency.com` and `https://www.ultrafastfluency.com`
-   - `https://ultrafastfluency.com/reset-password`
-   - `https://ultrafastfluency.com/confirm-email`
-   - staging equivalents (`https://s.ultrafastfluency.com/...`) if you test there
-   - `http://localhost:3000/reset-password` for local dev
+3. **Authentication → URL Configuration**:
+   - **Site URL**: `https://ultrafastfluency.com` — **not** the create-project
+     default `http://localhost:3000`. GoTrue falls back to the Site URL whenever
+     the client's `redirectTo` is not allow-listed and puts it in the verify link
+     of every auth email, so a dev URL here emails learners a link to a machine
+     that does not exist (a password reset opened "This site can't be reached").
+     `supabase/config.toml` mirrors this so a `supabase config push` cannot undo
+     it; the hook also rewrites any local/blank target via `SITE_URL`
+     (`src/modules/user/auth-redirect-logic.js`).
+   - **Redirect URLs**: add (exact URLs, no wildcards):
+     - `https://ultrafastfluency.com` and `https://www.ultrafastfluency.com`
+     - `https://ultrafastfluency.com/reset-password`
+     - `https://ultrafastfluency.com/confirm-email`
+     - staging equivalents (`https://s.ultrafastfluency.com/...`) if you test there
+     - `http://localhost:3000` and `http://localhost:3000/reset-password` for
+       local dev
+   - The allow-list is **not optional**: an empty list sends every reset to the
+     Site URL instead of the page the learner asked for.
 4. **Authentication → Hooks → Send Email**: **Enable** it and set:
    - **URL**: `https://ultrafastfluency.com/api/auth-email-hook`
    - generate/copy the **secret** (`v1,whsec_...`) → paste into the Pages secret
-     `SEND_EMAIL_HOOK_SECRET` (Part 2), then **Save**.
+     `SEND_EMAIL_HOOK_SECRET` (Part 2), then **Save**. The secret must be in
+     Pages **before** the deploy that serves the hook, because a Pages secret
+     only reaches a deployment made after it is set.
 5. Keep **Secure Email Change** (`double_confirm_changes`) **off** (the default
    here). The handler also supports the on case, but off is simpler.
 6. Confirm **Secure email change / notifications** settings match what you want
@@ -191,7 +215,10 @@ curl -sS -o /dev/null -w '%{http_code}\n' -X POST \
       the row flips to `email_confirmed = true`.
 - [ ] **Password reset** — open `/recover-password`, enter a real account's
       email. The reset email arrives (localized, from your domain); the link
-      opens `/reset-password`; set a new password; log in with it.
+      opens `https://ultrafastfluency.com/reset-password` — **not**
+      `http://localhost:3000` (check the href, the fallback is invisible until it
+      is clicked) — and the email names UFF English / ultrafastfluency.com; set a
+      new password; log in with it.
 - [ ] **Email change** (optional) — Profile → change email → the confirmation
       arrives at the **new** address.
 - [ ] **Zoho CPaaS logs** — Zoho CPaaS → **Logs/Emails** shows the sends (delivered, not
@@ -237,6 +264,7 @@ See [`deploy-environments.md`](deploy-environments.md).
 | Symptom | Likely cause | Fix |
 | --- | --- | --- |
 | Reset email still comes from Supabase / "email rate limit exceeded" | Send Email Hook not enabled | Part 3 step 4 |
+| Reset/confirm link opens `http://localhost:3000` ("can't be reached") | Dashboard **Site URL** is the create-project dev default, or the redirect URL is not allow-listed (GoTrue falls back to the Site URL) | Set Site URL to `https://ultrafastfluency.com` and add the exact Redirect URLs (Part 3 step 3) |
 | No auth email at all; Supabase hook logs show a failure | Hook secret mismatch or endpoint down | Re-copy `SEND_EMAIL_HOOK_SECRET`; check the deploy |
 | Hook returns **401** | Signature verification failed (wrong secret, or a proxy altered the body) | Re-paste the secret; ensure nothing rewrites the request body |
 | Hook returns **500** | `ZOHO_CPAAS_API_KEY` unset in Pages | Part 2 |

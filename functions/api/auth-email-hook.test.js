@@ -2,8 +2,13 @@
 // is produced with node:crypto and `fetch` is stubbed — no real GoTrue/Zoho CPaaS
 // call is made.
 import { describe, it, expect, vi, afterEach } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
 import { createHmac } from 'node:crypto';
 import { onRequestPost } from './auth-email-hook.js';
+
+const HERE = path.dirname(fileURLToPath(import.meta.url));
 
 const SECRET_B64 = 'dGVzdC1zZWNyZXQ=';
 const SECRET = `v1,whsec_${SECRET_B64}`;
@@ -140,6 +145,58 @@ describe('onRequestPost — auth email hook', () => {
         expect(JSON.parse(resend[1].options.body).htmlbody).toContain('token=hash-new');
     });
 
+    it('never emails a localhost redirect target (Site-URL fallback)', async () => {
+        const { calls } = installFetch();
+        const body = JSON.stringify({
+            user: { id: 'u1', email: 'a@b.com', user_metadata: { native_language: 'EN' } },
+            email_data: {
+                email_action_type: 'recovery',
+                token_hash: 'th-123',
+                token: '654321',
+                // What GoTrue sends when its dashboard Site URL is the dev server.
+                redirect_to: 'http://localhost:3000',
+            },
+        });
+        const res = await onRequestPost({
+            request: makeRequest(body),
+            env: makeEnv({ SITE_URL: 'https://ultrafastfluency.com' }),
+        });
+
+        expect(res.status).toBe(200);
+        const html = sentEmail(calls).htmlbody;
+        expect(html).not.toContain('localhost');
+        expect(html).toContain('redirect_to=https%3A%2F%2Fultrafastfluency.com%2Freset-password');
+    });
+
+    it('falls back to production when SITE_URL is itself a local address', async () => {
+        const { calls } = installFetch();
+        const body = JSON.stringify({
+            user: { id: 'u1', email: 'a@b.com', user_metadata: { native_language: 'EN' } },
+            email_data: { email_action_type: 'recovery', token_hash: 'th', redirect_to: 'http://localhost:5173/reset-password' },
+        });
+        const res = await onRequestPost({
+            request: makeRequest(body),
+            env: makeEnv({ SITE_URL: 'http://localhost:5173' }),
+        });
+
+        expect(res.status).toBe(200);
+        const html = sentEmail(calls).htmlbody;
+        expect(html).not.toContain('localhost');
+        expect(html).toContain('redirect_to=https%3A%2F%2Fultrafastfluency.com%2Freset-password');
+    });
+
+    it('keeps an allow-listed public redirect target as-is', async () => {
+        const { calls } = installFetch();
+        const res = await onRequestPost({
+            request: makeRequest(RECOVERY_PAYLOAD),
+            env: makeEnv({ SITE_URL: 'https://ultrafastfluency.com' }),
+        });
+        expect(res.status).toBe(200);
+        expect(sentEmail(calls).htmlbody).toContain(
+            'redirect_to=https%3A%2F%2Fapp.example%2Freset-password'
+        );
+    });
+
     it('fails loud (500) when the email provider is not configured', async () => {
         const { fetchStub } = installFetch();
         const res = await onRequestPost({
@@ -165,5 +222,27 @@ describe('onRequestPost — auth email hook', () => {
         const incomplete = JSON.stringify({ user: { email: 'a@b.com' } });
         const bad2 = await onRequestPost({ request: makeRequest(incomplete), env: makeEnv() });
         expect(bad2.status).toBe(400);
+    });
+});
+
+describe('redirect wiring (source guard)', () => {
+    const source = readFileSync(path.join(HERE, 'auth-email-hook.js'), 'utf8');
+    const code = source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+
+    it('resolves the redirect target through the pure module instead of forwarding it', () => {
+        expect(code).toContain("from '../../src/modules/user/auth-redirect-logic.js'");
+        expect(code).toContain('resolveAuthEmailRedirectTo({');
+
+        // The resolver is the only reader of GoTrue's raw value.
+        const resolverStart = code.indexOf('resolveAuthEmailRedirectTo({');
+        const resolver = code.slice(resolverStart, code.indexOf('});', resolverStart));
+        expect(resolver).toContain('redirectTo: emailData.redirect_to,');
+        expect(resolver).toContain('siteUrl: env.SITE_URL,');
+
+        // buildAuthEmail gets the resolved target, never the raw one.
+        const callStart = code.indexOf('buildAuthEmail({');
+        const call = code.slice(callStart, code.indexOf('});', callStart));
+        expect(call).toContain('redirectTo,');
+        expect(call).not.toContain('emailData.redirect_to');
     });
 });
