@@ -4,8 +4,11 @@
 // press, and generation resumes once the modal closes (signup/login success or
 // "Not now").
 //
-// Both the signup and login forms are rendered inline (SaveClipsSignupForm /
-// SaveClipsLoginForm) — no navigation away from the success screen.
+// The signup, login and password-recovery forms are all rendered inline
+// (SaveClipsSignupForm / SaveClipsLoginForm / RecoverPasswordForm) — no
+// navigation away from the success screen. That matters for the "Forgot
+// password?" link: closing the dialog would trigger the deferred video
+// generation, so recovery swaps the form in place instead of routing away.
 //
 // The lessonId is captured by the caller (SuccessButtons) into
 // `pendingPublishLessonId` at modal-open time, so it survives the login
@@ -17,6 +20,7 @@ import { trackEvent } from '../../modules/utils/posthog.js';
 import Strings from '../../data/strings.js';
 import SaveClipsSignupForm from './SaveClipsSignupForm.jsx';
 import SaveClipsLoginForm from './SaveClipsLoginForm.jsx';
+import RecoverPasswordForm from '../auth/RecoverPasswordForm.web.jsx';
 
 export default function SaveClipsModal() {
     const isOpen = useStore(appStore, (state) => state.saveClipsModalOpen);
@@ -74,6 +78,11 @@ export default function SaveClipsModal() {
         setMode('signup');
     };
 
+    const handleForgotPasswordLink = () => {
+        trackEvent('publish_clips_modal_action', { action: 'forgot_password' });
+        setMode('recover');
+    };
+
     return (
         <dialog ref={dialogRef} id="saveClipsModal" onClose={handleDialogClose}>
             <div className="modal-dialog modal-dialog-centered">
@@ -97,6 +106,12 @@ export default function SaveClipsModal() {
                                     appStore.getState().setSaveClipsModalOpen(false);
                                 }}
                                 onSignupLink={handleSignupLink}
+                                onForgotPassword={handleForgotPasswordLink}
+                            />
+                        ) : mode === 'recover' ? (
+                            <RecoverPasswordForm
+                                lang={lang}
+                                onBackToLogin={() => setMode('login')}
                             />
                         ) : (
                             <SaveClipsSignupForm

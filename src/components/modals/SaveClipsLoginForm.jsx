@@ -8,7 +8,7 @@ import { appStore } from '../../modules/store/store.js';
 import { useLoginForm } from '../auth/LoginForm.jsx';
 import Strings from '../../data/strings.js';
 
-export default function SaveClipsLoginForm({ onLoginSuccess, onSignupLink }) {
+export default function SaveClipsLoginForm({ onLoginSuccess, onSignupLink, onForgotPassword }) {
     const userData = useStore(appStore, (state) => state.userData);
     const guestNativeLang = useStore(appStore, (state) => state.guestNativeLanguage);
     const storedNativeLang = guestNativeLang || userData?.native_language || 'en';
@@ -71,6 +71,19 @@ export default function SaveClipsLoginForm({ onLoginSuccess, onSignupLink }) {
                         onClick={(e) => { e.preventDefault(); onSignupLink?.(); }}
                     >
                         {Strings.get('auth_sign_up_link', lang)}
+                    </a>
+                </p>
+                {/* Same "Forgot password?" affordance as LoginForm.web.jsx,
+                    styled with the shared `.auth-link` class so it stays
+                    readable on the modal's dark surface. */}
+                <p className="mb-0 mt-2">
+                    <a
+                        href="#"
+                        id="saveClipsForgotPasswordLink"
+                        className="auth-link"
+                        onClick={(e) => { e.preventDefault(); onForgotPassword?.(); }}
+                    >
+                        {Strings.get('auth_forgot_password', lang)}
                     </a>
                 </p>
             </div>

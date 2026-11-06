@@ -1638,6 +1638,9 @@ describe('recorder auto-render — zero server changes', () => {
             'src/components/modals/SaveClipsSignupForm.jsx',
             'src/components/modals/SaveClipsLoginForm.jsx',
             'src/components/modals/SaveClipsModal.web.jsx',
+            // Forgot-password link on the save-clips login form (inline recovery).
+            'src/components/modals/SaveClipsForgotPassword.test.jsx',
+            'src/components/auth/RecoverPasswordForm.web.jsx',
             'src/components/auth/LoginForm.jsx',
             'src/components/profile/UserProfile.jsx',
             'src/data/strings.js',

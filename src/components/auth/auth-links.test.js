@@ -68,6 +68,9 @@ const CASES = [
     ['SignupForm.web.jsx', path.join(HERE, 'SignupForm.web.jsx'), ['auth_log_in_link']],
     ['RecoverPasswordForm.web.jsx', path.join(HERE, 'RecoverPasswordForm.web.jsx'), ['auth_back_to_login']],
     ['SaveClipsSignupForm.jsx', path.join(MODALS_DIR, 'SaveClipsSignupForm.jsx'), ['saveClipsLoginLink']],
+    // The inline login form inside the save-clips dialog carries the same
+    // sign-up and forgot-password links as the main login form.
+    ['SaveClipsLoginForm.jsx', path.join(MODALS_DIR, 'SaveClipsLoginForm.jsx'), ['saveClipsSignupLink', 'saveClipsForgotPasswordLink', 'auth_forgot_password']],
 ];
 
 describe('auth navigation links use the high-contrast auth-link style', () => {
