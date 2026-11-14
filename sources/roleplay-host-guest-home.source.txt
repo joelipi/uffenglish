@@ -1,0 +1,293 @@
+// ===========================================================================
+// FRIEND-course source config — the authoring surface, one layer above the
+// app config. Each pair groups an ASK lesson (a, c, e, ...) with its ANSWER
+// lesson (b, d, f, ...); the app still receives them as separate lessons.
+//
+// Authored here (plain English strings; translations are the translator script's
+// job and live outside this file): course header, per-pair lesson ids/titles,
+// per topic the question variants, the branch labels, and the answer variants,
+// and the optional `intros` scripts (three short course-level opener clips).
+// Nothing else.
+// Everything else is derived — never written here:
+//   step video slugs:   {course}-{askId|ansId}-{step:02}
+//   intro clip slugs:   {course}-intro-{first|respond|ask} (from `intros`)
+//   take slugs:         {video}-{take:02}
+//   UGC clips:          {recorder}-{inviter}-{course}-{lesson}-{step:02}  (share
+//                       codes; recorder first, the code that invited them second —
+//                       the same code twice when self-initiated, e.g. the first
+//                       ask lesson). No "response" marker: the step number is
+//                       already unique within the lesson.
+//   overlay HTML:       rungs template; take N shows rungs 1..N-1 plain,
+//                       rung N filled + bold (the spoken line), rest blank
+//   SRT / cue arrays:   from the phrases in order (timings measured at render)
+//   routing:            each pair's topics run question -> branch -> answers; the
+//                       branch's k-th choice targets the k-th answer group; each
+//                       answer advances past its group (1-4 choices supported)
+//   republish:          the answer lesson replays each topic's question video with
+//                       publishLessonId = the ask lesson id
+//   lesson framing:     every lesson opens straight on content (no intro step);
+//                       recap settings + success step are code-owned per the
+//                       friend-lesson rules (recap = UGC only; overlay shareCta);
+//                       the chain's LAST answer lesson closes with a code-owned
+//                       goodbye block instead of the record phase (there is no
+//                       next question set to record)
+//   response type:      every content step is friendClosedResponse; the branch step
+//                       is the one with choices
+// Within a pair, a topic is written in order: question variants, friend clip +
+// branch labels, then the answer variants — so each topic is self-contained.
+// Media (background, mirror, effect, character, sounds, ...) is pipeline-only:
+// reserved slots, never emitted to the app config. Omitted here until used.
+//
+// The course subject is OFFERING AS A HOST AND ACCEPTING OR REFUSING AS A
+// GUEST. The host offers something to drink — a cup of tea, a cup of coffee, a
+// glass of orange juice, a can of Coke, a glass of lemonade, a bottle of
+// seltzer — and the guest accepts or refuses politely. The lessons are
+// HIGHLY REPETITIVE BY DESIGN: the same offer -> accept/refuse pattern runs at
+// every rung and in every pair, so the learner masters the sentence patterns
+// rather than learning new vocabulary.
+// ===========================================================================
+{
+  "course": "roleplay-host-guest-home",
+  "title": "Roleplay: Host and Guest",
+  "hero": "src/assets/img/roleplayhosthero.jpg",
+  "video_title": "Roleplay: Host and Guest at Home",
+  "mission": "offer things and accept or decline",
+  "tags": ["friends"],
+  "levels": {
+    "A1": {
+      "en": "Do you want X?"
+    },
+    "A2": {
+      "en": "Would you like X?"
+    },
+    "B1": {
+      "en": "Could I get you X?"
+    },
+    "B2": {
+      "en": "Is there any chance you might like X?"
+    }
+  },
+  "rungs": [
+    "A1",
+    "A2",
+    "B1",
+    "B2"
+  ],
+  "intros": {
+    "first": [
+      "Communication skill of this lesson: we are going to role play offering things and accepting or refusing them.",
+      "Scenario: your friend is visiting you at your home.",
+      "You're going to offer your friend something.",
+      "Let's start."
+    ],
+    "respond": [
+      "Communication skill of this lesson: we are going to role play offering things and accepting or refusing them.",
+      "Scenario: you're visiting your friend at their home.",
+      "Your friend is offering you something.",
+      "You have to respond politely: yes or no."
+    ],
+    "ask": [
+      "Scenario: now YOUR FRIEND is visiting YOU at YOUR home.",
+      "You're going to offer your friend something.",
+      "Let's start."
+    ]
+  },
+  "pairs": [
+    {
+      "ask": {
+        "id": "a",
+        "title": "Host and Guest A"
+      },
+      "answer": {
+        "id": "b",
+        "title": "Host and Guest B"
+      },
+      "topics": [
+        {
+          "question": [
+            "Do you want a cup of tea?",
+            "Would you like a cup of tea?",
+            "Could I get you a cup of tea?",
+            "Is there any chance you might like a cup of tea?"
+          ],
+          "choices": [
+            "Yes, please.",
+            "No, thank you."
+          ],
+          "answers": [
+            [
+              "Yes, please.",
+              "Yes, please. I'd like a cup of tea.",
+              "Yes, please. I'd really like a cup of tea right now.",
+              "That would be great, thanks. I could really go for a cup of tea."
+            ],
+            [
+              "No, thank you.",
+              "No, thank you, I don't really feel like tea.",
+              "No, thank you. I don't really feel like having a cup of tea right now.",
+              "Thank you for offering, but I don't really feel like having a cup of tea at the moment."
+            ]
+          ]
+        },
+        {
+          "question": [
+            "Do you want a cup of coffee?",
+            "Would you like a cup of coffee?",
+            "Could I get you a cup of coffee?",
+            "Is there any chance you might like a cup of coffee?"
+          ],
+          "choices": [
+            "Yes, please.",
+            "No, thank you."
+          ],
+          "answers": [
+            [
+              "Yes, please.",
+              "Yes, please. I'd like a cup of coffee.",
+              "Yes, please. I'd really like a cup of coffee right now.",
+              "That would be great, thanks. I could really go for a cup of coffee."
+            ],
+            [
+              "No, thank you.",
+              "No, thank you, I don't really feel like coffee.",
+              "No, thank you. I don't really feel like having a cup of coffee right now.",
+              "Thank you for offering, but I don't really feel like having a cup of coffee at the moment."
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "ask": {
+        "id": "c",
+        "title": "Host and Guest C"
+      },
+      "answer": {
+        "id": "d",
+        "title": "Host and Guest D"
+      },
+      "topics": [
+        {
+          "question": [
+            "Do you want a glass of orange juice?",
+            "Would you like a glass of orange juice?",
+            "Could I get you a glass of orange juice?",
+            "Is there any chance you might like a glass of orange juice?"
+          ],
+          "choices": [
+            "Yes, please.",
+            "No, thank you."
+          ],
+          "answers": [
+            [
+              "Yes, please.",
+              "Yes, please. I'd like a glass of orange juice.",
+              "Yes, please. I'd really like a glass of orange juice right now.",
+              "That would be great, thanks. I could really go for a glass of orange juice."
+            ],
+            [
+              "No, thank you.",
+              "No, thank you, I don't really feel like orange juice.",
+              "No, thank you. I don't really feel like having a glass of orange juice right now.",
+              "Thank you for offering, but I don't really feel like having a glass of orange juice at the moment."
+            ]
+          ]
+        },
+        {
+          "question": [
+            "Do you want a can of Coke?",
+            "Would you like a can of Coke?",
+            "Could I get you a can of Coke?",
+            "Is there any chance you might like a can of Coke?"
+          ],
+          "choices": [
+            "Yes, please.",
+            "No, thank you."
+          ],
+          "answers": [
+            [
+              "Yes, please.",
+              "Yes, please. I'd like a can of Coke.",
+              "Yes, please. I'd really like a can of Coke right now.",
+              "That would be great, thanks. I could really go for a can of Coke."
+            ],
+            [
+              "No, thank you.",
+              "No, thank you, I don't really feel like Coke.",
+              "No, thank you. I don't really feel like having a can of Coke right now.",
+              "Thank you for offering, but I don't really feel like having a can of Coke at the moment."
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "ask": {
+        "id": "e",
+        "title": "Host and Guest E"
+      },
+      "answer": {
+        "id": "f",
+        "title": "Host and Guest F"
+      },
+      "closing": {
+        "id": "g",
+        "title": "Host and Guest G"
+      },
+      "topics": [
+        {
+          "question": [
+            "Do you want a glass of lemonade?",
+            "Would you like a glass of lemonade?",
+            "Could I get you a glass of lemonade?",
+            "Is there any chance you might like a glass of lemonade?"
+          ],
+          "choices": [
+            "Yes, please.",
+            "No, thank you."
+          ],
+          "answers": [
+            [
+              "Yes, please.",
+              "Yes, please. I'd like a glass of lemonade.",
+              "Yes, please. I'd really like a glass of lemonade right now.",
+              "That would be great, thanks. I could really go for a glass of lemonade."
+            ],
+            [
+              "No, thank you.",
+              "No, thank you, I don't really feel like lemonade.",
+              "No, thank you. I don't really feel like having a glass of lemonade right now.",
+              "Thank you for offering, but I don't really feel like having a glass of lemonade at the moment."
+            ]
+          ]
+        },
+        {
+          "question": [
+            "Do you want a bottle of seltzer?",
+            "Would you like a bottle of seltzer?",
+            "Could I get you a bottle of seltzer?",
+            "Is there any chance you might like a bottle of seltzer?"
+          ],
+          "choices": [
+            "Yes, please.",
+            "No, thank you."
+          ],
+          "answers": [
+            [
+              "Yes, please.",
+              "Yes, please. I'd like a bottle of seltzer.",
+              "Yes, please. I'd really like a bottle of seltzer right now.",
+              "That would be great, thanks. I could really go for a bottle of seltzer."
+            ],
+            [
+              "No, thank you.",
+              "No, thank you, I don't really feel like seltzer.",
+              "No, thank you. I don't really feel like having a bottle of seltzer right now.",
+              "Thank you for offering, but I don't really feel like having a bottle of seltzer at the moment."
+            ]
+          ]
+        }
+      ]
+    }
+  ]
+}

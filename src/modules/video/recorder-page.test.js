@@ -1441,6 +1441,11 @@ describe('recorder auto-render — zero server changes', () => {
             'src/components/widgets/MicStatusText.jsx',
             'src/modules/store/store.js',
             'src/modules/store/store.test.js',
+            // Roleplay: Host and Guest — a new authoring course is one
+            // `*.source.txt` plus the master CSV the bridge derives from it
+            // (the recorder's course index follows the sources).
+            'sources/roleplay-host-guest-home.source.txt',
+            'public/roleplay-host-guest-home.master.csv',
             'scripts/generate-overlay-art.py',
             'scripts/generate-twemoji-overlays.mjs',
             'scripts/generate-twemoji-collection.mjs',
